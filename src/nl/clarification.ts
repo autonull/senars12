@@ -1,4 +1,4 @@
-import type { ILMService } from '../lm/interfaces.js';
+import type { ILMService } from '../lm/interfaces';
 import { type ClarificationResult, ClarificationSchema } from './schemas';
 import type { Ambiguity } from './understanding';
 

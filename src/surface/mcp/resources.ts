@@ -2,11 +2,11 @@
  * MCP Resources — generated resources from genome schemas.
  */
 
-import type { MCPResource } from './types.js';
-import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index.js';
-import type { Artifact, ArtifactKind } from '../../admit/repertoire.js';
-import type { Curriculum } from '../../admit/curriculum.js';
-import type { MinedSchema } from '../../mining/schemas.js';
+import type { MCPResource } from './types';
+import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index';
+import type { Artifact, ArtifactKind } from '../../admit/repertoire';
+import type { Curriculum } from '../../admit/curriculum';
+import type { MinedSchema } from '../../mining/schemas';
 
 /** Generated resource registry. */
 export interface GeneratedResourceRegistry {

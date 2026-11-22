@@ -3,10 +3,10 @@ import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
 import { formatDuration } from '@senars/util/format';
 import { stopwatch } from '@senars/util/async';
-import type { ILMService } from '../../lm/interfaces.js';
-import { NLUnderstandingService } from '../../nl/understanding.js';
-import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
-import type { TermTruth } from '../../types/truth.js';
+import type { ILMService } from '../../lm/interfaces';
+import { NLUnderstandingService } from '../../nl/understanding';
+import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles';
+import type { TermTruth } from '../../types/truth';
 
 // --- generate_scenarios ---
 

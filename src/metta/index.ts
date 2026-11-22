@@ -5,21 +5,21 @@
 export {
   Concept,
   ConceptBag,
-} from './core/concept-bag.js';
+} from './core/concept-bag';
 export {
   createConfig,
   type MeTTaConfig,
   presets,
-} from './core/config.js';
+} from './core/config';
 export {
   MeTTaError,
   MeTTaReason,
-} from './core/errors.js';
+} from './core/errors';
 export {
   atomKey,
   equalAtoms,
   hashAtom,
-} from './core/hash.js';
+} from './core/hash';
 export {
   clearOps,
   defineOp,
@@ -27,73 +27,73 @@ export {
   getOp,
   hasOp,
   registerOp,
-} from './core/ops.js';
+} from './core/ops';
 export {
   InMemorySpace,
-} from './core/space.js';
+} from './core/space';
 export {
   Stamp as MettaStamp,
-} from './core/stamp.js';
+} from './core/stamp';
 export {
   EGraph,
   type RewriteRule,
-} from './engine/egraph.js';
+} from './engine/egraph';
 export {
   MettaEngine,
-} from './engine/MettaEngine.js';
+} from './engine/MettaEngine';
 export {
   MeTTaInterpreter,
-} from './engine/interpreter.js';
+} from './engine/interpreter';
 export {
   PatternMatcher,
-} from './engine/match.js';
+} from './engine/match';
 export {
   ReductionPipeline,
-} from './engine/reduce.js';
+} from './engine/reduce';
 export {
   applySubst,
   type Substitution,
   unify,
-} from './engine/unify.js';
+} from './engine/unify';
 export {
   type PersistedSpaceData,
   PersistentSpace,
   type PersistentSpaceOptions,
-} from './extensions/persistent-space.js';
+} from './extensions/persistent-space';
 export type {
   IPCMessage,
-} from './ipc/protocol.js';
+} from './ipc/protocol';
 export {
   deserialize,
   serialize,
-} from './ipc/protocol.js';
+} from './ipc/protocol';
 export {
   SharedMemoryQueue,
-} from './ipc/shared-memory.js';
+} from './ipc/shared-memory';
 export {
   globalJIT,
   JITCompiler,
-} from './performance/jit.js';
+} from './performance/jit';
 export type {
   ParallelOptions,
-} from './performance/parallel.js';
+} from './performance/parallel';
 export {
   parallelMap,
   parallelReduce,
-} from './performance/parallel.js';
+} from './performance/parallel';
 export {
   createMeTTa,
   MeTTaBuilder,
   MeTTaRuntime,
   createMeTTa as createMetta,
-} from './runtime/builder.js';
-export { parseMeTTa, parseMeTTa as parseMetta } from './parser/runtime.js';
+} from './runtime/builder';
+export { parseMeTTa, parseMeTTa as parseMetta } from './parser/runtime';
 export type {
   MeTTaContext,
-} from './runtime/context.js';
+} from './runtime/context';
 export {
   bootstrapStdLib,
-} from './stdlib/index.js';
+} from './stdlib/index';
 export type {
   ExpressionAtom,
   GroundedAtom,
@@ -102,7 +102,7 @@ export type {
   StringAtom,
   SymbolAtom,
   VariableAtom,
-} from './types/ast.js';
+} from './types/ast';
 export {
   AtomKind,
   expr,
@@ -116,7 +116,7 @@ export {
   str,
   sym,
   varr,
-} from './types/ast.js';
+} from './types/ast';
 export {
   composeSubst,
   freshType,
@@ -124,18 +124,18 @@ export {
   resetTypeIds,
   TypeChecker,
   unifyTypes,
-} from './types/inference.js';
+} from './types/inference';
 export type {
   ImmutableSpace,
   MeTTaSpace,
-} from './types/space.js';
+} from './types/space';
 export type {
   Keyword,
   OperationName,
   TypeName,
   ValidateAtomType,
   VariableName,
-} from './types/syntax.js';
+} from './types/syntax';
 export type {
   Subst,
   Type,
@@ -144,7 +144,7 @@ export type {
   TypeFun,
   TypeScheme,
   TypeVar,
-} from './types/type.js';
+} from './types/type';
 export {
   isTypeCon,
   isTypeFun,
@@ -153,6 +153,6 @@ export {
   typecon,
   typefun,
   typevar,
-} from './types/type.js';
+} from './types/type';
 export type { MettaPort } from '@senars/agent';
-export { createMettaPort } from './agent/index.js';
+export { createMettaPort } from './agent/index';

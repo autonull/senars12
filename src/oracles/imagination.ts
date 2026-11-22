@@ -4,12 +4,12 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import { createScenarioGenTools, type ScenarioGenDeps, type ScenarioResult, type ScenarioSpec } from '../tools/adapters/scenario-gen.js';
-import type { ILMService } from '../lm/interfaces.js';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import { createScenarioGenTools, type ScenarioGenDeps, type ScenarioResult, type ScenarioSpec } from '../tools/adapters/scenario-gen';
+import type { ILMService } from '../lm/interfaces';
+import type { EpisodicMemory } from '../memory/EpisodicMemory';
 
 /** Input for generating scenarios. */
 export interface ImaginationGenerateInput extends OracleInput {
@@ -101,7 +101,7 @@ export class ImaginationOracle implements Oracle<
   ): Promise<OracleOutput<{ success: boolean; seed: string; profile: string; scenarios_generated: number; scenarios_executed: number; specs: ScenarioSpec[]; results: ScenarioResult[]; summary: { passed: number; failed: number; avg_reward: number } } | ScenarioResult | string[]>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -175,7 +175,7 @@ export class ImaginationOracle implements Oracle<
         const args = input.args as [ScenarioSpec];
         const [spec] = args;
         if (!this.nar) throw new Error('NAR instance not configured');
-        const { runScenario, calculateScenarioReward, validators } = await import('../tools/adapters/scenario-execute.js');
+        const { runScenario, calculateScenarioReward, validators } = await import('../tools/adapters/scenario-execute');
         const result = await runScenario(this.nar, spec);
         const reward = calculateScenarioReward(result, spec);
         result.criteria_results = validators.reduce(
@@ -225,7 +225,7 @@ export class ImaginationOracle implements Oracle<
       }
 
       case 'imagination.profiles': {
-        const { SCENARIO_PROFILES } = await import('../tools/adapters/scenario-profiles.js');
+        const { SCENARIO_PROFILES } = await import('../tools/adapters/scenario-profiles');
         return [...SCENARIO_PROFILES] as string[];
       }
 
@@ -315,7 +315,7 @@ export function registerImaginationOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

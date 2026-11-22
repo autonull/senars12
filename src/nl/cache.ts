@@ -6,7 +6,7 @@ import { LruCache } from '@senars/util/lru-cache';
 import { overlapCount, tokenizeWords } from '@senars/util/text';
 import { periodic } from '@senars/util/async';
 import { readJsonFileSync, writeJsonFileSync } from '@senars/util/fs';
-import type { TranslationResult as SchemaTranslationResult } from '../lm/rule-templates/schemas.js';
+import type { TranslationResult as SchemaTranslationResult } from '../lm/rule-templates/schemas';
 
 export interface TranslationCacheEntry {
   nl: string;

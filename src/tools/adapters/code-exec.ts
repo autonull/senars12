@@ -4,8 +4,8 @@ import { stopwatch } from '@senars/util/async';
 import { truncateBytes } from '@senars/util/text';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { containsPath } from '../../capability/wasi-sandbox.js';
-import { runProcess } from './proc.js';
+import { containsPath } from '../../capability/wasi-sandbox';
+import { runProcess } from './proc';
 
 export function shellAllowlistFromEnv(env: string | undefined): string[] {
   return (env ?? '')
@@ -103,7 +103,7 @@ function createWasiTool(
         .describe('Timeout in ms'),
     }),
     execute: async ({ wasmPath, args = [], timeout = 30_000 }) => {
-      const { createWasmModuleSandbox } = await import('../../capability/wasi-sandbox.js');
+      const { createWasmModuleSandbox } = await import('../../capability/wasi-sandbox');
       const elapsed = stopwatch();
       try {
         const result = await createWasmModuleSandbox({

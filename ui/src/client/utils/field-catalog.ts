@@ -20,8 +20,8 @@ import type {
   TelemetryMetrics,
   TruthValue,
 } from '@senars/core';
-import type { theme } from './theme.js';
-import { defineCatalog } from '../framework/catalog.js';
+import type { theme } from './theme';
+import { defineCatalog } from '../framework/catalog';
 
 /** The numeric/serialisable shapes a field can take, for input + axis selection. */
 export type FieldKind = 'number' | 'integer' | 'unit' | 'boolean' | 'string' | 'enum';

@@ -1,14 +1,14 @@
-export { createConnectionConfigsFromEnv } from './ConfigFromEnv.js';
+export { createConnectionConfigsFromEnv } from './ConfigFromEnv';
 export {
   bindAgentToConnection,
   createAgentDispatch,
   originExtractor,
   resolveSessionKey,
-} from './ConnectionBinder.js';
+} from './ConnectionBinder';
 export {
   createAuthMiddleware,
   createCommandInterceptor,
   createErrorBoundary,
   createRateLimiter,
   createSessionBinder,
-} from './MiddlewarePipeline.js';
+} from './MiddlewarePipeline';

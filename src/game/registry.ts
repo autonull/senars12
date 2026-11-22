@@ -1,16 +1,16 @@
 import { KeyedRegistry } from '@senars/util/keyed-collection';
 import { SenarsError } from '@senars/errors';
-import type { Game } from './Game.js';
-import { createArithmeticGame } from './impls/ArithmeticGame.js';
-import { createBanditGame } from './impls/BanditGame.js';
-import { createCatchGame } from './impls/CatchGame.js';
-import { createGame2048 } from './impls/Game2048.js';
-import { createGridWorldGame } from './impls/GridWorldGame.js';
-import { createReasoningGame, REASONING_SPECS } from './impls/ReasoningGame.js';
-import { createRPSGame } from './impls/RPSGame.js';
-import { createSnakeGame } from './impls/SnakeGame.js';
-import { createTetrisGame } from './impls/TetrisGame.js';
-import { createTicTacToeGame } from './impls/TicTacToe.js';
+import type { Game } from './Game';
+import { createArithmeticGame } from './impls/ArithmeticGame';
+import { createBanditGame } from './impls/BanditGame';
+import { createCatchGame } from './impls/CatchGame';
+import { createGame2048 } from './impls/Game2048';
+import { createGridWorldGame } from './impls/GridWorldGame';
+import { createReasoningGame, REASONING_SPECS } from './impls/ReasoningGame';
+import { createRPSGame } from './impls/RPSGame';
+import { createSnakeGame } from './impls/SnakeGame';
+import { createTetrisGame } from './impls/TetrisGame';
+import { createTicTacToeGame } from './impls/TicTacToe';
 
 /** A named `Game` factory in the playable-games collection. */
 export interface GameSpec {

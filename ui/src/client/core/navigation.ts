@@ -7,9 +7,9 @@
  * directly and the shell only maps a key to a target.
  */
 
-import { blockLabel } from './block-labels.js';
-import { pageOf, sectionTree } from './sections.js';
-import type { BlockKind, Ref, WorkspaceGraph } from './workspace-graph.js';
+import { blockLabel } from './block-labels';
+import { pageOf, sectionTree } from './sections';
+import type { BlockKind, Ref, WorkspaceGraph } from './workspace-graph';
 
 /** Every block in document order: roots, then each subtree depth-first. */
 export const blockOrder = (graph: WorkspaceGraph): Ref[] =>

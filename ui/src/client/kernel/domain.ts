@@ -3,7 +3,7 @@ export {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   linksTouching,
-} from '../core/workspace-graph.js';
+} from '../core/workspace-graph';
 export type {
   Artifact,
   BlockKind,
@@ -17,8 +17,8 @@ export type {
   Uncertainty,
   WorkspaceGraph,
   WorkspaceOp,
-} from '../core/workspace-graph.js';
-export { diffWorkspaceGraph } from '../core/workspace-diff.js';
+} from '../core/workspace-graph';
+export { diffWorkspaceGraph } from '../core/workspace-diff';
 export {
   blockRefFor,
   derivationsFor,
@@ -29,13 +29,13 @@ export {
   projectReasoning,
   projectWorkspace,
   resolveBlockRef,
-} from '../core/workspace-projection.js';
-export { projectWorkspaceGraph } from '../core/graph-projection.js';
+} from '../core/workspace-projection';
+export { projectWorkspaceGraph } from '../core/graph-projection';
 export type {
   WorkspaceEdgeData,
   WorkspaceNodeData,
   WorkspaceProjection,
-} from '../core/graph-projection.js';
+} from '../core/graph-projection';
 
 // Projector registry + outline
 export {
@@ -52,12 +52,12 @@ export {
   cognitiveEventsProjector,
   derivationRecordsProjector,
   BUILTIN_PROJECTORS,
-} from '../core/projectors.js';
+} from '../core/projectors';
 export type {
   Projector,
   ProjectorContext,
   ProjectorEntry,
-} from '../framework/projector.js';
+} from '../framework/projector';
 
 export {
   outline,
@@ -68,8 +68,8 @@ export {
   navigationForKey,
   isAdmitted,
   admittedRoots,
-} from '../core/outline.js';
+} from '../core/outline';
 export type {
   OutlineProjection,
   OutlineEntry,
-} from '../core/outline.js';
+} from '../core/outline';

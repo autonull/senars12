@@ -1,1 +1,1 @@
-export { eventBus } from '../core/events.js';
+export { eventBus } from '../core/events';

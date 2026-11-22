@@ -1,55 +1,55 @@
-import { Announcer } from './core/announcer.js';
-import { $activeLens, $config, $connectionState, hydrateFromUrl } from './core/store.js';
-import { connect } from './core/ws-client.js';
-import { initAttentionRuntime } from './framework/attention-runtime.js';
+import { Announcer } from './core/announcer';
+import { $activeLens, $config, $connectionState, hydrateFromUrl } from './core/store';
+import { connect } from './core/ws-client';
+import { initAttentionRuntime } from './framework/attention-runtime';
 
 // Phase 0: Design system & primitives
 import './styles/theme.css';
-import './components/primitives/index.js';
-import './components/s-search-panel.js';
-import './components/split-panel.js';
+import './components/primitives/index';
+import './components/s-search-panel';
+import './components/split-panel';
 
 // Phase 1: Feature components
-import './components/app-layout.js';
-import './components/graph-toolbar.js';
-import './components/connection-banner.js';
-import './components/error-boundary.js';
-import './components/graph-viewport.js';
-import './components/input-hud.js';
-import './components/config-hud.js';
-import './components/telemetry-panel.js';
-import './components/contradiction-badge.js';
-import './components/aspect-panel.js';
+import './components/app-layout';
+import './components/graph-toolbar';
+import './components/connection-banner';
+import './components/error-boundary';
+import './components/graph-viewport';
+import './components/input-hud';
+import './components/config-hud';
+import './components/telemetry-panel';
+import './components/contradiction-badge';
+import './components/aspect-panel';
 
 // Phase 1: Instrument components
-import './components/instrument/cycle-controls.js';
-import './components/instrument/trace-viewer.js';
-import './components/instrument/gate-inspector.js';
+import './components/instrument/cycle-controls';
+import './components/instrument/trace-viewer';
+import './components/instrument/gate-inspector';
 
 // Phase 2: Graph interaction components
-import './components/lens-controller.js';
-import './components/node-detail-drawer.js';
-import './components/graph-minimap.js';
+import './components/lens-controller';
+import './components/node-detail-drawer';
+import './components/graph-minimap';
 
 // Phase 4: Chat & Config enhancements
-import './components/chat-history-panel.js';
-import './components/config-profiles.js';
-import './components/lens-designer.js';
+import './components/chat-history-panel';
+import './components/config-profiles';
+import './components/lens-designer';
 
 // Phase 5: Observability
-import './components/cognitive-metrics.js';
+import './components/cognitive-metrics';
 
 // Phase 4: Unified view system
-import './core/view-host.js';
-import './components/views/index.js';
+import './core/view-host';
+import './components/views/index';
 
 // Phase 0.3: Workspace renderers
-import './components/renderers/graph.js';
-import './components/renderers/notebook.js';
-import './components/renderers/graph3d.js';
+import './components/renderers/graph';
+import './components/renderers/notebook';
+import './components/renderers/graph3d';
 
 // Phase 0.2: Live workspace projection
-import { mountWorkspaceProjection } from './core/workspace-bindings.js';
+import { mountWorkspaceProjection } from './core/workspace-bindings';
 
 // Accessibility: live region announcements
 const announcer = Announcer.getInstance();

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { collectSources, resolveSource, type Source } from '../../src/client/core/citations.js';
+import { collectSources, resolveSource, type Source } from '../../src/client/core/citations';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const citation = (id: string, data: Record<string, string>): SemanticBlock => ({
   id,

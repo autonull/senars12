@@ -8,15 +8,15 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { configDigest } from '../../src/config/digest.js';
-import { createEconomyScheduler, type Economy, type EconomyTask, type SchedulerConfig } from '../../src/economy/index.js';
-import { createFacultyRegistry } from '../../src/faculties/specs.js';
-import { createOracleRegistry } from '../../src/oracles/oracle.js';
-import { createEnv, createEnvCore, type Env } from '../../src/kernel/env.js';
-import { createCognitiveLoop, LOOP_EVENTS, type LoopEvent } from '../../src/loop/index.js';
-import { createLogStore } from '../../src/log/store.js';
-import { createOraclePinStore, withOraclePin } from '../../src/oracles/pins.js';
-import { termInterner } from '../../src/kernel/terms/intern.js';
+import { configDigest } from '../../src/config/digest';
+import { createEconomyScheduler, type Economy, type EconomyTask, type SchedulerConfig } from '../../src/economy/index';
+import { createFacultyRegistry } from '../../src/faculties/specs';
+import { createOracleRegistry } from '../../src/oracles/oracle';
+import { createEnv, createEnvCore, type Env } from '../../src/kernel/env';
+import { createCognitiveLoop, LOOP_EVENTS, type LoopEvent } from '../../src/loop/index';
+import { createLogStore } from '../../src/log/store';
+import { createOraclePinStore, withOraclePin } from '../../src/oracles/pins';
+import { termInterner } from '../../src/kernel/terms/intern';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -93,7 +93,7 @@ const replay = async (seed: number, initialTime = 0, logStore?: any, pinStore?: 
 
   // Wire loop events to log if logStore provided
   if (logStore) {
-    const { wireLoopToLog } = await import('../../src/loop/log-adapter.js');
+    const { wireLoopToLog } = await import('../../src/loop/log-adapter');
     wireLoopToLog(loop, { handleEvent: (e: LoopEvent) => logStore.append(e as any) } as any);
   }
 

@@ -1,28 +1,28 @@
-export type { NARSToolDeps, NARSToolsOptions } from './aisdk-adapter.js';
-export { createGeneralTools, createNARSTools } from './aisdk-adapter.js';
-export type { CodeExecDeps } from './code-exec.js';
-export { createCodeExecTools } from './code-exec.js';
-export type { CodemodDeps, CodemodOptions, CodemodResult } from './codemod.js';
-export { createCodemodTools } from './codemod.js';
-export type { CoverageConceptDeps } from './coverage-concept.js';
-export { createCoverageConceptTools } from './coverage-concept.js';
-export type { FileSystemDeps } from './filesystem.js';
-export { createFileSystemTools } from './filesystem.js';
-export type { RagQueryDeps } from './rag-query.js';
-export { createRagQueryTools } from './rag-query.js';
+export type { NARSToolDeps, NARSToolsOptions } from './aisdk-adapter';
+export { createGeneralTools, createNARSTools } from './aisdk-adapter';
+export type { CodeExecDeps } from './code-exec';
+export { createCodeExecTools } from './code-exec';
+export type { CodemodDeps, CodemodOptions, CodemodResult } from './codemod';
+export { createCodemodTools } from './codemod';
+export type { CoverageConceptDeps } from './coverage-concept';
+export { createCoverageConceptTools } from './coverage-concept';
+export type { FileSystemDeps } from './filesystem';
+export { createFileSystemTools } from './filesystem';
+export type { RagQueryDeps } from './rag-query';
+export { createRagQueryTools } from './rag-query';
 export type {
   ScenarioGenDeps,
   ScenarioInjectEvent,
   ScenarioResult,
   ScenarioSpec,
   ScenarioSuccessCriteria,
-} from './scenario-gen.js';
-export { createScenarioGenTools } from './scenario-gen.js';
-export type { SelfToolsDeps } from './self-tools.js';
-export { createSelfTools } from './self-tools.js';
-export type { TestGenDeps } from './test-gen.js';
-export { createTestGenTools } from './test-gen.js';
-export type { TestRunnerDeps } from './test-runner.js';
-export { createTestRunnerTools } from './test-runner.js';
-export type { WebSearchDeps } from './web-search.js';
-export { createWebSearchTools } from './web-search.js';
+} from './scenario-gen';
+export { createScenarioGenTools } from './scenario-gen';
+export type { SelfToolsDeps } from './self-tools';
+export { createSelfTools } from './self-tools';
+export type { TestGenDeps } from './test-gen';
+export { createTestGenTools } from './test-gen';
+export type { TestRunnerDeps } from './test-runner';
+export { createTestRunnerTools } from './test-runner';
+export type { WebSearchDeps } from './web-search';
+export { createWebSearchTools } from './web-search';

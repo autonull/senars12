@@ -1,6 +1,6 @@
-import { jaccard } from '@senars/util/similarity.js';
-import type { Term } from '../types.js';
-import { atomicSymbols, termsEqual } from './accessors.js';
+import { jaccard } from '@senars/util/similarity';
+import type { Term } from '../types';
+import { atomicSymbols, termsEqual } from './accessors';
 
 /**
  * Symbol-bag similarity. The bags are memoized per term, so neither side is

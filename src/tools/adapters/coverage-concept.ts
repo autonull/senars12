@@ -1,8 +1,8 @@
 import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { parseCoverageFiles } from './vitest-json.js';
-import { runVitestJson } from './vitest-run.js';
+import { parseCoverageFiles } from './vitest-json';
+import { runVitestJson } from './vitest-run';
 
 // --- coverage_concepts ---
 
@@ -49,10 +49,10 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
           try {
             // Dynamic imports keep NAR types out of the tool-adapter module graph.
             // @ts-expect-error - dynamic import resolution
-            const { TermBuilder } = await import('../terms/index.js');
+            const { TermBuilder } = await import('../terms/index');
             // @ts-expect-error - dynamic import resolution
-            const { Truth } = await import('../terms/impls/Truth.js');
-            const { createGateRegistry } = await import('../../kernel/index.js');
+            const { Truth } = await import('../terms/impls/Truth');
+            const { createGateRegistry } = await import('../../kernel/index');
             const admit = createGateRegistry().getPerceptionGate();
 
             for (const fc of lowCoverageFiles) {

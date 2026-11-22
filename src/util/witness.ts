@@ -1,4 +1,4 @@
-import { unique } from './collections.js';
+import { unique } from './collections';
 
 /**
  * A source-anchored declaration that a call still lives where a ledger says it does.

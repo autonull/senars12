@@ -10,9 +10,9 @@ import type { LMTask, LMGenerateOptions } from '@senars/utils';
 import { generateText, generateObject, streamText, type LanguageModel } from 'ai';
 import { zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
 
 /** Input for LM generateText. */
 export interface LMGenerateTextInput extends OracleInput {
@@ -109,7 +109,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
     // Charge budget if configured
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -338,7 +338,7 @@ export function registerLMOracles(lmService: LMOracleService, pinStore?: OracleP
   }
 
   // Register with global registry
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

@@ -5,8 +5,8 @@
  * freshly-parsed terms address the same entry.
  */
 
-import { TermCollection } from './term-collection.js';
-import type { Term } from '../types.js';
+import { TermCollection } from './term-collection';
+import type { Term } from '../types';
 
 export class TermSet extends TermCollection<Term> {
   add(term: Term): this {

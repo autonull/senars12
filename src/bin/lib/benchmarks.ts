@@ -6,8 +6,8 @@
  * cost they measured. The data is real (the `rule:applied` events' own `cpuMs`
  * and `duration`), never simulated — D15 keeps `[]` honest and this keeps it useful.
  */
-import { createBotNAR } from '../../agent/index.js';
-import type { NAREventMap } from '../../agent/index.js';
+import { createBotNAR } from '../../agent/index';
+import type { NAREventMap } from '../../agent/index';
 
 /** One ranked group of rule fires, keyed by rule and conclusion. */
 export interface DerivationCost {

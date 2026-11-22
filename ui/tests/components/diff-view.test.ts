@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/views/index.js';
-import { diffLines } from '../../src/client/core/diff.js';
-import { DiffView } from '../../src/client/components/views/diff-view.js';
-import type { DiffDataset } from '../../src/client/core/view-spec.js';
+import '../../src/client/components/views/index';
+import { diffLines } from '../../src/client/core/diff';
+import { DiffView } from '../../src/client/components/views/diff-view';
+import type { DiffDataset } from '../../src/client/core/view-spec';
 
 describe('diffLines', () => {
   it('keeps shared lines and marks the rest as del/add', () => {

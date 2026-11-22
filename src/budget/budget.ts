@@ -16,18 +16,18 @@
  */
 import { clamp, occupancy } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
-import { announceBudgetTrace } from './budget-otel.js';
+import { announceBudgetTrace } from './budget-otel';
 import {
   ALL_RESOURCES,
   BUDGET_RESOURCES,
   type BudgetLimits,
   type BudgetResource,
   type ConsumedBudget,
-} from './budget-resources.js';
-import type { BudgetExhaustedEvent } from '../schemas/cognitive-events.js';
-import type { ReasoningBudget, TerminationReason } from '../schemas/reasoning-budget.js';
-import { zeroConsumed } from '../schemas/reasoning-budget.js';
-import type { BudgetEventMap } from './budget-events.js';
+} from './budget-resources';
+import type { BudgetExhaustedEvent } from '../schemas/cognitive-events';
+import type { ReasoningBudget, TerminationReason } from '../schemas/reasoning-budget';
+import { zeroConsumed } from '../schemas/reasoning-budget';
+import type { BudgetEventMap } from './budget-events';
 import type { EventBus } from '@senars/util';
 
 export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason, BudgetEventMap };
@@ -162,7 +162,7 @@ function announce<K extends keyof BudgetEventMap>(
   announceBudgetTrace(event, payload);
 }
 
-export * from './budget-resources.js';
+export * from './budget-resources';
 
 /**
  * Each dimension's event-level name, re-exported from the schema that owns it —
@@ -173,7 +173,7 @@ export * from './budget-resources.js';
  * zod enum now sit in `schemas/reasoning-budget`, where the consumed keys they
  * name are declared.
  */
-export { BUDGET_TYPES, BudgetTypeSchema } from '../schemas/index.js';
+export { BUDGET_TYPES, BudgetTypeSchema } from '../schemas/index';
 
 /**
  * The four dimensions with their ceilings in one snapshot — the shape every

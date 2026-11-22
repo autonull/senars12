@@ -8,15 +8,15 @@
  * so the type system catches drift (missing entry = type error).
  */
 
-import { defineCatalog, type Catalog, type CatalogDefinition } from './catalog.js';
-import type { WorkspaceFragment } from '../core/workspace-projection.js';
+import { defineCatalog, type Catalog, type CatalogDefinition } from './catalog';
+import type { WorkspaceFragment } from '../core/workspace-projection';
 
 /** Input state available to all projectors. */
 export interface ProjectorContext {
   readonly messages: readonly import('@senars/core').ChatMessage[];
-  readonly backends: readonly import('../core/reasoning-backend.js').ReasoningBackend[];
+  readonly backends: readonly import('../core/reasoning-backend').ReasoningBackend[];
   readonly cognitiveEvents?: readonly import('@senars/core').CognitiveEvent[];
-  readonly workspaceGraph: import('../core/workspace-graph.js').WorkspaceGraph;
+  readonly workspaceGraph: import('../core/workspace-graph').WorkspaceGraph;
 }
 
 /** A projector produces a WorkspaceFragment from the context. */
@@ -76,7 +76,7 @@ export function resetProjectors(): void {
 export function mergeProjectorFragments(
   ctx: ProjectorContext,
   projectors?: readonly Projector[]
-): import('../core/workspace-graph.js').WorkspaceGraph {
+): import('../core/workspace-graph').WorkspaceGraph {
   const projs = projectors ?? getProjectors();
   const fragments = projs.map((p) => p.project(ctx));
   return mergeFragments(fragments);
@@ -85,8 +85,8 @@ export function mergeProjectorFragments(
 /** Merge multiple fragments into one WorkspaceGraph (copy-on-write). */
 export function mergeFragments(
   fragments: readonly WorkspaceFragment[]
-): import('../core/workspace-graph.js').WorkspaceGraph {
-  const { emptyWorkspaceGraph } = require('../core/workspace-graph.js');
+): import('../core/workspace-graph').WorkspaceGraph {
+  const { emptyWorkspaceGraph } = require('../core/workspace-graph');
   const graph = emptyWorkspaceGraph();
   for (const fragment of fragments) {
     for (const block of fragment.blocks) graph.blocks.set(block.id, block);

@@ -1,13 +1,13 @@
-import type { CLICommand } from '../io/index.js';
-import { QUIT_SENTINEL } from '../io/index.js';
-import type { NAR, ExtendedAgent } from '../agent/index.js';
+import type { CLICommand } from '../io/index';
+import { QUIT_SENTINEL } from '../io/index';
+import type { NAR, ExtendedAgent } from '../agent/index';
 import type { LMTask, LMExecutionStats } from '@senars/types/llm';
 import { degrade, errMsg, splitWords, truncate } from '@senars/util';
 import type { ConversationSession, SessionManager } from '@senars/types/memory';
 import { type Flags, parseFlags } from '@senars/util/cli';
 
-export type { CLICommand } from '../io/index.js';
-export { QUIT_SENTINEL } from '../io/index.js';
+export type { CLICommand } from '../io/index';
+export { QUIT_SENTINEL } from '../io/index';
 
 /** Check if output should be JSON (--json flag or non-TTY). */
 export const jsonMode = (args?: string): boolean =>
@@ -18,7 +18,7 @@ import {
   formatBeliefs,
   formatCombinedStats,
   formatConcepts,
-} from './stats-format.js';
+} from './stats-format';
 
 /** CLI command constructor — the single factory for the `.name`/description/execute shape. */
 export const cmd = (

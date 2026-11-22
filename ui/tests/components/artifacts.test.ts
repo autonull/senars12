@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { artifactViewSpec, tableFromColumns } from '../../src/client/core/artifacts.js';
-import type { TableData } from '../../src/client/core/segmentation.js';
+import { artifactViewSpec, tableFromColumns } from '../../src/client/core/artifacts';
+import type { TableData } from '../../src/client/core/segmentation';
 import type {
   CodeDataset,
   DiffDataset,
   TableDataset,
   TextDataset,
-} from '../../src/client/core/view-spec.js';
-import type { SemanticBlock } from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/view-spec';
+import type { SemanticBlock } from '../../src/client/core/workspace-graph';
 
 const block = (over: Partial<SemanticBlock>): SemanticBlock => ({
   id: 'b',

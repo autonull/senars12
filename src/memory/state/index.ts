@@ -1,4 +1,4 @@
-export type { SerializedConcept, SerializedMemory } from './serialization.js';
+export type { SerializedConcept, SerializedMemory } from './serialization';
 export {
   decodeMemoryState,
   deserialize,
@@ -7,6 +7,6 @@ export {
   repair,
   serialize,
   validate,
-} from './serialization.js';
-export type { ConceptStats } from './statistics.js';
-export { calculateConceptStats, storePressure, tallyConcepts } from './statistics.js';
+} from './serialization';
+export type { ConceptStats } from './statistics';
+export { calculateConceptStats, storePressure, tallyConcepts } from './statistics';

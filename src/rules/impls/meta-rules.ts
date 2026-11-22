@@ -24,8 +24,8 @@ import {
   Truth,
   type TruthType,
 } from '../../terms';
-import { operationTerm } from '../../terms/impls/operation-term.js';
-import type { InferenceTable, RegisteredRule } from '../types.js';
+import { operationTerm } from '../../terms/impls/operation-term';
+import type { InferenceTable, RegisteredRule } from '../types';
 
 /** Semantic truth values for meta-rules (moderate confidence) */
 const META_RULE_TRUTH: TruthType = Truth.create(0.6, 0.8);

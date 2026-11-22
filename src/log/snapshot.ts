@@ -8,11 +8,11 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { LogEntry, CognitiveEvent } from './events.js';
-import type { LogStore } from './store.js';
-import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events.js';
-import type { ReplayOptions, Reducer } from './replay.js';
-import { replay } from './replay.js';
+import type { LogEntry, CognitiveEvent } from './events';
+import type { LogStore } from './store';
+import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events';
+import type { ReplayOptions, Reducer } from './replay';
+import { replay } from './replay';
 
 const SNAPSHOT_DIR = 'snapshots';
 const SNAPSHOT_EXT = '.snap';

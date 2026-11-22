@@ -10,13 +10,13 @@
  */
 
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { artifactViewSpec } from '../core/artifacts.js';
-import { payloadOf, type TableData } from '../core/block-payload.js';
-import { resolveSource, type Source } from '../core/citations.js';
-import { eventBus } from '../core/events.js';
-import { tokenizeInline } from '../core/inline-text.js';
-import type { ViewSpec } from '../core/view-spec.js';
-import type { SemanticBlock } from '../core/workspace-graph.js';
+import { artifactViewSpec } from '../core/artifacts';
+import { payloadOf, type TableData } from '../core/block-payload';
+import { resolveSource, type Source } from '../core/citations';
+import { eventBus } from '../core/events';
+import { tokenizeInline } from '../core/inline-text';
+import type { ViewSpec } from '../core/view-spec';
+import type { SemanticBlock } from '../core/workspace-graph';
 
 /** Styles for the body markup below; compose into any host that renders a body. */
 export const blockBodyStyles = css`

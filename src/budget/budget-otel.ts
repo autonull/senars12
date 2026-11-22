@@ -9,15 +9,15 @@
  */
 
 import { keyedBy } from '@senars/util/collections';
-import type { BudgetEventMap } from './budget-events.js';
+import type { BudgetEventMap } from './budget-events';
 import {
   ALL_RESOURCES,
   BUDGET_RESOURCES,
   type BudgetLimits,
   type ConsumedBudget,
   traceDimensions,
-} from './budget-resources.js';
-import { type DomainEventPayload, emitDomainEvent, hasDomainEventSink } from '../agent/event-sink.js';
+} from './budget-resources';
+import { type DomainEventPayload, emitDomainEvent, hasDomainEventSink } from '../agent/event-sink';
 
 /** The bus vocabulary and the trace vocabulary for the same four events. */
 const OTEL_EVENT = {

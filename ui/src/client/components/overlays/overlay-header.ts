@@ -6,10 +6,10 @@
  */
 
 import { css, html, PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { getOverlayManager } from '../../core/overlay-manager.js';
-import { overlayDescriptor } from '../../core/overlay-registry.js';
+import { customElement, property, state } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { getOverlayManager } from '../../core/overlay-manager';
+import { overlayDescriptor } from '../../core/overlay-registry';
 
 export interface OverlayHeaderEvents {
   'header-close': { id: string };

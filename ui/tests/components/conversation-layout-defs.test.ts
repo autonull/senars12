@@ -4,7 +4,7 @@ import {
   CONVERSATION_LAYOUT_IDS,
   conversationLayoutDef,
   conversationLayoutIdsWhere,
-} from '../../src/client/core/conversation-layout.js';
+} from '../../src/client/core/conversation-layout';
 
 const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 

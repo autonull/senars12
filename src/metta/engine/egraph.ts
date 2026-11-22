@@ -1,8 +1,8 @@
 import { assertDefined } from '@senars/util/assert';
 import { minBy } from '@senars/util/collections';
 import { Map as ImmMap, Set as ImmSet } from 'immutable';
-import { atomKey } from '../core/hash.js';
-import type { MeTTaAtom } from '../types/ast.js';
+import { atomKey } from '../core/hash';
+import type { MeTTaAtom } from '../types/ast';
 
 interface EClass {
   readonly id: number;

@@ -5,9 +5,9 @@ import { mean, safeRatio } from '@senars/util/numeric';
 import { rankBy } from '@senars/util/collections';
 
 import type { ModelRuleStats } from '../../../lm';
-import type { SelfHost } from '../../../self/host.js';
-import type { PerformancePatterns } from '../../types.js';
-import { getMemory } from './constants.js';
+import type { SelfHost } from '../../../self/host';
+import type { PerformancePatterns } from '../../types';
+import { getMemory } from './constants';
 
 /** Mean per-rule duration, or 0 when no rule has run. An unmeasured mean is not
  *  a fast mean: every caller thresholds on it, so 0 is the honest answer for

@@ -7,11 +7,11 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import '../telemetry-panel.js';
+import { customElement } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import '../telemetry-panel';
 
 @customElement('s-telemetry')
 export class TelemetryView extends SurfaceComponent {

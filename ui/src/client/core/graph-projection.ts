@@ -8,8 +8,8 @@
  * containment reads as spatial clustering.
  */
 
-import { blockDescriptor } from './block-descriptors.js';
-import type { SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
+import { blockDescriptor } from './block-descriptors';
+import type { SemanticBlock, WorkspaceGraph } from './workspace-graph';
 
 export interface WorkspaceNodeData {
   id: string;

@@ -7,10 +7,10 @@
  */
 
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { $connectionState } from '../../kernel/index.js';
-import { getCompositions, compositionFor, type Composition } from '../../framework/composition.js';
+import { customElement, property, state } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { $connectionState } from '../../kernel/index';
+import { getCompositions, compositionFor, type Composition } from '../../framework/composition';
 
 type ConnectionState = 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'standalone';
 

@@ -6,29 +6,29 @@ import { errMsg } from '@senars/util/error';
 import { envBool } from '@senars/config';
 import type { EventBus as NarEventBus } from '@senars/events';
 import type { CognitiveController } from './cognitive';
-import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites.js';
+import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites';
 import type { DriveManager } from './drives';
-import type { NARConfig } from './facade/config.js';
-import { DECISION_DERIVATIONS_SCOPE } from './kernel/budget-scopes.js';
-import { ControlBudgets } from './kernel/control-budgets.js';
-import type { GateRegistry } from './kernel/GateRegistry.js';
-import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
-import type { MemoryPorts } from './memory/ports/index.js';
-import { askSafely, type DecisionPort } from './ports/index.js';
-import { CycleTrace } from './proposal/cycle-trace.js';
-import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
-import type { CycleStage, TraceRegion } from './proposal/stages.js';
+import type { NARConfig } from './facade/config';
+import { DECISION_DERIVATIONS_SCOPE } from './kernel/budget-scopes';
+import { ControlBudgets } from './kernel/control-budgets';
+import type { GateRegistry } from './kernel/GateRegistry';
+import type { KernelBudgetGate } from './kernel/KernelBudgetGate';
+import type { MemoryPorts } from './memory/ports/index';
+import { askSafely, type DecisionPort } from './ports/index';
+import { CycleTrace } from './proposal/cycle-trace';
+import type { LMProposalProducer } from './proposal/lm-rule-producer';
+import type { CycleStage, TraceRegion } from './proposal/stages';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import {
   type RankableDerivation,
   type RankingOptions,
   rankDerivations,
-} from './rules/impls/ranking.js';
+} from './rules/impls/ranking';
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
 import { isCompound, operationNameOf, type Term, TermSet } from './terms';
-import { Truth } from './terms/impls/Truth.js';
+import { Truth } from './terms/impls/Truth';
 import { type PhaseTimerSummary, summarizeRegions } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';

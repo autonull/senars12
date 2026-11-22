@@ -13,14 +13,14 @@
  */
 
 import { systemOneDefaults } from '@senars/util/config';
-import { createSystemOneBudget } from './lm/system-one/types.js';
-import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
-import type { JudgmentProposition, JudgmentQuery } from './lm/system-one/types.js';
-import { SystemOneRuntime } from './facade/system-one.js';
-import type { NARConfig } from './facade/config.js';
-import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
-import type { SourceReputation } from './kernel/source-reputation.js';
-import type { LMService } from './lm/lm-service.js';
+import { createSystemOneBudget } from './lm/system-one/types';
+import { SystemOneIngressJudge } from './lm/system-one/ingress-judge';
+import type { JudgmentProposition, JudgmentQuery } from './lm/system-one/types';
+import { SystemOneRuntime } from './facade/system-one';
+import type { NARConfig } from './facade/config';
+import type { KernelBudgetGate } from './kernel/KernelBudgetGate';
+import type { SourceReputation } from './kernel/source-reputation';
+import type { LMService } from './lm/lm-service';
 
 export interface SystemOneWiringDeps {
   readonly config: NARConfig;

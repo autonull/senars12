@@ -1,7 +1,7 @@
 import type { LMGenerateOptions, LMService, LMTask } from '@senars/types/llm';
 import type { ZodSchema } from 'zod';
-import type { ProviderSpend } from './service/spend.js';
-import type { getCircuitBreaker } from './providers.js';
+import type { ProviderSpend } from './service/spend';
+import type { getCircuitBreaker } from './providers';
 
 /**
  * Consumer-facing LM contract. Depend on this (not the concrete LMService)

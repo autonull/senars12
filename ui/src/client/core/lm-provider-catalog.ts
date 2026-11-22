@@ -6,7 +6,7 @@
  * and the gallery derive from one source, and a new provider is one entry.
  */
 
-import type { Contribution } from '../framework/contribution.js';
+import type { Contribution } from '../framework/contribution';
 
 /** LM Provider descriptor — extends Contribution with provider-specific fields. */
 export interface LMProviderDescriptor extends Contribution<Record<string, unknown>> {
@@ -78,7 +78,7 @@ export function lmProviderUsable(id: string, browserAvailable: boolean, enginePr
 const BUILTIN_LM_PROVIDERS: LMProviderDescriptor[] = [
   {
     id: 'transformers',
-    label: 'Transformers.js',
+    label: 'Transformers',
     kind: 'browser',
     defaultModel: 'Xenova/llama-2-7b-chat-q4',
     streaming: true,

@@ -1,28 +1,28 @@
 import type { GraphNodeData } from '@senars/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/graph-popover.js';
-import '../../src/client/components/views/tree-view.js';
-import { explainLinkModel } from '../../src/client/core/explain.js';
-import { narsBackend } from '../../src/client/core/nars-backend.js';
+import '../../src/client/components/graph-popover';
+import '../../src/client/components/views/tree-view';
+import { explainLinkModel } from '../../src/client/core/explain';
+import { narsBackend } from '../../src/client/core/nars-backend';
 import {
   $activeRenderer,
   $graphEdges,
   $graphNodes,
   $workspaceGraph,
-} from '../../src/client/core/store.js';
+} from '../../src/client/core/store';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 import {
   claimId,
   linkId,
   linkRefFor,
   projectWorkspace,
-} from '../../src/client/core/workspace-projection.js';
+} from '../../src/client/core/workspace-projection';
 
 /** An engine graph projected into workspace blocks, the way the viewport sees it. */
 const project = (

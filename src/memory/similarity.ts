@@ -1,7 +1,7 @@
 import { selectTopN } from '@senars/util/collections';
 
 import { calculateSimilarity, type Term } from '../terms';
-import type { Concept } from './concept.js';
+import type { Concept } from './concept';
 
 /**
  * The one similarity ranking in memory: the `limit` most similar candidates,

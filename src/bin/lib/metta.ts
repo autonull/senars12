@@ -6,8 +6,8 @@
  * one decision: a single memoized port, because the MeTTa runtime holds spaces
  * and `bootstrapStdLib` mutates a process-global op table.
  */
-import type { MettaPort } from '../../metta/index.js';
-import { createMettaPort } from '../../metta/index.js';
+import type { MettaPort } from '../../metta/index';
+import { createMettaPort } from '../../metta/index';
 
 let port: MettaPort | undefined;
 

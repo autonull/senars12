@@ -6,8 +6,8 @@
  * imports the inbound bindings) out of the façade's dependency path.
  */
 
-import { requestLmProvider } from './lm-provider.js';
-import { send } from './ws-client.js';
+import { requestLmProvider } from './lm-provider';
+import { send } from './ws-client';
 
 /** Ask the engine which provider is live. */
 export const refreshLmStatus = (): void => send({ type: 'lm.status.request' });

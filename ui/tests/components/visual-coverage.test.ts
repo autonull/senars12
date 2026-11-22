@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/index.js';
-import '../../src/client/components/renderers/graph.js';
-import '../../src/client/components/renderers/graph3d.js';
-import '../../src/client/components/renderers/notebook.js';
-import '../../src/client/components/views/index.js';
-import { CONVERSATION_LAYOUT_IDS } from '../../src/client/core/conversation-layout.js';
-import { overlays } from '../../src/client/core/overlay-registry.js';
-import { REASONING_LAYOUT_IDS } from '../../src/client/core/reasoning-layout.js';
-import { $panels } from '../../src/client/core/store.js';
-import { supportedShapes } from '../../src/client/core/view-adapter.js';
-import { workspaceRendererIds } from '../../src/client/core/workspace-renderer.js';
-import { VISUAL_CELLS } from '../visual/matrix.js';
+import '../../src/client/components/overlays/index';
+import '../../src/client/components/renderers/graph';
+import '../../src/client/components/renderers/graph3d';
+import '../../src/client/components/renderers/notebook';
+import '../../src/client/components/views/index';
+import { CONVERSATION_LAYOUT_IDS } from '../../src/client/core/conversation-layout';
+import { overlays } from '../../src/client/core/overlay-registry';
+import { REASONING_LAYOUT_IDS } from '../../src/client/core/reasoning-layout';
+import { $panels } from '../../src/client/core/store';
+import { supportedShapes } from '../../src/client/core/view-adapter';
+import { workspaceRendererIds } from '../../src/client/core/workspace-renderer';
+import { VISUAL_CELLS } from '../visual/matrix';
 
 /**
  * The §P1 coverage contract: every registered surface has a screenshot cell, or

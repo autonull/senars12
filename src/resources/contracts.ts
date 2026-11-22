@@ -22,12 +22,12 @@
  * rule — not that the list is exhaustive.
  */
 
-import { DEFAULT_MEMORY_CONFIG } from '../memory/config.js';
-import { GATE_LOG_CAPACITY } from '../kernel/event-ring.js';
-import { DEFAULT_REPUTATION_CAPACITY } from '../kernel/source-reputation.js';
-import { DEFAULT_QUEUE_LIMITS, PROPOSAL_LOG_CAPACITY } from '../proposal/lifecycle.js';
-import { DEFAULT_QBELIEF_CAPACITY } from '../rl/impls/QBeliefStore.js';
-import { RULE_TABLE_MAX_HISTORY } from '../rules/impls/rule-table.js';
+import { DEFAULT_MEMORY_CONFIG } from '../memory/config';
+import { GATE_LOG_CAPACITY } from '../kernel/event-ring';
+import { DEFAULT_REPUTATION_CAPACITY } from '../kernel/source-reputation';
+import { DEFAULT_QUEUE_LIMITS, PROPOSAL_LOG_CAPACITY } from '../proposal/lifecycle';
+import { DEFAULT_QBELIEF_CAPACITY } from '../rl/impls/QBeliefStore';
+import { RULE_TABLE_MAX_HISTORY } from '../rules/impls/rule-table';
 
 /** Where a bound is *declared*, rather than a copy of it. */
 export interface CapacitySource {

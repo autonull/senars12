@@ -1,12 +1,12 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
 import { withDefaults } from '@senars/util/config';
-import type { ConnectionConfig, ConnectionDeps } from '../types.js';
-import { BaseConnection } from './base.js';
+import type { ConnectionConfig, ConnectionDeps } from '../types';
+import { BaseConnection } from './base';
 
 export interface MCPToolResult {
   content: Array<{ type: string; text: string }>;

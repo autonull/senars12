@@ -1,17 +1,17 @@
 /**
  * NALExtendedRules — consolidated map of extended NAL inference rules.
  */
-import type { RuleFn } from '../types.js';
-import * as classical from './classical.js';
-import * as comparisonExt from './comparison-ext.js';
-import * as composition from './composition.js';
-import * as conversion from './conversion.js';
-import * as deductionExt from './deduction-ext.js';
-import * as equivalence from './equivalence.js';
-import * as temporal from './temporal.js';
-import * as procedural from './procedural.js';
-import * as structural from './structural.js';
-import * as variable from './variable.js';
+import type { RuleFn } from '../types';
+import * as classical from './classical';
+import * as comparisonExt from './comparison-ext';
+import * as composition from './composition';
+import * as conversion from './conversion';
+import * as deductionExt from './deduction-ext';
+import * as equivalence from './equivalence';
+import * as temporal from './temporal';
+import * as procedural from './procedural';
+import * as structural from './structural';
+import * as variable from './variable';
 
 export const NALExtendedRules = {
   ...classical,

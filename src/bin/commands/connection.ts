@@ -2,8 +2,8 @@
 
 import { finiteOr } from '@senars/util/numeric';
 import { attempted, cmd } from '@senars/cli';
-import { flagsOf, tokenize } from './args.js';
-import type { BotRuntime } from './context.js';
+import { flagsOf, tokenize } from './args';
+import type { BotRuntime } from './context';
 
 const HELP = `SeNARS Bot — CLI-first (.help, .quit, or just chat)
 

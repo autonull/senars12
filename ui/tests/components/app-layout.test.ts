@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/app-layout.js';
-import { dispatchCommand } from '../../src/client/core/commands.js';
-import { $selectedEdgeId, $selectedNodeId } from '../../src/client/core/store.js';
+import '../../src/client/components/app-layout';
+import { dispatchCommand } from '../../src/client/core/commands';
+import { $selectedEdgeId, $selectedNodeId } from '../../src/client/core/store';
 
 afterEach(() => {
   document.body.innerHTML = '';

@@ -4,9 +4,9 @@
  */
 
 import { css, html, TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { $cycleState, $cycleCount, $cycleSpeed, setCycleState, stepCycle, rewindCycle, type CycleState } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { customElement, property, state } from 'lit/decorators';
+import { $cycleState, $cycleCount, $cycleSpeed, setCycleState, stepCycle, rewindCycle, type CycleState } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
 
 @customElement('s-cycle-controls')
 export class SCycleControls extends SurfaceComponent {

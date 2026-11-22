@@ -20,7 +20,7 @@
  * changed nothing.
  */
 
-import { LruCache } from './lru-cache.js';
+import { LruCache } from './lru-cache';
 
 /**
  * How to read one term dialect. Implementations are pure and must be cheap —

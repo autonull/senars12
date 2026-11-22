@@ -6,7 +6,7 @@
  * are preserved via the optional layout override on the composition.
  */
 
-import { registerComposition, type Composition, type Globals, type LayoutId } from '../../framework/composition.js';
+import { registerComposition, type Composition, type Globals, type LayoutId } from '../../framework/composition';
 
 /** The global controls every graph-bearing preset starts from. */
 const GRAPH_GLOBALS: Required<Globals> = {

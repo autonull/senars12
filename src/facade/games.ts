@@ -1,20 +1,20 @@
-import { FocusBag } from '../focus/FocusBag.js';
-import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
+import { FocusBag } from '../focus/FocusBag';
+import { GameFocus, type GameFocusOptions } from '../focus/GameFocus';
 import {
   type ConversationAction,
   ConversationGame,
   type ConversationState,
-} from '../game/impls/ConversationGame.js';
-import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
-import { createGateRegistry, type GateRegistry } from '../kernel/index.js';
-import type { ProofMettaProposer } from '../meta/index.js';
-import { ProposalBag } from '../meta/proposal-bag.js';
-import type { Reflex } from '../reflex/Reflex.js';
-import type { NarEventBus, ContradictionEvent, NAREventMap } from '../types/events.js';
+} from '../game/impls/ConversationGame';
+import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/impls/SelfMetaGame';
+import { createGateRegistry, type GateRegistry } from '../kernel/index';
+import type { ProofMettaProposer } from '../meta/index';
+import { ProposalBag } from '../meta/proposal-bag';
+import type { Reflex } from '../reflex/Reflex';
+import type { NarEventBus, ContradictionEvent, NAREventMap } from '../types/events';
 import type { EventBus } from '@senars/util';
-import type { RandomSource } from '../types/primitives.js';
-import type { NARConfig } from './config.js';
-import type { SystemOneRuntime } from './system-one.js';
+import type { RandomSource } from '../types/primitives';
+import type { NARConfig } from './config';
+import type { SystemOneRuntime } from './system-one';
 
 /**
  * Game/attachment registry (extracted from NAR — M2): owns attached GameFocus
@@ -170,4 +170,4 @@ export class GameManager {
 }
 
 /** Prefetch context shape shared by reflex attach points — GameFocus's own type. */
-export type { ReflexPrefetchContext } from '../focus/GameFocus.js';
+export type { ReflexPrefetchContext } from '../focus/GameFocus';

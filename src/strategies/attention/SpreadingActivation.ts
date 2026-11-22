@@ -1,6 +1,6 @@
-import type { Concept } from '../../memory/concept.js';
-import type { AttentionContext } from '../types.js';
-import { SimpleAttention } from './SimpleAttention.js';
+import type { Concept } from '../../memory/concept';
+import type { AttentionContext } from '../types';
+import { SimpleAttention } from './SimpleAttention';
 
 export class SpreadingActivation extends SimpleAttention {
   override readonly metadata = {

@@ -3,9 +3,9 @@
  */
 import type { Term } from '../../terms';
 import { binaryOf, isDisjunction, isNegation, TermBuilder, termsEqual } from '../../terms';
-import { implicationElim } from '../nal/propositional.js';
-import { buildInhRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { implicationElim } from '../nal/propositional';
+import { buildInhRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /**
  * `A==>B, A ⊢ B` — NAL's `implicationElim`, under the name classical logic

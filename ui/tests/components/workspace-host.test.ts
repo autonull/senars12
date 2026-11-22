@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/renderers/notebook.js';
-import '../../src/client/components/workspace-host.js';
-import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../src/client/core/store.js';
+import '../../src/client/components/renderers/notebook';
+import '../../src/client/components/workspace-host';
+import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../src/client/core/store';
 import {
   registerRenderer,
   type RendererSnapshot,
   type WorkspaceContext,
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
-} from '../../src/client/core/workspace-renderer.js';
-import { eventBus } from '../../src/client/core/events.js';
+} from '../../src/client/core/workspace-renderer';
+import { eventBus } from '../../src/client/core/events';
 
 class FakeRenderer implements WorkspaceRenderer {
   readonly id = 'test-fake';

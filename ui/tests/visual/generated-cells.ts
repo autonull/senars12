@@ -3,7 +3,7 @@
  * DO NOT EDIT DIRECTLY — run `pnpm generate:visual-cells` to regenerate.
  * Hand-curated cells in matrix.ts override/extend these.
  */
-import type { VisualCell } from './matrix.js';
+import type { VisualCell } from './matrix';
 
 export const GENERATED_VISUAL_CELLS: VisualCell[] = [
   {

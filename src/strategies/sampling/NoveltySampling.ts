@@ -1,4 +1,4 @@
-import { defineScoredSampling } from './scored.js';
+import { defineScoredSampling } from './scored';
 
 export const NoveltySampling = defineScoredSampling({
   name: 'novelty',

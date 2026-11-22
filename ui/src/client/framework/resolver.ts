@@ -7,21 +7,21 @@
  * The default resolver reads the one WorkspaceGraph, so it costs nothing new.
  */
 
-import { type Neighborhood, neighborhood } from '../core/neighborhood.js';
+import { type Neighborhood, neighborhood } from '../core/neighborhood';
 import type {
   Ref,
   SemanticBlock,
   SemanticLink,
   SemanticLinkKind,
   WorkspaceGraph,
-} from '../core/workspace-graph.js';
-import { type Aspect, type FocusRef, focusRefId } from './coordinates.js';
+} from '../core/workspace-graph';
+import { type Aspect, type FocusRef, focusRefId } from './coordinates';
 import {
   PROVENANCE_LINK_KINDS,
   HISTORY_LINK_KINDS,
   TRACE_LINK_KINDS,
   type SemanticLinkKind as LinkKind,
-} from './link-kinds.js';
+} from './link-kinds';
 
 /** Convert link kind arrays to sets for the linkedBy function. */
 const PROVENANCE_LINKS = new Set(PROVENANCE_LINK_KINDS);

@@ -7,10 +7,10 @@
 import { existsSync, promises as fs, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
-import { BoundedMap } from './bounded-map.js';
-import { collectUpTo, lastByKey, takeFirst } from './collections.js';
-import { errMsg } from './error.js';
-import { utcDate } from './format.js';
+import { BoundedMap } from './bounded-map';
+import { collectUpTo, lastByKey, takeFirst } from './collections';
+import { errMsg } from './error';
+import { utcDate } from './format';
 import {
   ALL_ROWS,
   appendJsonlRow,
@@ -18,7 +18,7 @@ import {
   ensureDirSync,
   readJsonlAsync,
   writeJsonl,
-} from './fs.js';
+} from './fs';
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.

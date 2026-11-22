@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { LENS_FIELDS } from '../../shared/constants.js';
-import type { LensSpec, ModulationSpec } from '../../shared/lens-schema.js';
+import { customElement, state } from 'lit/decorators';
+import { LENS_FIELDS } from '../../shared/constants';
+import type { LensSpec, ModulationSpec } from '../../shared/lens-schema';
 import {
   $activeLens,
   $graphNodes,
@@ -11,18 +11,18 @@ import {
   getItems,
   registerLens,
   send,
-} from '../core/index.js';
-import { compile } from '../modulation/compile.js';
-import { evaluate } from '../modulation/evaluate.js';
-import type { Delta } from '../modulation/types.js';
+} from '../core/index';
+import { compile } from '../modulation/compile';
+import { evaluate } from '../modulation/evaluate';
+import type { Delta } from '../modulation/types';
 import {
   CHANNEL_CATALOG,
   CHANNEL_IDS,
   SCALE_MAP_CATALOG,
   SCALE_MAP_IDS,
   validateLens,
-} from '../utils/lens-catalog.js';
-import { renderField } from '../utils/render-field.js';
+} from '../utils/lens-catalog';
+import { renderField } from '../utils/render-field';
 
 const CHANNEL_OPTIONS = CHANNEL_IDS.map((key) => ({ key, label: CHANNEL_CATALOG[key].label }));
 

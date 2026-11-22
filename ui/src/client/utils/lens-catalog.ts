@@ -15,14 +15,14 @@
  * Now implemented as a Facet catalog (P4 unification).
  */
 
-import type { BuiltinLens, LensSpec } from '../../shared/lens-schema.js';
-import { BUILTIN_LENS_IDS, builtinLensSpecs, LensSpecSchema, type LensSpec as LensSpecType } from '../../shared/lens-schema.js';
-import { LENS_COLORS_HEX, LENS_DESCRIPTIONS, LENS_LABELS } from '../../shared/constants.js';
-import type { Channel } from '../modulation/types.js';
-import { theme } from './theme.js';
-import { CHANNELS } from '../modulation/types.js';
-import { defineCatalog } from '../framework/catalog.js';
-import { defineFacetCatalog, createLensFacet, type FacetDescriptor, facetKeysByKind } from '../framework/facet.js';
+import type { BuiltinLens, LensSpec } from '../../shared/lens-schema';
+import { BUILTIN_LENS_IDS, builtinLensSpecs, LensSpecSchema, type LensSpec as LensSpecType } from '../../shared/lens-schema';
+import { LENS_COLORS_HEX, LENS_DESCRIPTIONS, LENS_LABELS } from '../../shared/constants';
+import type { Channel } from '../modulation/types';
+import { theme } from './theme';
+import { CHANNELS } from '../modulation/types';
+import { defineCatalog } from '../framework/catalog';
+import { defineFacetCatalog, createLensFacet, type FacetDescriptor, facetKeysByKind } from '../framework/facet';
 
 /** Default layout per built-in lens — the one source `$lensLayout` seeds from. */
 export const LENS_DEFAULT_LAYOUTS = {

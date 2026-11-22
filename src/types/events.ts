@@ -1,6 +1,6 @@
-import type { BudgetEventMap } from '../budget/index.js';
-import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '../schemas/index.js';
-import type { TermTruth } from '../util/index.js';
+import type { BudgetEventMap } from '../budget/index';
+import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '../schemas/index';
+import type { TermTruth } from '../util/index';
 import type { Term, Truth } from '../terms';
 
 /**
@@ -313,7 +313,7 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
 
 export type { EventReceiver, EventUnsubscribe } from '../events';
 
-import { EventBus } from '../events/event-bus.js';
+import { EventBus } from '../events/event-bus';
 import type { EventPublisher } from './lifecycle.ts';
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */

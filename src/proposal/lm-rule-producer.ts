@@ -29,24 +29,24 @@
  * outside this producer commits, which is exactly the case the rule is for.
  */
 
-import type { CognitiveEvent } from '@senars/schemas/cognitive-events.js';
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
 import type {
   ContentProposal,
   RuleProposal,
-} from '@senars/schemas/proposal.js';
-import type { RuleDeclaration } from '@senars/schemas/rule-table.js';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal.js';
+} from '@senars/schemas/proposal';
+import type { RuleDeclaration } from '@senars/schemas/rule-table';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal';
 import { SerialQueue } from '@senars/util/async';
-import { createDerivedTask } from '../reason/inference-utils.js';
+import { createDerivedTask } from '../reason/inference-utils';
 import type {
   ModelRuleWork,
   ModelRuleWorkSink,
   RulePromptContext,
   RuleResult,
-} from '../rules/types.js';
-import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner.js';
+} from '../rules/types';
+import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner';
 import type { Task } from '../types';
-import { ProposalLifecycle } from './lifecycle.js';
+import { ProposalLifecycle } from './lifecycle';
 
 /** Applies one staged unit of work. Structurally `RuleProcessor`. */
 export interface ModelRuleWorkApplicator {

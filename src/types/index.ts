@@ -1,11 +1,11 @@
-export type { Source, Stamp } from '../terms/impls/Stamp.js';
-export type { Truth as TruthType } from '../terms/impls/Truth.js';
-export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
-export type { Engine, EngineId } from './engine.js';
-export type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
-export type { ToolResult } from './engine.js';
-export { toolOk, toolError } from './engine.js';
-export type { BaseComponent } from './lifecycle.js';
+export type { Source, Stamp } from '../terms/impls/Stamp';
+export type { Truth as TruthType } from '../terms/impls/Truth';
+export type { AtomicTerm, CompoundTerm, Term } from '../terms/types';
+export type { Engine, EngineId } from './engine';
+export type { CognitiveStimulus, Context, Derivation } from './cognitive';
+export type { ToolResult } from './engine';
+export { toolOk, toolError } from './engine';
+export type { BaseComponent } from './lifecycle';
 export type {
   BaseStats,
   Budget,
@@ -22,7 +22,7 @@ export type {
   TermSymbol,
   Timestamp,
   TruthFilter,
-} from './core.js';
+} from './core';
 export {
   createBeliefTask,
   createTaskWeight,
@@ -33,9 +33,9 @@ export {
   DEFAULT_CONFIG,
   DEPTH_MAX,
   NEUTRAL_BUDGET,
-} from './core.js';
-export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './events.js';
-export { NarEventBus } from './events.js';
+} from './core';
+export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './events';
+export { NarEventBus } from './events';
 
 // Re-export utility types/functions from @senars/util (single source of truth)
 export type {
@@ -62,4 +62,4 @@ export {
   ValidationError,
 } from '@senars/errors';
 
-export { MESSAGE_ROLES, MessageRoleSchema, type MessageRole, HistoryEntrySchema, type HistoryEntry, type ConversationSession, type SessionManager } from './memory.js';
+export { MESSAGE_ROLES, MessageRoleSchema, type MessageRole, HistoryEntrySchema, type HistoryEntry, type ConversationSession, type SessionManager } from './memory';

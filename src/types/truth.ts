@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { unitInterval } from '../config/boundary.js';
-import { clamp, clamp01 } from '../util/numeric.js';
+import { unitInterval } from '../config/boundary';
+import { clamp, clamp01 } from '../util/numeric';
 import {
   WEIGHT_AT_CERTAINTY,
   confidenceToWeight,
   weightToConfidence,
   weakenConfidence,
-} from '../util/truth-algebra.js';
-import { BeliefTruthSchema, TermTruthSchema } from '../util/truth-schema.js';
+} from '../util/truth-algebra';
+import { BeliefTruthSchema, TermTruthSchema } from '../util/truth-schema';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };

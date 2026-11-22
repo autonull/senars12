@@ -1,8 +1,8 @@
 import { ambientRng, type RandomSource, weightedSample } from '@senars/util/random';
 
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
-import type { SamplingStrategy } from '../types.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
+import type { SamplingStrategy } from '../types';
 
 export interface WindowedRouletteConfig {
   windowSize?: number;

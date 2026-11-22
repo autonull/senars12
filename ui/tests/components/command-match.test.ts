@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { matchCommands } from '../../src/client/core/command-match.js';
-import type { Command } from '../../src/client/core/commands.js';
+import { matchCommands } from '../../src/client/core/command-match';
+import type { Command } from '../../src/client/core/commands';
 
 const command = (id: string, title: string, group = 'View', keywords = ''): Command => ({
   id,

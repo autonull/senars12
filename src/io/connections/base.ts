@@ -3,16 +3,16 @@ import { errMsg, toError } from '@senars/util/error';
 import { generateId } from '@senars/util/id';
 import { SerialLanes } from '@senars/util/async';
 import { Signal } from '@senars/events/signal';
-import { withRetry } from '@senars/util/retry.js';
+import { withRetry } from '@senars/util/retry';
 import { withDefaults } from '@senars/config';
-import type { Logger } from '@senars/util/logger.js';
+import type { Logger } from '@senars/util/logger';
 import type {
   Connection,
   ConnectionConfig,
   ConnectionDeps,
   ConnectionState,
   IOMessage,
-} from '../types.js';
+} from '../types';
 
 /** The transport-agnostic name a connection carries when configured without one. */
 const CONNECTION_NAME = { name: 'Connection' } as const;

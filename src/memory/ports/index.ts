@@ -17,13 +17,13 @@
 export type {
   ConceptReader,
   ConceptWriter,
-} from './concept-ports.js';
+} from './concept-ports';
 
 export type {
   TaskAdmission,
   BeliefTable,
   GoalEnumeration,
-} from './task-ports.js';
+} from './task-ports';
 
 export type {
   StoreBounds,
@@ -33,16 +33,16 @@ export type {
   SymbolIndex,
   LinkPort,
   MemoryClock,
-} from './memory-ports.js';
+} from './memory-ports';
 
-export type { AttentionOwner } from './attention-ports.js';
+export type { AttentionOwner } from './attention-ports';
 
-import type { ConceptReader, ConceptWriter } from './concept-ports.js';
-import type { TaskAdmission, BeliefTable, GoalEnumeration } from './task-ports.js';
-import type { AttentionOwner } from './attention-ports.js';
-import type { StatisticsView, SymbolIndex, LinkPort, MemoryClock } from './memory-ports.js';
-import type { ConceptGraph } from '../ConceptGraph.js';
-import type { MemoryView } from '../view.js';
+import type { ConceptReader, ConceptWriter } from './concept-ports';
+import type { TaskAdmission, BeliefTable, GoalEnumeration } from './task-ports';
+import type { AttentionOwner } from './attention-ports';
+import type { StatisticsView, SymbolIndex, LinkPort, MemoryClock } from './memory-ports';
+import type { ConceptGraph } from '../ConceptGraph';
+import type { MemoryView } from '../view';
 
 /**
  * What a consumer reads. One owner per quantity: concepts here, task admission

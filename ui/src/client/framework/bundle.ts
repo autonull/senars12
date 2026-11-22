@@ -10,26 +10,26 @@
  * `applyBundle(bundle)` registers everything. `defineApp` = bundle + shell + default surface.
  */
 
-import type { Contribution } from './contribution.js';
-import type { Catalog, CatalogDefinition, CatalogEntry } from './catalog.js';
-import type { SurfaceDescriptor } from './surface.js';
-import type { ViewAdapter } from '../core/view-adapter.js';
-import type { FacetDescriptor, FacetKind } from './facet.js';
-import type { IntentDescriptor } from './intent.js';
-import type { Projector } from './projector.js';
-import type { ProtocolEntry } from './protocol.js';
-import type { ReasoningBackend } from '../kernel/backends.js';
-import type { CapabilityDescriptor } from '../core/capabilities.js';
+import type { Contribution } from './contribution';
+import type { Catalog, CatalogDefinition, CatalogEntry } from './catalog';
+import type { SurfaceDescriptor } from './surface';
+import type { ViewAdapter } from '../core/view-adapter';
+import type { FacetDescriptor, FacetKind } from './facet';
+import type { IntentDescriptor } from './intent';
+import type { Projector } from './projector';
+import type { ProtocolEntry } from './protocol';
+import type { ReasoningBackend } from '../kernel/backends';
+import type { CapabilityDescriptor } from '../core/capabilities';
 
-import { registerSurface } from './surface.js';
-import { registerViewAdapter } from '../core/view-adapter.js';
-import { registerFacet } from './facet.js';
-import { registerIntent } from './intent.js';
-import { registerProjector } from './projector.js';
-import { registerProtocol } from './protocol.js';
-import { registerBackend } from '../kernel/backends.js';
-import { registerCapability } from '../core/capabilities.js';
-import { registerConfigField } from '../core/config-catalog.js';
+import { registerSurface } from './surface';
+import { registerViewAdapter } from '../core/view-adapter';
+import { registerFacet } from './facet';
+import { registerIntent } from './intent';
+import { registerProjector } from './projector';
+import { registerProtocol } from './protocol';
+import { registerBackend } from '../kernel/backends';
+import { registerCapability } from '../core/capabilities';
+import { registerConfigField } from '../core/config-catalog';
 
 /** The kind of contribution in a bundle. */
 export type BundleContributionKind =

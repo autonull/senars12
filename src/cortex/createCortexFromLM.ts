@@ -1,6 +1,6 @@
 import type { LMService } from '@senars/types/llm';
-import { ModelRunner } from '../agent/ModelRunner.js';
-import { LLMCortex, type PromptBuilder } from './LLMCortex.js';
+import { ModelRunner } from '../agent/ModelRunner';
+import { LLMCortex, type PromptBuilder } from './LLMCortex';
 
 /** LMService satisfies ModelProvider structurally (LMTask ≡ ModelTier) — one LM execution path. */
 export function createCortexFromLM(

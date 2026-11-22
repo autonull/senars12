@@ -1,7 +1,7 @@
-import { createGateRegistry } from '../kernel/index.js';
-import { GameFocus } from './GameFocus.js';
-import type { Game } from '../game/Game.js';
-import type { Reflex } from '../reflex/Reflex.js';
+import { createGateRegistry } from '../kernel/index';
+import { GameFocus } from './GameFocus';
+import type { Game } from '../game/Game';
+import type { Reflex } from '../reflex/Reflex';
 
 /**
  * P1 (N1): same-run NAL A/B — paired rule/no-rule episodes at the same seed;

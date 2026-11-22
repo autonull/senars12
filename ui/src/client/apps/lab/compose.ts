@@ -7,9 +7,9 @@
  * URL, so a composition is a shareable page — and the catalogue presets are just
  * named points in it. New widgets/layouts are data, not code.
  */
-import type { Variant } from './variants.js';
-import type { LayoutId } from '../../framework/composition.js';
-import { AREA_LETTERS, layoutTemplate } from '../../framework/layout.js';
+import type { Variant } from './variants';
+import type { LayoutId } from '../../framework/composition';
+import { AREA_LETTERS, layoutTemplate } from '../../framework/layout';
 
 export type { LayoutId };
 export { layoutTemplate };

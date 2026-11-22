@@ -1,10 +1,10 @@
 import { toolOk } from '@senars/types/engine';
-import { type Term, TermBuilder } from '../../../index.js';
-import type { NAR } from '../../../nar.js';
-import { operationTerm } from '../../../terms/impls/operation-term.js';
-import type { RandomSource } from '../../../types/primitives.js';
-import type { QBeliefStore } from '../QBeliefStore.js';
-import { RewardBeliefAdapter } from '../RewardBeliefAdapter.js';
+import { type Term, TermBuilder } from '../../../index';
+import type { NAR } from '../../../nar';
+import { operationTerm } from '../../../terms/impls/operation-term';
+import type { RandomSource } from '../../../types/primitives';
+import type { QBeliefStore } from '../QBeliefStore';
+import { RewardBeliefAdapter } from '../RewardBeliefAdapter';
 import {
   BanditSelector,
   GoalActionAdapter,
@@ -12,8 +12,8 @@ import {
   type NativeActionSelector,
   NonStationarySelector,
   type RLAction,
-} from './action.js';
-import { BeliefPerceptionAdapter, type RLObservation } from './perception.js';
+} from './action';
+import { BeliefPerceptionAdapter, type RLObservation } from './perception';
 
 /**
  * Unified native SeNARS agent for RL parity experiments

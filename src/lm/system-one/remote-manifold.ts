@@ -1,5 +1,5 @@
 import { boundedFetch } from '@senars/util/async';
-import { endpointPath } from '../providers/probe.js';
+import { endpointPath } from '../providers/probe';
 import type {
   BackendId,
   ConsensusResult,
@@ -10,7 +10,7 @@ import type {
   JudgmentQuery,
   ManifoldHealth,
   ReasoningBudget,
-} from './types.js';
+} from './types';
 
 export interface RemoteManifoldOptions {
   backendId: BackendId;

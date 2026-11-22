@@ -10,8 +10,8 @@
  */
 
 import type { CognitiveEvent } from '@senars/core';
-import type { Shape } from '../core/view-spec.js';
-import { defineCatalog } from '../framework/catalog.js';
+import type { Shape } from '../core/view-spec';
+import { defineCatalog } from '../framework/catalog';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
 export const EVENT_CATEGORIES = [

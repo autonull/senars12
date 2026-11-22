@@ -5,9 +5,9 @@
  * unified LogStore instead of separate JSONL files.
  */
 
-import type { LogStore } from '../../../../src/log/store.js';
-import type { CognitiveEvent } from '../../../../src/log/events.js';
-import type { DerivationRecorder } from '../../../../nar/src/rules/impls/recorder.js';
+import type { LogStore } from '../../../../src/log/store';
+import type { CognitiveEvent } from '../../../../src/log/events';
+import type { DerivationRecorder } from '../../../../nar/src/rules/impls/recorder';
 import { createLogger } from '@senars/utils';
 
 export interface DerivationLedgerOptions {

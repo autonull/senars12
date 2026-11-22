@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
-import { estimateTokens } from '../../shared/index.js';
+import { customElement, state } from 'lit/decorators';
+import { classMap } from 'lit/directives/class-map';
+import { estimateTokens } from '../../shared/index';
 import {
   $capabilities,
   $graphNodes,
@@ -21,9 +21,9 @@ import {
   narsBackend,
   registerCommand,
   send,
-} from '../core/index.js';
-import { perceivePrompt, applyPerceivedPrompt, type FormalizationCandidate } from '../framework/prompt-perception.js';
-import { focusRefId } from '../framework/coordinates.js';
+} from '../core/index';
+import { perceivePrompt, applyPerceivedPrompt, type FormalizationCandidate } from '../framework/prompt-perception';
+import { focusRefId } from '../framework/coordinates';
 
 interface SlashCommand {
   id: string;

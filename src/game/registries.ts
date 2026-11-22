@@ -1,6 +1,6 @@
 import { KeyedRegistry } from '@senars/util/keyed-collection';
 import { assertDefined } from '@senars/util/assert';
-import type { CognitionAction, CognitionContext, Reward, Sensor } from './types.js';
+import type { CognitionAction, CognitionContext, Reward, Sensor } from './types';
 
 /**
  * C1: component registries. Named, seeded, addressable; games compose specs

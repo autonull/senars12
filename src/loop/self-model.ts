@@ -4,10 +4,10 @@
  * Maintains a continuously updated model for meta-reasoning and self-improvement.
  */
 
-import type { Task, TaskType, TimestampMs } from '../kernel/types.js';
-import type { Truth } from '../kernel/truth.js';
-import type { LoopAppraisal } from './appraise.js';
-import type { Clock } from '../kernel/env.js';
+import type { Task, TaskType, TimestampMs } from '../kernel/types';
+import type { Truth } from '../kernel/truth';
+import type { LoopAppraisal } from './appraise';
+import type { Clock } from '../kernel/env';
 
 /** Self-model aspects. */
 export const SELF_MODEL_ASPECTS = [

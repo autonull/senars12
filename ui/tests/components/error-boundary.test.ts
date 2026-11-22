@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '../../src/client/components/error-boundary.js';
+import '../../src/client/components/error-boundary';
 import {
   BudgetExhaustedError,
   CommandError,
@@ -15,8 +15,8 @@ import {
   UnknownError,
   createError,
   type UiError,
-} from '../../src/client/core/error-taxonomy.js';
-import { eventBus } from '../../src/client/core/events.js';
+} from '../../src/client/core/error-taxonomy';
+import { eventBus } from '../../src/client/core/events';
 
 const SAMPLES: UiError[] = [
   new ConnectionError(),

@@ -57,11 +57,11 @@ import {
   createProtocolEntry,
   type MessageDirection,
   type ProtocolCatalog,
-} from '../framework/protocol.js';
-import { applyServerMessage } from './store-bindings.js';
+} from '../framework/protocol';
+import { applyServerMessage } from './store-bindings';
 
-export type { ServerHandlerContext } from '../framework/protocol.js';
-export type { ProtocolCatalog } from '../framework/protocol.js';
+export type { ServerHandlerContext } from '../framework/protocol';
+export type { ProtocolCatalog } from '../framework/protocol';
 
 /** A protocol message stripped of any handler: type, direction, schema, label. */
 export interface ProtocolSpec {

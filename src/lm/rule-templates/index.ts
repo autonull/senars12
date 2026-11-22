@@ -11,13 +11,13 @@
 
 
 import { assertDefined } from '@senars/util/assert';
-import { beliefRules } from './belief-rules.js';
-import type { LMRuleDefinition } from './definition.js';
-import { goalRules } from './goal-rules.js';
-import { metaRules } from './meta-rules.js';
-import { questionRules } from './question-rules.js';
+import { beliefRules } from './belief-rules';
+import type { LMRuleDefinition } from './definition';
+import { goalRules } from './goal-rules';
+import { metaRules } from './meta-rules';
+import { questionRules } from './question-rules';
 
-export type { LMRuleDefinition } from './definition.js';
+export type { LMRuleDefinition } from './definition';
 
 export const ruleDefs: LMRuleDefinition[] = [
   ...beliefRules,

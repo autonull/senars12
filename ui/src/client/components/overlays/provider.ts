@@ -8,14 +8,14 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { Announcer } from '../../core/announcer.js';
-import { eventBus } from '../../core/events.js';
-import { $lmProvider, providerLabel, providerUsable } from '../../core/lm-provider.js';
-import { refreshLmStatus, switchLmProvider } from '../../core/lm-transport.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import { $webllmActive, $webllmAvailable } from '../../core/store.js';
+import { customElement } from 'lit/decorators';
+import { Announcer } from '../../core/announcer';
+import { eventBus } from '../../core/events';
+import { $lmProvider, providerLabel, providerUsable } from '../../core/lm-provider';
+import { refreshLmStatus, switchLmProvider } from '../../core/lm-transport';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import { $webllmActive, $webllmAvailable } from '../../core/store';
 
 @customElement('s-provider')
 export class ProviderView extends SurfaceComponent {

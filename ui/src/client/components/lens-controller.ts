@@ -1,8 +1,8 @@
 import type { Lens } from '@senars/core';
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, $graphNodes, BaseComponent, send } from '../core/index.js';
-import { type LensEntry, PRIMARY_LENSES } from '../utils/lens-catalog.js';
+import { customElement, state } from 'lit/decorators';
+import { $activeLens, $graphNodes, BaseComponent, send } from '../core/index';
+import { type LensEntry, PRIMARY_LENSES } from '../utils/lens-catalog';
 
 @customElement('lens-controller')
 export class LensController extends BaseComponent {

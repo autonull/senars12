@@ -30,9 +30,9 @@ import {
   getLlamaInstance,
   isGpuBackend,
   isLoaded,
-} from '../runtime/llama-runtime.js';
-import { grammarScope } from './llamacpp.js';
-import { getLMSettings } from './settings.js';
+} from '../runtime/llama-runtime';
+import { grammarScope } from './llamacpp';
+import { getLMSettings } from './settings';
 import type { LMTask } from '@senars/util';
 
 function extractSystemPrompt(prompt: LanguageModelV3CallOptions['prompt']): string | undefined {
@@ -127,7 +127,7 @@ export async function ensureRuntimeLoaded(): Promise<void> {
   if (!modelPath) {
     throw new Error('LM_LLAMACPP_MODEL not set. Run `pnpm exec tsx scripts/fetch-model.ts` first.');
   }
-  const { loadModel } = await import('../runtime/llama-runtime.js');
+  const { loadModel } = await import('../runtime/llama-runtime');
   await loadModel({
     modelPath,
     gpu: settings.llamacppGpu,

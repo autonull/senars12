@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '../../src/client/components/overlays/artifact.js';
-import '../../src/client/components/views/table-mini-view.js';
-import '../../src/client/components/views/table-view.js';
-import '../../src/client/components/views/text-view.js';
-import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store.js';
+import '../../src/client/components/overlays/artifact';
+import '../../src/client/components/views/table-mini-view';
+import '../../src/client/components/views/table-view';
+import '../../src/client/components/views/text-view';
+import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
-import '../../src/client/core/view-host.js';
+} from '../../src/client/core/workspace-graph';
+import '../../src/client/core/view-host';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

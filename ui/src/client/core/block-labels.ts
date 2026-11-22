@@ -4,8 +4,8 @@
  * the notebook, ToC, inspector and gallery agree without each spelling a table.
  */
 
-import { blockDescriptor } from './block-descriptors.js';
-import type { SemanticBlock } from './workspace-graph.js';
+import { blockDescriptor } from './block-descriptors';
+import type { SemanticBlock } from './workspace-graph';
 
 /** The one human label for a block: heading text > title > first non-blank line > kind. */
 export function blockLabel(block: SemanticBlock): string {

@@ -4,8 +4,8 @@
  * Detects symmetries in formulas and models to reduce search space.
  */
 
-import { Term, ConstantTerm, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Formula, Atom, Model, Permutation, SymmetryGroup, isAtom, isQuantified, isCompound } from './ast.js';
+import { Term, ConstantTerm, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Formula, Atom, Model, Permutation, SymmetryGroup, isAtom, isQuantified, isCompound } from './ast';
 
 /** Symmetry detection configuration. */
 export interface SymmetryConfig {

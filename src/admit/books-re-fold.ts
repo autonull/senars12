@@ -5,13 +5,13 @@
  * reasoning and sharing. They re-fold through the lifecycle gates.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from './repertoire.js';
-import type { Book, BookEntry, BookMetadata } from './book.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
-import { createPolicyEngine, type PolicyEngine, type PolicyEvaluation } from './policies.js';
-import { createProjectionEngine, type ProjectionEngine, type ProjectionRule } from './projections.js';
-import { createAdmissionMachinery, type AdmissionMachinery, type AdmissionProposal } from './admission-machinery.js';
+import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from './repertoire';
+import type { Book, BookEntry, BookMetadata } from './book';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import { createPolicyEngine, type PolicyEngine, type PolicyEvaluation } from './policies';
+import { createProjectionEngine, type ProjectionEngine, type ProjectionRule } from './projections';
+import { createAdmissionMachinery, type AdmissionMachinery, type AdmissionProposal } from './admission-machinery';
 
 /** Re-fold configuration. */
 export interface RefoldConfig {
@@ -128,7 +128,7 @@ export class BookLifecycleManager {
       // 3. Create book if enabled
       let book: Book | undefined;
       if (this.config.autoBookOnAdmit && admittedArtifacts.length > 0) {
-        const { createBookBuilder } = await import('./book.js');
+        const { createBookBuilder } = await import('./book');
         const builder = createBookBuilder(this.clock, this.rng)
           .setMetadata({
             title: metadata.title ?? `Book ${this.clock.now()}`,
@@ -193,7 +193,7 @@ export class BookLifecycleManager {
   ): Promise<Book> {
     const admittedArtifacts = artifacts.filter(a => a.status === 'admitted');
 
-    const { createBookBuilder } = await import('./book.js');
+    const { createBookBuilder } = await import('./book');
     const builder = createBookBuilder(this.clock, this.rng)
       .setMetadata({
         title,
@@ -239,7 +239,7 @@ export class BookLifecycleManager {
     const denied = evaluations.some(e => e.action === 'deny');
     if (denied) return null;
 
-    const { createBookLibrary } = await import('./book.js');
+    const { createBookLibrary } = await import('./book');
     const library = createBookLibrary(this.clock, this.rng);
     library.addBook(parentBook);
 
@@ -251,7 +251,7 @@ export class BookLifecycleManager {
     const errors: string[] = [];
 
     // Verify book hash
-    const { createBookLibrary } = await import('./book.js');
+    const { createBookLibrary } = await import('./book');
     const library = createBookLibrary(this.clock, this.rng);
     library.addBook(book);
     const hashCheck = library.verifyBook(book.metadata.id);
@@ -317,9 +317,9 @@ export function createDefaultRefoldConfig(
 ): RefoldConfig {
   const policyEngine = createPolicyEngine();
   const projectionEngine = createProjectionEngine();
-  const { ShadowWorktreeManager } = require('../tools/adapters/shadow-worktree.js');
-  const { DefaultExternalRunner, DefaultHumanApproval, createAdmissionMachinery } = require('./admission-machinery.js');
-  const { createDefaultClock } = require('../kernel/env.js');
+  const { ShadowWorktreeManager } = require('../tools/adapters/shadow-worktree');
+  const { DefaultExternalRunner, DefaultHumanApproval, createAdmissionMachinery } = require('./admission-machinery');
+  const { createDefaultClock } = require('../kernel/env');
 
   const clock = createDefaultClock();
   const shadowMgr = new ShadowWorktreeManager(workspaceRoot);
@@ -334,7 +334,7 @@ export function createDefaultRefoldConfig(
   });
 
   // Register default policies
-  const { DEFAULT_FACULTY_POLICIES, DEFAULT_PROFILE_POLICIES, DEFAULT_ORACLE_POLICIES } = require('./policies.js');
+  const { DEFAULT_FACULTY_POLICIES, DEFAULT_PROFILE_POLICIES, DEFAULT_ORACLE_POLICIES } = require('./policies');
   for (const policy of DEFAULT_FACULTY_POLICIES) {
     policyEngine.registerFacultyPolicy(policy);
   }

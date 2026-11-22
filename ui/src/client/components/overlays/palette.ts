@@ -7,13 +7,13 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { dispatchCommand, paletteCommands, type Command } from '../../core/commands.js';
-import { recentCommandIds } from '../../core/command-history.js';
-import { matchCommands } from '../../core/command-match.js';
-import { eventBus } from '../../core/events.js';
-import { $activeRenderer } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { customElement, state } from 'lit/decorators';
+import { dispatchCommand, paletteCommands, type Command } from '../../core/commands';
+import { recentCommandIds } from '../../core/command-history';
+import { matchCommands } from '../../core/command-match';
+import { eventBus } from '../../core/events';
+import { $activeRenderer } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
 
 interface Row {
   readonly command: Command;

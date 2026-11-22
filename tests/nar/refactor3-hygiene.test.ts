@@ -30,7 +30,7 @@ describe('Bench 91 — test hygiene & monolith paydown (REFACTOR.todo3 Phase A)'
   it('M2 budget holds: nar.ts under 970 LOC with facade extraction live (Phase E adds ProofMettaProposer + GovernanceResolver wiring)', () => {
     expect(loc(join(NAR_DIR, 'nar.ts'))).toBeLessThan(970);
     const nar = readFileSync(join(NAR_DIR, 'nar.ts'), 'utf-8');
-    expect(nar).toContain("from './facade/index.js'");
+    expect(nar).toContain("from './facade/index'");
     expect(readFileSync(join(NAR_DIR, 'facade/index.ts'), 'utf-8')).toContain('initializeLMRules');
   });
 

@@ -12,7 +12,7 @@ import { flooredRatio } from '@senars/util/numeric';
 import { maxScore, minScore, removeBy } from '@senars/util/collections';
 import { weightedMean } from '@senars/util/stats';
 import { pct } from '@senars/util/format';
-import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace.js';
+import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace';
 
 export interface PhaseEntry {
   readonly region: TraceRegion;

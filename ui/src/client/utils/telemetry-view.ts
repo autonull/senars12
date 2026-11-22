@@ -5,10 +5,10 @@
  * ranges, colors and formatting beside each renderer (DRY).
  */
 
-import type { TelemetryData } from '../core/store.js';
-import type { SeriesDatum, TableDataset } from '../core/view-spec.js';
-import { fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS, type FieldEntry } from './field-catalog.js';
-import { theme } from './theme.js';
+import type { TelemetryData } from '../core/store';
+import type { SeriesDatum, TableDataset } from '../core/view-spec';
+import { fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS, type FieldEntry } from './field-catalog';
+import { theme } from './theme';
 
 export type TelemetryRange = '1m' | '5m' | '15m' | '1h';
 

@@ -6,10 +6,10 @@
  */
 
 import { css, html, type TemplateResult } from 'lit';
-import { state } from 'lit/decorators.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { eventBus } from '../../core/events.js';
-import { $activeLens, $activeRenderer, $lensLayout } from '../../core/store.js';
+import { state } from 'lit/decorators';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { eventBus } from '../../core/events';
+import { $activeLens, $activeRenderer, $lensLayout } from '../../core/store';
 
 class DisplayPopoverBase extends SurfaceComponent {
   static override styles = css`
@@ -149,7 +149,7 @@ class DisplayPopoverBase extends SurfaceComponent {
   }
 
   private applyPreset = async (presetId: 'ask' | 'explore' | 'read' | 'plan'): Promise<void> => {
-    const { getPreset, applyPreset } = await import('../../utils/view-presets.js');
+    const { getPreset, applyPreset } = await import('../../utils/view-presets');
     const preset = getPreset(presetId);
     applyPreset(preset);
   };

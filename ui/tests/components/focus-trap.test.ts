@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FocusTrap } from '../../src/client/core/focus-trap.js';
+import { FocusTrap } from '../../src/client/core/focus-trap';
 
 const shadowHost = (markup: string): HTMLElement => {
   const host = document.createElement('div');

@@ -8,7 +8,7 @@ export {
   NativeSenarsAgent,
   NonStationaryNativeAgent,
   NonStationarySelector,
-} from './impls/adapters/index.js';
+} from './impls/adapters/index';
 export type {
   BeliefPerceptionAdapterConfig,
   GoalActionAdapterConfig,
@@ -16,25 +16,25 @@ export type {
   NativeSenarsAgentConfig,
   RLAction,
   RLObservation,
-} from './impls/adapters/index.js';
+} from './impls/adapters/index';
 export {
   DEFAULT_QBELIEF_CAPACITY,
   QBeliefStore,
   decodeQExpectation,
-} from './impls/QBeliefStore.js';
-export type { QBeliefStoreOptions } from './impls/QBeliefStore.js';
-export { rewardBeliefTerm, rewardLevel } from './impls/reward-term.js';
-export type { RewardLevel } from './impls/reward-term.js';
-export { RewardBeliefAdapter } from './impls/RewardBeliefAdapter.js';
-export type { RewardBeliefAdapterConfig, RewardHistoryEntry } from './impls/RewardBeliefAdapter.js';
-export { RLParityHarness } from './impls/RLParityHarness.js';
-export type { ParityMetrics, RLParityHarnessConfig } from './impls/RLParityHarness.js';
+} from './impls/QBeliefStore';
+export type { QBeliefStoreOptions } from './impls/QBeliefStore';
+export { rewardBeliefTerm, rewardLevel } from './impls/reward-term';
+export type { RewardLevel } from './impls/reward-term';
+export { RewardBeliefAdapter } from './impls/RewardBeliefAdapter';
+export type { RewardBeliefAdapterConfig, RewardHistoryEntry } from './impls/RewardBeliefAdapter';
+export { RLParityHarness } from './impls/RLParityHarness';
+export type { ParityMetrics, RLParityHarnessConfig } from './impls/RLParityHarness';
 export {
   DEFAULT_ACCEPTANCE,
   PARITY_ACCEPTANCE,
   PER_SEED_RATIO_FLOOR,
   computeSeedPassRate,
   meetsParityAcceptance,
-} from './parity-acceptance.js';
-export type { SeedRatio } from './parity-acceptance.js';
-export type { EpisodeGame } from './types.js';
+} from './parity-acceptance';
+export type { SeedRatio } from './parity-acceptance';
+export type { EpisodeGame } from './types';

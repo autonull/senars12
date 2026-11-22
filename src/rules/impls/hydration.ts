@@ -1,7 +1,7 @@
 import type { DerivationRecord } from '@senars/schemas';
-import type { TaskAdmission } from '../../memory/ports/index.js';
-import type { Term } from '../../terms/index.js';
-import { Truth, termParser } from '../../terms/index.js';
+import type { TaskAdmission } from '../../memory/ports/index';
+import type { Term } from '../../terms/index';
+import { Truth, termParser } from '../../terms/index';
 
 export interface HydrationResult {
   applied: number;

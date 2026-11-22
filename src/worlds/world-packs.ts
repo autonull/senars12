@@ -7,11 +7,11 @@
  * Evaluator checks FOL pre/post with Axiomatic module directly.
  */
 
-import type { HabitatConfig, HabitatPack, HabitatId, HabitatKind } from './habitat.js';
-import { createHabitatPack } from './habitat.js';
-import type { EvaluationCertificate, EvaluationFold } from './scorecard.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
+import type { HabitatConfig, HabitatPack, HabitatId, HabitatKind } from './habitat';
+import { createHabitatPack } from './habitat';
+import type { EvaluationCertificate, EvaluationFold } from './scorecard';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
 
 /** World profile types. */
 export type WorldProfile = 'world' | 'probe' | 'curriculum' | 'attention';

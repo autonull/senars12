@@ -1,17 +1,17 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { diffDelta, evaluate } from '../../src/client/modulation/evaluate.js';
-import { compile } from '../../src/client/modulation/compile.js';
-import { getMemoCache, resetMemoCache } from '../../src/client/modulation/memo.js';
+import { diffDelta, evaluate } from '../../src/client/modulation/evaluate';
+import { compile } from '../../src/client/modulation/compile';
+import { getMemoCache, resetMemoCache } from '../../src/client/modulation/memo';
 import {
   compose,
   evaluateModulation,
   field,
   konst,
   when,
-} from '../../src/client/modulation/operators.js';
-import type { Channel, Delta, Item, Modulation, View } from '../../src/client/modulation/types.js';
-import { checkUnsupportedChannels } from '../../src/client/spacegraph/adapter-3d.js';
+} from '../../src/client/modulation/operators';
+import type { Channel, Delta, Item, Modulation, View } from '../../src/client/modulation/types';
+import { checkUnsupportedChannels } from '../../src/client/spacegraph/adapter-3d';
 
 const defaultView: View = {
   flags: { reducedMotion: false, highContrast: false, prefersColorScheme: 'dark' },

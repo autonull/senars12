@@ -260,8 +260,8 @@ export const ${typeName}Schema = ${this.zodToString(zodSchema)};
  * Log codec for ${schema.name}
  * Auto-generated from genome schema: ${schema.id}
  */
-import { ${typeName}Schema } from './${schema.id}.types.js';
-import type { ${typeName} } from './${schema.id}.types.js';
+import { ${typeName}Schema } from './${schema.id}.types';
+import type { ${typeName} } from './${schema.id}.types';
 import type { LogEvent, LogCodec } from '@senars/log';
 
 export const ${typeName}LogCodec: LogCodec<${typeName}> = {
@@ -299,8 +299,8 @@ export const ${typeName}LogCodec: LogCodec<${typeName}> = {
  * Auto-generated from genome schema: ${schema.id}
  */
 import { MCPTool, MCPToolResult } from '@senars/mcp';
-import { ${typeName}Schema } from './${schema.id}.types.js';
-import type { ${typeName} } from './${schema.id}.types.js';
+import { ${typeName}Schema } from './${schema.id}.types';
+import type { ${typeName} } from './${schema.id}.types';
 
 export const ${typeName}MCPTool: MCPTool = {
   name: '${config.name}',
@@ -451,8 +451,8 @@ export async function ${config.handler}(input: ${typeName}): Promise<unknown> {
  */
 import { describe, it, expect } from 'vitest';
 import { fc } from '@fast-check/vitest';
-import { ${typeName}Schema } from './${schema.id}.types.js';
-import type { ${typeName} } from './${schema.id}.types.js';
+import { ${typeName}Schema } from './${schema.id}.types';
+import type { ${typeName} } from './${schema.id}.types';
 
 describe('Fuzzer: ${schema.name}', () => {
   it('should parse valid generated data', () => {

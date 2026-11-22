@@ -4,11 +4,11 @@
  */
 
 import { css, html, nothing, TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { $cognitiveEvents } from '../../core/store.js';
+import { customElement, property, state } from 'lit/decorators';
+import { $cognitiveEvents } from '../../core/store';
 import { type CognitiveEvent } from '@senars/core';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import '../primitives/icon.js';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import '../primitives/icon';
 
 type GateKind = 'perception' | 'action' | 'reward' | 'budget';
 

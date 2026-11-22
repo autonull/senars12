@@ -2,9 +2,9 @@
  * Term validation - detect tautologies, contradictions, and invalid task terms
  */
 
-import { getPredicate, getSubject, termsEqual, walkTerms } from './accessors.js';
-import type { Term } from '../types.js';
-import { isBoolAtom } from './intern.js';
+import { getPredicate, getSubject, termsEqual, walkTerms } from './accessors';
+import type { Term } from '../types';
+import { isBoolAtom } from './intern';
 
 const INVALID_TASK_SYMBOLS = new Set(['TRUE', 'FALSE', 'NULL']);
 

@@ -3,8 +3,8 @@ import { clamp01 } from '@senars/util/numeric';
 import { errMsg } from '@senars/util/error';
 import { writeJsonFile } from '@senars/util/fs';
 import { OperationError } from '../types';
-import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import { extractTrajectoryFeatures } from './utils.js';
+import type { TrajectoryStep } from './ReasoningTrajectoryLogger';
+import { extractTrajectoryFeatures } from './utils';
 
 export interface PreferenceData {
   trajectoryA: TrajectoryStep[];

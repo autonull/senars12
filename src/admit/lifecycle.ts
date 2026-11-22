@@ -5,12 +5,12 @@
  * widen their own admission boundary.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent, AdmissionEventType } from './repertoire.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Stamp } from '../kernel/types.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent, AdmissionEventType } from './repertoire';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Stamp } from '../kernel/types';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Lifecycle phase. */
 export const LIFECYCLE_PHASES = [

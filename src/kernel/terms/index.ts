@@ -2,8 +2,8 @@
  * Kernel Terms — barrel export.
  */
 
-export * from './term.js';
-export * from './intern.js';
-export * from './canonical.js';
-export * from './unify.js';
-export * from './codec/narsese.js';
+export * from './term';
+export * from './intern';
+export * from './canonical';
+export * from './unify';
+export * from './codec/narsese';

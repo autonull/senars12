@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/index.js';
-import '../../src/client/components/renderers/graph.js';
-import '../../src/client/components/renderers/graph3d.js';
-import '../../src/client/components/renderers/notebook.js';
-import '../../src/client/components/views/index.js';
-import '../../src/client/components/workspace-hud.js';
-import '../../src/client/core/view-host.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { $lmProvider } from '../../src/client/core/lm-provider.js';
-import { $activeRenderer, $graphLayer, $graphNodes, $telemetry } from '../../src/client/core/store.js';
-import { setCapability } from '../../src/client/core/capabilities.js';
+import '../../src/client/components/overlays/index';
+import '../../src/client/components/renderers/graph';
+import '../../src/client/components/renderers/graph3d';
+import '../../src/client/components/renderers/notebook';
+import '../../src/client/components/views/index';
+import '../../src/client/components/workspace-hud';
+import '../../src/client/core/view-host';
+import { eventBus } from '../../src/client/core/events';
+import { $lmProvider } from '../../src/client/core/lm-provider';
+import { $activeRenderer, $graphLayer, $graphNodes, $telemetry } from '../../src/client/core/store';
+import { setCapability } from '../../src/client/core/capabilities';
 
 const UNKNOWN_PROVIDER = { id: 'unknown', available: false, providers: [] } as const;
 

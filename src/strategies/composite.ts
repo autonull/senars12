@@ -5,8 +5,8 @@
  * Each concrete composite defines how to combine results from its members.
  */
 
-import { selectTopN } from '../util/collections.js';
-import type { Term } from '../terms/index.js';
+import { selectTopN } from '../util/collections';
+import type { Term } from '../terms/index';
 
 /** Common interface for any composable unit. */
 export interface Composable<TInput, TOutput> {

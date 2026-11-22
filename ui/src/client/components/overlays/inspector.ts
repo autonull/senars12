@@ -7,13 +7,13 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { $selectedEdgeId, $selectedNodeId } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import '../node-detail-drawer.js';
-import '../overlays/overlay-header.js';
+import { customElement } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { $selectedEdgeId, $selectedNodeId } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import '../node-detail-drawer';
+import '../overlays/overlay-header';
 
 @customElement('s-inspector')
 export class InspectorView extends SurfaceComponent {

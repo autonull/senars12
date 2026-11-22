@@ -1,8 +1,8 @@
 import { getOrInsert } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
-import { type EmbeddingGenerator } from '../../memory/embedding.js';
-import { resolveEmbeddingGenerator } from '../embedding-runtime.js';
-import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';
+import { type EmbeddingGenerator } from '../../memory/embedding';
+import { resolveEmbeddingGenerator } from '../embedding-runtime';
+import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types';
 
 /** One width's recycled buffers. A slot is reusable only at its own width, so a
  *  model swap does not silently reinterpret another model's vectors. */

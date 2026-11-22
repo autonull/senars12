@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { scoreDistributionSchema } from '../../decision/types.js';
+import { scoreDistributionSchema } from '../../decision/types';
 
 /**
  * TODO17 D1: the community System One wire shape (`{state, questions}` —

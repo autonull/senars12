@@ -6,11 +6,11 @@ import { sortBy, takeFirst } from '@senars/util/collections';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
-import { DigestMismatchError } from '../../lm/system-one/wasi-runtime.js';
-import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
+import { DigestMismatchError } from '../../lm/system-one/wasi-runtime';
+import type { EpisodicMemory } from '../../memory/EpisodicMemory';
 import type { Episode } from '@senars/types/episodic-memory';
-import type { ReadOnlyLookup } from '@senars/util/collections.js';
-import type { BeliefTruth } from '@senars/types/truth.js';
+import type { ReadOnlyLookup } from '@senars/util/collections';
+import type { BeliefTruth } from '@senars/types/truth';
 import {
   type CausalChainEdge,
   type CorrectionAnalysis,
@@ -18,7 +18,7 @@ import {
   type Lesson,
   type ReactionKind,
   type Retrospective,
-} from '../types.js';
+} from '../types';
 
 const RETROSPECTIVE_DIR = cachePath('retrospectives');
 
@@ -118,7 +118,7 @@ export async function retrospect(
     minTurns?: number;
     minReactions?: number;
     /** Phase C (REFACTOR.todo2): cross-memory context lookup around the session window. */
-    memoryQuery?: import('../../query/memory-query.js').MemoryQuery;
+    memoryQuery?: import('../../query/memory-query').MemoryQuery;
   } = {}
 ): Promise<Retrospective> {
   // Phase D (REFACTOR.todo1): indexed path — O(matches) via the sessionId

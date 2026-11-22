@@ -1,4 +1,4 @@
-import { errMsg } from '../util/error.js';
+import { errMsg } from '../util/error';
 
 /**
  * The codes a `SenarsError` can carry. Every member is thrown somewhere: a code here

@@ -6,18 +6,18 @@ import {
   type StrategySlotParams,
   sameStrategies,
 } from '../../config/cognitive-parameters';
-import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';
-import type { MemoryPorts } from '../../memory/ports/index.js';
+import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets';
+import type { MemoryPorts } from '../../memory/ports';
 import type { Strategy } from '../../reason';
 import { InferenceController } from '../../reason/inference-controller';
 import type { RLFPLearner } from '../../rlfp';
 import type { RuleProcessor } from '../../rules';
 import type { DerivationStrategy, ModelRuleSelector, SamplingStrategy } from '../../strategies';
-import type { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
+import type { RuleGraph } from '../../strategies/lm-graph/RuleGraph';
 import type { StrategySpec, StrategyType } from '../../strategies/registration';
-import type { AttentionModel } from '../../strategies/types.js';
+import type { AttentionModel } from '../../strategies/types';
 import type { Task } from '../../types';
-import type { CognitiveRegistry } from './CognitiveRegistry.js';
+import type { CognitiveRegistry } from './CognitiveRegistry';
 
 export class CognitiveController {
   private currentParams: CognitiveParameters;

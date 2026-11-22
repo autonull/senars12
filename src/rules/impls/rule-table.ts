@@ -38,7 +38,7 @@ export const RULE_TABLE_MAX_HISTORY = 50;
  * body it names.
  */
 
-import type { CognitiveEvent } from '@senars/schemas/cognitive-events.js';
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
 import type {
   RuleArtifactEntry,
   RuleDeclaration,
@@ -46,19 +46,19 @@ import type {
   RuleTableDiff,
   RuleTableFault,
   RuleTableRejection,
-} from '@senars/schemas/rule-table.js';
+} from '@senars/schemas/rule-table';
 import {
   BUILTIN_RULE_ARTIFACT_VERSION,
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
-} from '@senars/schemas/rule-table.js';
+} from '@senars/schemas/rule-table';
 import { indexBy, maxScore, pushCapped } from '@senars/util/collections';
 import { SenarsError } from '@senars/errors';
 
 import { type Term, Truth } from '../../terms';
-import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types.js';
-import { createRulePattern } from '../types.js';
-import { RuleIndex } from './RuleIndex.js';
+import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types';
+import { createRulePattern } from '../types';
+import { RuleIndex } from './RuleIndex';
 
 export type RuleLoadFault = RuleTableFault;
 

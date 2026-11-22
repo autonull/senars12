@@ -5,10 +5,10 @@
  * are the only utility arithmetic.
  */
 
-import type { EconomyTask, TaskUtility, TaskVoI, Successor, Overlay, SchedulerConfig } from './types.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Clock } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { EconomyTask, TaskUtility, TaskVoI, Successor, Overlay, SchedulerConfig } from './types';
+import type { Truth } from '../kernel/truth';
+import type { Clock } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Utility weights for different task kinds. */
 export const KIND_UTILITY_WEIGHTS: Record<string, number> = {

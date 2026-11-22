@@ -3,9 +3,9 @@
  * implication deduction (distinct from their NAL core counterparts).
  */
 import { binaryOf, TermBuilder, termsEqual } from '../../terms';
-import { analogy, exemplification } from '../nal/comparison.js';
-import { buildBinaryInhRule, buildImplicationPairRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { analogy, exemplification } from '../nal/comparison';
+import { buildBinaryInhRule, buildImplicationPairRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 export { analogy, exemplification };
 

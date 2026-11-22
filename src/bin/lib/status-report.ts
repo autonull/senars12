@@ -33,9 +33,9 @@ import { formatBytes } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
 import { pct } from '@senars/util/format';
 import { loadConfig } from '@senars/config';
-import { renderReport } from '../commands/args.js';
+import { renderReport } from '../commands/args';
 import { systemOneDefaults, systemOneSchema } from '@senars/config/schema';
-import { mettaPort } from './metta.js';
+import { mettaPort } from './metta';
 
 const logger = createLogger({ scope: 'status' });
 

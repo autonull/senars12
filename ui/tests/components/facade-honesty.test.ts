@@ -6,12 +6,12 @@ import {
   executeToolCall,
   registerTool,
   rejectCurrent,
-} from '../../src/client/core/tool-registry.js';
-import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
-import { activeCommands, paletteCommands } from '../../src/client/core/commands.js';
-import { setCapability } from '../../src/client/core/capabilities.js';
+} from '../../src/client/core/tool-registry';
+import { overlayDescriptor } from '../../src/client/core/overlay-registry';
+import { activeCommands, paletteCommands } from '../../src/client/core/commands';
+import { setCapability } from '../../src/client/core/capabilities';
 // Registering the overlay modules is what the palette derives from.
-import '../../src/client/components/overlays/index.js';
+import '../../src/client/components/overlays/index';
 
 const gated = (name: string, executed: unknown[]) =>
   registerTool({

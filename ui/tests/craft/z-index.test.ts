@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated.js';
+import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated';
 
 const Z_INDEX_LAYERS = [
   { key: 'zIndex.layers.base', order: 0 },

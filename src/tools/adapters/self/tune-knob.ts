@@ -1,7 +1,7 @@
 import { safeRatio } from '@senars/util/numeric';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { applyAndValidate, type SelfToolsContext, unavailable } from './context.js';
+import { applyAndValidate, type SelfToolsContext, unavailable } from './context';
 
 export const tuneKnobTool = (ctx: SelfToolsContext) => {
   const { deps } = ctx;

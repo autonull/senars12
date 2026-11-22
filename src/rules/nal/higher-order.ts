@@ -1,6 +1,6 @@
 import { TermBuilder, termsEqual } from '../../terms';
-import { buildImplicationPairRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { buildImplicationPairRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /** `A==>B, B==>C ⊢ A==>C` */
 export const higherOrderDeduction: RuleFn = buildImplicationPairRule(([a1, c1], [a2, c2]) =>

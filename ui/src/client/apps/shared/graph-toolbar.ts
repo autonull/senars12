@@ -4,8 +4,8 @@
  * Used by apps that need standard graph controls.
  */
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
+import { customElement, property, state } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
 import {
   $activeLens,
   $activeRenderer,
@@ -13,12 +13,12 @@ import {
   $graphLayer,
   setActiveRenderer,
   setAspect,
-} from '../../kernel/index.js';
-import { LENS_FACETS } from '../../utils/lens-catalog.js';
-import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
-import { FILTER_FACETS } from '../../core/filter-facets.js';
-import { ASPECTS, ASPECT_LABELS, ASPECT_ICONS } from '../../framework/coordinates.js';
-import './toolbar-select.js';
+} from '../../kernel/index';
+import { LENS_FACETS } from '../../utils/lens-catalog';
+import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs';
+import { FILTER_FACETS } from '../../core/filter-facets';
+import { ASPECTS, ASPECT_LABELS, ASPECT_ICONS } from '../../framework/coordinates';
+import './toolbar-select';
 
 export interface GraphToolbarConfig {
   showLens?: boolean;

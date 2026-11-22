@@ -1,4 +1,4 @@
-import { computeEvidenceId, type JudgmentDataset } from './distill.js';
+import { computeEvidenceId, type JudgmentDataset } from './distill';
 
 export interface ReflexOutcomeInput {
   stateDigest: string;

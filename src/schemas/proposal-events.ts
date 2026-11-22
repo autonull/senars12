@@ -8,15 +8,15 @@
  */
 
 import { z } from 'zod';
-import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
+import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base';
 import {
   nonEmpty,
   nonNegativeInt,
   positiveInt,
   validatorFor,
 } from '../config';
-import { RuleDeclarationSchema } from './rule-table.js';
-import { RulePatternSchema } from './common.js';
+import { RuleDeclarationSchema } from './rule-table';
+import { RulePatternSchema } from './common';
 
 /** What a proposal is about. The two kinds have separate payloads, not a flag. */
 export const PROPOSAL_KINDS = ['content', 'rule'] as const;

@@ -4,10 +4,10 @@
  * Provides design-by-contract verification for loop iterations.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task } from '../kernel/types.js';
-import type { Clock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task } from '../kernel/types';
+import type { Clock } from '../kernel/env';
 
 /** Contract types. */
 export const CONTRACT_TYPES = [
@@ -749,7 +749,7 @@ export async function defaultViolationHandler(
 
   // Trigger repair loop for critical violations
   if (result.severity === 'critical') {
-    const { repairLoop } = await import('./repair.js');
+    const { repairLoop } = await import('./repair');
     // Would trigger repair loop tick with current context
   }
 }

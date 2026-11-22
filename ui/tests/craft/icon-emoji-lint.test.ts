@@ -66,7 +66,7 @@ describe('craft: icon/emoji lint', () => {
 
   it('icon registry has all required icons for chrome', async () => {
     // This test ensures the icon registry is the single source of truth
-    const { ICONS } = await import('../../src/client/utils/icon-registry.js');
+    const { ICONS } = await import('../../src/client/utils/icon-registry');
     const iconNames = Object.keys(ICONS);
 
     // Core chrome icons that should exist

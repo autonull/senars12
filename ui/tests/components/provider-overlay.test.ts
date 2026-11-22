@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { $lmProvider } from '../../src/client/core/lm-provider.js';
-import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
-import { $webllmAvailable } from '../../src/client/core/store.js';
-import '../../src/client/components/overlays/provider.js';
+import { $lmProvider } from '../../src/client/core/lm-provider';
+import { overlayDescriptor } from '../../src/client/core/overlay-registry';
+import { $webllmAvailable } from '../../src/client/core/store';
+import '../../src/client/components/overlays/provider';
 
 const providers = [
   { id: 'mock', label: 'Mock (no model)', kind: 'engine' },

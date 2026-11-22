@@ -7,8 +7,8 @@ import { BoundedMap } from '@senars/util/bounded-map';
 import { collectUpTo, selectTopN } from '@senars/util/collections';
 import { retain } from '@senars/util/numeric';
 import { systemClock, type Clock } from '@senars/util/clock';
-import type { Term } from '../terms/index.js';
-import { atom, getArgs, termKey } from '../terms/index.js';
+import type { Term } from '../terms/index';
+import { atom, getArgs, termKey } from '../terms/index';
 
 interface ConceptNode {
   term: Term;

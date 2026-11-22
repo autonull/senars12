@@ -1,4 +1,4 @@
-export { createMettaPort } from './port.js';
-export { MettaEngine } from '../engine/MettaEngine.js';
-export type { LlmCommand, ParsedCommand } from './MettaCommandParser.js';
-export { LLM_COMMANDS, MettaCommandParser } from './MettaCommandParser.js';
+export { createMettaPort } from './port';
+export { MettaEngine } from '../engine/MettaEngine';
+export type { LlmCommand, ParsedCommand } from './MettaCommandParser';
+export { LLM_COMMANDS, MettaCommandParser } from './MettaCommandParser';

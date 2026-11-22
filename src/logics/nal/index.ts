@@ -2,5 +2,5 @@
  * NAL — barrel export.
  */
 
-export * from './rules.js';
-export * from './temporal.js';
+export * from './rules';
+export * from './temporal';

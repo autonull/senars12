@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
-import { state } from 'lit/decorators.js';
-import { $graphFilter, $graphNodes, defineSurface, SurfaceComponent } from '../core/index.js';
+import { state } from 'lit/decorators';
+import { $graphFilter, $graphNodes, defineSurface, SurfaceComponent } from '../core/index';
 
 export class ContradictionBadge extends SurfaceComponent {
   static override styles = css`

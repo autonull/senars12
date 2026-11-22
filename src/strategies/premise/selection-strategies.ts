@@ -1,15 +1,15 @@
 import { createLogger } from '@senars/util/logger';
-import type { MemoryView } from '../../memory/view.js';
+import type { MemoryView } from '../../memory/view';
 import { createStrategy } from '../../reason/strategies/base';
 import type { Task } from '../../types';
-import type { ComponentMetadata, Strategy } from '../types.js';
-import type { PremiseOverrides, PremiseSampleSpec } from './config.js';
-import { type FilterSpec } from './primitives.js';
+import type { ComponentMetadata, Strategy } from '../types';
+import type { PremiseOverrides, PremiseSampleSpec } from './config';
+import { type FilterSpec } from './primitives';
 import {
   createConcatenationComposite,
   createDedupeByTerm,
   type Composable,
-} from '../composite.js';
+} from '../composite';
 import {
   EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
   TermLinkStrategy as RealTermLinkStrategy,

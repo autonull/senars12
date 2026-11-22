@@ -1,7 +1,7 @@
 import cytoscape from 'cytoscape';
 import { describe, expect, it } from 'vitest';
-import { HTML_BODY_BUDGET } from '../../src/client/utils/graph-scaling.js';
-import { computeHtmlLabels } from '../../src/client/utils/html-labels.js';
+import { HTML_BODY_BUDGET } from '../../src/client/utils/graph-scaling';
+import { computeHtmlLabels } from '../../src/client/utils/html-labels';
 
 /** A headless graph of `count` workspace nodes, all eligible at a full-tier zoom. */
 const workspaceCore = (count: number) =>

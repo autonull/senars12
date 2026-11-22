@@ -11,12 +11,12 @@
  */
 
 import type { ChatMessage, CognitiveEvent } from '@senars/core';
-import { linkMeta } from '../utils/link-catalog.js';
-import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes.js';
-import { isFaithfulDecomposition } from './input-decomposition.js';
-import { NAL_VOCABULARY } from './nars-backend.js';
-import type { ReasoningBackend, BackendNode, BackendVocabulary } from './reasoning-backend.js';
-import { segmentText } from './segmentation.js';
+import { linkMeta } from '../utils/link-catalog';
+import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes';
+import { isFaithfulDecomposition } from './input-decomposition';
+import { NAL_VOCABULARY } from './nars-backend';
+import type { ReasoningBackend, BackendNode, BackendVocabulary } from './reasoning-backend';
+import { segmentText } from './segmentation';
 import { taskTypeForPunctuation } from '@senars/core/schemas';
 import type {
   BlockKind,
@@ -28,8 +28,8 @@ import type {
   SemanticRole,
   Uncertainty,
   WorkspaceGraph,
-} from './workspace-graph.js';
-import { perfTracker, DEFAULT_PERFORMANCE_BUDGET } from './performance-budget.js';
+} from './workspace-graph';
+import { perfTracker, DEFAULT_PERFORMANCE_BUDGET } from './performance-budget';
 
 /** A partial projection — blocks, links and the root order contributed by one producer. */
 export interface WorkspaceFragment {

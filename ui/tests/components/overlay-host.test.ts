@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { activeCommands } from '../../src/client/core/commands.js';
-import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities.js';
-import { OverlayHost } from '../../src/client/core/overlay-host.js';
-import { OverlayManager } from '../../src/client/core/overlay-manager.js';
+import { activeCommands } from '../../src/client/core/commands';
+import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities';
+import { OverlayHost } from '../../src/client/core/overlay-host';
+import { OverlayManager } from '../../src/client/core/overlay-manager';
 import {
   overlayDescriptor,
   overlays,
   registerOverlay,
-} from '../../src/client/core/overlay-registry.js';
+} from '../../src/client/core/overlay-registry';
 
 registerOverlay({ id: 'test-overlay', title: 'Test overlay', tag: 'div' });
 registerOverlay({

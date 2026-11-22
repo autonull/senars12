@@ -1,9 +1,9 @@
 import { Effect } from 'effect';
-import { MeTTaError, MeTTaReason } from '../core/errors.js';
-import { getOp } from '../core/ops.js';
-import type { MeTTaContext } from '../runtime/context.js';
-import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
-import type { MeTTaSpace } from '../types/space.js';
+import { MeTTaError, MeTTaReason } from '../core/errors';
+import { getOp } from '../core/ops';
+import type { MeTTaContext } from '../runtime/context';
+import type { ExpressionAtom, MeTTaAtom } from '../types/ast';
+import type { MeTTaSpace } from '../types/space';
 
 export const DEFAULT_MAX_STEPS = 10000;
 

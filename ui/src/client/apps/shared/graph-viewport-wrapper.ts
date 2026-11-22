@@ -4,10 +4,10 @@
  * Handles filter/mode props, resize observation, and consistent styling.
  */
 import { css, html, nothing, type TemplateResult, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { type ViewportMode } from '../../core/store.js';
-import '../../components/graph-viewport.js';
+import { customElement, property, state } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { type ViewportMode } from '../../core/store';
+import '../../components/graph-viewport';
 
 export interface GraphFilter {
   mode?: string;

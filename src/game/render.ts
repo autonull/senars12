@@ -1,4 +1,4 @@
-import type { Game } from './Game.js';
+import type { Game } from './Game';
 
 /** Render any game that exposes a `render()` method; falls back to the state key. */
 export function renderGame(game: Game): string {

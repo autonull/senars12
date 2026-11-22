@@ -1,7 +1,7 @@
 import { ucb, visitConfidence } from '@senars/util/bandit';
-import { SATURATION_COUNT } from '../constants.js';
-import { BanditReflex } from './BanditReflex.js';
-import type { Reflex } from './Reflex.js';
+import { SATURATION_COUNT } from '../constants';
+import { BanditReflex } from './BanditReflex';
+import type { Reflex } from './Reflex';
 import type { QEntry } from '@senars/util/bandit';
 
 interface UCBOptions {

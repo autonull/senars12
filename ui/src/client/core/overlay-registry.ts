@@ -5,7 +5,7 @@
  * backward-compatible APIs while the unified registry is the single source.
  */
 
-import type { Capability } from './capabilities.js';
+import type { Capability } from './capabilities';
 import {
   surfaceRegistry,
   registerSurface,
@@ -17,8 +17,8 @@ import {
   type Presentation,
   type Placement,
   type SurfaceA11y,
-} from '../framework/surface.js';
-import { createIdRegistry, type Registry } from './registry.js';
+} from '../framework/surface';
+import { createIdRegistry, type Registry } from './registry';
 
 /** Window chrome options for overlay placement. */
 export interface OverlayWindowOptions {

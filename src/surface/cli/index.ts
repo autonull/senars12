@@ -2,9 +2,9 @@
  * CLI Surface — generated CLI over the same schemas as MCP.
  */
 
-export * from './types.js';
-export * from './entry.js';
-export * from './repl.js';
-export * from './profiles.js';
-export * from './packs.js';
-export * from './format.js';
+export * from './types';
+export * from './entry';
+export * from './repl';
+export * from './profiles';
+export * from './packs';
+export * from './format';

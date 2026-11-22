@@ -1,18 +1,18 @@
 import type { CeilingReputation, ReasoningBudget, SourceQuality } from '@senars/schemas';
 import { confidenceCeiling } from '@senars/schemas/truth';
-import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
-import { providerKey } from '../../kernel/reputation-keys.js';
+import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress';
+import { providerKey } from '../../kernel/reputation-keys';
 import type { TaskTypeName } from '../../terms';
-import { ingressQueries } from './head-specs.js';
-import { type ConfidenceBands, ConfidenceRouter } from './policy.js';
-import { seedTruth } from './seed.js';
-import { createGateTelemetrySinks, createTelemetryEmitter } from './telemetry.js';
+import { ingressQueries } from './head-specs';
+import { type ConfidenceBands, ConfidenceRouter } from './policy';
+import { seedTruth } from './seed';
+import { createGateTelemetrySinks, createTelemetryEmitter } from './telemetry';
 import type {
   EmbeddingCache,
   EmbeddingPointer,
   JudgmentManifold,
   JudgmentProposition,
-} from './types.js';
+} from './types';
 
 /** E1: ambiguity flag threshold defined once, via the shared ConfidenceRouter. */
 const AMBIGUITY_ROUTER = new ConfidenceRouter({ act: 0.6, review: 0.6, block: 0 });

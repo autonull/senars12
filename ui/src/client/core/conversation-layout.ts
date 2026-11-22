@@ -12,15 +12,15 @@
  * tuple to edit.
  */
 
-import { blockDescriptor } from './block-descriptors.js';
-import { blockOrder } from './navigation.js';
+import { blockDescriptor } from './block-descriptors';
+import { blockOrder } from './navigation';
 import type {
   CreatedBy,
   Ref,
   SemanticBlock,
   WorkspaceGraph,
-} from './workspace-graph.js';
-import { defineCatalog } from '../framework/catalog.js';
+} from './workspace-graph';
+import { defineCatalog } from '../framework/catalog';
 
 export interface ConversationLayoutFacets {
   /** Short description for tooltips. */

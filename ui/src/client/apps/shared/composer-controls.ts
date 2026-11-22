@@ -8,16 +8,16 @@
  */
 
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { LAYOUT_IDS } from '../../framework/layout.js';
-import type { Cell, Composition, Globals, LayoutId } from '../../framework/composition.js';
-import { FILTER_ALL } from './config-sync.js';
-import { LENS_FACETS } from '../../utils/lens-catalog.js';
-import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
-import { FILTER_FACETS } from '../../core/filter-facets.js';
-import { VIEWPORT_MODES } from '../../kernel/index.js';
-import './toolbar-select.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { LAYOUT_IDS } from '../../framework/layout';
+import type { Cell, Composition, Globals, LayoutId } from '../../framework/composition';
+import { FILTER_ALL } from './config-sync';
+import { LENS_FACETS } from '../../utils/lens-catalog';
+import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs';
+import { FILTER_FACETS } from '../../core/filter-facets';
+import { VIEWPORT_MODES } from '../../kernel/index';
+import './toolbar-select';
 
 /** A surface a composer can place: its registry id and a human label. */
 export interface ComposerSurface {

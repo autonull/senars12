@@ -3,11 +3,11 @@ import { formatNarseseTruth } from '@senars/types/truth';
 import { overlapCount, tokenizeWords } from '@senars/util/text';
 import { selectTopN, takeFirst, takeLast, uniqueBy, shareCount } from '@senars/util/collections';
 
-import { estimateTokens } from '../lm/context/context-budget.js';
-import type { NAR } from '../nar.js';
+import { estimateTokens } from '../lm/context/context-budget';
+import type { NAR } from '../nar';
 import { termKey } from '../terms';
-import type { TranslationCache, TranslationCacheEntry } from './cache.js';
-import type { NLContext } from './understanding.js';
+import type { TranslationCache, TranslationCacheEntry } from './cache';
+import type { NLContext } from './understanding';
 
 export interface ContextAssemblerOpts {
   tokenBudget?: number;

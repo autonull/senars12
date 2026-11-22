@@ -15,9 +15,9 @@ import type {
   WorkItem,
   AnyContract,
   ContractType,
-} from './schemas.js';
-import type { Term } from '../../kernel/terms/term.js';
-import type { Truth } from '../../kernel/truth.js';
+} from './schemas';
+import type { Term } from '../../kernel/terms/term';
+import type { Truth } from '../../kernel/truth';
 
 // ============================================================================
 // Candidate consumers

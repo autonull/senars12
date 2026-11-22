@@ -7,7 +7,7 @@
  * composition.
  */
 
-import { registerComposition, type Composition, type Globals } from '../../framework/composition.js';
+import { registerComposition, type Composition, type Globals } from '../../framework/composition';
 
 /** The global controls every graph-bearing preset starts from. */
 const GRAPH_GLOBALS: Required<Globals> = {

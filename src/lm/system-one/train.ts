@@ -12,12 +12,12 @@ import { z } from 'zod';
 export { pearson };
 
 import { nonEmpty, nonNegativeInt, positiveInt } from '@senars/util/config';
-import { cognitiveAxisSchema, rubricIdSchema } from '../../decision/types.js';
-import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
-import { decodeVector } from './distill.js';
-import { meanBrierOf } from './metrics.js';
-import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
-import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-runtime.js';
+import { cognitiveAxisSchema, rubricIdSchema } from '../../decision/types';
+import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding';
+import { decodeVector } from './distill';
+import { meanBrierOf } from './metrics';
+import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types';
+import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-runtime';
 
 // ─── Feature construction ────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { removeBy } from '@senars/util/collections';
-import type { MeTTaAtom } from '../types/ast.js';
-import { matchesAtom } from './hash.js';
+import type { MeTTaAtom } from '../types/ast';
+import { matchesAtom } from './hash';
 
 export interface Space extends Disposable {
   readonly id: string;

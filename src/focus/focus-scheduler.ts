@@ -1,13 +1,13 @@
 import { perPart } from '@senars/util/collections';
 import { periodic } from '@senars/util/async';
 import { SeededRNG, weightedPick } from '@senars/util/random';
-import type { MetaGame } from '../game/impls/MetaGame.js';
-import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import type { FocusStepReport } from './Focus.js';
-import type { FocusBag } from './FocusBag.js';
-import type { GameFocus } from './GameFocus.js';
-import { publishFocusStepReport } from './scheduler-reward.js';
-import { DEFAULT_FOCUS_DEADLINE_MS, stepFocusUnderDeadline } from './step.js';
+import type { MetaGame } from '../game/impls/MetaGame';
+import type { SchedulerAdapter } from '../learning/domain-learners';
+import type { FocusStepReport } from './Focus';
+import type { FocusBag } from './FocusBag';
+import type { GameFocus } from './GameFocus';
+import { publishFocusStepReport } from './scheduler-reward';
+import { DEFAULT_FOCUS_DEADLINE_MS, stepFocusUnderDeadline } from './step';
 
 export interface FocusSchedulerOptions {
   bag: FocusBag;

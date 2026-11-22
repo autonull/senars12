@@ -2,7 +2,7 @@
  * Deck Timeline — event timeline visualization.
  */
 
-import type { Stamp } from '@senars/kernel/types.js';
+import type { Stamp } from '@senars/kernel/types';
 
 /** Timeline event. */
 export interface TimelineEvent {

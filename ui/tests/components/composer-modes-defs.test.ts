@@ -6,8 +6,8 @@ import {
   composerModeIdsWhere,
   availableComposerModes,
   DEFAULT_COMPOSER_MODE,
-} from '../../src/client/core/composer-modes.js';
-import type { Capability } from '../../src/client/core/capabilities.js';
+} from '../../src/client/core/composer-modes';
+import type { Capability } from '../../src/client/core/capabilities';
 
 const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 

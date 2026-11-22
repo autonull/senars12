@@ -5,10 +5,10 @@
  */
 
 import { css, html, nothing, TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { $workspaceGraph } from '../core/store.js';
-import { type SemanticBlock } from '../core/workspace-graph.js';
+import { customElement, property, state } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { $workspaceGraph } from '../core/store';
+import { type SemanticBlock } from '../core/workspace-graph';
 import {
   sampleAmbientMany,
   type AttentionItem,
@@ -16,8 +16,8 @@ import {
   type FocusRef,
   focus,
   MIND_FOCUS,
-} from '../framework/index.js';
-import './primitives/icon.js';
+} from '../framework/index';
+import './primitives/icon';
 
 const AMBIENT_BUDGET = 20;
 const AMBIENT_REFRESH_MS = 5000;

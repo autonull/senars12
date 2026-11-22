@@ -3,18 +3,18 @@ import { BoundedRing, sortBy } from '@senars/util/collections';
 import { createLogger, type Logger } from '@senars/util/logger';
 import { periodic } from '@senars/util/async';
 import { sumBy } from '@senars/util/numeric';
-import type { GateRegistry } from '../kernel/index.js';
+import type { GateRegistry } from '../kernel/index';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import { createTask, type Task } from '../types';
-import { lmTaskWeight } from './task-weights.js';
-import { admitTasks } from './admit.js';
+import { lmTaskWeight } from './task-weights';
+import { admitTasks } from './admit';
 
-import { topBeliefTasks } from './context.js';
-import { LMResponseParser } from './LMRule.js';
-import type { LMService } from './lm-service.js';
-import type { SystemOneLMRuleAdapter } from './system-one/rule-adapter.js';
+import { topBeliefTasks } from './context';
+import { LMResponseParser } from './LMRule';
+import type { LMService } from './lm-service';
+import type { SystemOneLMRuleAdapter } from './system-one/rule-adapter';
 
 /** F5: novelty-head budget gate (TODO16b: "novelty + budget pressure jointly trigger ProactiveEnricher"). */
 export interface EnricherSystemOneDeps {

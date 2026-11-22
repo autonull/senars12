@@ -2,9 +2,9 @@
  * Loop Events — event emission and subscription for the cognitive loop.
  */
 
-import type { Clock } from '../kernel/env.js';
-import { LOOP_EVENTS } from './types.js';
-import type { LoopEvent, LoopEventType } from './types.js';
+import type { Clock } from '../kernel/env';
+import { LOOP_EVENTS } from './types';
+import type { LoopEvent, LoopEventType } from './types';
 
 /** Event listener map. */
 type ListenerMap = Map<LoopEventType, Set<(event: LoopEvent) => void>>;

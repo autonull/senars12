@@ -3,7 +3,7 @@
  * Compares two graphs and emits the minimal operations to transform old → new.
  */
 
-import type { Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from './workspace-graph.js';
+import type { Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from './workspace-graph';
 
 /** Compute the diff between two WorkspaceGraphs as a WorkspaceOp stream. */
 export function diffWorkspaceGraph(

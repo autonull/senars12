@@ -86,8 +86,8 @@ export interface CyclesBudget {
   depth?: number;
 }
 
-import type { RandomSource } from './random.js';
-import { shuffleInPlace, ambientRng } from './random.js';
+import type { RandomSource } from './random';
+import { shuffleInPlace, ambientRng } from './random';
 
 /** Random source for bag operations (re-exported from random). */
 export type { RandomSource };

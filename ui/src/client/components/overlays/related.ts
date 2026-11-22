@@ -9,20 +9,20 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { blockDescriptor } from '../../core/block-descriptors.js';
-import { eventBus } from '../../core/events.js';
-import { type Neighbor, neighborhood } from '../../core/neighborhood.js';
+import { customElement, property } from 'lit/decorators';
+import { blockDescriptor } from '../../core/block-descriptors';
+import { eventBus } from '../../core/events';
+import { type Neighbor, neighborhood } from '../../core/neighborhood';
 import {
   $neighborhoodDepth,
   $workspaceGraph,
   setNeighborhoodDepth,
   setWorkspaceFocus,
-} from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
+} from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index';
 
 /** The hop counts "Open related" offers. */
 const DEPTHS = [1, 2, 3] as const;

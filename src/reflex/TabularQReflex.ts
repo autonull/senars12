@@ -2,9 +2,9 @@ import { ambientRng, shuffleInPlace } from '@senars/util/random';
 import { anneal } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { lerpUpdate, QTable, rampConfidence, type QEntry } from '@senars/util/bandit';
-import type { Perception } from '../game/Game.js';
-import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
-import { byExpectedValue } from './Reflex.js';
+import type { Perception } from '../game/Game';
+import type { ActionProposal, LearningEvent, Reflex } from './Reflex';
+import { byExpectedValue } from './Reflex';
 import type { RandomSource } from '@senars/util';
 
 interface TabularQReflexOptions {

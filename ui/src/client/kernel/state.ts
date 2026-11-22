@@ -1,8 +1,8 @@
 import type { ChatMessage, CognitiveEvent, GraphNodeData } from '@senars/core';
 
 export type { GraphNodeData };
-import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig } from '../core/config-schema.js';
-import { createFocusStack, type FocusStack } from '../framework/focus-stack.js';
+import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig } from '../core/config-schema';
+import { createFocusStack, type FocusStack } from '../framework/focus-stack';
 import {
   type FocusRef,
   type Aspect,
@@ -13,14 +13,14 @@ import {
   MIND_FOCUS,
   DEFAULT_ASPECT,
   LIVE,
-} from '../framework/coordinates.js';
+} from '../framework/coordinates';
 import {
   attendFocus,
   tierOf,
   tierToZoom,
-} from '../framework/attention-runtime.js';
-import type { SemanticBlock } from '../core/workspace-graph.js';
-import type { BlockKind } from '../core/block-descriptors.js';
+} from '../framework/attention-runtime';
+import type { SemanticBlock } from '../core/workspace-graph';
+import type { BlockKind } from '../core/block-descriptors';
 
 // Re-export focus types for consumers
 export type { FocusRef, FocusStack };
@@ -34,7 +34,7 @@ export function setWsClient(socket: WebSocket): void {
 function sendMessage(msg: Record<string, unknown>): void {
   wsSocket?.send(JSON.stringify(msg));
 }
-import { emptyWorkspaceGraph, type WorkspaceGraph } from '../core/workspace-graph.js';
+import { emptyWorkspaceGraph, type WorkspaceGraph } from '../core/workspace-graph';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;

@@ -8,6 +8,6 @@
  * all three places — `low` may take effect unattended, `medium` waits for
  * validation, `high` waits for a human — which is what lets them be one type.
  */
-import { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from '../util/capability-risk.js';
+import { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from '../util/capability-risk';
 
 export { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk };

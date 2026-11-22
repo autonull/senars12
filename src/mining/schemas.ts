@@ -4,11 +4,11 @@
  * Extracts structural patterns from execution logs for learning.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Stamp } from '../kernel/types.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Stamp } from '../kernel/types';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 
 /** Convert term to string key. */
 function termToKey(term: Term): string {

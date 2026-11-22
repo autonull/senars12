@@ -17,18 +17,18 @@ import {
   setGraphLayer,
   setNeighborhoodDepth,
   toggleCollapsed,
-} from '../../src/client/core/store.js';
+} from '../../src/client/core/store';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 import {
   registerRenderer,
   type WorkspaceRenderer,
-} from '../../src/client/core/workspace-renderer.js';
-import '../../src/client/utils/layout-registry.js';
+} from '../../src/client/core/workspace-renderer';
+import '../../src/client/utils/layout-registry';
 
 const fakeRenderer = (id: string): WorkspaceRenderer => ({
   id,

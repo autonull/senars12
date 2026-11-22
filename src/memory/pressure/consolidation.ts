@@ -1,7 +1,7 @@
 import { shareOf, sortBy } from '@senars/util/collections';
-import { PRESSURE } from '../../constants.js';
-import type { Concept } from '../concept.js';
-import type { ConceptWriter, StatisticsView } from '../ports/index.js';
+import { PRESSURE } from '../../constants';
+import type { Concept } from '../concept';
+import type { ConceptWriter, StatisticsView } from '../ports/index';
 
 /**
  * Share of the idle population shed per cycle, by how far past the rung

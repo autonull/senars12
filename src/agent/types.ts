@@ -2,28 +2,28 @@ import type { AgentOptions as UtilAgentOptions, HealthStatus, ParsedCommand, Ski
 import type { EpisodicMemory } from '@senars/types/episodic-memory';
 import type { LMTask } from '@senars/types/llm';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import type { ChatOptions, ChatStreamEvent } from './chat.js';
-import type { GroundednessGate, TraceGrader } from '@senars/types/cognitive.js';
+import type { ChatOptions, ChatStreamEvent } from './chat';
+import type { GroundednessGate, TraceGrader } from '@senars/types/cognitive';
 /**
  * Agent public type definitions.
  */
 
-import type { LLMCortex } from '../cortex/LLMCortex.js';
-import type { CognitiveStimulus, Context, Derivation } from '@senars/types/cognitive.js';
-import type { Engine } from '@senars/types/engine.js';
-import type { ToolResult } from '@senars/types/engine.js';
-import type { PersistableSessionManager } from '../memory/types.js';
+import type { LLMCortex } from '../cortex/LLMCortex';
+import type { CognitiveStimulus, Context, Derivation } from '@senars/types/cognitive';
+import type { Engine } from '@senars/types/engine';
+import type { ToolResult } from '@senars/types/engine';
+import type { PersistableSessionManager } from '../memory/types';
 import type { LogStore } from '@senars/log/store';
-import type { PinStore } from '../motor/builtin-tools.js';
-import type { EventLog } from '../log/index.js';
-import type { AgentCapabilities } from '../protocol/index.js';
-import type { CognitiveEvent } from '../schemas/index.js';
-import type { MacroPhase } from './pipeline.js';
-import type { CorrelationScopeStore } from './correlation-scope.js';
+import type { PinStore } from '../motor/builtin-tools';
+import type { EventLog } from '../log/index';
+import type { AgentCapabilities } from '../protocol/index';
+import type { CognitiveEvent } from '../schemas/index';
+import type { MacroPhase } from './pipeline';
+import type { CorrelationScopeStore } from './correlation-scope';
 
 /** `util` owns the shape; re-exported so `core` importers keep one spelling. */
 export type { CognitiveStimulus, Context, Derivation, ParsedCommand, ToolResult };
-export type { CorrelationScopeStore } from './correlation-scope.js';
+export type { CorrelationScopeStore } from './correlation-scope';
 
 export interface AgentOptions extends UtilAgentOptions {
   log?: EventLog;

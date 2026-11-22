@@ -7,14 +7,14 @@ import {
   FAST_COGNITIVE_CONFIG,
   mergeParameters,
   validateParameters,
-} from '../config/cognitive-parameters.js';
-import type { NAR as NARType } from '../index.js';
-import { NAR } from '../nar.js';
-import { Truth, termParser } from '../terms/index.js';
-import type { Task } from '../types/index.js';
-import { DEFAULT_CONFIG } from '../types/index.js';
-import { type CreateAgentConfig, createAgent } from './create-agent.js';
-import type { TermTruth } from '../types/truth.js';
+} from '../config/cognitive-parameters';
+import type { NAR as NARType } from '../index';
+import { NAR } from '../nar';
+import { Truth, termParser } from '../terms/index';
+import type { Task } from '../types/index';
+import { DEFAULT_CONFIG } from '../types/index';
+import { type CreateAgentConfig, createAgent } from './create-agent';
+import type { TermTruth } from '../types/truth';
 
 const log = createLogger({ scope: 'CognitiveAgent' });
 

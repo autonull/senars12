@@ -20,10 +20,10 @@ import {
   REASONING_LAYOUT_IDS,
   type ReasoningLayoutId,
   reasoningPositions,
-} from '../core/index.js';
-import { type LayoutScope, registerLayoutId } from '../core/layout-ids.js';
-import { lensMeta } from './lens-catalog.js';
-import { densityFactor, NODE_GUTTER } from './graph-scaling.js';
+} from '../core/index';
+import { type LayoutScope, registerLayoutId } from '../core/layout-ids';
+import { lensMeta } from './lens-catalog';
+import { densityFactor, NODE_GUTTER } from './graph-scaling';
 
 const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
 

@@ -3,15 +3,15 @@
  * defineCatalog. This replaces the hardcoded producer list in projectWorkspace.
  */
 
-import { defineProjectorCatalog, type ProjectorContext, registerProjector, getProjector, projectorIds, getProjectors, resetProjectors, mergeProjectorFragments, mergeFragments } from '../framework/projector.js';
-import type { WorkspaceFragment } from './workspace-projection.js';
+import { defineProjectorCatalog, type ProjectorContext, registerProjector, getProjector, projectorIds, getProjectors, resetProjectors, mergeProjectorFragments, mergeFragments } from '../framework/projector';
+import type { WorkspaceFragment } from './workspace-projection';
 import type { ChatMessage, CognitiveEvent } from '@senars/core';
-import type { ReasoningBackend } from './reasoning-backend.js';
-import { projectChat } from './workspace-projection.js';
-import { projectReasoning } from './workspace-projection.js';
-import { projectCognitiveEvents } from './workspace-projection.js';
-import { projectDerivationRecords } from './workspace-projection.js';
-import { claimId } from './workspace-projection.js';
+import type { ReasoningBackend } from './reasoning-backend';
+import { projectChat } from './workspace-projection';
+import { projectReasoning } from './workspace-projection';
+import { projectCognitiveEvents } from './workspace-projection';
+import { projectDerivationRecords } from './workspace-projection';
+import { claimId } from './workspace-projection';
 
 /** Chat projector — projects the chat log to turn blocks + discourse links. */
 export const chatProjector = {

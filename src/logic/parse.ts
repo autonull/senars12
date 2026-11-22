@@ -7,9 +7,9 @@
  * general Prolog front end.
  */
 
-import { termInterner } from '../kernel/terms/intern.js';
-import type { Atom, Clause, Literal } from '../logics/axiomatic/ast.js';
-import { clause, literal } from '../logics/axiomatic/ast.js';
+import { termInterner } from '../kernel/terms/intern';
+import type { Atom, Clause, Literal } from '../logics/axiomatic/ast';
+import { clause, literal } from '../logics/axiomatic/ast';
 
 const VARIABLE = /^[A-Z_][A-Za-z0-9_]*$/;
 

@@ -1,6 +1,6 @@
-import type { CommandDefinition } from './types.js';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
-import { requiring } from './utils.js';
+import type { CommandDefinition } from './types';
+import type { EpisodicMemory } from '../memory/EpisodicMemory';
+import { requiring } from './utils';
 
 interface NarWithEpisodes {
   getEpisodicMemory?(): EpisodicMemory | undefined;

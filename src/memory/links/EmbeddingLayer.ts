@@ -1,10 +1,10 @@
 import { BoundedMap } from '@senars/util/bounded-map';
 import { selectTopN } from '@senars/util/collections';
 import { type Term, termKey } from '../../terms';
-import { cosineNormalized, normalize } from '@senars/util/similarity.js';
-import type { EmbeddingGenerator } from '../embedding.js';
-import { Layer } from './Layer.js';
-import { LINK_LAYER } from './types.js';
+import { cosineNormalized, normalize } from '@senars/util/similarity';
+import type { EmbeddingGenerator } from '../embedding';
+import { Layer } from './Layer';
+import { LINK_LAYER } from './types';
 
 export interface EmbeddingLayerConfig {
   capacity: number;

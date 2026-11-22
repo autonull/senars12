@@ -8,5 +8,5 @@
  * through the one `InferenceController`, which honours the configured
  * strategies. Only the LM queue, which has no counterpart elsewhere, remains.
  */
-export type { LMBackend, LMRequest, ProvisionalBelief, StreamReasonerOptions } from './reasoner.js';
-export { StreamReasoner } from './reasoner.js';
+export type { LMBackend, LMRequest, ProvisionalBelief, StreamReasonerOptions } from './reasoner';
+export { StreamReasoner } from './reasoner';

@@ -3,9 +3,9 @@
  */
 import { unique } from '@senars/util/collections';
 import { z } from 'zod';
-import { LENS_FIELDS, type LensFieldDescriptor } from '../agent/constants.js';
-import { LensSpecSchema } from './lens-schema.js';
-import { msg } from './envelope.js';
+import { LENS_FIELDS, type LensFieldDescriptor } from '../agent/constants';
+import { LensSpecSchema } from './lens-schema';
+import { msg } from './envelope';
 
 type LensFieldType = LensFieldDescriptor['type'];
 

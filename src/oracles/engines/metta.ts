@@ -3,12 +3,12 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from '../oracle.js';
-import { OraclePinStore } from '../pins.js';
-import { parseMeTTa } from '../../metta/parser/runtime.js';
-import { createMeTTa, type MeTTaRuntime } from '../../metta/runtime/builder.js';
-import type { MeTTaAtom } from '../../metta/types/ast.js';
-import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from '../oracle';
+import { OraclePinStore } from '../pins';
+import { parseMeTTa } from '../../metta/parser/runtime';
+import { createMeTTa, type MeTTaRuntime } from '../../metta/runtime/builder';
+import type { MeTTaAtom } from '../../metta/types/ast';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget';
 
 /** Input for MeTTa evaluation. */
 export interface MettaInput extends OracleInput {
@@ -100,7 +100,7 @@ export class MettaOracle implements Oracle<MettaInput, MettaResult> {
     // Charge budget if configured
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../../budget/budget.js');
+      const { consume } = await import('../../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -253,7 +253,7 @@ export class MettaOracle implements Oracle<MettaInput, MettaResult> {
     try {
       const testRuntime = createMeTTa();
       const { Effect } = await import('effect');
-      const { parseMeTTa } = await import('../../metta/parser/runtime.js');
+      const { parseMeTTa } = await import('../../metta/parser/runtime');
       await Effect.runPromise(testRuntime.evaluate(parseMeTTa('(= 1 1)')));
       return true;
     } catch {

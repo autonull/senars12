@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import type { BeliefTruth } from './truth.js';
+import type { BeliefTruth } from './truth';
 import {
   ENGINE_ORIGINS,
   type EngineOrigin,
   PROPOSER_ORIGIN,
   NAR_ORIGIN,
-} from '../util/origins.js';
+} from '../util/origins';
 import {
   BANDS,
   type BandDecision,
@@ -18,7 +18,7 @@ import {
   JudgmentShapeSchema,
   egressVerdict,
   type EgressVerdict,
-} from '../util/cognitive-schemas.js';
+} from '../util/cognitive-schemas';
 
 export { BANDS, type BandDecision, BandDecisionSchema, bandOrdinal };
 export { COGNITIVE_AXES, type CognitiveAxis, CognitiveAxisSchema };

@@ -4,11 +4,11 @@ import { cachePath } from '@senars/util/config';
 import { createLogger } from '@senars/util/logger';
 import { randomSourceOf } from '@senars/util/random';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
-import type { ReflexBindable } from '../focus/GameFocus.js';
-import { threadScope } from '../kernel/thread-scope.js';
+import type { ReflexBindable } from '../focus/GameFocus';
+import { threadScope } from '../kernel/thread-scope';
 import type { LMService } from '../lm';
-import { ContrastiveMemory } from '../lm/system-one/contrastive.js';
-import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
+import { ContrastiveMemory } from '../lm/system-one/contrastive';
+import { createLMServiceCortex } from '../lm/system-one/cortex-adapter';
 import {
   type ChooseRequest,
   type ChooseResult,
@@ -16,43 +16,43 @@ import {
   type DecideRequest,
   type DecideResult,
   type Decider,
-} from '../lm/system-one/decide.js';
+} from '../lm/system-one/decide';
 import {
   createDispatcher,
   type DispatcherOptions,
   StubCortex,
-} from '../lm/system-one/dispatcher.js';
-import { JudgmentDataset } from '../lm/system-one/distill.js';
-import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';import { embeddingRuntime, resolveEmbeddingGenerator } from '../lm/embedding-runtime.js';
-import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
+} from '../lm/system-one/dispatcher';
+import { JudgmentDataset } from '../lm/system-one/distill';
+import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache';import { embeddingRuntime, resolveEmbeddingGenerator } from '../lm/embedding-runtime';
+import { createGroundednessGate } from '../lm/system-one/groundedness-gate';
 import {
   type BeliefSource,
   mineHardNegatives,
   seedContrastiveMemory,
-} from '../lm/system-one/hard-negatives.js';
-import { createHttpManifold } from '../lm/system-one/http-manifold.js';
+} from '../lm/system-one/hard-negatives';
+import { createHttpManifold } from '../lm/system-one/http-manifold';
 import {
   createJudgmentPipeline,
   type JudgmentPipeline,
   type PipelineSpec,
-} from '../lm/system-one/judgment-pipeline.js';
-import { LMReflex } from '../lm/system-one/lm-reflex.js';
-import { createManifold, type ManifoldConfig } from '../lm/system-one/manifold.js';
-import { ManifoldReflex } from '../lm/system-one/manifold-reflex.js';
-import type { TraceGradeInput, TraceGradeResult } from '../lm/system-one/trace-grader.js';
-import { createTraceGrader } from '../lm/system-one/trace-grader.js';
+} from '../lm/system-one/judgment-pipeline';
+import { LMReflex } from '../lm/system-one/lm-reflex';
+import { createManifold, type ManifoldConfig } from '../lm/system-one/manifold';
+import { ManifoldReflex } from '../lm/system-one/manifold-reflex';
+import type { TraceGradeInput, TraceGradeResult } from '../lm/system-one/trace-grader';
+import { createTraceGrader } from '../lm/system-one/trace-grader';
 import type {
   CognitiveDispatcher,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
-} from '../lm/system-one/types.js';
-import { createSystemOneBudget, DEFAULT_SYNTHESIS_CANDIDATES } from '../lm/system-one/types.js';
-import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
-import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
-import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';
-import type { Reflex } from '../reflex/Reflex.js';
-import type { NARConfig } from './config.js';
+} from '../lm/system-one/types';
+import { createSystemOneBudget, DEFAULT_SYNTHESIS_CANDIDATES } from '../lm/system-one/types';
+import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime';
+import { recordEmbeddingCacheEvent } from '../metrics/prometheus';
+import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex';
+import type { Reflex } from '../reflex/Reflex';
+import type { NARConfig } from './config';
 
 /**
  * System One runtime (extracted from NAR — M2): owns the Tier-1 manifold,
@@ -211,7 +211,7 @@ export class SystemOneRuntime {
     }
 
     // Create cortex adapter if provider is not 'off'
-    let cortex: import('../lm/system-one/types.js').GenerativeCortex;
+    let cortex: import('../lm/system-one/types').GenerativeCortex;
     if (
       systemOneConfig.cortex?.provider &&
       systemOneConfig.cortex.provider !== 'off' &&
@@ -326,7 +326,7 @@ export class SystemOneRuntime {
    */
   async refreshContrastive(
     nar?: BeliefSource,
-    episodic?: import('../memory/EpisodicMemory.js').EpisodicMemory
+    episodic?: import('../memory/EpisodicMemory').EpisodicMemory
   ): Promise<void> {
     if (!this.embeddingCache || !nar) return;
     const contrastive = this.getContrastive('default');

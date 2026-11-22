@@ -1,5 +1,5 @@
-import type { CognitiveEvent } from '../schemas/index.js';
-import type { ChatMessage } from '../protocol/index.js';
+import type { CognitiveEvent } from '../schemas/index';
+import type { ChatMessage } from '../protocol/index';
 
 /** Structural event source satisfied by Agent (bridge must not import the agent it bridges). */
 export interface AgentEventSource {

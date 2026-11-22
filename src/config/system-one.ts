@@ -3,8 +3,8 @@
  * Owned here (single definition); root src/config/schema.ts and @senars/nar re-export.
  */
 import { z } from 'zod';
-import { positiveInt, unitInterval } from './boundary.js';
-import { nestedBounds, buildDefaultsFromBounds } from './bounds.js';
+import { positiveInt, unitInterval } from './boundary';
+import { nestedBounds, buildDefaultsFromBounds } from './bounds';
 
 /** How much a judgment is trusted to decide on its own. Declared once because it was
  *  written out six times — as a type in the decision layer, four times as an inline

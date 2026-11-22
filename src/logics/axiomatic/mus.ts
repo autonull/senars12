@@ -5,10 +5,10 @@
  * and explanation of inconsistencies.
  */
 
-import { TermOp } from '../../kernel/terms/intern.js';
-import { Clause, CNFFormula, MUS, Literal } from './ast.js';
-import type { Clock } from '../../kernel/env.js';
-import { createDefaultClock } from '../../kernel/env.js';
+import { TermOp } from '../../kernel/terms/intern';
+import { Clause, CNFFormula, MUS, Literal } from './ast';
+import type { Clock } from '../../kernel/env';
+import { createDefaultClock } from '../../kernel/env';
 
 /** MUS extraction configuration. */
 export interface MUSConfig {

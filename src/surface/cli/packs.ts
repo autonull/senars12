@@ -2,7 +2,7 @@
  * CLI Packs — command groups for different domains.
  */
 
-import type { CLIPack, CLICommand, CLIApp } from './types.js';
+import type { CLIPack, CLICommand, CLIApp } from './types';
 
 /** Pack manager. */
 export class PackManager {

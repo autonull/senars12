@@ -3,16 +3,16 @@ import { generateId } from '@senars/util/id';
 import { mapToRecord, shareCount } from '@senars/util/collections';
 import type { Bag, BagItem } from '@senars/bag';
 import { createBag } from '@senars/bag';
-import type { EmbeddingPointer } from '../../decision/types.js';
-import { AIKRProcessor, BagPrioritySampling } from '../../learning/aikr-processor.js';
+import type { EmbeddingPointer } from '../../decision/types';
+import { AIKRProcessor, BagPrioritySampling } from '../../learning/aikr-processor';
 import {
   cosine,
   cosineNormalized,
   type NormalizedVector,
   normalize,
-} from '@senars/util/similarity.js';
-import { embedCached } from './embedding-cache.js';
-import type { EmbeddingCache, JudgmentQuery } from './types.js';
+} from '@senars/util/similarity';
+import { embedCached } from './embedding-cache';
+import type { EmbeddingCache, JudgmentQuery } from './types';
 
 export { cosine as cosineF32 };
 
@@ -112,7 +112,7 @@ interface RubricState {
   neg: Bag<ExemplarItem>;
   /** Pending high-confidence judgments awaiting AIKR-bounded promotion. */
   pending: Bag<ExemplarItem>;
-  maintainer: import('../../learning/aikr-processor.js').AIKRProcessor<ExemplarItem, number>;
+  maintainer: import('../../learning/aikr-processor').AIKRProcessor<ExemplarItem, number>;
 }
 
 /**

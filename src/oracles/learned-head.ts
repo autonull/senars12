@@ -4,11 +4,11 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import { loadHeadBundle, type LoadedHeadBundle, type HeadBundleArtifacts } from '../lm/system-one/wasi-head-bundle.js';
-import { verifyModelDigest, composeModelDigest, encoderDigest, type HeadRuntimeConfig } from '../lm/system-one/wasi-runtime.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import { loadHeadBundle, type LoadedHeadBundle, type HeadBundleArtifacts } from '../lm/system-one/wasi-head-bundle';
+import { verifyModelDigest, composeModelDigest, encoderDigest, type HeadRuntimeConfig } from '../lm/system-one/wasi-runtime';
 
 /** Input for loading a head bundle. */
 export interface LearnedHeadLoadInput extends OracleInput {
@@ -81,7 +81,7 @@ export class LearnedHeadOracle implements Oracle<
   ): Promise<OracleOutput<LoadedHeadBundle | number | { status: string; modelDigest: string; dimension: number }>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -241,7 +241,7 @@ export function registerLearnedHeadOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

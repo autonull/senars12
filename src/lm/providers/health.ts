@@ -1,17 +1,17 @@
 import { periodic } from '@senars/util/async';
-import { recordLmProbe } from '../../metrics/index.js';
-import { cloudApiKey, LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
+import { recordLmProbe } from '../../metrics/index';
+import { cloudApiKey, LM_PROVIDER_NAMES, type LMSettings } from '../env-config';
 import {
   delegate,
   getProviderRuntime,
   type LMProviderName,
   type ProviderRuntime,
-} from '../provider-runtime.js';
-import { hasCloudCredentials } from './chains.js';
-import { probeEmbeddedLlama } from './embedded-llamacpp.js';
-import { probeLlamaCpp } from './llamacpp.js';
-import { probeModelsEndpoint } from './probe.js';
-import { getLMSettings, getLmProvider } from './settings.js';
+} from '../provider-runtime';
+import { hasCloudCredentials } from './chains';
+import { probeEmbeddedLlama } from './embedded-llamacpp';
+import { probeLlamaCpp } from './llamacpp';
+import { probeModelsEndpoint } from './probe';
+import { getLMSettings, getLmProvider } from './settings';
 
 /** Probe an OpenAI-compatible endpoint (/models); auth header sent only when a key is available. */
 export async function probeOpenAICompatible(settings?: LMSettings): Promise<boolean> {

@@ -6,10 +6,10 @@
  * source. Canonical renderer ids: `graph-2d`, `graph-3d`, `notebook`.
  */
 
-import type { Capability } from './capabilities.js';
-import type { WorkspaceInteraction } from './workspace-renderer.js';
-import type { Channel } from '../modulation/types.js';
-import { defineCatalog } from '../framework/catalog.js';
+import type { Capability } from './capabilities';
+import type { WorkspaceInteraction } from './workspace-renderer';
+import type { Channel } from '../modulation/types';
+import { defineCatalog } from '../framework/catalog';
 import {
   surfaceRegistry,
   registerSurface,
@@ -20,13 +20,13 @@ import {
   type SurfaceDescriptor,
   type Placement,
   type Presentation,
-} from '../framework/surface.js';
+} from '../framework/surface';
 import {
   workspaceRenderers,
   workspaceRendererIds,
   workspaceRenderer,
   type WorkspaceRenderer,
-} from './workspace-renderer.js';
+} from './workspace-renderer';
 
 /** Renderer-specific presentation options (subset of unified Presentation). */
 export interface RendererPresentation extends Presentation {
@@ -174,4 +174,4 @@ export type { SurfaceDescriptor, Placement, Presentation };
 
 /** Re-export workspace renderer registry functions for direct access. */
 export { workspaceRenderers, workspaceRendererIds, workspaceRenderer };
-export type { WorkspaceRenderer } from './workspace-renderer.js';
+export type { WorkspaceRenderer } from './workspace-renderer';

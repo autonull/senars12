@@ -13,10 +13,10 @@ import {
   type StrategyExpression,
   type StrategyResolver,
 } from '../../reason/strategy-algebra';
-import { CompositeAttention } from '../../strategies/attention/CompositeAttention.js';
-import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector.js';
-import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
-import { CompositeStrategy } from '../../strategies/premise/selection-strategies.js';
+import { CompositeAttention } from '../../strategies/attention/CompositeAttention';
+import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector';
+import { CompositeSampling } from '../../strategies/sampling/CompositeSampling';
+import { CompositeStrategy } from '../../strategies/premise/selection-strategies';
 import type {
   AttentionModel,
   ModelRuleSelector,
@@ -24,12 +24,12 @@ import type {
   Strategy,
   StrategyImpl,
   StrategyType,
-} from '../../strategies/types.js';
+} from '../../strategies/types';
 import {
   describeSpec,
   isStrategyExpression,
   type CompositeSpec,
-} from '../../strategies/registration.js';
+} from '../../strategies/registration';
 
 const COMPOSED_PREFIX = 'composed:';
 

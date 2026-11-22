@@ -5,11 +5,11 @@
  * reproducible reasoning and sharing.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
+import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 
 /** Book entry. */
 export interface BookEntry {

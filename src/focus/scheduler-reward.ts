@@ -1,7 +1,7 @@
 import { clampSigned, safeRatio } from '@senars/util/numeric';
-import type { MetaGame } from '../game/impls/MetaGame.js';
-import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import type { FocusStepReport } from './Focus.js';
+import type { MetaGame } from '../game/impls/MetaGame';
+import type { SchedulerAdapter } from '../learning/domain-learners';
+import type { FocusStepReport } from './Focus';
 
 /**
  * Focus-step reward for the `self-scheduler` learning domain: derivation rate

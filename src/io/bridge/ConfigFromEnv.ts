@@ -6,7 +6,7 @@
  */
 
 import { envBool, envCsv, envFirst, envInt, envStrOr } from '@senars/util/config';
-import type { ConnectionConfig } from '../types.js';
+import type { ConnectionConfig } from '../types';
 
 export interface TransportEnvOverrides {
   readonly irc?: {

@@ -30,7 +30,7 @@ import {
   validateContract,
   safeValidateContract,
   getContractSchema,
-} from '../../../src/loop/contracts/schemas.js';
+} from '../../../src/loop/contracts/schemas';
 import {
   createCandidate,
   createJudgment,
@@ -54,7 +54,7 @@ import {
   createPreconditionSubgoalRepair,
   createAlternateOperatorRepair,
   createExplainedVetoRepair,
-} from '../../../src/loop/contracts/producers.js';
+} from '../../../src/loop/contracts/producers';
 import {
   isCandidateEligible,
   computeCandidatePriority,
@@ -83,7 +83,7 @@ import {
   getQueueDepth,
   getAverageCompletionTime,
   getContractType,
-} from '../../../src/loop/contracts/consumers.js';
+} from '../../../src/loop/contracts/consumers';
 
 // ============================================================================
 // Test helpers

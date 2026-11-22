@@ -3,8 +3,8 @@
  *
  * Provides projectWorkspaceGraph with optional kind filtering and reactive updates.
  */
-import { $workspaceGraph } from '../../kernel/index.js';
-import { projectWorkspaceGraph, type WorkspaceProjection } from '../../kernel/domain.js';
+import { $workspaceGraph } from '../../kernel/index';
+import { projectWorkspaceGraph, type WorkspaceProjection } from '../../kernel/domain';
 
 export interface GraphProjectionConfig {
   nodeKinds?: readonly string[];

@@ -3,7 +3,7 @@ import {
   createRegistry,
   createIdRegistry,
   type Registry,
-} from '../../src/client/core/registry.js';
+} from '../../src/client/core/registry';
 
 describe('createRegistry (E2)', () => {
   it('registers and retrieves values by key', () => {

@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { notebookRenderer } from '../../src/client/components/renderers/notebook.js';
-import '../../src/client/components/views/table-mini-view.js';
-import '../../src/client/components/views/table-view.js';
-import '../../src/client/components/views/tree-view.js';
-import { $embeddedViews, toggleEmbeddedView } from '../../src/client/core/embedded-views.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { $collapsedBlocks, $view, $workspaceGraph } from '../../src/client/core/store.js';
-import '../../src/client/core/view-host.js';
+import { notebookRenderer } from '../../src/client/components/renderers/notebook';
+import '../../src/client/components/views/table-mini-view';
+import '../../src/client/components/views/table-view';
+import '../../src/client/components/views/tree-view';
+import { $embeddedViews, toggleEmbeddedView } from '../../src/client/core/embedded-views';
+import { eventBus } from '../../src/client/core/events';
+import { $collapsedBlocks, $view, $workspaceGraph } from '../../src/client/core/store';
+import '../../src/client/core/view-host';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
-import { workspaceRenderer } from '../../src/client/core/workspace-renderer.js';
+} from '../../src/client/core/workspace-graph';
+import { workspaceRenderer } from '../../src/client/core/workspace-renderer';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

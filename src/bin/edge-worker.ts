@@ -7,10 +7,10 @@
  * no Python. Single-file bundle with vendored .wasm modules.
  */
 
-import { createProfileRegistry, type ProfileConfig } from '../profiles/index.js';
-import { createGenomeRegistry } from '../genome/index.js';
-import { createAgentFromEnv, runAgent } from './lib/lifecycle.js';
-import { readAppEnvConfig } from './lib/env-config.js';
+import { createProfileRegistry, type ProfileConfig } from '../profiles/index';
+import { createGenomeRegistry } from '../genome/index';
+import { createAgentFromEnv, runAgent } from './lib/lifecycle';
+import { readAppEnvConfig } from './lib/env-config';
 
 /**
  * Edge worker configuration.
@@ -61,7 +61,7 @@ export async function runEdgeWorker(config: EdgeWorkerConfig = {}): Promise<void
   await runAgent(agent);
 
   if (config.enableWebUI) {
-    const { startAgentUI } = await import('../../ui/src/server/index.js');
+    const { startAgentUI } = await import('../../ui/src/server/index');
     await startAgentUI(agent as never, { port: config.webUIPort ?? 8765 })
       .then(() => console.log(`Web UI at http://localhost:${config.webUIPort ?? 8765}`))
       .catch((err: unknown) => console.error('Web UI failed to start', err));

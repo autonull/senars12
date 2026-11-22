@@ -1,4 +1,4 @@
-import { registerViewAdapter } from '../../core/view-adapter.js';
+import { registerViewAdapter } from '../../core/view-adapter';
 
 /**
  * The graph adapter is the seam over the existing 2D/3D viewports: both read the

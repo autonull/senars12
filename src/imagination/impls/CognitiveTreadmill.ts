@@ -4,19 +4,19 @@ import { BoundedRing } from '@senars/util/collections';
 import { clamp, clamp01, flooredRatio, perSecond, stdDev } from '@senars/util/numeric';
 import { percentile } from '@senars/util/format';
 import { sleep, stopwatch } from '@senars/util/async';
-import type { NAR } from '../../nar.js';
-import { Truth } from '../../terms/impls/Truth.js';
-import { termParser } from '../../terms/index.js';
-import type { Task } from '../../types/core.js';
-import { createTask, NEUTRAL_BUDGET } from '../../types/core.js';
+import type { NAR } from '../../nar';
+import { Truth } from '../../terms/impls/Truth';
+import { termParser } from '../../terms';
+import type { Task } from '../../types/core';
+import { createTask, NEUTRAL_BUDGET } from '../../types/core';
 import type {
   DegradationCurve,
   DegradationPoint,
   Scenario,
   StressMetrics,
   TreadmillConfig,
-} from '../types.js';
-import { ScenarioGenerator } from './ScenarioGenerator.js';
+} from '../types';
+import { ScenarioGenerator } from './ScenarioGenerator';
 
 export class CognitiveTreadmill {
   private readonly nar: NAR;

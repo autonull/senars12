@@ -5,8 +5,8 @@
 
 import { nonNegativeInt, timestamp, uuid, validatorFor } from '../config';
 import { z } from 'zod';
-import { IndependenceSchema } from './common.js';
-import { TruthValueSchema } from './truth.js';
+import { IndependenceSchema } from './common';
+import { TruthValueSchema } from './truth';
 
 export const RULE_CATEGORIES = [
   'core',

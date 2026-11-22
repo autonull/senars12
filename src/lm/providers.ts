@@ -11,8 +11,8 @@
  * - `./providers/health.ts`        — probes, circuit breakers, health probes
  */
 export type { LMTask } from '@senars/types/llm';
-export type { LMSettings } from './env-config.js';
-export { cloudApiKey, formatLMConfig } from './env-config.js';
+export type { LMSettings } from './env-config';
+export { cloudApiKey, formatLMConfig } from './env-config';
 export type {
   CircuitBreakerSettings,
   CircuitState,
@@ -25,20 +25,20 @@ export type {
   RoutingPolicy,
   RoutingTelemetryEntry,
   WebLLMRuntime,
-} from './provider-runtime.js';
-export { getProviderRuntime, PROVIDER_CIRCUIT_DEFAULTS } from './provider-runtime.js';
-export type { ModelCapability } from './providers/capabilities.js';
+} from './provider-runtime';
+export { getProviderRuntime, PROVIDER_CIRCUIT_DEFAULTS } from './provider-runtime';
+export type { ModelCapability } from './providers/capabilities';
 export {
   getModelCapability,
   MODEL_CAPABILITIES,
-} from './providers/capabilities.js';
+} from './providers/capabilities';
 export {
   getModelChain,
   getModelForTask,
   getQualityModel,
   hasCloudCredentials,
-} from './providers/chains.js';
-export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
+} from './providers/chains';
+export { probeEmbeddedLlama } from './providers/embedded-llamacpp';
 export {
   canUseProvider,
   getAllCircuitBreakers,
@@ -51,22 +51,22 @@ export {
   resolveActiveProvider,
   startHealthProbes,
   stopHealthProbes,
-} from './providers/health.js';
-export { probeLlamaCpp } from './providers/llamacpp.js';
+} from './providers/health';
+export { probeLlamaCpp } from './providers/llamacpp';
 export type {
   ModelDownloadProgressCallback,
   SeNARSModelId,
   SeNARSRegistry,
-} from './providers/model-factory.js';
+} from './providers/model-factory';
 export {
   createSeNARSRegistry,
   getBuiltinProgressCallback,
   localModel,
   mockModel,
   setBuiltinProgressCallback,
-} from './providers/model-factory.js';
-export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
-export type { CandidateScore, ModelReliability } from './providers/routing.js';
+} from './providers/model-factory';
+export { fetchBounded, probeModelsEndpoint } from './providers/probe';
+export type { CandidateScore, ModelReliability } from './providers/routing';
 export {
   demoteModel,
   disableRoutingTelemetry,
@@ -83,12 +83,12 @@ export {
   resolveOfflineModel,
   resolveOfflineTier,
   setRouting,
-} from './providers/routing.js';
+} from './providers/routing';
 export {
   configureLM,
   getActiveProvider,
   getLMSettings,
   getLmProvider,
   setActiveProvider,
-} from './providers/settings.js';
-export { configureWebLLM, detectDevice, getWebLLMRuntime } from './providers/webllm.js';
+} from './providers/settings';
+export { configureWebLLM, detectDevice, getWebLLMRuntime } from './providers/webllm';

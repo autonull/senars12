@@ -13,13 +13,13 @@
  * the attention owner.
  */
 
-import type { AssociativeRegistry } from './associative.js';
-import type { Concept } from './concept.js';
-import { type Focus } from './focus.js';
-import type { RandomSource } from '../types/primitives.js';
-import type { Term } from '../terms/index.js';
-import type { Task } from '../types/index.js';
-import type { LinkPort } from './ports/memory-ports.js';
+import type { AssociativeRegistry } from './associative';
+import type { Concept } from './concept';
+import { type Focus } from './focus';
+import type { RandomSource } from '../types/primitives';
+import type { Term } from '../terms/index';
+import type { Task } from '../types/index';
+import type { LinkPort } from './ports/memory-ports';
 
 /** Semantic similarity between two terms — the embedding layer's read surface. */
 export interface SemanticSimilarity {

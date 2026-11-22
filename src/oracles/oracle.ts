@@ -5,20 +5,20 @@
  * A new `fetch`/client import outside src/oracles fails the `one-oracle` gate.
  */
 
-import type { UUID, TimestampMs } from '../generated/schemas.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { Task } from '../kernel/types.js';
-import { FunctionRegistry } from '../util/registry.js';
-import { createLMGenerateTextOracle, createLMGenerateObjectOracle, createLMStreamOracle } from './lm.js';
-import { createNLToFormalOracle, createFormalToNlOracle } from './formalization.js';
-import { OraclePinStore } from './pins.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
+import type { Term } from '../kernel/terms/term';
+import type { Task } from '../kernel/types';
+import { FunctionRegistry } from '../util/registry';
+import { createLMGenerateTextOracle, createLMGenerateObjectOracle, createLMStreamOracle } from './lm';
+import { createNLToFormalOracle, createFormalToNlOracle } from './formalization';
+import { OraclePinStore } from './pins';
 import { createHash } from 'crypto';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { createZ3WasmOracle } from './engines/z3-wasm.js';
-import { createClingoWasmOracle } from './engines/clingo-wasm.js';
-import { createMiniSatWasmOracle } from './engines/minisat-wasm.js';
-import { createTauPrologOracle } from './engines/tau-prolog.js';
-import { createMettaOracle } from './engines/metta.js';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { createZ3WasmOracle } from './engines/z3-wasm';
+import { createClingoWasmOracle } from './engines/clingo-wasm';
+import { createMiniSatWasmOracle } from './engines/minisat-wasm';
+import { createTauPrologOracle } from './engines/tau-prolog';
+import { createMettaOracle } from './engines/metta';
 
 /** Oracle operation categories. */
 export const ORACLE_OPERATIONS = [
@@ -197,7 +197,7 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
     // Charge budget if configured
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         // Budget exhausted - fail closed
@@ -502,9 +502,9 @@ export async function createEngineOracleRegistry(
 
   // Optionally register native engines (server-only, high-power)
   if (includeNative) {
-    const { createZ3Oracle } = await import('./engines/z3.js');
-    const { createClingoOracle } = await import('./engines/clingo.js');
-    const { createMiniSatOracle } = await import('./engines/minisat.js');
+    const { createZ3Oracle } = await import('./engines/z3');
+    const { createClingoOracle } = await import('./engines/clingo');
+    const { createMiniSatOracle } = await import('./engines/minisat');
 
     const z3Native = createZ3Oracle({
       budgetSlice,

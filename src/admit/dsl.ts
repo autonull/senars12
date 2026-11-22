@@ -5,12 +5,12 @@
  * It is fuel-metered and has no dangerous words.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { SandboxAST, SandboxFunction, SandboxLimits, Sandbox } from './sandbox.js';
-import { createSandbox } from './sandbox.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { SandboxAST, SandboxFunction, SandboxLimits, Sandbox } from './sandbox';
+import { createSandbox } from './sandbox';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** DSL expression. */
 export type DSLExpr =

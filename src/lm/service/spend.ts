@@ -1,8 +1,8 @@
 import { accumulate, mapToRecord } from '@senars/util/collections';
 import { envPositive } from '@senars/util/config';
-import { recordLmSpend } from '../../metrics/index.js';
-import { getModelCapability } from '../providers.js';
-import { LMUnavailableError, withHint } from './errors.js';
+import { recordLmSpend } from '../../metrics/index';
+import { getModelCapability } from '../providers';
+import { LMUnavailableError, withHint } from './errors';
 import type { LMTask } from '@senars/util';
 
 /** H3/X15: per-provider cumulative spend. */

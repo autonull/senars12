@@ -3,7 +3,7 @@ import type { ModelRuleStats } from '@senars/types/llm';
 import type { StampType, Term, Truth } from '../terms';
 import type { NarEventBus, Task } from '../types';
 
-import type { Timestamp } from '../types/primitives.js';
+import type { Timestamp } from '../types/primitives';
 
 export type { ModelRuleStats };
 

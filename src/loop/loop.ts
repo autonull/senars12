@@ -5,19 +5,19 @@
  * into a single coherent iteration.
  */
 
-import type { Env } from '../kernel/env.js';
-import type { Economy, EconomyScheduler } from '../economy/index.js';
-import type { FacultyRegistry } from '../faculties/specs.js';
-import type { OracleRegistry } from '../oracles/oracle.js';
-import type { LoopConfig, IterationResult, LoopContext, LoopEventType, LoopEvent, FacultyInvoker } from './types.js';
-import { defaultLoopConfig } from './types.js';
-import { createLoopContext, initializeFacultyInvokers } from './context.js';
-import { createLoopEventEmitter } from './events.js';
-import { runIteration } from './iteration.js';
-import type { ContractRegistry } from './contract.js';
-import type { RepairLoop } from './repair.js';
-import type { LoopRecorder } from './record.js';
-import type { SelfModelManager } from './self-model.js';
+import type { Env } from '../kernel/env';
+import type { Economy, EconomyScheduler } from '../economy/index';
+import type { FacultyRegistry } from '../faculties/specs';
+import type { OracleRegistry } from '../oracles/oracle';
+import type { LoopConfig, IterationResult, LoopContext, LoopEventType, LoopEvent, FacultyInvoker } from './types';
+import { defaultLoopConfig } from './types';
+import { createLoopContext, initializeFacultyInvokers } from './context';
+import { createLoopEventEmitter } from './events';
+import { runIteration } from './iteration';
+import type { ContractRegistry } from './contract';
+import type { RepairLoop } from './repair';
+import type { LoopRecorder } from './record';
+import type { SelfModelManager } from './self-model';
 
 /** Main loop class. */
 export class CognitiveLoop {

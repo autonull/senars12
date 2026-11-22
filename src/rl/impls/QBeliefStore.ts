@@ -3,9 +3,9 @@ import { clamp01, lerp, nearlyEqual } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
 import type { RandomSource } from '@senars/util';
-import type { DriveManager } from '../../drives/impls/DriveManager.js';
-import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index.js';
-import type { NAR } from '../../nar.js';
+import type { DriveManager } from '../../drives/impls/DriveManager';
+import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index';
+import type { NAR } from '../../nar';
 
 /**
  * Stores state-action value beliefs in NAR memory using native Product/Inheritance form

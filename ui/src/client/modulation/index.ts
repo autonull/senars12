@@ -15,7 +15,7 @@ export {
   channelsFor,
   type ChannelSpec,
   type RegisteredChannel,
-} from './channel-registry.js';
+} from './channel-registry';
 
 export type {
   Channel,
@@ -26,6 +26,6 @@ export type {
   View,
   Lens,
   Modulation,
-} from './types.js';
+} from './types';
 
-export { CHANNELS, asChannel, isChannel } from './types.js';
+export { CHANNELS, asChannel, isChannel } from './types';

@@ -2,7 +2,7 @@
  * WebSocket Transport — WebSocket transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types.js';
+import type { Transport, TransportConfig, TransportMessage } from './types';
 
 /** WebSocket transport config. */
 export interface WSTransportConfig extends TransportConfig {

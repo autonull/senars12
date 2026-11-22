@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeSpendSummaries, spendTerminations } from '../../src/server/spend-terminations.js';
+import { mergeSpendSummaries, spendTerminations } from '../../src/server/spend-terminations';
 
 describe('spend terminations', () => {
   it('keeps only the scopes that refused work, with their reasons', () => {

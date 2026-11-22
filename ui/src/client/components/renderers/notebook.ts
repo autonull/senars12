@@ -12,22 +12,22 @@
 
 import type { TemplateResult } from 'lit';
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { blockDescriptor } from '../../core/block-descriptors.js';
-import { collectSources } from '../../core/citations.js';
-import { eventBus } from '../../core/events.js';
-import { embeddedViewMeta, embeddedViewSpec, $embeddedViews } from '../../core/embedded-views.js';
-import { breadcrumb } from '../../core/navigation.js';
-import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections.js';
+import { customElement } from 'lit/decorators';
+import { blockDescriptor } from '../../core/block-descriptors';
+import { collectSources } from '../../core/citations';
+import { eventBus } from '../../core/events';
+import { embeddedViewMeta, embeddedViewSpec, $embeddedViews } from '../../core/embedded-views';
+import { breadcrumb } from '../../core/navigation';
+import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections';
 import {
   $collapsedBlocks,
   $workspaceGraph,
   setWorkspaceFocus,
   setWorkspaceSelection,
   toggleCollapsed,
-} from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import type { Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
+} from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import type { Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph';
 import {
   type RendererSnapshot,
   registerRenderer,
@@ -37,13 +37,13 @@ import {
   type RendererContext,
   type IntentRef,
   type FocusRef,
-} from '../../core/workspace-renderer.js';
-import { focusRefId } from '../../framework/coordinates.js';
-import type { Channel } from '../../modulation/types.js';
-import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
+} from '../../core/workspace-renderer';
+import { focusRefId } from '../../framework/coordinates';
+import type { Channel } from '../../modulation/types';
+import { blockBodyStyles, renderBlockBody } from '../../utils/render-block';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef as FrameworkFocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
-import '../primitives/empty-state.js';
+import { attendFocus, tierOf, type FocusRef as FrameworkFocusRef, focus, MIND_FOCUS } from '../../framework/index';
+import '../primitives/empty-state';
 
 const isSection = (block: SemanticBlock): boolean => blockDescriptor(block.kind).section;
 

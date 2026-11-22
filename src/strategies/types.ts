@@ -1,6 +1,6 @@
-import type { Concept } from '../memory/concept.js';
-import type { MemoryView } from '../memory/view.js';
-import type { ModelRule, RuleEngine } from '../rules/types.js';
+import type { Concept } from '../memory/concept';
+import type { MemoryView } from '../memory/view';
+import type { ModelRule, RuleEngine } from '../rules/types';
 import type { Task } from '../types';
 import type { Term } from '../terms';
 

@@ -10,8 +10,8 @@
  */
 import { fromNarsese, getArgs, hasVariable, type Term, Truth } from '../../terms';
 import { createTask, type Task, type TaskType } from '../../types';
-import { lmTaskWeight } from '../task-weights.js';
-import type { RuleFallback } from './definition.js';
+import { lmTaskWeight } from '../task-weights';
+import type { RuleFallback } from './definition';
 
 /** A named fallback *is* the definition's fallback type; this alias names the role. */
 export type SymbolicFallback = RuleFallback;

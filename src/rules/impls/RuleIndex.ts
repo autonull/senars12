@@ -1,7 +1,7 @@
 import { getOrInsert } from '@senars/util/collections';
 
 import type { Term } from '../../terms';
-import type { InferenceTable, RegisteredRule } from '../types.js';
+import type { InferenceTable, RegisteredRule } from '../types';
 
 const bucketKey = (left: Term['kind'], right: Term['kind']): string => `${left}:${right}`;
 

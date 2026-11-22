@@ -1,10 +1,10 @@
 /** Importing this barrel registers every view adapter and defines its element. */
-import './graph-adapter.js';
-import './series-view.js';
-import './sparkline-view.js';
-import './table-view.js';
-import './table-mini-view.js';
-import './text-view.js';
-import './code-view.js';
-import './diff-view.js';
-import './tree-view.js';
+import './graph-adapter';
+import './series-view';
+import './sparkline-view';
+import './table-view';
+import './table-mini-view';
+import './text-view';
+import './code-view';
+import './diff-view';
+import './tree-view';

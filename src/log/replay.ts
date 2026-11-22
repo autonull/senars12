@@ -6,8 +6,8 @@
  * a reducer function to reconstruct any derived state.
  */
 
-import type { LogEntry, CognitiveEvent } from './events.js';
-import type { LogStore } from './store.js';
+import type { LogEntry, CognitiveEvent } from './events';
+import type { LogStore } from './store';
 
 /** Reducer function for replay: (state, event) -> newState. */
 export type Reducer<S, E extends CognitiveEvent = CognitiveEvent> = (

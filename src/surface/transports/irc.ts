@@ -2,7 +2,7 @@
  * IRC Transport — IRC transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types.js';
+import type { Transport, TransportConfig, TransportMessage } from './types';
 
 /** IRC transport config. */
 export interface IRCTransportConfig extends TransportConfig {

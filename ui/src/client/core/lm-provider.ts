@@ -11,8 +11,8 @@
  * the protocol in both directions; this module stays wire-free.
  */
 
-import { $webllmActive, $webllmAvailable, atom } from './store.js';
-import { lmProviderLabel } from './lm-provider-catalog.js';
+import { $webllmActive, $webllmAvailable, atom } from './store';
+import { lmProviderLabel } from './lm-provider-catalog';
 
 /** Where a provider runs: in the engine process, or in this browser. */
 export type ProviderKind = 'engine' | 'browser';

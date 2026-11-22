@@ -5,9 +5,9 @@
  * and transforming log events without full replay.
  */
 
-import type { LogEntry, CognitiveEvent } from './events.js';
-import type { LogStore } from './store.js';
-import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isGateEvent, isBudgetEvent, isProposalEvent } from './events.js';
+import type { LogEntry, CognitiveEvent } from './events';
+import type { LogStore } from './store';
+import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isGateEvent, isBudgetEvent, isProposalEvent } from './events';
 
 /** Query filter operators. */
 export type FilterOp =

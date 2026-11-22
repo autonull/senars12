@@ -1,9 +1,9 @@
 import type { ChatMessage, CognitiveEvent, GraphNodeData } from '@senars/core';
 import { mintCognitiveEvent } from '@senars/core/schemas';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { narsBackend } from '../../src/client/core/nars-backend.js';
-import { mettaBackend } from '../../src/client/core/metta-backend.js';
-import { $graphEdges, $graphNodes } from '../../src/client/core/store.js';
+import { narsBackend } from '../../src/client/core/nars-backend';
+import { mettaBackend } from '../../src/client/core/metta-backend';
+import { $graphEdges, $graphNodes } from '../../src/client/core/store';
 import {
   childId,
   claimId,
@@ -14,7 +14,7 @@ import {
   projectWorkspace,
   rawChildId,
   turnId,
-} from '../../src/client/core/workspace-projection.js';
+} from '../../src/client/core/workspace-projection';
 
 const message = (over: Partial<ChatMessage> & Pick<ChatMessage, 'id' | 'role'>): ChatMessage => ({
   content: '',

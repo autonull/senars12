@@ -29,9 +29,9 @@ import {
   ratioArg,
   type SubHandler,
   setPath,
-} from './args.js';
-import { reloadAppConfig } from './config.js';
-import type { BotRuntime } from './context.js';
+} from './args';
+import { reloadAppConfig } from './config';
+import type { BotRuntime } from './context';
 
 const DEFAULT_DECIDE_RUBRICS = [
   'relevance',

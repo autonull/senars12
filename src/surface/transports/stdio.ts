@@ -2,7 +2,7 @@
  * Stdio Transport — stdio transport for MCP.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types.js';
+import type { Transport, TransportConfig, TransportMessage } from './types';
 
 /** Stdio transport config. */
 export interface StdioTransportConfig extends TransportConfig {

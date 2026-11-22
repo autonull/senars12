@@ -11,8 +11,8 @@ import type {
   SemanticLink,
   WorkspaceGraph,
   WorkspaceOp,
-} from '../../core/workspace-graph.js';
-import { graphRenderableKinds } from '../../core/block-descriptors.js';
+} from '../../core/workspace-graph';
+import { graphRenderableKinds } from '../../core/block-descriptors';
 import {
   registerRenderer,
   type RendererSnapshot,
@@ -24,14 +24,14 @@ import {
   type Patch,
   type ItemPatch,
   type Cell,
-} from '../../core/workspace-renderer.js';
-import { focusRefId } from '../../framework/coordinates.js';
-import type { Channel } from '../../modulation/types.js';
-import { diffWorkspaceGraph } from '../../core/workspace-diff.js';
-import { applyWorkspaceOps } from '../../core/workspace-graph.js';
-import { getSpaceGraphViewport } from '../../spacegraph/spacegraph-viewport.js';
-import { theme } from '../../utils/theme.js';
-import { $workspaceGraph, setWorkspaceFocus, setWorkspaceSelection, $focus, $depth, $aspect } from '../../core/store.js';
+} from '../../core/workspace-renderer';
+import { focusRefId } from '../../framework/coordinates';
+import type { Channel } from '../../modulation/types';
+import { diffWorkspaceGraph } from '../../core/workspace-diff';
+import { applyWorkspaceOps } from '../../core/workspace-graph';
+import { getSpaceGraphViewport } from '../../spacegraph/spacegraph-viewport';
+import { theme } from '../../utils/theme';
+import { $workspaceGraph, setWorkspaceFocus, setWorkspaceSelection, $focus, $depth, $aspect } from '../../core/store';
 
 interface SpaceGraphNodeSpec {
   id: string;
@@ -333,10 +333,10 @@ class Graph3DRenderer implements WorkspaceRenderer {
   private async applyLens(sg: any): Promise<void> {
     // Apply modulation pipeline — similar to spacegraph-viewport.syncGraph
     const { clearNodeStyles, checkUnsupportedChannels, applyDelta } = await import(
-      '../../spacegraph/adapter-3d.js'
+      '../../spacegraph/adapter-3d'
     );
-    const { evaluateLens } = await import('../../core/index.js');
-    const { $graphEdges } = await import('../../core/store.js');
+    const { evaluateLens } = await import('../../core/index');
+    const { $graphEdges } = await import('../../core/store');
 
     clearNodeStyles(sg);
     const delta = evaluateLens();
@@ -422,10 +422,10 @@ class Graph3DRenderer implements WorkspaceRenderer {
     // Apply channel/modulation changes
     if (patch.upsert) {
       const { applyDelta, checkUnsupportedChannels, clearNodeStyles } = await import(
-        '../../spacegraph/adapter-3d.js'
+        '../../spacegraph/adapter-3d'
       );
-      const { evaluateLens } = await import('../../core/index.js');
-      const { $graphEdges } = await import('../../core/store.js');
+      const { evaluateLens } = await import('../../core/index');
+      const { $graphEdges } = await import('../../core/store');
 
       const delta = new Map<string, Partial<Record<Channel, any>>>();
       for (const item of patch.upsert) {

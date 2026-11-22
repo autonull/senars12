@@ -11,8 +11,8 @@ import { groupBy, rankBy, selectByPriority, takeFirst } from '@senars/util/colle
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { softFalloff } from '@senars/util/numeric';
 import { systemClock, type Clock } from '@senars/util/clock';
-import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor.js';
-import type { RandomSource } from '../types/primitives.js';
+import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor';
+import type { RandomSource } from '../types/primitives';
 
 /** Episodes examined per consolidation pass — a merge needs a group, so batches run wide. */
 const EPISODE_CONSOLIDATION_BUDGET = 8;

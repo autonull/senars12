@@ -1,6 +1,6 @@
 import { groupBy, perPart, selectTopN } from '@senars/util/collections';
-import type { ModelRule } from '../../rules/types.js';
-import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
+import type { ModelRule } from '../../rules/types';
+import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types';
 
 export class DiverseSelector implements ModelRuleSelector {
   readonly metadata = { name: 'diverse', description: 'One per category, then round-robin' };

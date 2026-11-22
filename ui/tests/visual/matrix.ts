@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { mintCognitiveEvent } from '@senars/core/schemas';
-import type { TestControl } from '../framework/utils/test-control.js';
-import { GENERATED_VISUAL_CELLS } from './generated-cells.js';
+import type { TestControl } from '../framework/utils/test-control';
+import { GENERATED_VISUAL_CELLS } from './generated-cells';
 
 export type VisualContext = {
   page: Page;

@@ -1,4 +1,4 @@
-import type { ViewDataset, ViewSource } from './view-spec.js';
+import type { ViewDataset, ViewSource } from './view-spec';
 
 /** A readable the view system can subscribe to — an atom or any get/subscribe pair. */
 export interface Readable<T> {

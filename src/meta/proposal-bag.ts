@@ -9,8 +9,8 @@
 import type { SelfImprovementProposal } from '@senars/schemas';
 import { retain } from '@senars/util/numeric';
 import { selectByPriority } from '@senars/util/collections';
-import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor.js';
-import type { RandomSource } from '../types/primitives.js';
+import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor';
+import type { RandomSource } from '../types/primitives';
 
 export interface ProposalCandidate {
   id: string;

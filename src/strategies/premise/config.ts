@@ -21,7 +21,7 @@ import {
   PREMISE_SOURCES,
   type ScorerName,
   type SourceName,
-} from './primitives.js';
+} from './primitives';
 
 export const PREMISE_SOURCE_NAMES = Object.keys(PREMISE_SOURCES) as SourceName[];
 /** Every filter name, curried ones included: a bare `highConfidence` uses its declared default. */

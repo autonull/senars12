@@ -1,17 +1,17 @@
 import type { ReasoningBudget } from '@senars/schemas';
 import { sha256Hex } from '@senars/util/hash';
 import { rankBy } from '@senars/util/collections';
-import type { Perception } from '../../game/Game.js';
-import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import { type JudgmentProvenance, stageProvenance } from './decide.js';
-import type { BandDecision } from './policy.js';
-import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
+import type { Perception } from '../../game/Game';
+import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex';
+import { type JudgmentProvenance, stageProvenance } from './decide';
+import type { BandDecision } from './policy';
+import { PrefetchTable, proposeFromTable } from './prefetch-table';
 import type {
   EmbeddingPointer,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
-} from './types.js';
+} from './types';
 
 /**
  * Two-stage placement fan-out (W7 / DQ2 — the first live `judgeCascade`

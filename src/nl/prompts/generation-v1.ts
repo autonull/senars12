@@ -1,6 +1,6 @@
 import { formatTruth } from '@senars/types/truth';
 import { takeFirst } from '@senars/util/collections';
-import type { BeliefInfo, ConflictInfo } from '../types.js';
+import type { BeliefInfo, ConflictInfo } from '../types';
 
 export function buildGenerationPrompt(opts: {
   query: string;

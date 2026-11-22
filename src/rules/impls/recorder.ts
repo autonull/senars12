@@ -5,7 +5,7 @@ import { BoundedRing } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
 import { PushQueue } from '@senars/events/push-queue';
 import { Signal } from '@senars/events/signal';
-import type { RuleInput, RuleResult } from '../types.js';
+import type { RuleInput, RuleResult } from '../types';
 
 type Independence = DerivationStep['independence'];
 type RuleCategory = DerivationStep['ruleCategory'];

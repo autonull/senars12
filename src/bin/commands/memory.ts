@@ -5,8 +5,8 @@ import { finiteOr } from '@senars/util/numeric';
 import { incrementCount } from '@senars/util/collections';
 import { readJsonlAsync, writeJsonl } from '@senars/util/fs';
 import { attempted, cmd } from '@senars/cli';
-import { flagsOf, tokenize } from './args.js';
-import type { BotRuntime } from './context.js';
+import { flagsOf, tokenize } from './args';
+import type { BotRuntime } from './context';
 
 interface EpisodeRow {
   type?: string;

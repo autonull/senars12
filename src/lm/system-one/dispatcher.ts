@@ -2,18 +2,18 @@ import type { ReasoningBudget } from '@senars/schemas';
 import { accumulate, indexBy, maxBy, rankBy } from '@senars/util/collections';
 import { clamp01, retain, safeRatio } from '@senars/util/numeric';
 import { monotonicNow, stopwatch } from '@senars/util/async';
-import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
-import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
-import { Stamp } from '../../terms/impls/Stamp.js';
-import { Truth } from '../../terms/impls/Truth.js';
-import { failClosed, isSafetyFloor, validateBatchQueries } from './algebra.js';
-import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
-import { type ContrastiveMemory, candidateProximity } from './contrastive.js';
-import { selectQuery as buildSelectQuery } from './head-specs.js';
-import { compositeScore } from './policy.js';
-import { createProvisionalStamp } from './provisional-stamp.js';
-import { assertCostReported, chargeJudgment, resourceCostToLmCalls } from './resource-gate.js';
-import { seedTruth } from './seed.js';
+import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes';
+import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate';
+import { Stamp } from '../../terms/impls/Stamp';
+import { Truth } from '../../terms/impls/Truth';
+import { failClosed, isSafetyFloor, validateBatchQueries } from './algebra';
+import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold';
+import { type ContrastiveMemory, candidateProximity } from './contrastive';
+import { selectQuery as buildSelectQuery } from './head-specs';
+import { compositeScore } from './policy';
+import { createProvisionalStamp } from './provisional-stamp';
+import { assertCostReported, chargeJudgment, resourceCostToLmCalls } from './resource-gate';
+import { seedTruth } from './seed';
 import type {
   ClassifyProposition,
   CognitiveContext,
@@ -31,8 +31,8 @@ import type {
   ScoreDistribution,
   SynthesisProposition,
   SynthesisQuery,
-} from './types.js';
-import { candidateSlots, NO_COST, synthesisCandidateCount } from './types.js';
+} from './types';
+import { candidateSlots, NO_COST, synthesisCandidateCount } from './types';
 
 export { DeterministicManifold, Tier3SymbolicManifold };
 

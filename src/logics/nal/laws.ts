@@ -5,7 +5,7 @@
  * They serve as the specification that both the engine and interpreter must satisfy.
  */
 
-import { Truth, type TruthValue } from '../../kernel/truth.js';
+import { Truth, type TruthValue } from '../../kernel/truth';
 
 /** Test case for a binary law. */
 interface BinaryLawCase {

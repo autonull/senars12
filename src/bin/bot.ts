@@ -12,7 +12,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createCapturePhase, DEFAULT_MACRO_PIPELINE, createBudget } from '../budget/index.js';
+import { createCapturePhase, DEFAULT_MACRO_PIPELINE, createBudget } from '../budget/index';
 import {
   AuthManager,
   bindAgentToConnection,
@@ -25,18 +25,18 @@ import {
   MCPConnection,
   WSConnection,
   QUIT_SENTINEL,
-} from '../io/index.js';
-import { createMeTTa, parseMeTTa } from '../metta/index.js';
-import { DEFAULT_LEDGER_PATH, ParameterLedger } from '../config/nar.js';
-import { DialogueCapture, RetrospectiveAdapter } from '../dialogue/index.js';
-import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '../kernel/index.js';
-import { resolveLMConfig, resolveLMSettings } from '../lm/index.js';
-import { evaluateQuery } from '../lm/system-one/head-ontology.js';
-import { computeEvidenceId } from '../lm/system-one/distill.js';
-import { createReasoningRoute, handleMetricsRequest, type ReasoningHttpEngine } from '../metrics/index.js';
-import { NLUnderstandingService, TranslationCache } from '../nl/index.js';
-import { MemoryQuery } from '../query/index.js';
-import { MettaProposer } from '../reflex/index.js';
+} from '../io/index';
+import { createMeTTa, parseMeTTa } from '../metta/index';
+import { DEFAULT_LEDGER_PATH, ParameterLedger } from '../config/nar';
+import { DialogueCapture, RetrospectiveAdapter } from '../dialogue/index';
+import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '../kernel/index';
+import { resolveLMConfig, resolveLMSettings } from '../lm/index';
+import { evaluateQuery } from '../lm/system-one/head-ontology';
+import { computeEvidenceId } from '../lm/system-one/distill';
+import { createReasoningRoute, handleMetricsRequest, type ReasoningHttpEngine } from '../metrics/index';
+import { NLUnderstandingService, TranslationCache } from '../nl/index';
+import { MemoryQuery } from '../query/index';
+import { MettaProposer } from '../reflex/index';
 import type { LMTask } from '@senars/types/llm';
 import {
   createLogger,
@@ -51,9 +51,9 @@ import {
   envBool,
 } from '@senars/util';
 import { Effect } from 'effect';
-import { buildCommands } from '../cli/commands.js';
-import { reflexesOf } from '../cli/conversation-game.js';
-import { assertValidEnv } from '@senars/util/env-validate.js';
+import { buildCommands } from '../cli/commands';
+import { reflexesOf } from '../cli/conversation-game';
+import { assertValidEnv } from '@senars/util/env-validate';
 import {
   type BotRuntime,
   buildBotCommands,
@@ -63,12 +63,12 @@ import {
   runSessionRetrospective,
   type SystemOneBag,
   type TraceState,
-} from './commands/index.js';
-import { readAppEnvConfig, readAuthConfig } from './lib/env-config.js';
-import { runEntrypoint } from './lib/fatal-error.js';
-import { createAgentFromEnv } from './lib/lifecycle.js';
-import { isOneShot, readOneShot, runOneShot } from './lib/oneshot.js';
-import { createRemoteRegistry } from './lib/remote-registry.js';
+} from './commands/index';
+import { readAppEnvConfig, readAuthConfig } from './lib/env-config';
+import { runEntrypoint } from './lib/fatal-error';
+import { createAgentFromEnv } from './lib/lifecycle';
+import { isOneShot, readOneShot, runOneShot } from './lib/oneshot';
+import { createRemoteRegistry } from './lib/remote-registry';
 
 assertValidEnv();
 
@@ -106,11 +106,11 @@ const CONNECTION_FACTORIES = {
 
 /** `--flag` → runner, in precedence order. `undefined` return falls through to the REPL. */
 const NON_INTERACTIVE_MODES: Record<string, () => Promise<unknown>> = {
-  '--status': () => import('./lib/status-report.js').then((m) => m.runStatus()),
-  '--doctor': () => import('./lib/doctor-report.js').then((m) => m.runDoctor()),
-  '--tune': () => import('./lib/tune-runner.js').then((m) => m.runTune()),
-  '--arcade': () => import('../../scripts/arcade.js'),
-  '--multiagent': () => import('./lib/multi-agent-entry.js').then((m) => m.runMultiAgentEntry()),
+  '--status': () => import('./lib/status-report').then((m) => m.runStatus()),
+  '--doctor': () => import('./lib/doctor-report').then((m) => m.runDoctor()),
+  '--tune': () => import('./lib/tune-runner').then((m) => m.runTune()),
+  '--arcade': () => import('../../scripts/arcade'),
+  '--multiagent': () => import('./lib/multi-agent-entry').then((m) => m.runMultiAgentEntry()),
 };
 
 /** Auto-capture a high-quality graded conversation into the distillation dataset. */
@@ -417,7 +417,7 @@ async function main(): Promise<void> {
   // Bot-only default profile: enable System One by default (opt-out via config)
   // This only affects the bot; non-Bot NAR consumers are unaffected.
   if (!wired.appConfig.systemOne?.enabled) {
-    const { systemOneDefaults } = await import('../config/index.js');
+    const { systemOneDefaults } = await import('../config/index');
     wired.appConfig.systemOne = {
       ...systemOneDefaults,
       enabled: true,
@@ -570,7 +570,7 @@ async function main(): Promise<void> {
 
   await agent.start();
   if (readAppEnvConfig().enableWebUI) {
-    const { startAgentUI } = await import('../../ui/src/server/index.js');
+    const { startAgentUI } = await import('../../ui/src/server/index');
     startAgentUI(agent as never).catch((err: unknown) => {
       logger.error('Web UI failed to start', err as Error);
     });

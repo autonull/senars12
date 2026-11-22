@@ -6,18 +6,18 @@
  * rejecting poisoned imports.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from '../admit/repertoire.js';
-import type { Book, BookEntry, BookMetadata } from '../admit/book.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Stamp } from '../kernel/types.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
-import type { OraclePin, OraclePinStore } from './pins.js';
-import { createOraclePinStore } from './pins.js';
-import type { LogStore } from '../log/log-store.js';
-import { createLogStore } from '../log/log-store.js';
-import { createBookBuilder, createBookLibrary } from '../admit/book.js';
+import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from '../admit/repertoire';
+import type { Book, BookEntry, BookMetadata } from '../admit/book';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Stamp } from '../kernel/types';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import type { OraclePin, OraclePinStore } from './pins';
+import { createOraclePinStore } from './pins';
+import type { LogStore } from '../log/log-store';
+import { createLogStore } from '../log/log-store';
+import { createBookBuilder, createBookLibrary } from '../admit/book';
 
 /** Lemma candidate from oracle pin. */
 export interface LemmaCandidate {

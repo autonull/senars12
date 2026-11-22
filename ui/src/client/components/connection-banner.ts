@@ -1,8 +1,8 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $connectionState, BaseComponent } from '../core/index.js';
-import { $reconnectAttempt } from '../core/ws-client.js';
-import './primitives/banner.js';
+import { customElement, state } from 'lit/decorators';
+import { $connectionState, BaseComponent } from '../core/index';
+import { $reconnectAttempt } from '../core/ws-client';
+import './primitives/banner';
 
 const MESSAGES: Record<string, string> = {
   connecting: 'Connecting to SeNARS…',
@@ -71,7 +71,7 @@ export class ConnectionBanner extends BaseComponent {
   }
 
   private handleRetry() {
-    import('../core/ws-client.js').then(({ reconnect }) => reconnect());
+    import('../core/ws-client').then(({ reconnect }) => reconnect());
     this.dismissed = true;
   }
 }

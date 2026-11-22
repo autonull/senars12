@@ -4,13 +4,13 @@
  * A bad contribution fails loud at registration time.
  */
 
-import { Capability, CAPABILITY_IDS } from './capabilities.js';
-import { getSurfaces, surfaceTag, type SurfaceDescriptor } from './surface-registry.js';
-import { overlays, type OverlayDescriptor } from './overlay-registry.js';
-import { viewAdapters, type ViewAdapter } from './view-adapter.js';
-import { workspaceRenderers, type WorkspaceRenderer, type WorkspaceRendererCaps } from './workspace-renderer.js';
-import { registeredCommands, type Command } from './commands.js';
-import { isRegisteredLayoutId } from './layout-ids.js';
+import { Capability, CAPABILITY_IDS } from './capabilities';
+import { getSurfaces, surfaceTag, type SurfaceDescriptor } from './surface-registry';
+import { overlays, type OverlayDescriptor } from './overlay-registry';
+import { viewAdapters, type ViewAdapter } from './view-adapter';
+import { workspaceRenderers, type WorkspaceRenderer, type WorkspaceRendererCaps } from './workspace-renderer';
+import { registeredCommands, type Command } from './commands';
+import { isRegisteredLayoutId } from './layout-ids';
 
 export interface ValidationError {
   registry: string;

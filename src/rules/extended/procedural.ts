@@ -3,8 +3,8 @@
  */
 import type { Term } from '../../terms';
 import { TermBuilder, termsEqual } from '../../terms';
-import { buildPairRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { buildPairRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /** `^op(input)` writes as `(a , input)`, so one product unwraps to the bare input. */
 const unwrapProduct = (term: Term | undefined): Term | undefined =>

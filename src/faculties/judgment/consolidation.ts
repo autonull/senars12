@@ -6,14 +6,14 @@
  * to the cascade's learned judge after trained parity is achieved.
  */
 
-import type { JudgmentCandidate, JudgmentContext, JudgmentResult, JudgeModel, JudgeTrainingExample } from './cascade.js';
-import { createJudge, type JudgeEnsemble } from './judge.js';
-import type { IsotonicCalibrator } from './calibration.js';
-import type { CalibrationManager } from './calibration.js';
-import type { TelemetryCollector } from './telemetry.js';
-import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env.js';
-import { createCalibrationManager } from './calibration.js';
-import { createTelemetryCollector } from './telemetry.js';
+import type { JudgmentCandidate, JudgmentContext, JudgmentResult, JudgeModel, JudgeTrainingExample } from './cascade';
+import { createJudge, type JudgeEnsemble } from './judge';
+import type { IsotonicCalibrator } from './calibration';
+import type { CalibrationManager } from './calibration';
+import type { TelemetryCollector } from './telemetry';
+import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env';
+import { createCalibrationManager } from './calibration';
+import { createTelemetryCollector } from './telemetry';
 
 /** Parity status for a judgment path. */
 export interface ParityStatus {

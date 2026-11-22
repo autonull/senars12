@@ -1,12 +1,12 @@
 import type { GateName, GateOutcome } from '@senars/schemas/gate-io';
-import { decisionSpan, tracingEnabled } from '../otel/index.js';
+import { decisionSpan, tracingEnabled } from '../otel/index';
 import {
   bagPressure,
   gateDecisionsTotal,
   gateVetoesTotal,
   handoversTotal,
   schemaPromotionsTotal,
-} from '../metrics/prometheus.js';
+} from '../metrics/prometheus';
 
 /**
  * O1/O4: one call per gate verdict — Prometheus counter + fire-and-forget span.

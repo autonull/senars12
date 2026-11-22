@@ -1,7 +1,7 @@
 import { TermBuilder, termsEqual } from '../../terms';
-import { conjunctionIntro } from '../nal/propositional.js';
-import { buildBinaryInhRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { conjunctionIntro } from '../nal/propositional';
+import { buildBinaryInhRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /** `S--P1, S--P2 ⊢ S--(P1 & P2)` — NAL's `conjunctionIntro`, re-exported. */
 export const intersectionComposition: RuleFn = conjunctionIntro;

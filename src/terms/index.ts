@@ -1,4 +1,4 @@
-export type { BareInheritance, BinaryKind, TermPair, UnaryKind } from './impls/accessors.js';
+export type { BareInheritance, BinaryKind, TermPair, UnaryKind } from './impls/accessors';
 export {
   atomicSymbols,
   atomicTerms,
@@ -39,14 +39,14 @@ export {
   termsEqual,
   visitTerms,
   walkTerms,
-} from './impls/accessors.js';
-export { getTermComplexity } from './impls/complexity.js';
-export { atom, TermBuilder, TermFactory } from './impls/factory.js';
-export { canonicalTerm, type TermReducer, TERM_REDUCERS } from './reduce.js';
-export { canonicalTask, type TaskReducer, TASK_REDUCERS } from './reduce-task.js';
-export type { OperationCall } from './impls/operation-term.js';
-export { operationNameOf, operationTerm, readOperationTerm } from './impls/operation-term.js';
-export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
+} from './impls/accessors';
+export { getTermComplexity } from './impls/complexity';
+export { atom, TermBuilder, TermFactory } from './impls/factory';
+export { canonicalTerm, type TermReducer, TERM_REDUCERS } from './reduce';
+export { canonicalTask, type TaskReducer, TASK_REDUCERS } from './reduce-task';
+export type { OperationCall } from './impls/operation-term';
+export { operationNameOf, operationTerm, readOperationTerm } from './impls/operation-term';
+export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy';
 export {
   deserializeTerm,
   fromNarsese,
@@ -56,28 +56,28 @@ export {
   TermParser,
   taskTypeForPunctuation,
   termParser,
-} from './impls/parser-peggy.js';
-export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
-export { serializeTerm, toNarsese } from './impls/serialize.js';
-export type { Truth as TruthType } from './impls/Truth.js';
-export { isTruthEqual, Truth } from './impls/Truth.js';
-export { TermCollection } from './impls/term-collection.js';
-export { parseTermToEdges, type TermEdge } from './impls/term-edges.js';
-export type { TermMapEntry } from './impls/term-map.js';
-export { TermMap } from './impls/term-map.js';
-export { TermSet } from './impls/term-set.js';
-export type { Substitution } from './impls/unifier.js';
-export { applySubstitution, unify } from './impls/unifier.js';
-export { calculateSimilarity } from './impls/utils.js';
+} from './impls/parser-peggy';
+export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp';
+export { serializeTerm, toNarsese } from './impls/serialize';
+export type { Truth as TruthType } from './impls/Truth';
+export { isTruthEqual, Truth } from './impls/Truth';
+export { TermCollection } from './impls/term-collection';
+export { parseTermToEdges, type TermEdge } from './impls/term-edges';
+export type { TermMapEntry } from './impls/term-map';
+export { TermMap } from './impls/term-map';
+export { TermSet } from './impls/term-set';
+export type { Substitution } from './impls/unifier';
+export { applySubstitution, unify } from './impls/unifier';
+export { calculateSimilarity } from './impls/utils';
 export {
   INVALID_ATOM_CHARS_REGEX,
   isValidAtomSymbol,
   toAtomSymbol,
   VALID_ATOM_CHARS,
-} from './impls/valid-atom.js';
-export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
-export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
+} from './impls/valid-atom';
+export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation';
+export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types';
 export {
   COPULA_SYMBOLS,
   hasCopula,
@@ -85,4 +85,4 @@ export {
   isCompound,
   isVariableSymbol,
   OPERATORS,
-} from './types.js';
+} from './types';

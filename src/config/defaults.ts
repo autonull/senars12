@@ -14,9 +14,9 @@
  * @public
  */
 
-import { deepFreeze } from '@senars/util/object.js';
-import { appConfigSchema } from './schema.js';
-import type { AppConfig } from './schema.js';
+import { deepFreeze } from '@senars/util/object';
+import { appConfigSchema } from './schema';
+import type { AppConfig } from './schema';
 
 /** Fully defaulted app config — used by `.config-reset` and tests. */
 export const DEFAULT_APP_CONFIG: AppConfig = deepFreeze(appConfigSchema.parse({}));

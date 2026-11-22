@@ -13,13 +13,13 @@ import type { TaskBagKind } from '@senars/schemas';
 import { clamp01 } from '@senars/util/numeric';
 import { systemClock, type Clock } from '@senars/util/clock';
 import type { BagItem } from '@senars/bag';
-import type { GameOutcome, Perception } from '../game/Game.js';
-import { type ActionProposal, expectedValue } from '../reflex/Reflex.js';
+import type { GameOutcome, Perception } from '../game/Game';
+import { type ActionProposal, expectedValue } from '../reflex/Reflex';
 import type { Term } from '../terms';
 import { operationTerm, TermBuilder, toAtomSymbol } from '../terms';
-import { createTaskWeight } from '../types/core.js';
-import type { Budget } from '../types/index.js';
-import type { TermTruth } from '../types/truth.js';
+import { createTaskWeight } from '../types/core';
+import type { Budget } from '../types/index';
+import type { TermTruth } from '../types/truth';
 
 export interface FocusTask extends BagItem {
   term: Term;

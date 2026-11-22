@@ -2,9 +2,9 @@ import type { Episode, EpisodeType } from '@senars/types/episodic-memory';
 import { parseJsonOr } from '@senars/util/fs';
 import { takeFirst } from '@senars/util/collections';
 import type { TextGenerator } from '../ports';
-import { cosineUnit, l2Normalize } from '@senars/util/similarity.js';
-import type { EpisodicMemory } from './EpisodicMemory.js';
-import type { EmbeddingGenerator } from './embedding.js';
+import { cosineUnit, l2Normalize } from '@senars/util/similarity';
+import type { EpisodicMemory } from './EpisodicMemory';
+import type { EmbeddingGenerator } from './embedding';
 
 export interface ConsolidationOptions {
   /** Episodes considered per consolidation pass. */

@@ -2,7 +2,7 @@ import { BoundedMap } from '@senars/util/bounded-map';
 import { maxScore, takeFirst, unique } from '@senars/util/collections';
 import { pct } from '@senars/util/format';
 import { type Concept, taskFromBagItem } from '../memory';
-import type { MemoryReader } from '../memory/ports/index.js';
+import type { MemoryReader } from '../memory/ports/index';
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import type { Task } from '../types';

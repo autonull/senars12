@@ -4,7 +4,7 @@
  * token budget on `reasoning_content` and never emit an answer.
  */
 
-import { withBodyPatch } from './body-patch.js';
+import { withBodyPatch } from './body-patch';
 
 /** Wraps `base` so every chat request carries thinking disabled. */
 export const withThinkingDisabled = (base: typeof fetch = fetch): typeof fetch =>

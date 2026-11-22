@@ -1,5 +1,5 @@
-export type { AgentToolDeps } from '../memory/types.js';
-export { registerAgentTools } from './buildAgentTools.js';
+export type { AgentToolDeps } from '../memory/types';
+export { registerAgentTools } from './buildAgentTools';
 export {
   BUILTIN_TOOLS,
   type BuiltinDeps,
@@ -7,13 +7,13 @@ export {
   createBuiltinTools,
   type PinStore,
   registerBuiltinTools,
-} from './builtin-tools.js';
+} from './builtin-tools';
 export {
   type DispatchArtifact,
   type DispatchContext,
   type DispatchError,
   dispatchToolCalls,
-} from './dispatch.js';
+} from './dispatch';
 export {
   type SkillFeedback,
   type ToolContext,
@@ -21,8 +21,8 @@ export {
   ToolRegistry,
   type ToolRegistryDelegate,
   type ToolSpec,
-} from './ToolRegistry.js';
-export { motorToToolSet } from './toToolSet.js';
+} from './ToolRegistry';
+export { motorToToolSet } from './toToolSet';
 /** Bounded web search + read-only fetch, shared by every web-capable tool. */
 export {
   braveApiKey,
@@ -35,5 +35,5 @@ export {
   type WebSearchOutcome,
   type WebSearchResult,
   webFetch,
-} from './web-search.js';
-export { WORKSPACE_ROOT, withinWorkspace } from './workspace.js';
+} from './web-search';
+export { WORKSPACE_ROOT, withinWorkspace } from './workspace';

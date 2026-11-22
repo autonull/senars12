@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tokenizeInline } from '../../src/client/core/inline-text.js';
+import { tokenizeInline } from '../../src/client/core/inline-text';
 
 describe('tokenizeInline (§1.4)', () => {
   it('passes plain text through as one token', () => {

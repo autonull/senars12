@@ -1,6 +1,6 @@
-import { MeTTaError, MeTTaReason } from '../core/errors.js';
-import type { MeTTaAtom } from '../types/ast.js';
-import { num, sym, varr } from '../types/ast.js';
+import { MeTTaError, MeTTaReason } from '../core/errors';
+import type { MeTTaAtom } from '../types/ast';
+import { num, sym, varr } from '../types/ast';
 
 function tokenize(input: string): string[] {
   const tokens: string[] = [];

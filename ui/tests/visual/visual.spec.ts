@@ -1,5 +1,5 @@
-import { expect, test } from '../framework/fixtures/senars-app.js';
-import { VISUAL_CELLS, type VisualContext } from './matrix.js';
+import { expect, test } from '../framework/fixtures/senars-app';
+import { VISUAL_CELLS, type VisualContext } from './matrix';
 
 /**
  * Renders every matrix cell through the real boot path, forces a deterministic

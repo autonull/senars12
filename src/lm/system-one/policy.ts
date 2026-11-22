@@ -7,7 +7,7 @@
 import { BANDS } from '@senars/util/cognitive-schemas';
 import { renormalize, sumBy } from '@senars/util/numeric';
 import { assertDefined } from '@senars/util/assert';
-import { HEAD_SPECS } from './head-ontology.js';
+import { HEAD_SPECS } from './head-ontology';
 import type {
   BandDecision,
   EmbeddingPointer,
@@ -16,7 +16,7 @@ import type {
   JudgmentProposition,
   JudgmentQuery,
   ReasoningBudget,
-} from './types.js';
+} from './types';
 
 /** Jev `Noul`: an Evaluate over the boolean anchor pair, read off the head that owns it. */
 export function truthProbability(statement: string): EvaluateQuery {

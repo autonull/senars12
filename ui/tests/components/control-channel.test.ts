@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { awaitControl, settleControl } from '../../src/client/core/control-channel.js';
+import { awaitControl, settleControl } from '../../src/client/core/control-channel';
 
 describe('control channel', () => {
   afterEach(() => vi.useRealTimers());

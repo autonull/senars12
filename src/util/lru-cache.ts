@@ -5,8 +5,8 @@
  * eviction order other than recency wants `BoundedMap` directly.
  */
 
-import { BoundedMap, type BoundedMapOptions } from './bounded-map.js';
-import { safeRatio } from './numeric.js';
+import { BoundedMap, type BoundedMapOptions } from './bounded-map';
+import { safeRatio } from './numeric';
 
 export type LruCacheOptions<K = unknown, V = unknown> = BoundedMapOptions<K, V>;
 

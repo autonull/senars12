@@ -1,4 +1,4 @@
-import type { GateRegistry } from './kernel/index.js';
+import type { GateRegistry } from './kernel/index';
 import type { LMService, SeNARSRegistry } from './lm';
 import {
   BidirectionalFeedbackLoop,
@@ -8,7 +8,7 @@ import {
 } from './lm';
 import type { Memory } from './memory';
 import type { Task } from './types';
-import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter';
 
 export interface LMEnrichmentStats {
   cycles: number;

@@ -5,12 +5,12 @@ import type {
   PatchProposal,
   RiskAssessment,
   SelfImprovementProposal,
-} from '@senars/schemas/governance.js';
-import { permitsExecution, riskLevelOf } from '@senars/schemas/governance.js';
+} from '@senars/schemas/governance';
+import { permitsExecution, riskLevelOf } from '@senars/schemas/governance';
 import { makeId } from '@senars/util/id';
-import type { FocusStepReport } from '../focus/Focus.js';
-import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
-import { findKnobSpec } from '../rlfp/knobs.js';
+import type { FocusStepReport } from '../focus/Focus';
+import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame';
+import { findKnobSpec } from '../rlfp/knobs';
 
 const GUARDRAIL_FRAGMENTS = [
   'ApprovalManager',

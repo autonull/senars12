@@ -1,7 +1,7 @@
 /**
  * Shared app-shell components — barrel export.
  */
-export { AppChrome } from './app-chrome.js';
+export { AppChrome } from './app-chrome';
 
 export {
   DEFAULT_PRESET,
@@ -11,19 +11,19 @@ export {
   compositionFromUrl,
   compositionToSearch,
   applyGlobals,
-} from './config-sync.js';
+} from './config-sync';
 
-export { ComposerControls, hasGraphSurface } from './composer-controls.js';
-export type { ComposerSurface } from './composer-controls.js';
+export { ComposerControls, hasGraphSurface } from './composer-controls';
+export type { ComposerSurface } from './composer-controls';
 
-export { GraphViewportWrapper } from './graph-viewport-wrapper.js';
-export type { GraphViewportWrapperConfig } from './graph-viewport-wrapper.js';
+export { GraphViewportWrapper } from './graph-viewport-wrapper';
+export type { GraphViewportWrapperConfig } from './graph-viewport-wrapper';
 
-export { createGraphProjector } from './workspace-graph-projector.js';
-export type { GraphProjectionConfig, UseGraphProjectionReturn } from './workspace-graph-projector.js';
+export { createGraphProjector } from './workspace-graph-projector';
+export type { GraphProjectionConfig, UseGraphProjectionReturn } from './workspace-graph-projector';
 
-export { ToolbarSelect } from './toolbar-select.js';
-export type { SelectOption } from './toolbar-select.js';
+export { ToolbarSelect } from './toolbar-select';
+export type { SelectOption } from './toolbar-select';
 
-export { GraphToolbar } from './graph-toolbar.js';
-export type { GraphToolbarConfig } from './graph-toolbar.js';
+export { GraphToolbar } from './graph-toolbar';
+export type { GraphToolbarConfig } from './graph-toolbar';

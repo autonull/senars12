@@ -18,5 +18,5 @@ export {
   type DecisionRequest,
   type DecisionResult,
   NO_DECISION_PORT,
-} from './decision.js';
-export type { TextGenerationOptions, TextGenerator } from './text-generator.js';
+} from './decision';
+export type { TextGenerationOptions, TextGenerator } from './text-generator';

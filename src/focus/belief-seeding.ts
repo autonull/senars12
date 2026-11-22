@@ -1,8 +1,8 @@
 import { makeId } from '@senars/util/id';
-import { termParser } from '../terms/index.js';
-import type { Focus, FocusTask } from './Focus.js';
-import { focusTask } from './task.js';
-import type { TermTruth } from '../types/truth.js';
+import { termParser } from '../terms/index';
+import type { Focus, FocusTask } from './Focus';
+import { focusTask } from './task';
+import type { TermTruth } from '../types/truth';
 
 export interface SeededBelief {
   /** Narsese, e.g. `(up ==> wall_bump)`. The antecedent atom names the action. */

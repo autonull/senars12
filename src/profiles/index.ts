@@ -3,8 +3,8 @@
  * Device profile imports zero LM.
  */
 
-import type { Env } from '../kernel/env.js';
-import { unique } from '../util/collections.js';
+import type { Env } from '../kernel/env';
+import { unique } from '../util/collections';
 
 /** Profile kinds. */
 export const PROFILE_KINDS = [

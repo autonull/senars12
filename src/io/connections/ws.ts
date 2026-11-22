@@ -2,8 +2,8 @@ import { createLogger } from '@senars/util/logger';
 import { makeId } from '@senars/util/id';
 import { type WebSocket, WebSocketServer } from 'ws';
 import { withDefaults } from '@senars/util/config';
-import type { ConnectionConfig, ConnectionDeps } from '../types.js';
-import { startWSServer } from '../utils/http.js';
+import type { ConnectionConfig, ConnectionDeps } from '../types';
+import { startWSServer } from '../utils/http';
 import {
   broadcastToSubscribers,
   cleanupWSClient,
@@ -12,8 +12,8 @@ import {
   subscribeToEvents,
   unsubscribeFromEvents,
   type WSClient,
-} from '../utils/websocket.js';
-import { BaseConnection } from './base.js';
+} from '../utils/websocket';
+import { BaseConnection } from './base';
 
 interface WSOptions {
   name: string;

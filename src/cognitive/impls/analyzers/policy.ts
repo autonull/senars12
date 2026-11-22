@@ -4,8 +4,8 @@ import { incrementCount, pushCapped } from '@senars/util/collections';
 /**
  * Policy management - extracted from SelfAnalyzerService
  */
-import type { AgentPolicy } from '../../types.js';
-import { averageRuleDuration } from './performance.js';
+import type { AgentPolicy } from '../../types';
+import { averageRuleDuration } from './performance';
 
 export interface PolicyManager {
   recordRoute(kind: string): void;

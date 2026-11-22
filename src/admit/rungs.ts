@@ -9,10 +9,10 @@
  * Rung 5: Demoted/Retired
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
-import type { GateResult } from './lifecycle.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire';
+import type { GateResult } from './lifecycle';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Admission rung. */
 export const RUNGS = [

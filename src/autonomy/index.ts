@@ -7,7 +7,7 @@ export {
   type AutonomyPolicyId,
   DEFAULT_AUTONOMY_CONFIG,
   resolveAutonomyConfig,
-} from './config.js';
-export { AutonomyHeartbeat } from './heartbeat.js';
-export type { AutonomyPorts, AutonomyProvenance, AutonomyTickReport, ConceptObservation } from './types.js';
-export { createAutonomyHeartbeat } from './wiring.js';
+} from './config';
+export { AutonomyHeartbeat } from './heartbeat';
+export type { AutonomyPorts, AutonomyProvenance, AutonomyTickReport, ConceptObservation } from './types';
+export { createAutonomyHeartbeat } from './wiring';

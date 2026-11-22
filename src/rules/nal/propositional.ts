@@ -3,8 +3,8 @@
  */
 import type { Term } from '../../terms';
 import { binaryOf, TermBuilder, termsEqual, unaryOf } from '../../terms';
-import { buildPairRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { buildPairRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /** `S--P1, S--P2 ⊢ S--(P1 & P2)` */
 export const conjunctionIntro: RuleFn = buildPairRule(

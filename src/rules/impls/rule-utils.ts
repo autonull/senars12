@@ -7,9 +7,9 @@ import {
   isTautology,
   Stamp as StampFactory,
 } from '../../terms';
-import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
-import type { RuleInput, RuleResult } from '../types.js';
-import type { TruthFn } from '../types.js';
+import { Truth, type Truth as TruthType } from '../../terms/impls/Truth';
+import type { RuleInput, RuleResult } from '../types';
+import type { TruthFn } from '../types';
 
 export const deriveStamp = (p1: RuleInput, p2: RuleInput): StampType => {
   const stamps = [p1.stamp, p2.stamp].filter((s): s is NonNullable<typeof s> => s != null);

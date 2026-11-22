@@ -5,12 +5,12 @@
  * an external runner validates; human approves; then merge.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from './repertoire.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
-import { ShadowWorktreeManager, type TestRunResult } from '../tools/adapters/shadow-worktree.js';
-import { runCodemod, type CodemodResult } from '../tools/adapters/codemod.js';
-import { runProcess } from '../tools/adapters/proc.js';
+import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from './repertoire';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import { ShadowWorktreeManager, type TestRunResult } from '../tools/adapters/shadow-worktree';
+import { runCodemod, type CodemodResult } from '../tools/adapters/codemod';
+import { runProcess } from '../tools/adapters/proc';
 
 /** Admission proposal. */
 export interface AdmissionProposal {

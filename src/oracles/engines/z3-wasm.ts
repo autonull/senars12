@@ -3,9 +3,9 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from '../oracle.js';
-import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
-import { OraclePinStore } from '../pins.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from '../oracle';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget';
+import { OraclePinStore } from '../pins';
 
 /** Input for Z3 SMT solving. */
 export interface Z3WasmInput extends OracleInput {
@@ -93,7 +93,7 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
     // Charge budget if configured
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../../budget/budget.js');
+      const { consume } = await import('../../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();

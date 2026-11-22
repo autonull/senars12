@@ -8,7 +8,7 @@
  */
 import { generateId } from '@senars/util';
 import { css, html, nothing } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $chatMessages,
   $cognitiveEvents,
@@ -16,7 +16,7 @@ import {
   BaseComponent,
   narsBackend,
   send,
-} from '../../kernel/index.js';
+} from '../../kernel/index';
 
 type ProofStep = {
   readonly rule: string;

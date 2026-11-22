@@ -5,11 +5,11 @@
  * finite domain enumeration and SAT solving.
  */
 
-import { Term, ConstantTerm, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Formula, Atom, Model, Clause, Literal, CNFFormula, isAtom, freeVariables } from './ast.js';
-import { toCNF } from './cnf.js';
-import type { Clock } from '../../kernel/env.js';
-import { createDefaultClock } from '../../kernel/env.js';
+import { Term, ConstantTerm, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Formula, Atom, Model, Clause, Literal, CNFFormula, isAtom, freeVariables } from './ast';
+import { toCNF } from './cnf';
+import type { Clock } from '../../kernel/env';
+import { createDefaultClock } from '../../kernel/env';
 
 /** Model finder configuration. */
 export interface ModelFinderConfig {

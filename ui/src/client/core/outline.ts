@@ -9,10 +9,10 @@
  * and j/k navigation all agree on containment.
  */
 
-import { sectionTree, type SectionTree, type SectionNode } from './sections.js';
-import { blockLabel } from './block-labels.js';
-import { blockDescriptor, kindsWhere } from './block-descriptors.js';
-import type { BlockKind, Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
+import { sectionTree, type SectionTree, type SectionNode } from './sections';
+import { blockLabel } from './block-labels';
+import { blockDescriptor, kindsWhere } from './block-descriptors';
+import type { BlockKind, Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph';
 
 /** The block kinds worth a ToC row (paragraphs and raw payloads stay out). */
 const TOC_KINDS = new Set<BlockKind>(kindsWhere((descriptor) => descriptor.navigable));

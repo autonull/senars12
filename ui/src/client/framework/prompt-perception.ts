@@ -12,9 +12,9 @@
  */
 
 import { generateId } from '@senars/util';
-import { type SemanticBlock, type SemanticLink, type WorkspaceGraph, type WorkspaceOp, applyWorkspaceOps, emptyWorkspaceGraph } from '../core/workspace-graph.js';
-import { type FocusRef, focus, type TaskType } from './coordinates.js';
-import { type FocusResolution, resolveFocus, workspaceResolver } from './resolver.js';
+import { type SemanticBlock, type SemanticLink, type WorkspaceGraph, type WorkspaceOp, applyWorkspaceOps, emptyWorkspaceGraph } from '../core/workspace-graph';
+import { type FocusRef, focus, type TaskType } from './coordinates';
+import { type FocusResolution, resolveFocus, workspaceResolver } from './resolver';
 
 /** The result of perceiving a prompt. */
 export interface PerceivedPrompt {

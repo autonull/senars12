@@ -1,8 +1,8 @@
 import { SeededRNG } from '@senars/util/random';
-import { Truth } from '../../../index.js';
-import type { NAR } from '../../../nar.js';
-import { TermBuilder } from '../../../terms/index.js';
-import { rewardBeliefTerm } from '../reward-term.js';
+import { Truth } from '../../../index';
+import type { NAR } from '../../../nar';
+import { TermBuilder } from '../../../terms/index';
+import { rewardBeliefTerm } from '../reward-term';
 
 export interface RLObservation {
   stateId: string;

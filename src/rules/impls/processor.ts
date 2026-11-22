@@ -8,13 +8,13 @@ import { keyedBy, pushCapped, takeFirst } from '@senars/util/collections';
 import { stopwatch } from '@senars/util/async';
 import { toError } from '@senars/util/error';
 import type { DerivationRecord, DerivationStep } from '@senars/schemas';
-import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
+import { countContradictions } from '../../cognitive/impls/conflict-utils';
 import type { DriveManager } from '../../drives';
-import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';
-import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
-import type { MemoryReader } from '../../memory/ports/index.js';
-import type { RulePerformance } from '../../strategies/lm-graph/RuleGraph.js';
-import type { ModelRuleSelector } from '../../strategies/types.js';
+import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets';
+import { GATE_LOG_CAPACITY } from '../../kernel/event-ring';
+import type { MemoryReader } from '../../memory/ports/index';
+import type { RulePerformance } from '../../strategies/lm-graph/RuleGraph';
+import type { ModelRuleSelector } from '../../strategies/types';
 import type { StampType, Term } from '../../terms';
 import { TermMap, Truth, type Truth as TruthType, termDepth, termKey } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
@@ -28,12 +28,12 @@ import type {
   RuleInput,
   RulePromptContext,
   RuleResult,
-} from '../types.js';
-import { loadBuiltinTable } from './builtin-table.js';
-import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
-import { RuleIndex } from './RuleIndex.js';
-import { DerivationRecorder } from './recorder.js';
-import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
+} from '../types';
+import { loadBuiltinTable } from './builtin-table';
+import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules';
+import { RuleIndex } from './RuleIndex';
+import { DerivationRecorder } from './recorder';
+import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils';
 
 /** Rules whose performance is tallied — a bounded series, not an open-ended map. */
 const MAX_TRACKED_RULES = 512;

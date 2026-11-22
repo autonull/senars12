@@ -7,13 +7,13 @@
  */
 
 import type { ContainerStats } from '@senars/util/collections';
-import type { Term } from '../../terms/index.js';
-import type { Concept } from '../concept.js';
-import type { Layer } from '../links/Layer.js';
-import type { LinkEntry, LinkType } from '../links/types.js';
-import type { RandomSource } from '../../types/primitives.js';
-import type { Focus } from '../focus.js';
-import type { AssociativeRegistry } from '../associative.js';
+import type { Term } from '../../terms/index';
+import type { Concept } from '../concept';
+import type { Layer } from '../links/Layer';
+import type { LinkEntry, LinkType } from '../links/types';
+import type { RandomSource } from '../../types/primitives';
+import type { Focus } from '../focus';
+import type { AssociativeRegistry } from '../associative';
 
 /** The two bounds a store's occupancy is measured against. */
 export interface StoreBounds {

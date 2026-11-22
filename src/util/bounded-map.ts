@@ -11,11 +11,11 @@
  * the container.
  */
 
-import type { Clock } from './clock.js';
-import { systemClock } from './clock.js';
-import { type BoundedContainer, type EvictByScore, minBy } from './collections.js';
-import { occupancy } from './numeric.js';
-import { nextInt } from './random.js';
+import type { Clock } from './clock';
+import { systemClock } from './clock';
+import { type BoundedContainer, type EvictByScore, minBy } from './collections';
+import { occupancy } from './numeric';
+import { nextInt } from './random';
 
 interface Entry<V> {
   value: V;

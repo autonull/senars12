@@ -9,10 +9,10 @@ import { createLedger, type Ledger, type RolloverPolicy, BaseLedgerEntrySchema }
 import { SHA256_PINNED, sha256HexParts } from '@senars/util/hash';
 import { z } from 'zod';
 
-import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
-import { frozenRegression, meanBrierOf } from './metrics.js';
-import { seedTruth } from './seed.js';
-import type { JudgmentProposition } from './types.js';
+import { Truth, type Truth as TruthType } from '../../terms/impls/Truth';
+import { frozenRegression, meanBrierOf } from './metrics';
+import { seedTruth } from './seed';
+import type { JudgmentProposition } from './types';
 
 /** Input-anchored evidence identity: same utterance ⇒ same evidence, regardless of re-judging. */
 export const computeEvidenceId = (utteranceId: string, sourceSpan: string): string =>

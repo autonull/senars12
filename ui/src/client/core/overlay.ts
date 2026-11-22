@@ -7,9 +7,9 @@
  * Built on `defineContribution` (E3) — the one registration HOC.
  */
 
-import { BaseComponent } from './base-component.js';
-import { overlayRegistry, type OverlayDescriptor } from './overlay-registry.js';
-import { createDefineTagged } from './define-contribution.js';
+import { BaseComponent } from './base-component';
+import { overlayRegistry, type OverlayDescriptor } from './overlay-registry';
+import { createDefineTagged } from './define-contribution';
 
 /** An overlay component extends BaseComponent and receives its descriptor. */
 export type OverlayClass<T extends BaseComponent = BaseComponent> = new () => T;

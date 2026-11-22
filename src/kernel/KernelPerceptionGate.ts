@@ -2,24 +2,24 @@ import type {
   CognitiveEvent,
   ShadowValidationDropEvent,
   TaskAdmittedEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import type {
   GateOutcome,
   PerceptionGateInput,
   PerceptionGateOutput,
-} from '@senars/schemas/gate-io.js';
+} from '@senars/schemas/gate-io';
 import type {
   FormalizationBatch,
-} from '@senars/schemas/formalization.js';
+} from '@senars/schemas/formalization';
 import type {
   Budget,
-} from '@senars/schemas/common.js';
+} from '@senars/schemas/common';
 import type {
   SourceQuality,
-} from '@senars/schemas/truth.js';
+} from '@senars/schemas/truth';
 import type {
   TruthLike,
-} from '@senars/types/truth.js';
+} from '@senars/types/truth';
 import { mintCognitiveEvent } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
 import { confidenceCeiling, SOURCE_QUALITY_CONFIDENCE } from '@senars/schemas/truth';
@@ -28,14 +28,14 @@ import { clamp01 } from '@senars/util/numeric';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { TimeoutError, withDeadline } from '@senars/util/async';
-import { normalizeNarsese } from '../nl/normalize.js';
-import { recordGateDecision } from '../telemetry/index.js';
+import { normalizeNarsese } from '../nl/normalize';
+import { recordGateDecision } from '../telemetry/index';
 import type { TaskTypeName, Term } from '../terms';
 import { parseTaskTolerant, termParser } from '../terms';
-import { KernelGate, projectOutcome } from './gate-base.js';
-import type { IngressJudge, IngressVerdict } from './ingress.js';
-import { domainKey } from './reputation-keys.js';
-import type { SourceReputation } from './source-reputation.js';
+import { KernelGate, projectOutcome } from './gate-base';
+import type { IngressJudge, IngressVerdict } from './ingress';
+import { domainKey } from './reputation-keys';
+import type { SourceReputation } from './source-reputation';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: Budget;

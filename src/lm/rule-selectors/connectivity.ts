@@ -3,7 +3,7 @@
  */
 import type { Term } from '../../terms';
 import { calculateSimilarity, sharesSymbol } from '../../terms';
-import { ctxNumber } from './conditions.js';
+import { ctxNumber } from './conditions';
 
 export const isUnderconnected = (
   _primary: Term,

@@ -4,15 +4,15 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import type { JudgmentDataset, DistillationLabel } from '../lm/system-one/distill.js';
-import type { HeadCandidateSpec, BakeOffCase, BakeOffResult, SabotageVerdict } from '../lm/system-one/distill.js';
-import type { IsotonicCalibrator } from '../lm/system-one/calibration.js';
-import type { CalibrationLock } from '../lm/system-one/calibration-fit.js';
-import { fitCalibrationLock, readCalibrationLockOrNull, applyCalibrationLock, assertLockMatches, CALIBRATION_LOCK_PATH } from '../lm/system-one/calibration-fit.js';
-import { runBakeOff, validateHeadCandidate, buildHeadSwapProposal, buildSabotageFlag } from '../lm/system-one/distill.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import type { JudgmentDataset, DistillationLabel } from '../lm/system-one/distill';
+import type { HeadCandidateSpec, BakeOffCase, BakeOffResult, SabotageVerdict } from '../lm/system-one/distill';
+import type { IsotonicCalibrator } from '../lm/system-one/calibration';
+import type { CalibrationLock } from '../lm/system-one/calibration-fit';
+import { fitCalibrationLock, readCalibrationLockOrNull, applyCalibrationLock, assertLockMatches, CALIBRATION_LOCK_PATH } from '../lm/system-one/calibration-fit';
+import { runBakeOff, validateHeadCandidate, buildHeadSwapProposal, buildSabotageFlag } from '../lm/system-one/distill';
 import type { SelfImprovementProposal } from '@senars/schemas';
 
 /** Input for recording distillation labels. */
@@ -117,7 +117,7 @@ export class DistillationOracle implements Oracle<
   ): Promise<OracleOutput<void | { lock: CalibrationLock; perHead: Map<string, IsotonicCalibrator>; improved: boolean } | BakeOffResult | SabotageVerdict | CalibrationLock | null>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -191,7 +191,7 @@ export class DistillationOracle implements Oracle<
         const [options] = args;
         if (!this.calibrators) throw new Error('Calibrators not configured');
         // Cast options to FitCalibrationOptions with proper types
-        const fitOptions = options as import('../lm/system-one/calibration-fit.js').FitCalibrationOptions | undefined;
+        const fitOptions = options as import('../lm/system-one/calibration-fit').FitCalibrationOptions | undefined;
         const result = fitCalibrationLock(this.dataset, fitOptions);
         // Apply the fitted lock to our calibrators
         applyCalibrationLock(this.calibrators, result.lock);
@@ -215,7 +215,7 @@ export class DistillationOracle implements Oracle<
         const [modelDigest] = args;
         const lock = await readCalibrationLockOrNull(CALIBRATION_LOCK_PATH);
         if (lock) {
-          assertLockMatches(lock, modelDigest as import('../lm/system-one/types.js').ModelDigest);
+          assertLockMatches(lock, modelDigest as import('../lm/system-one/types').ModelDigest);
         }
         return lock;
       }
@@ -353,7 +353,7 @@ export function registerDistillationOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

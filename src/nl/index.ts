@@ -1,40 +1,40 @@
-export type { TranslationCacheEntry } from './cache.js';
-export { TranslationCache } from './cache.js';
-export type { ClarificationRequest } from './clarification.js';
-export { ClarificationHandler, generateClarificationWithLM } from './clarification.js';
-export type { InputType } from './classifier.js';
-export { classify } from './classifier.js';
-export type { ContextAssemblerOpts } from './context-assembler.js';
-export { ContextAssembler } from './context-assembler.js';
-export type { FirewallOptions, FirewallVerdict } from './firewall.js';
-export { defaultFirewall, SymbolicFirewall } from './firewall.js';
+export type { TranslationCacheEntry } from './cache';
+export { TranslationCache } from './cache';
+export type { ClarificationRequest } from './clarification';
+export { ClarificationHandler, generateClarificationWithLM } from './clarification';
+export type { InputType } from './classifier';
+export { classify } from './classifier';
+export type { ContextAssemblerOpts } from './context-assembler';
+export { ContextAssembler } from './context-assembler';
+export type { FirewallOptions, FirewallVerdict } from './firewall';
+export { defaultFirewall, SymbolicFirewall } from './firewall';
 export type {
   BeliefInfo,
   ConflictInfo,
   DerivationTrace,
   GenerationInput,
   GenerationOutput,
-} from './generation.js';
-export type { Explanation, ExplanationGeneratorOptions, ExplanationSource } from './explanation.js';
-export type { ConflictExplanation } from './explanation.js';
-export { ExplanationGenerator } from './explanation.js';
-export { NLGenerationService } from './generation.js';
+} from './generation';
+export type { Explanation, ExplanationGeneratorOptions, ExplanationSource } from './explanation';
+export type { ConflictExplanation } from './explanation';
+export { ExplanationGenerator } from './explanation';
+export { NLGenerationService } from './generation';
 export type {
   Formalizer,
   InterpretationValidation,
   PerceivedAdmission,
   PerceivedInterpretation,
   PerceivedOrigin,
-} from './formalizer.js';
+} from './formalizer';
 export {
   createFormalizer,
   LmFormalizer,
   PERCEIVED_ORIGINS,
   StructuredFormalizer,
   validateInterpretation,
-} from './formalizer.js';
-export type { NarseseIntent } from './narsese-intent.js';
-export { dispatchNarseseIntent } from './narsese-intent.js';
+} from './formalizer';
+export type { NarseseIntent } from './narsese-intent';
+export { dispatchNarseseIntent } from './narsese-intent';
 export type {
   AnalogyResult,
   BeliefRevisionResult,
@@ -50,7 +50,7 @@ export type {
   TranslationResult,
   UncertaintyResult,
   VariableGroundingResult,
-} from './schemas.js';
+} from './schemas';
 export {
   AmbiguitySchema,
   AnalogySchema,
@@ -71,11 +71,11 @@ export {
   TranslationSchema,
   UncertaintySchema,
   VariableGroundingSchema,
-} from './schemas.js';
-export type { Ambiguity, Coreference, NLContext, TaskBatch } from './understanding.js';
+} from './schemas';
+export type { Ambiguity, Coreference, NLContext, TaskBatch } from './understanding';
 export {
   detectAmbiguityFlags,
   locateSpan,
   NLUnderstandingService,
   toFormalizationBatch,
-} from './understanding.js';
+} from './understanding';

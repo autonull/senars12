@@ -8,7 +8,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { UUID, TimestampMs } from '../generated/schemas.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
 
 /** A pinned value for deterministic replay. */
 export interface Pin<T = unknown> {

@@ -1,10 +1,10 @@
-export { admitTasks } from './admit.js';
-export type { ContextBeliefOptions } from './context.js';
-export { topBeliefTasks } from './context.js';
-export { attemptLMCorrection } from './correction.js';
-export { embeddingRuntime, resolveEmbeddingGenerator } from './embedding-runtime.js';
-export type { EnricherConfig, EnricherSystemOneDeps, EnrichmentResult } from './enrichment.js';
-export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
+export { admitTasks } from './admit';
+export type { ContextBeliefOptions } from './context';
+export { topBeliefTasks } from './context';
+export { attemptLMCorrection } from './correction';
+export { embeddingRuntime, resolveEmbeddingGenerator } from './embedding-runtime';
+export type { EnricherConfig, EnricherSystemOneDeps, EnrichmentResult } from './enrichment';
+export { createProactiveEnricher, ProactiveEnricher } from './enrichment';
 export type {
   LMProfileName,
   LMProviderName,
@@ -12,7 +12,7 @@ export type {
   LMSettingsInput,
   ResolvedLMConfig,
   ResolvedProvider,
-} from './env-config.js';
+} from './env-config';
 export {
   builtinModels,
   cloudApiKey,
@@ -23,37 +23,37 @@ export {
   LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
-} from './env-config.js';
+} from './env-config';
 export type {
   ContradictionExplanation,
   ExtractedPattern,
   FeedbackConfig,
   ValidationFeedback,
-} from './feedback.js';
-export { BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop } from './feedback.js';
-export { type GrammarName, loadGrammar } from './grammars/index.js';
+} from './feedback';
+export { BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop } from './feedback';
+export { type GrammarName, loadGrammar } from './grammars/index';
 export {
   CYCLE_PATH_PREFIXES,
   IN_CYCLE_EDGE_ATTRIBUTIONS,
   IN_CYCLE_INVENTORY,
   type InCycleBehaviour,
   type InCycleDisposition,
-} from './in-cycle-inventory.js';
-export type { ILMService } from './interfaces.js';
-export { isGpuBackend } from './runtime/llama-runtime.js';
+} from './in-cycle-inventory';
+export type { ILMService } from './interfaces';
+export { isGpuBackend } from './runtime/llama-runtime';
 export type {
   LMContext,
   LMRuleConfigV2,
   ParsedLMResponse,
   StructuredLMOutput,
   ValidationResult,
-} from './LMRule.js';
-export { LMResponseParser, LMRule } from './LMRule.js';
+} from './LMRule';
+export { LMResponseParser, LMRule } from './LMRule';
 export {
   type ConfiguredRuleSpec,
   createConfiguredLMRules,
   LMRules,
-} from './lm-rule-factory.js';
+} from './lm-rule-factory';
 export type {
   LMExecutionStats,
   LMPromptGenerator,
@@ -61,24 +61,24 @@ export type {
   LMRuleConfig,
   LMTaskGenerator,
   ModelRuleStats,
-} from './lm-service.js';
+} from './lm-service';
 export {
   createLMService,
   createMockLanguageModel,
   createMockLMService,
   LMService,
-} from './lm-service.js';
-export { getProviderRuntime, type ProviderHealth, ProviderRuntime } from './provider-runtime.js';
-export { PROVIDER_SEAMS, type ProviderSeam } from './provider-seams.js';
-export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
-export { resetCircuitBreakers } from './providers/health.js';
+} from './lm-service';
+export { getProviderRuntime, type ProviderHealth, ProviderRuntime } from './provider-runtime';
+export { PROVIDER_SEAMS, type ProviderSeam } from './provider-seams';
+export { probeEmbeddedLlama } from './providers/embedded-llamacpp';
+export { resetCircuitBreakers } from './providers/health';
 export {
   createLlamaCppFetch,
   LLAMACPP_HOST_DEFAULT,
   probeLlamaCpp,
   runWithGrammar,
-} from './providers/llamacpp.js';
-export { endpointPath, fetchBounded, probeJson, probeModelsEndpoint } from './providers/probe.js';
+} from './providers/llamacpp';
+export { endpointPath, fetchBounded, probeJson, probeModelsEndpoint } from './providers/probe';
 export type {
   CandidateScore,
   ModelReliability,
@@ -92,7 +92,7 @@ export type {
   RoutingTelemetryEntry,
   SeNARSModelId,
   SeNARSRegistry,
-} from './providers.js';
+} from './providers';
 export {
   configureLM,
   createSeNARSRegistry,
@@ -124,13 +124,13 @@ export {
   resolveOfflineTier,
   setActiveProvider,
   setRouting,
-} from './providers.js';
+} from './providers';
 export type {
   ShadowCheckOptions,
   ShadowSystemOneDeps,
   ShadowValidationResult,
-} from './shadow-validation.js';
-export { ShadowValidator, shadowValidator } from './shadow-validation.js';
+} from './shadow-validation';
+export { ShadowValidator, shadowValidator } from './shadow-validation';
 export {
   EmbeddingCache,
   createEmbeddingCache,
@@ -156,8 +156,8 @@ export {
   createContrastiveMemory,
   SystemOneIngressJudge,
   type SystemOneIngressJudgeConfig,
-} from './system-one/index.js';
-export { BrierHarness, loadSession, startArcadeTickSpan, saveSession } from '../eval/index.js';
-export { MiningBag, type MiningBagOptions, mineHardNegatives } from './system-one/hard-negatives.js';
-export { SeededRNG } from '../util/random.js';
-export { SchemaInductor } from '../learning/index.js';
+} from './system-one/index';
+export { BrierHarness, loadSession, startArcadeTickSpan, saveSession } from '../eval/index';
+export { MiningBag, type MiningBagOptions, mineHardNegatives } from './system-one/hard-negatives';
+export { SeededRNG } from '../util/random';
+export { SchemaInductor } from '../learning/index';

@@ -2,9 +2,9 @@ import { BoundedMap } from '@senars/util/bounded-map';
 import { occupancy } from '@senars/util/numeric';
 import { raceDeadline } from '@senars/util/async';
 import { trimCapped } from '@senars/util/collections';
-import type { GateRegistry } from '../kernel/index.js';
-import { type IndependenceStatus, Truth } from '../terms/impls/Truth.js';
-import type { Task, TruthType } from '../types/core.js';
+import type { GateRegistry } from '../kernel/index';
+import { type IndependenceStatus, Truth } from '../terms/impls/Truth';
+import type { Task, TruthType } from '../types/core';
 
 export type { IndependenceStatus };
 

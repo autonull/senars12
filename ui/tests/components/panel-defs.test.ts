@@ -4,7 +4,7 @@ import {
   PANEL_KINDS,
   panelDef,
   panelKindsWhere,
-} from '../../src/client/core/panel-defs.js';
+} from '../../src/client/core/panel-defs';
 
 const sorted = (kinds: readonly string[]): string[] => [...kinds].sort();
 

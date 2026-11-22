@@ -9,6 +9,6 @@ export type {
   ParsedLMResponse,
   StructuredLMOutput,
   ValidationResult,
-} from './rule/index.js';
-export { LMResponseParser } from './rule/index.js';
-export { LMRule } from './rule/LMRule.js';
+} from './rule/index';
+export { LMResponseParser } from './rule/index';
+export { LMRule } from './rule/LMRule';

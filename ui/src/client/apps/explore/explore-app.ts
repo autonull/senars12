@@ -1,5 +1,5 @@
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $activeLens,
   $graphLayer,
@@ -8,12 +8,12 @@ import {
   $workspaceGraph,
   BaseComponent,
   projectWorkspaceGraph,
-} from '../../kernel/index.js';
-import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { defineBundle } from '../../framework/bundle.js';
-import type { Composition } from '../../framework/composition.js';
-import { type SurfaceDescriptor } from '../../framework/surface.js';
-import '../../components/graph-viewport.js';
+} from '../../kernel/index';
+import { defineApp, type AppDescriptor } from '../../framework/app';
+import { defineBundle } from '../../framework/bundle';
+import type { Composition } from '../../framework/composition';
+import { type SurfaceDescriptor } from '../../framework/surface';
+import '../../components/graph-viewport';
 
 /** The Explore app surface — mounted in the viewport. */
 @customElement('explore-surface')

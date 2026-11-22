@@ -3,10 +3,10 @@
  * Shared formatting for NAR, LM, and Agent statistics
  */
 
-import type { NAR, ExtendedAgent } from '../agent/index.js';
+import type { NAR, ExtendedAgent } from '../agent/index';
 import type { LMExecutionStats } from '@senars/types/llm';
 import { formatDuration, formatTruth, limitList } from '@senars/util';
-import type { LMHandle } from './commands.js';
+import type { LMHandle } from './commands';
 
 export interface FormattedStats {
   nar: string;

@@ -2,8 +2,8 @@ import { createLogger } from '../util/logger';
 import { deepEqual, deepFreeze, deepMerge } from '../util/object';
 import { errMsg } from '../util/error';
 import { keyedBy } from '../util/collections';
-import { cognitiveBound, cognitiveBounds } from './cognitive-bounds.js';
-import { validateAgainstBounds, buildDefaultsFromBounds } from './bounds.js';
+import { cognitiveBound, cognitiveBounds } from './cognitive-bounds';
+import { validateAgainstBounds, buildDefaultsFromBounds } from './bounds';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,

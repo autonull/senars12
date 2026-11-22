@@ -4,11 +4,11 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import { actionGrammar } from '../lm/system-one/action-grammar.js';
-import type { LMOracleService } from './lm.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import { actionGrammar } from '../lm/system-one/action-grammar';
+import type { LMOracleService } from './lm';
 
 /** Input for generating GBNF grammar. */
 export interface GbnfGenerateGrammarInput extends OracleInput {
@@ -83,7 +83,7 @@ export class GbnfOracle implements Oracle<
   ): Promise<OracleOutput<string | { text: string; grammar: string } | readonly string[]>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -266,7 +266,7 @@ export function registerGbnfOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

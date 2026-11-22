@@ -6,14 +6,14 @@
 
 import { positiveInt, signedUnitInterval, unitInterval, uuid } from '../config';
 import { z } from 'zod';
-import { StimulusSourceSchema, TaskAdmittedEventSchema } from './cognitive-events.js';
-import { RewardDomainSchema } from './governance.js';
+import { StimulusSourceSchema, TaskAdmittedEventSchema } from './cognitive-events';
+import { RewardDomainSchema } from './governance';
 import {
   BUDGET_SCOPE_IDS,
   ReasoningBudgetSchema,
   TerminationReasonSchema,
-} from './reasoning-budget.js';
-import { SourceQualitySchema } from './truth.js';
+} from './reasoning-budget';
+import { SourceQualitySchema } from './truth';
 
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),

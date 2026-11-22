@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, unavailable, writeAndValidate } from './context.js';
+import { type SelfToolsContext, unavailable, writeAndValidate } from './context';
 
 /** Template implementations a scaffolded capability can be generated from. */
 const scaffoldTemplates = (

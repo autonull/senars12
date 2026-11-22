@@ -14,10 +14,10 @@
  */
 
 import { mapToRecord } from '@senars/util/collections';
-import { isAtomic, isCompound, type Term } from '../types.js';
-import { getArgs, termsEqual } from './accessors.js';
-import { TermBuilder } from './factory.js';
-import { isValidAtomSymbol, toAtomSymbol } from './valid-atom.js';
+import { isAtomic, isCompound, type Term } from '../types';
+import { getArgs, termsEqual } from './accessors';
+import { TermBuilder } from './factory';
+import { isValidAtomSymbol, toAtomSymbol } from './valid-atom';
 
 /** No arguments is the 0-ary product, which is what the factory makes of `product()`. */
 const NO_ARGS = TermBuilder.product();

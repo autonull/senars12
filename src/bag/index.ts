@@ -10,13 +10,13 @@ export type {
   PressureTransition,
   CyclesBudget,
   RandomSource,
-} from '../util/bag.js';
-export { PriorityBag, HistogramImpl } from '../util/bag.js';
-export type { BagSlotParams, ResolvedBagSlot } from './registration.js';
-export { bagSlotErrors, resolveBagSlot } from './registration.js';
+} from '../util/bag';
+export { PriorityBag, HistogramImpl } from '../util/bag';
+export type { BagSlotParams, ResolvedBagSlot } from './registration';
+export { bagSlotErrors, resolveBagSlot } from './registration';
 
-import { emitDomainEvent } from '../agent/event-sink.js';
-import { PriorityBag, type Bag, type BagOptions, type BagItem, type PressureTransition } from '../util/bag.js';
+import { emitDomainEvent } from '../agent/event-sink';
+import { PriorityBag, type Bag, type BagOptions, type BagItem, type PressureTransition } from '../util/bag';
 
 /** Announce pressure transitions as domain events. */
 const announcePressure = ({

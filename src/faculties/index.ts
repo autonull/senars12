@@ -2,7 +2,7 @@
  * Faculties — barrel export.
  */
 
-export * from './specs.js';
-export * from './engine.js';
-export * from './fallback.js';
-export * from './judgment/index.js';
+export * from './specs';
+export * from './engine';
+export * from './fallback';
+export * from './judgment/index';

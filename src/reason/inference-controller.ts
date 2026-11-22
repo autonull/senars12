@@ -3,8 +3,8 @@
  */
 
 import { sleep } from '@senars/util/async';
-import { type ControlBudgetPort, UNBUDGETED } from '../kernel/control-budgets.js';
-import type { MemoryView } from '../memory/view.js';
+import { type ControlBudgetPort, UNBUDGETED } from '../kernel/control-budgets';
+import type { MemoryView } from '../memory/view';
 import type { RuleProcessor } from '../rules';
 import type {
   AttentionModel,
@@ -13,9 +13,9 @@ import type {
   SamplingStrategy,
 } from '../strategies';
 import type { Task } from '../types';
-import { createCircularDetector, exceedsDepthLimit } from './inference-utils.js';
-import type { Strategy } from '../strategies/types.js';
-import type { InferenceConfig as CognitiveInferenceConfig } from '../config/cognitive-parameters.js';
+import { createCircularDetector, exceedsDepthLimit } from './inference-utils';
+import type { Strategy } from '../strategies/types';
+import type { InferenceConfig as CognitiveInferenceConfig } from '../config/cognitive-parameters';
 
 /**
  * What one cycle reads, plus the derivation-chain sink.

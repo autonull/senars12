@@ -4,7 +4,7 @@
 export type {
   ComponentContext,
   ComponentState,
-} from '@senars/types/lifecycle.js';
+} from '@senars/types/lifecycle';
 // Capability
 /** WASI sandbox, path containment, and timeout utilities. @public */
 export {
@@ -19,7 +19,7 @@ export {
   withSandboxTimeout,
   type WasiSandboxOptions,
   type WasmModuleOptions,
-} from './capability/index.js';
+} from './capability/index';
 // Game
 /** Cognitive games and arcade harness. @public */
 export {
@@ -139,7 +139,7 @@ export {
   FOCUS_WEIGHT_STEPS,
   KNOB_SET_VALUES,
   SeededRNG,
-} from './game/index.js';
+} from './game/index';
 // Resources
 /** Resource contracts for bounded containers. @public */
 export {
@@ -148,7 +148,7 @@ export {
   type CapacitySource,
   type ResourceContract,
   type Retention,
-} from './resources/index.js';
+} from './resources/index';
 // Cognitive Parameters
 /** Cognitive architecture parameters, validation, and defaults. @public */
 export {
@@ -170,7 +170,7 @@ export {
   type ModelRunnerConfig,
   type MemoryParams,
   type StrategySlotParams,
-} from './config/cognitive-parameters.js';
+} from './config/cognitive-parameters';
 // Strategies
 /** Pluggable cognitive strategies (attention, derivation, sampling, premise, LM rule). @public */
 export {
@@ -225,7 +225,7 @@ export {
   type StrategyRegistration,
   type StrategyRegistry,
   type StrategySpec,
-} from './strategies/index.js';
+} from './strategies/index';
 // Eval
 /** Arcade session state, Brier scoring, and harness utilities. @public */
 export {
@@ -240,21 +240,21 @@ export {
   type ArmSummary,
   type ArcadeTickRecord,
   type ArcadeTickSpan,
-} from './eval/index.js';
+} from './eval/index';
 // Memory
 /** Concept container. @public */
 /** Main memory store. @public */
 /** Unified AIKR priority bag substrate. @public */
-export { PriorityBag, createBag, type Bag, type BagItem, type BagOptions } from './bag/index.js';
+export { PriorityBag, createBag, type Bag, type BagItem, type BagOptions } from './bag/index';
 /** Bag slot resolution and validation. @public */
-export { resolveBagSlot, bagSlotErrors, type BagSlotParams, type ResolvedBagSlot } from './bag/index.js';
+export { resolveBagSlot, bagSlotErrors, type BagSlotParams, type ResolvedBagSlot } from './bag/index';
 /** The persisted consistency boundary, readable without starting a NAR. @public */
-export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from './state/persisted.js';
+export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from './state/persisted';
 /** Rewind checkpoints and the partial-restore report (CORE.19 C2.3). @public */
-export { CHECKPOINT_RING_CAP, REWIND_BASE_GAPS, type RewindReport } from './state/checkpoint.js';
+export { CHECKPOINT_RING_CAP, REWIND_BASE_GAPS, type RewindReport } from './state/checkpoint';
 // Cognitive
 /** Counterfactual simulator. @public */
-export { runCounterfactual } from './cognitive/index.js';
+export { runCounterfactual } from './cognitive/index';
 /** E1 error taxonomy — nar/public error surface. @public */
 export {
   ActionGateError,
@@ -264,7 +264,7 @@ export {
   PerceptionGateError,
   RewardGateError,
   SenarsError,
-} from './errors/index.js';
+} from './errors/index';
 // Imagination Engine (Cognitive Treadmill)
 /** Scenario generation, hidden-model oracle, cognitive treadmill. @public */
 export {
@@ -280,51 +280,51 @@ export {
   type ScenarioProfile,
   type StressMetrics,
   type TreadmillConfig,
-} from './imagination/index.js';
+} from './imagination/index';
 /** The one component lifecycle state machine (`NAR` extends it). @public */
-export { BaseComponent } from './agent/Lifecycle.js';
+export { BaseComponent } from './agent/Lifecycle';
 // Log
 /** Event log adapter over LogStore. @public */
-export { LogStoreEventLog, InMemoryEventLog, createLogStoreEventLog, createLogStoreEventLogFromStore } from './log/index.js';
-export { createLogStore, type LogStore } from './log/store.js';
+export { LogStoreEventLog, InMemoryEventLog, createLogStoreEventLog, createLogStoreEventLogFromStore } from './log/index';
+export { createLogStore, type LogStore } from './log/store';
 // LLM Service
 /** LLM service + factory/mock. @public */
-export { createLMService, createMockLMService, LMService } from './lm/lm-service.js';
+export { createLMService, createMockLMService, LMService } from './lm/lm-service';
 /** Bounded hard-negative mining bag (AIKR bag pattern; consumer: NAR). @public */
-export { MiningBag } from './lm/system-one/hard-negatives.js';
-export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory.js';
+export { MiningBag } from './lm/system-one/hard-negatives';
+export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory';
 // Episodic Memory
 /** Episodic memory store. @public */
-export { EpisodicMemory } from './memory/EpisodicMemory.js';
+export { EpisodicMemory } from './memory/EpisodicMemory';
 // Phase B (REFACTOR.todo2): episodic memory consolidation as an AIKR process
 export type {
   ConsolidationResult,
   EpisodeConsolidatorOptions,
-} from './memory/episode-consolidator.js';
+} from './memory/episode-consolidator';
 /** Episodic memory consolidation process (AIKR bag pattern; consumer: NAR + integrators). @public */
-export { EpisodeConsolidator, symbolicSummary } from './memory/episode-consolidator.js';
-export type { ConceptTaskType, MemoryConfig } from './memory/index.js';
-export { Concept, Memory } from './memory/index.js';
+export { EpisodeConsolidator, symbolicSummary } from './memory/episode-consolidator';
+export type { ConceptTaskType, MemoryConfig } from './memory/index';
+export { Concept, Memory } from './memory/index';
 // Phase D (REFACTOR.todo2): bounded AIKR bags for proposals + hard-negative mining
-export type { ProposalBagOptions, ProposalCandidate } from './meta/proposal-bag.js';
+export type { ProposalBagOptions, ProposalCandidate } from './meta/proposal-bag';
 /** Bounded self-improvement proposal bag (AIKR bag pattern; consumer: SelfMetaGame). @public */
-export { ProposalBag } from './meta/proposal-bag.js';
-export type { NARConfig, RLFPConfig } from './nar.js';
+export { ProposalBag } from './meta/proposal-bag';
+export type { NARConfig, RLFPConfig } from './nar';
 // Main NAR class
 /** The NAR reasoning engine. @public */
-export { NAR, NarEventBus } from './nar.js';
+export { NAR, NarEventBus } from './nar';
 // NAR-LM integration
 /** NAR with LM capabilities. @public */
-export { NARLM } from './nar-lm.js';
+export { NARLM } from './nar-lm';
 // Factory for creating NAR instances
 /** Kernel construction presets (tests/benches). @public */
-export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-presets.js';
+export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-presets';
 // NL Translation
 /** Natural-language translation schemas. @public */
-export * from './nl/schemas.js';
+export * from './nl/schemas';
 // Rules
 /** Rule type definitions. @public */
-export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index.js';
+export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index';
 /** Rule registry + indexing. @public */
 /** Synchronous rule processor. @public */
 /** Standard NAL rule set. @public */
@@ -337,18 +337,18 @@ export {
   RuleIndex,
   RuleProcessor,
   RuleTableStore,
-} from './rules/index.js';
+} from './rules/index';
 // Self-Reasoning (Metacognition)
 /** Reasoning about reasoning, architecture driver. @public */
-export * from './self/index.js';
+export * from './self/index';
 // Task
 /** Task scheduling/queuing. @public */
-export { TaskManager } from './task/index.js';
-export type { SerializedStamp } from './terms/impls/Stamp.js';
+export { TaskManager } from './task/index';
+export type { SerializedStamp } from './terms/impls/Stamp';
 /** Term temporal stamp. @public */
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp.js';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp';
 /** Truth-value algebra. @public */
-export { isTruthEqual, Truth } from './terms/impls/Truth.js';
+export { isTruthEqual, Truth } from './terms/impls/Truth';
 // Terms
 /** Term construction + (de)serialization helpers. @public */
 /** Narsese parser. @public */
@@ -400,7 +400,7 @@ export {
   termsEqual,
   visitTerms,
   walkTerms,
-} from './terms/index.js';
+} from './terms/index';
 export type {
   AtomicTerm,
   Budget,
@@ -413,7 +413,7 @@ export type {
   Term,
   TermSymbol,
   TruthType,
-} from './types/core.js';
+} from './types/core';
 /** Core builders, task factories, and NAR error hierarchy. @public */
 export {
   ConfigurationError,
@@ -432,7 +432,7 @@ export {
   ToolError,
   unwrapOrThrow,
   ValidationError,
-} from './types/core.js';
+} from './types/core';
 /** The kernel-owned autonomy loop (CORE.19 C5). @public */
 export {
   AUTONOMY_MODES,
@@ -449,7 +449,7 @@ export {
   createAutonomyHeartbeat,
   DEFAULT_AUTONOMY_CONFIG,
   resolveAutonomyConfig,
-} from './autonomy/index.js';
+} from './autonomy/index';
 /** The neuro-symbolic voice: one formalizer, one validation gate, one explanation (CORE.19 C6). @public */
 export {
   createFormalizer,
@@ -467,7 +467,7 @@ export {
   type PerceivedOrigin,
   StructuredFormalizer,
   validateInterpretation,
-} from './nl/index.js';
+} from './nl/index';
 /** The drive→meta-goal injection policy — extracted, pure, and off by default (CORE.19 C5.6). @public */
 export {
   createDriveMetaGoalPolicy,
@@ -475,7 +475,7 @@ export {
   DRIVE_META_GOAL_TABLE,
   type MetaGoalContext,
   type MetaGoalPolicy,
-} from './drives/index.js';
+} from './drives/index';
 
 // Protocol types (for UI compatibility with @senars/core)
 export {
@@ -559,8 +559,8 @@ export {
   MettaAtomNode,
   MettaSkillNode,
   NarConceptNode,
-} from './protocol/index.js';
+} from './protocol/index';
 export { isNarsese } from '@senars/util/text';
-export { builtinLensSpecs } from './protocol/lens-schema.js';
-export type { Agent } from './agent/index.js';
-export type { CognitiveEvent } from './schemas/cognitive-events.js';
+export { builtinLensSpecs } from './protocol/lens-schema';
+export type { Agent } from './agent/index';
+export type { CognitiveEvent } from './schemas/cognitive-events';

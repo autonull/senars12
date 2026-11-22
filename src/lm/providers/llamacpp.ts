@@ -1,9 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { envStrOr } from '@senars/util/config';
 import { errMsg } from '@senars/util/error';
-import { withBodyPatch } from './body-patch.js';
-import { endpointPath, probeJson, probeReachable } from './probe.js';
-import { withThinkingDisabled } from './thinking.js';
+import { withBodyPatch } from './body-patch';
+import { endpointPath, probeJson, probeReachable } from './probe';
+import { withThinkingDisabled } from './thinking';
 
 /** Default llama.cpp server (llama-server) address. */
 export const LLAMACPP_HOST_DEFAULT = 'http://localhost:8080';

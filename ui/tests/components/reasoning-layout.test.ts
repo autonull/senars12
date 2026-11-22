@@ -3,15 +3,15 @@ import {
   REASONING_LAYOUT_IDS,
   type ReasoningPositions,
   reasoningPositions,
-} from '../../src/client/core/reasoning-layout.js';
+} from '../../src/client/core/reasoning-layout';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
-import { layoutRegistry } from '../../src/client/utils/layout-registry.js';
+} from '../../src/client/core/workspace-graph';
+import { layoutRegistry } from '../../src/client/utils/layout-registry';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

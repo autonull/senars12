@@ -1,9 +1,9 @@
 import { css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { registerViewAdapter } from '../../core/view-adapter.js';
-import type { Budget, DiffDataset, DiffLine } from '../../core/view-spec.js';
-import { highlightLine, highlightStyles } from './token-render.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { registerViewAdapter } from '../../core/view-adapter';
+import type { Budget, DiffDataset, DiffLine } from '../../core/view-spec';
+import { highlightLine, highlightStyles } from './token-render';
 
 const EMBEDDED_LINES = 12;
 const SIGN: Record<DiffLine['kind'], string> = { add: '+', del: '-', context: ' ' };

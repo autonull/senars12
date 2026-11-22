@@ -1,8 +1,8 @@
 import { mean, safeRatio } from '@senars/util/numeric';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { parseVitestResult, type VitestResult } from './vitest-json.js';
-import { runVitestJson } from './vitest-run.js';
+import { parseVitestResult, type VitestResult } from './vitest-json';
+import { runVitestJson } from './vitest-run';
 
 // --- run_tests ---
 

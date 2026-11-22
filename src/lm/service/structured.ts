@@ -1,8 +1,8 @@
 import type { LMGenerateOptions } from '@senars/types/llm';
 import { toError } from '@senars/util/error';
 import type { ZodSchema } from 'zod';
-import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
-import { temperatureLadder } from './errors.js';
+import { parseJsonOrThrow, toCachedJsonSchema } from '../json';
+import { temperatureLadder } from './errors';
 
 type GenerateText = (prompt: string, opts?: LMGenerateOptions) => Promise<string>;
 

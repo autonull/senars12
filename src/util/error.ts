@@ -17,7 +17,7 @@ export const toError = (e: unknown): Error => (e instanceof Error ? e : new Erro
 /**
  * Run a call whose failure is expected, report it, and answer `onFailure`.
  *
- * Not {@link import('./result.js').attempt}, which *carries* a failure for a
+ * Not {@link import('./result').attempt}, which *carries* a failure for a
  * caller to inspect. This one subsides it: the caller has already decided what
  * the system does without the answer.
  *

@@ -11,8 +11,8 @@ import type { FileHandle } from 'node:fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
-import type { LogEntry, CognitiveEvent, UUID, TimestampMs } from './events.js';
-import { hashEntry, createLogEntry } from './events.js';
+import type { LogEntry, CognitiveEvent, UUID, TimestampMs } from './events';
+import { hashEntry, createLogEntry } from './events';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_LOG_DIR = join(__dirname, '..', '..', 'data', 'log');

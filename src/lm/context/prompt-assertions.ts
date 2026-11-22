@@ -3,7 +3,7 @@
  * Ensures prompts stay within token budgets and contain required elements.
  */
 
-import { type ContextBudgetOptions, estimateTokens, getContextBudget } from './context-budget.js';
+import { type ContextBudgetOptions, estimateTokens, getContextBudget } from './context-budget';
 
 export interface PromptAssertionResult {
   ok: boolean;

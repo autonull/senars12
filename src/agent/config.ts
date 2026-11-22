@@ -1,10 +1,10 @@
 import type { PromptBuilder } from '@senars/cortex';
 import type { PersistableSessionManager } from '@senars/memory';
-import type { MettaPort } from './metta-port.js';
+import type { MettaPort } from './metta-port';
 import type { LMTask } from '@senars/types/llm';
 import type { ConnectionConfig } from '@senars/util/types/transport';
-import type { EpisodicMemory, LMService, NAR } from '../index.js';
-import type { ThreadScope } from '../kernel/thread-scope.js';
+import type { EpisodicMemory, LMService, NAR } from '../index';
+import type { ThreadScope } from '../kernel/thread-scope';
 
 export interface CreateAgentConfig {
   nar?: NAR;

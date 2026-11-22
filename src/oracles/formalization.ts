@@ -4,12 +4,12 @@
  * This makes the formalizer capability available as a faculty via the oracle system.
  */
 
-import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
-import { oracleRegistry } from './oracle.js';
-import { createFormalizer, type Formalizer, type PerceivedInterpretation } from '../nl/formalizer.js';
-import type { ILMService } from '../lm/interfaces.js';
-import type { GenerationInput, GenerationOutput } from '../nl/generation.js';
-import type { NLContext } from '../nl/understanding.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle';
+import { oracleRegistry } from './oracle';
+import { createFormalizer, type Formalizer, type PerceivedInterpretation } from '../nl/formalizer';
+import type { ILMService } from '../lm/interfaces';
+import type { GenerationInput, GenerationOutput } from '../nl/generation';
+import type { NLContext } from '../nl/understanding';
 
 /** Input for nlToFormal oracle call. */
 export interface NLToFormalInput extends OracleInput {

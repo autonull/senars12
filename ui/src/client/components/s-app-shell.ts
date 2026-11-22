@@ -6,22 +6,22 @@
  */
 
 import { css, html, type TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { connect, disconnect, mountWorkspaceProjection } from '../kernel/index.js';
-import { BaseComponent } from '../core/base-component.js';
-import { appFor, type AppDescriptor, type ConnectionConfig, APP_SHELL_TAG } from '../framework/app.js';
-import type { Composition } from '../framework/composition.js';
-import { surfaceTag } from '../framework/surface.js';
+import { customElement, property, state } from 'lit/decorators';
+import { connect, disconnect, mountWorkspaceProjection } from '../kernel/index';
+import { BaseComponent } from '../core/base-component';
+import { appFor, type AppDescriptor, type ConnectionConfig, APP_SHELL_TAG } from '../framework/app';
+import type { Composition } from '../framework/composition';
+import { surfaceTag } from '../framework/surface';
 import {
   applyGlobals,
   compositionFromUrl,
   compositionToSearch,
-} from '../apps/shared/config-sync.js';
-import '../apps/shared/app-chrome.js';
-import '../apps/shared/composer-controls.js';
-import '../core/view-host.js';
-import './views/index.js';
-import './composition-view.js';
+} from '../apps/shared/config-sync';
+import '../apps/shared/app-chrome';
+import '../apps/shared/composer-controls';
+import '../core/view-host';
+import './views/index';
+import './composition-view';
 
 /** The workspace projection binds global atoms; mount it once per page, not per shell. */
 let workspaceProjectionMounted = false;

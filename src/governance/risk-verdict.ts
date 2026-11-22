@@ -8,7 +8,7 @@
  * - reversible with unknown ⇒ allowed with audit trail
  */
 
-import type { Verdict } from '../logic/verdict.js';
+import type { Verdict } from '../logic/verdict';
 import type { CapabilityRisk } from '../util/capability-risk';
 
 /** Operator risk classes — every operation must declare one. */

@@ -6,10 +6,10 @@
  */
 
 import type { Episode } from '@senars/types/episodic-memory';
-import type { Term } from '../kernel/terms/term.js';
-import { fromNarsese } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Concept } from '../memory/concept.js';
+import type { Term } from '../kernel/terms/term';
+import { fromNarsese } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Concept } from '../memory/concept';
 import type { ModelRuleStats } from '../lm';
 
 // ============================================================================

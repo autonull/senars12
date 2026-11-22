@@ -8,11 +8,11 @@
 import type { IncomingFromClient } from '@senars/core';
 import { WebSocket } from 'ws';
 import type { Agent } from '@senars/core';
-import type { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
-import { type NarLike } from './server-utils.js';
-import { getServerProtocolCatalog } from './protocol-server.js';
-import type { ServerHandlerContext } from '../client/framework/protocol.js';
-import { errorFrame } from './server-utils.js';
+import type { UnifiedGraphProjection } from './UnifiedGraphProjection';
+import { type NarLike } from './server-utils';
+import { getServerProtocolCatalog } from './protocol-server';
+import type { ServerHandlerContext } from '../client/framework/protocol';
+import { errorFrame } from './server-utils';
 
 export interface HandlerContext {
   agent: Agent | undefined;

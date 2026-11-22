@@ -1,9 +1,9 @@
-import type { CognitiveEvent } from '../schemas/index.js';
-import type { Agent } from '../agent/Agent.js';
-import type { Engine, EngineId } from '../engine/Engine.js';
-import type { LensSpec } from '../protocol/lens-schema.js';
-import type { ToolSpec } from '../motor/ToolRegistry.js';
-import type { Connection, ConnectionConfig, ConnectionDeps } from '../agent/Transport.js';
+import type { CognitiveEvent } from '../schemas/index';
+import type { Agent } from '../agent/Agent';
+import type { Engine, EngineId } from '../engine/Engine';
+import type { LensSpec } from '../protocol/lens-schema';
+import type { ToolSpec } from '../motor/ToolRegistry';
+import type { Connection, ConnectionConfig, ConnectionDeps } from '../agent/Transport';
 
 /** A plugin-provided transport: a named factory that builds a connection. */
 export interface TransportFactory {

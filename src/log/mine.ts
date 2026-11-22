@@ -8,10 +8,10 @@
  */
 
 import { createHash } from 'crypto';
-import type { LogEntry, CognitiveEvent } from './events.js';
-import type { LogStore } from './store.js';
-import { isGateFailedEvent, isDerivationAcceptedEvent, isDerivationMadeEvent } from './events.js';
-import { query } from './query.js';
+import type { LogEntry, CognitiveEvent } from './events';
+import type { LogStore } from './store';
+import { isGateFailedEvent, isDerivationAcceptedEvent, isDerivationMadeEvent } from './events';
+import { query } from './query';
 
 /** A surprise event detected in the log. */
 export interface SurpriseEvent {

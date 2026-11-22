@@ -4,13 +4,13 @@
  * Detects anomalies, diagnoses root causes, and applies repairs.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task, TimestampMs } from '../kernel/types.js';
-import type { FacultyInput, FacultyOutput } from '../faculties/specs.js';
-import { facultyEngine } from '../faculties/engine.js';
-import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../faculties/judgment/cascade.js';
-import type { Clock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task, TimestampMs } from '../kernel/types';
+import type { FacultyInput, FacultyOutput } from '../faculties/specs';
+import { facultyEngine } from '../faculties/engine';
+import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../faculties/judgment/cascade';
+import type { Clock } from '../kernel/env';
 
 /** Anomaly types. */
 export const ANOMALY_TYPES = [
@@ -575,7 +575,7 @@ export class RepairLoop {
 
   /** Restart an oracle. */
   private async restartOracle(target: string, _params: Record<string, unknown>): Promise<void> {
-    const { oracleRegistry } = await import('../oracles/oracle.js');
+    const { oracleRegistry } = await import('../oracles/oracle');
     const oracles = oracleRegistry.getAll();
 
     for (const oracle of oracles) {
@@ -633,7 +633,7 @@ export class RepairLoop {
 
   /** Recalibrate. */
   private async recalibrate(_params: Record<string, unknown>): Promise<void> {
-    const { calibrationManager } = await import('../faculties/judgment/calibration.js');
+    const { calibrationManager } = await import('../faculties/judgment/calibration');
     calibrationManager.recalibrate();
   }
 

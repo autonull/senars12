@@ -4,14 +4,14 @@ export type {
   ValidationVerdict,
   SelfMetaGameEvidence,
   AdaptationRecord,
-} from './pipeline.js';
+} from './pipeline';
 export {
   GovernancePolicyEngine,
   PatchRiskClassifier,
   ProposalRouter,
   SandboxValidator,
   GovernanceResolver,
-} from './pipeline.js';
+} from './pipeline';
 
 // W3: Risk–Verdict Gate Matrix
 export {
@@ -25,7 +25,7 @@ export {
   evaluateGateFromRisk,
   isPermitted,
   requiredExplanation,
-} from './risk-verdict.js';
+} from './risk-verdict';
 
 // W3: Governance-Owned Artifacts & Mission Overlays
 export {
@@ -40,7 +40,7 @@ export {
   MissionOverlayRegistry,
   missionOverlayRegistry,
   createMissionOverlay,
-} from './artifacts.js';
+} from './artifacts';
 
 // W3: Governance Spine — unified autonomy/governance/decision/capability
 export {
@@ -50,4 +50,4 @@ export {
   getCurrentAutonomyMode,
   createOverlayThroughSpine,
   getOverlayDeltaThroughSpine,
-} from './spine.js';
+} from './spine';

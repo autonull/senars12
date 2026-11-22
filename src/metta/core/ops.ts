@@ -1,4 +1,4 @@
-import type { MeTTaAtom } from '../types/ast.js';
+import type { MeTTaAtom } from '../types/ast';
 
 export type GroundedOp<
   Args extends readonly MeTTaAtom[] = readonly MeTTaAtom[],

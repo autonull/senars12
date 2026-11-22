@@ -1,6 +1,6 @@
-import type { ToolResult } from '@senars/types/engine.js';
-import { selectTopN } from '@senars/util/collections.js';
-import { type CallTally, CallTallySeries, createCallTally } from '@senars/util/tally.js';
+import type { ToolResult } from '@senars/types/engine';
+import { selectTopN } from '@senars/util/collections';
+import { type CallTally, CallTallySeries, createCallTally } from '@senars/util/tally';
 
 export interface ToolFeedback extends CallTally {
   name: string;

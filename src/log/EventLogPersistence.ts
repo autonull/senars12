@@ -10,4 +10,4 @@ export {
   SNAPSHOT_VERSION,
   type CognitiveStateSnapshot,
   replayCognitiveState,
-} from './replay-reducers.js';
+} from './replay-reducers';

@@ -36,7 +36,7 @@ const crashLog = (msg: string): void => {
   } catch {}
 };
 
-const { createAgentFromEnv } = await import('../../../src/bin/lib/lifecycle.js');
+const { createAgentFromEnv } = await import('../../../src/bin/lib/lifecycle');
 const ctx = await createAgentFromEnv(optionsByBin[bin] as never);
 
 process.on('uncaughtException', (e) => {

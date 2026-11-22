@@ -11,7 +11,7 @@
  * reports `metta engine not configured` and command parsing is skipped, which
  * is what the runtime already did for an unconfigured engine.
  */
-import type { ParsedCommand } from './types.js';
+import type { ParsedCommand } from './types';
 
 export interface MettaPort {
   /** Parse LLM-authored output into executable commands. */

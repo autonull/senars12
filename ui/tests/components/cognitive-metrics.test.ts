@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import '../../src/client/components/cognitive-metrics.js';
-import { metricsTable } from '../../src/client/components/cognitive-metrics.js';
-import { COGNITIVE_FIELDS, fieldKey } from '../../src/client/utils/field-catalog.js';
+import '../../src/client/components/cognitive-metrics';
+import { metricsTable } from '../../src/client/components/cognitive-metrics';
+import { COGNITIVE_FIELDS, fieldKey } from '../../src/client/utils/field-catalog';
 
 describe('cognitive metrics table', () => {
   it('projects a snapshot into a single row of labelled cells', () => {

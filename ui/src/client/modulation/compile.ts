@@ -1,9 +1,9 @@
 import { clamp } from '@senars/util';
-import { builtinLensSpecs } from '../../shared/lens-schema.js';
-import { truthColor } from '../utils/theme.js';
-import type { ScaleMapId } from '../utils/lens-catalog.js';
-import { channel, field, konst, union, when } from './operators.js';
-import type { ChannelValue, Item, Modulation, View } from './types.js';
+import { builtinLensSpecs } from '../../shared/lens-schema';
+import { truthColor } from '../utils/theme';
+import type { ScaleMapId } from '../utils/lens-catalog';
+import { channel, field, konst, union, when } from './operators';
+import type { ChannelValue, Item, Modulation, View } from './types';
 
 export interface LensSpec {
   id: string;

@@ -1,11 +1,11 @@
 import { errMsg } from '@senars/util/error';
 import { SenarsError } from '@senars/errors';
-import type { Agent } from '../agent/Agent.js';
-import type { Engine, EngineId } from '../engine/Engine.js';
-import type { LensSpec } from '../protocol/lens-schema.js';
-import type { ToolSpec } from '../motor/ToolRegistry.js';
-import type { SenarsPlugin, TransportFactory } from './Plugin.js';
-import type { CognitiveEvent } from '../schemas/index.js';
+import type { Agent } from '../agent/Agent';
+import type { Engine, EngineId } from '../engine/Engine';
+import type { LensSpec } from '../protocol/lens-schema';
+import type { ToolSpec } from '../motor/ToolRegistry';
+import type { SenarsPlugin, TransportFactory } from './Plugin';
+import type { CognitiveEvent } from '../schemas/index';
 
 /** Minimal surface of a connection manager that accepts plugin transports. */
 export interface TransportRegistry {
@@ -159,6 +159,6 @@ export class PluginLoader {
         agent.on('*', handler);
         return () => agent.off('*', handler);
       },
-    } satisfies import('./Plugin.js').PluginContext;
+    } satisfies import('./Plugin').PluginContext;
   }
 }

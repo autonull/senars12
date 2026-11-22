@@ -1,8 +1,8 @@
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { $cognitiveMetrics, BaseComponent, type CognitiveMetricsData, viewSource } from '../core/index.js';
-import type { TableDataset, ViewSpec } from '../core/view-spec.js';
-import { COGNITIVE_FIELDS, fieldKey, fieldMeta, formatField } from '../utils/field-catalog.js';
+import { customElement } from 'lit/decorators';
+import { $cognitiveMetrics, BaseComponent, type CognitiveMetricsData, viewSource } from '../core/index';
+import type { TableDataset, ViewSpec } from '../core/view-spec';
+import { COGNITIVE_FIELDS, fieldKey, fieldMeta, formatField } from '../utils/field-catalog';
 
 /** Project the cognitive-metrics snapshot into the one-row table the view system renders. */
 export const metricsTable = (metrics: CognitiveMetricsData | null): TableDataset => {

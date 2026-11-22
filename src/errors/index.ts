@@ -3,20 +3,20 @@
  * (code + context + wrap) lives in `./senars-error.ts` — single definition;
  * every class here adds typed, grep-able context for its failure mode.
  */
-import type { GateName } from '../schemas/gate-io.js';
+import type { GateName } from '../schemas/gate-io';
 import type { SchemaIssue } from '../util';
-import { SenarsError } from './senars-error.js';
+import { SenarsError } from './senars-error';
 
-export { SenarsError } from './senars-error.js';
-export { ConnectionError, type ConnectionError as ConnectionErrorType } from './transport.js';
-export { EngineError, type EngineError as EngineErrorType } from './engine.js';
-export { ValidationError, type ValidationError as ValidationErrorType } from './nar-errors.js';
-export { ConfigurationError, type ConfigurationError as ConfigurationErrorType } from './nar-errors.js';
-export { OperationError, type OperationError as OperationErrorType } from './nar-errors.js';
-export { ToolError, type ToolError as ToolErrorType } from './tool.js';
-export { TransportError, type TransportError as TransportErrorType } from './transport.js';
-export { PolicyViolation } from './policy.js';
-export type { ErrorCode } from './senars-error.js';
+export { SenarsError } from './senars-error';
+export { ConnectionError, type ConnectionError as ConnectionErrorType } from './transport';
+export { EngineError, type EngineError as EngineErrorType } from './engine';
+export { ValidationError, type ValidationError as ValidationErrorType } from './nar-errors';
+export { ConfigurationError, type ConfigurationError as ConfigurationErrorType } from './nar-errors';
+export { OperationError, type OperationError as OperationErrorType } from './nar-errors';
+export { ToolError, type ToolError as ToolErrorType } from './tool';
+export { TransportError, type TransportError as TransportErrorType } from './transport';
+export { PolicyViolation } from './policy';
+export type { ErrorCode } from './senars-error';
 
 /** E1: assembly-time failure, typed by the builder step that failed. */
 export class BuilderError extends SenarsError {

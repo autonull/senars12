@@ -6,7 +6,7 @@ import { parseJsonOr } from '@senars/util/fs';
 import { unique } from '@senars/util/collections';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { runProcess } from './proc.js';
+import { runProcess } from './proc';
 
 // --- codemod ---
 

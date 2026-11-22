@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { STRATEGY_SLOTS, STRATEGY_SLOTS_BY_KEY } from '../../../config/cognitive-parameters.js';
-import { applyAndValidate, type SelfToolsContext, unavailable } from './context.js';
+import { STRATEGY_SLOTS, STRATEGY_SLOTS_BY_KEY } from '../../../config/cognitive-parameters';
+import { applyAndValidate, type SelfToolsContext, unavailable } from './context';
 
 /** Slot keys are the config's own names, so the error names what the user wrote. */
 const STRATEGY_TYPES = Object.keys(STRATEGY_SLOTS_BY_KEY) as [

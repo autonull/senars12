@@ -5,11 +5,11 @@
  * deliberation budget differs. Publishes cost/quality surface.
  */
 
-import type { HabitatConfig, HabitatRegistry } from './habitat.js';
-import type { ArenaAgent, ArenaMatch, ArenaTournament, EpisodeResult } from './arena.js';
-import type { ReasoningBudget } from '../lm/system-one/types.js';
-import { createHabitatRegistry } from './habitat.js';
-import { createArenaAgent } from './arena.js';
+import type { HabitatConfig, HabitatRegistry } from './habitat';
+import type { ArenaAgent, ArenaMatch, ArenaTournament, EpisodeResult } from './arena';
+import type { ReasoningBudget } from '../lm/system-one/types';
+import { createHabitatRegistry } from './habitat';
+import { createArenaAgent } from './arena';
 
 /** Lane identifier. */
 export type ArenaLaneId = 'A' | 'B' | 'C' | 'D';
@@ -342,7 +342,7 @@ export async function runNalAbAsLane(
   makeReflex: () => any,
   config: NalAbLaneConfig
 ): Promise<CostQualityPoint[]> {
-  const { runNalAB } = await import('../focus/nal-ab.js');
+  const { runNalAB } = await import('../focus/nal-ab');
   const points: CostQualityPoint[] = [];
 
   for (const seed of config.seeds) {

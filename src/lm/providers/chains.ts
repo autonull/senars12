@@ -1,16 +1,16 @@
 import { unique } from '@senars/util/collections';
 import type { LanguageModel } from 'ai';
-import type { LMSettings } from '../env-config.js';
-import { cloudApiKey } from '../env-config.js';
+import type { LMSettings } from '../env-config';
+import { cloudApiKey } from '../env-config';
 import {
   getProviderRuntime,
   type LMProviderName,
   type ProviderRuntime,
-} from '../provider-runtime.js';
-import { latencyClassOf } from './capabilities.js';
-import type { SeNARSModelId, SeNARSRegistry } from './model-factory.js';
-import { type ModelReliability, pickModel } from './routing.js';
-import { getLMSettings, getLmProvider } from './settings.js';
+} from '../provider-runtime';
+import { latencyClassOf } from './capabilities';
+import type { SeNARSModelId, SeNARSRegistry } from './model-factory';
+import { type ModelReliability, pickModel } from './routing';
+import { getLMSettings, getLmProvider } from './settings';
 import type { LMTask } from '@senars/util';
 
 /**

@@ -5,8 +5,8 @@
  * as a first-class view for stress testing and scenario generation.
  */
 
-import type { NAR } from '../nar.js';
-import { CognitiveTreadmill, createTreadmill, type TreadmillConfig, type Scenario, type StressMetrics, type DegradationCurve } from '../imagination/index.js';
+import type { NAR } from '../nar';
+import { CognitiveTreadmill, createTreadmill, type TreadmillConfig, type Scenario, type StressMetrics, type DegradationCurve } from '../imagination/index';
 
 /**
  * Treadmill view mode for deck.

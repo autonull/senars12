@@ -20,7 +20,7 @@ import type { ReadOnlyLookup } from '@senars/util/collections';
 import type { ChatTier } from '@senars/cli';
 import type { AttachedGame } from '@senars/cli/conversation-game';
 import type { AppConfig, BotProfile } from '@senars/config';
-import type { AgentFromEnvResult } from '../lib/lifecycle.js';
+import type { AgentFromEnvResult } from '../lib/lifecycle';
 
 export interface GroundednessState {
   enabled: boolean;

@@ -12,7 +12,7 @@ export {
   LENS_FIELDS,
   LENS_LABELS,
   type LensFieldDescriptor,
-} from '../agent/constants.js';
+} from '../agent/constants';
 export {
   BUILTIN_LENS_IDS,
   type BuiltinLens,
@@ -21,8 +21,8 @@ export {
   type LensSpec,
   type ModulationSpec,
   lensSpecToJsonSchema,
-} from './lens-schema.js';
-export { AgentCapabilities } from './capabilities.js';
+} from './lens-schema';
+export { AgentCapabilities } from './capabilities';
 export {
   ChatAgentComplete,
   ChatAgentStream,
@@ -31,9 +31,9 @@ export {
   LMStatusRequest,
   LMStatusMsg,
   LMSwitchMsg,
-} from './chat.js';
-export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
-export { UiCommandMsg } from './ui-command.js';
+} from './chat';
+export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config';
+export { UiCommandMsg } from './ui-command';
 export {
   ReasoningSubmitMsg,
   ReasoningAskMsg,
@@ -56,23 +56,23 @@ export {
   type ReasoningAddGoal,
   type ReasoningAdjustBudget,
   type ReasoningAdjustProvider,
-} from './reasoning-control.js';
-export { ServerError, type ServerErrorCode } from './error.js';
-export type { ToolSpec, ToolSchema, ToolSchemaProperty, ToolResult } from '../types/tools.js';
-export type { ToolSpec as Tool } from '../types/tools.js';
-export { objectSpec } from '../types/tools.js';
+} from './reasoning-control';
+export { ServerError, type ServerErrorCode } from './error';
+export type { ToolSpec, ToolSchema, ToolSchemaProperty, ToolResult } from '../types/tools';
+export type { ToolSpec as Tool } from '../types/tools';
+export { objectSpec } from '../types/tools';
 export {
   GraphNodeDataStrict,
   MettaAtomNode,
   MettaSkillNode,
   NarConceptNode,
-} from './graph-nodes.js';
-export type { GraphOpType } from './graph-ops.js';
-export { CognitiveDelta, GraphOp } from './graph-ops.js';
-export { GraphNodeData, GraphNodeDataView, Lens } from './graph-view.js';
-export { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
-export { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
-export { ObjectSetMsg } from './object-patch.js';
+} from './graph-nodes';
+export type { GraphOpType } from './graph-ops';
+export { CognitiveDelta, GraphOp } from './graph-ops';
+export { GraphNodeData, GraphNodeDataView, Lens } from './graph-view';
+export { NodeHistoryMsg, NodeHistoryRequestMsg } from './history';
+export { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs';
+export { ObjectSetMsg } from './object-patch';
 export {
   CognitiveEventsMsg,
   CognitiveMetrics,
@@ -86,7 +86,7 @@ export {
   CyclePauseMsg,
   CycleResumeMsg,
   CycleRewindMsg,
-} from './sync.js';
-export type { CognitiveMetricsData, TelemetryMetrics } from './sync.js';
-export type { ConfigFieldType } from './unions.js';
-export { IncomingFromClient, IncomingFromServer } from './unions.js';
+} from './sync';
+export type { CognitiveMetricsData, TelemetryMetrics } from './sync';
+export type { ConfigFieldType } from './unions';
+export { IncomingFromClient, IncomingFromServer } from './unions';

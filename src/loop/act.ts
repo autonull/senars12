@@ -2,12 +2,12 @@
  * Loop Act — action execution and effect handling for the cognitive loop.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task, TaskType } from '../kernel/types.js';
-import type { SelectionResult, SelectionCandidate } from './select.js';
-import type { Clock } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task, TaskType } from '../kernel/types';
+import type { SelectionResult, SelectionCandidate } from './select';
+import type { Clock } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Action types. */
 export const ACTION_TYPES = [

@@ -1,4 +1,4 @@
-import type { ChannelValue, Modulation } from './types.js';
+import type { ChannelValue, Modulation } from './types';
 
 export interface MemoCache {
   getDelta(id: string): Partial<Record<string, ChannelValue>> | undefined;

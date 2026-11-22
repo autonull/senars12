@@ -5,10 +5,10 @@
  * that can be interpreted for verification and compiled for execution.
  */
 
-import { Term, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Stamp } from '../../kernel/stamp.js';
-import type { TruthValue } from '../../kernel/types.js';
-import type { RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port.js';
+import { Term, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Stamp } from '../../kernel/stamp';
+import type { TruthValue } from '../../kernel/types';
+import type { RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port';
 
 /** Type for NAL terms. */
 export type NALTerm = Term;

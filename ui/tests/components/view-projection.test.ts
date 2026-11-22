@@ -4,7 +4,7 @@ import {
   formatCell,
   projectableShapes,
   projectDataset,
-} from '../../src/client/core/view-projection.js';
+} from '../../src/client/core/view-projection';
 import type {
   CodeDataset,
   DiffDataset,
@@ -12,7 +12,7 @@ import type {
   TableDataset,
   TextDataset,
   TreeDataset,
-} from '../../src/client/core/view-spec.js';
+} from '../../src/client/core/view-spec';
 
 const series: SeriesDataset = {
   kind: 'series',

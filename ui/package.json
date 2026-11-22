@@ -44,6 +44,22 @@
       "types": "./src/client/modulation/types.ts",
       "import": "./src/client/modulation/types.ts"
     },
+    "./client/core": {
+      "types": "./src/client/core/index.ts",
+      "import": "./src/client/core/index.ts"
+    },
+    "./client/core/*": {
+      "types": "./src/client/core/*.ts",
+      "import": "./src/client/core/*.ts"
+    },
+    "./client/utils": {
+      "types": "./src/client/utils/index.ts",
+      "import": "./src/client/utils/index.ts"
+    },
+    "./client/utils/*": {
+      "types": "./src/client/utils/*.ts",
+      "import": "./src/client/utils/*.ts"
+    },
     "./client/utils/lens-catalog": {
       "types": "./src/client/utils/lens-catalog.ts",
       "import": "./src/client/utils/lens-catalog.ts"

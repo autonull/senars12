@@ -1,7 +1,7 @@
 /** Transport-level connection error. @public */
 
 /** Authentication manager. @public */
-export { AuthManager } from './auth.js';
+export { AuthManager } from './auth';
 /** Agent↔connection binding + middleware + env config. @public */
 export {
   bindAgentToConnection,
@@ -14,36 +14,36 @@ export {
   createSessionBinder,
   originExtractor,
   resolveSessionKey,
-} from './bridge/index.js';
+} from './bridge/index';
 /** Builtin auth commands. @public */
-export { createAuthCommands } from './commands/auth.js';
+export { createAuthCommands } from './commands/auth';
 /** Builtin connection-management commands. @public */
-export { connectionCommands } from './commands/connection.js';
-export type { CommandContext, CommandDefinition, CommandHandler } from '../commands/types.js';
+export { connectionCommands } from './commands/connection';
+export type { CommandContext, CommandDefinition, CommandHandler } from '../commands/types';
 /** Command registry. @public */
-export { CommandRegistry } from './commands/registry.js';
+export { CommandRegistry } from './commands/registry';
 /** Connection registry/lookup. @public */
-export { ConnectionManager } from './connection-manager.js';
+export { ConnectionManager } from './connection-manager';
 /** Base connection implementation. @public */
-export { BaseConnection } from './connections/base.js';
-export type { CLICommand } from './connections/cli.js';
+export { BaseConnection } from './connections/base';
+export type { CLICommand } from './connections/cli';
 /** CLI/stdin connection. @public */
-export { CLIConnection, QUIT_SENTINEL } from './connections/cli.js';
+export { CLIConnection, QUIT_SENTINEL } from './connections/cli';
 /** HTTP connection. @public */
-export { HTTPConnection } from './connections/http.js';
-export type { IRCConnectionConfig } from './connections/irc.js';
+export { HTTPConnection } from './connections/http';
+export type { IRCConnectionConfig } from './connections/irc';
 /** IRC connection. @public */
-export { IRCConnection } from './connections/irc.js';
-export type { MCPToolResult } from './connections/mcp.js';
+export { IRCConnection } from './connections/irc';
+export type { MCPToolResult } from './connections/mcp';
 /** Model-context-protocol connection. @public */
-export { MCPConnection } from './connections/mcp.js';
+export { MCPConnection } from './connections/mcp';
 /** Reply-target resolution helper. @public */
-export { resolveReplyTarget } from './connections/reply-target.js';
+export { resolveReplyTarget } from './connections/reply-target';
 /** WebSocket connection. @public */
-export { WSConnection } from './connections/ws.js';
-export type { MessageContext, MessageMiddleware } from './router.js';
+export { WSConnection } from './connections/ws';
+export type { MessageContext, MessageMiddleware } from './router';
 /** Message routing + middleware pipeline. @public */
-export { MessageRouter } from './router.js';
+export { MessageRouter } from './router';
 /** Connection type definitions. @public */
 export type {
   Connection,
@@ -52,17 +52,17 @@ export type {
   ConnectionFactory,
   ConnectionState,
   IOMessage,
-} from './types.js';
-export type { ConnectionError } from './types.js';
-export type { ServerStartupOptions } from './utils/http.js';
+} from './types';
+export type { ConnectionError } from './types';
+export type { ServerStartupOptions } from './utils/http';
 /** HTTP/WS server helpers. @public */
 export {
   parseHttpBody,
   setCORSHeaders,
   startHttpServer,
   startWSServer,
-} from './utils/http.js';
-export type { WSClient, WSClientOptions } from './utils/websocket.js';
+} from './utils/http';
+export type { WSClient, WSClientOptions } from './utils/websocket';
 /** WebSocket client helpers. @public */
 export {
   broadcastToSubscribers,
@@ -72,4 +72,4 @@ export {
   sendWSMessage,
   subscribeToEvents,
   unsubscribeFromEvents,
-} from './utils/websocket.js';
+} from './utils/websocket';

@@ -5,13 +5,13 @@ import {
   isAdmitted,
   pageOf,
   sectionTree,
-} from '../../src/client/core/sections.js';
+} from '../../src/client/core/sections';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, children: string[] = []): SemanticBlock => ({
   id,

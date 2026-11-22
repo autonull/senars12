@@ -20,8 +20,8 @@
 
 import { nonEmpty, nonNegativeInt, positiveInt, validatorFor } from '../config';
 import { z } from 'zod';
-import { RulePatternSchema } from './common.js';
-import { TaskTypeSchema } from './task.js';
+import { RulePatternSchema } from './common';
+import { TaskTypeSchema } from './task';
 
 /**
  * The wire version of the rule-table artifact. A table recorded against one

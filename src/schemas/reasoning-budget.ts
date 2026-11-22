@@ -17,7 +17,7 @@ import {
   type BudgetScopeId,
   type BudgetType,
   type TerminationReason,
-} from './budget-types.js';
+} from './budget-types';
 
 export { BUDGET_SCOPE_IDS, BUDGET_TYPES, BudgetTypeSchema, TerminationReasonSchema };
 export type { BudgetScopeId, BudgetType, TerminationReason };

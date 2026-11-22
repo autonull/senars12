@@ -7,7 +7,7 @@
  *   - with one config catalog, the settings UI, the change log, the docs and the gallery derive from one source
  */
 
-import type { Contribution } from '../framework/contribution.js';
+import type { Contribution } from '../framework/contribution';
 
 /** Config field descriptor — extends Contribution with type info. */
 export interface ConfigFieldDescriptor extends Contribution<Record<string, unknown>> {

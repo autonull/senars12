@@ -1,12 +1,12 @@
 import type { Effect } from 'effect';
-import type { MeTTaConfig } from '../core/config.js';
-import { createConfig } from '../core/config.js';
-import type { MeTTaError } from '../core/errors.js';
-import { InMemorySpace } from '../core/space.js';
-import { MeTTaInterpreter } from '../engine/interpreter.js';
-import { bootstrapStdLib } from '../stdlib/index.js';
-import type { MeTTaAtom } from '../types/ast.js';
-import { DEFAULT_MEMORY_LIMIT, type MeTTaContext } from './context.js';
+import type { MeTTaConfig } from '../core/config';
+import { createConfig } from '../core/config';
+import type { MeTTaError } from '../core/errors';
+import { InMemorySpace } from '../core/space';
+import { MeTTaInterpreter } from '../engine/interpreter';
+import { bootstrapStdLib } from '../stdlib/index';
+import type { MeTTaAtom } from '../types/ast';
+import { DEFAULT_MEMORY_LIMIT, type MeTTaContext } from './context';
 
 export class MeTTaBuilder {
   private config: MeTTaConfig;

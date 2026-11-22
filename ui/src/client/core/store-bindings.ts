@@ -1,12 +1,12 @@
-import { decayAttentionField } from '../framework/attention-runtime.js';
+import { decayAttentionField } from '../framework/attention-runtime';
 import type { ChatMessage, CognitiveEvent, GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
 import { generateId, makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
-import { edgeKey, extractTerm } from '../../shared/index.js';
-import { dispatchCommand } from './commands.js';
-import { settleControl } from './control-channel.js';
-import { applyLmStatus } from './lm-provider.js';
-import type { CognitiveMetricsData } from './store.js';
+import { edgeKey, extractTerm } from '../../shared/index';
+import { dispatchCommand } from './commands';
+import { settleControl } from './control-channel';
+import { applyLmStatus } from './lm-provider';
+import type { CognitiveMetricsData } from './store';
 import {
   $activeLens,
   $chatMessages,
@@ -29,8 +29,8 @@ import {
   pushServerError,
   registerLens,
   type UiConfig,
-} from './store.js';
-import { UiConfigSchema, DEFAULT_UI_CONFIG } from './config-schema.js';
+} from './store';
+import { UiConfigSchema, DEFAULT_UI_CONFIG } from './config-schema';
 
 const TELEMETRY_WINDOW = 300;
 

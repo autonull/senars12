@@ -5,10 +5,10 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
-import { estimateTokens } from '../../shared/index.js';
-import { BaseComponent } from '../core/base-component.js';
+import { customElement, state } from 'lit/decorators';
+import { classMap } from 'lit/directives/class-map';
+import { estimateTokens } from '../../shared/index';
+import { BaseComponent } from '../core/base-component';
 import {
   $capabilities,
   $graphNodes,
@@ -26,7 +26,7 @@ import {
   narsBackend,
   registerCommand,
   send,
-} from '../core/index.js';
+} from '../core/index';
 
 interface SlashCommand {
   id: string;

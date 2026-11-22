@@ -1,5 +1,5 @@
-import type { ActionExecutionContext, CognitionAction } from './types.js';
-import type { ParameterScope } from '../config/parameter-table.js';
+import type { ActionExecutionContext, CognitionAction } from './types';
+import type { ParameterScope } from '../config/parameter-table';
 
 /**
  * C3: seed actions. `cycle`/`revise`/`rest` are tier-0 reflex; manifold

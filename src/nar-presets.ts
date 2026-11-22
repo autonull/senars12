@@ -5,13 +5,13 @@
 
 import type { CognitiveRegistry } from './cognitive';
 import { createLMService, createSeNARSRegistry, type SeNARSRegistry } from './lm';
-import type { LMService } from './lm/lm-service.js';
-import type { NARConfig, SystemOneConfig } from './nar.js';
-import { NAR } from './nar.js';
+import type { LMService } from './lm/lm-service';
+import type { NARConfig, SystemOneConfig } from './nar';
+import { NAR } from './nar';
 import type { CoreConfig } from './types';
 import { DEFAULT_CONFIG, NarEventBus } from './types';
-import type { DecisionPort } from './ports/decision.js';
-import { createLogStore } from './log/store.js';
+import type { DecisionPort } from './ports/decision';
+import { createLogStore } from './log/store';
 
 export interface SeNARSOptions {
   core?: Partial<CoreConfig>;
@@ -39,7 +39,7 @@ export interface SeNARSOptions {
   // System One configuration
   systemOne?: Partial<SystemOneConfig>;
   // MeTTa engine seam
-  metta?: import('./agent/metta-port.js').MettaPort;
+  metta?: import('./agent/metta-port').MettaPort;
 }
 
 const MINIMAL_CONFIG: CoreConfig = {

@@ -1,8 +1,8 @@
 import { errMsg } from '../util/error';
 import { attemptAsync, match } from '../util/result';
-import type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
+import type { CognitiveStimulus, Context, Derivation } from './cognitive';
 
-export type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
+export type { CognitiveStimulus, Context, Derivation } from './cognitive';
 
 export type EngineId = string;
 

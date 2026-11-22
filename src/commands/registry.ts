@@ -1,5 +1,5 @@
 import { assertDefined } from '../util/assert.ts';
-import type { CommandContext, CommandDefinition } from './types.js';
+import type { CommandContext, CommandDefinition } from './types';
 
 export class CommandRegistry {
   private readonly _commands: Map<string, CommandDefinition> = new Map();

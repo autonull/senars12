@@ -1,4 +1,4 @@
-import type { Scenario } from '../framework.js';
+import type { Scenario } from '../framework';
 
 const contradiction: Scenario = {
   name: 'contradiction',

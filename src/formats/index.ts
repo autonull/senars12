@@ -2,4 +2,4 @@
  * Formats — barrel export.
  */
 
-export * from './genome.js';
+export * from './genome';

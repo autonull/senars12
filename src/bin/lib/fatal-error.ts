@@ -3,9 +3,9 @@
  * never a bare stack trace for actionable failures.
  */
 import { basename } from 'node:path';
-import { initOtel, shutdownOtel, withSpan } from '../../otel/index.js';
-import { errMsg } from '@senars/util/error.js';
-import { ConfigurationError } from '@senars/errors/index.js';
+import { initOtel, shutdownOtel, withSpan } from '../../otel/index';
+import { errMsg } from '@senars/util/error';
+import { ConfigurationError } from '@senars/errors/index';
 
 interface Remediation {
   match: (err: unknown) => boolean;

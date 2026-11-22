@@ -6,9 +6,9 @@
  */
 
 import { promises as fs } from 'fs';
-import type { LogEntry, CognitiveEvent } from './events.js';
-import type { LogStore } from './store.js';
-import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events.js';
+import type { LogEntry, CognitiveEvent } from './events';
+import type { LogStore } from './store';
+import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events';
 
 /** Compaction policy for different event types. */
 export interface CompactionPolicy {

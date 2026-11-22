@@ -2,26 +2,26 @@ import type {
   ActionGateInput,
   ActionGateOutput,
   GateOutcome,
-} from '@senars/schemas/gate-io.js';
+} from '@senars/schemas/gate-io';
 import type {
   AutonomyAuthority,
   AutonomyMode,
-} from '@senars/schemas/governance.js';
+} from '@senars/schemas/governance';
 import type {
   AutonomyModeChangedEvent,
   PolicyViolationEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import {
   AutonomyModeChangedEventSchema,
   mintCognitiveEvent,
-} from '@senars/schemas/cognitive-events.js';
-import { AutonomyModeSchema, permitsExecution } from '@senars/schemas/governance.js';
+} from '@senars/schemas/cognitive-events';
+import { AutonomyModeSchema, permitsExecution } from '@senars/schemas/governance';
 import { addToSet, pushCapped } from '@senars/util/collections';
 import { BoundedMap } from '@senars/util/bounded-map';
 import { makeId } from '@senars/util/id';
 import { SenarsError } from '@senars/errors';
-import { GATE_LOG_CAPACITY } from './event-ring.js';
-import { KernelGate, projectOutcome } from './gate-base.js';
+import { GATE_LOG_CAPACITY } from './event-ring';
+import { KernelGate, projectOutcome } from './gate-base';
 
 const MODE_ORDER = AutonomyModeSchema.options;
 

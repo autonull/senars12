@@ -5,26 +5,26 @@
  * with one task economy and one loop.
  */
 
-export * from './types.js';
-export * from './utility.js';
-export * from './scheduler.js';
-export * from './metareasoning.js';
-export * from './successor.js';
-export * from './voi.js';
-export * from './aging.js';
-export * from './overlays.js';
-export * from './drives.js';
-export * from './td-learning.js';
+export * from './types';
+export * from './utility';
+export * from './scheduler';
+export * from './metareasoning';
+export * from './successor';
+export * from './voi';
+export * from './aging';
+export * from './overlays';
+export * from './drives';
+export * from './td-learning';
 
-import { EconomyScheduler, createEconomyScheduler, createEconomySchedulerFromEnv, economyScheduler, type SchedulerResult } from './scheduler.js';
-import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types.js';
-import type { Env } from '../kernel/env.js';
-import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging.js';
-import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility.js';
-import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './metareasoning.js';
-import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './successor.js';
-import { calculateDetailedVoI, rankByVoI, selectByVoI, type VoIContext, type VoIBreakdown } from './voi.js';
-import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOverlay, createCrisisOverlay, createExplorationOverlay, getBuiltinOverlays, applyOverlays, calculateEffectiveWeight, createOverlay, mergeOverlays } from './overlays.js';
+import { EconomyScheduler, createEconomyScheduler, createEconomySchedulerFromEnv, economyScheduler, type SchedulerResult } from './scheduler';
+import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types';
+import type { Env } from '../kernel/env';
+import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging';
+import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility';
+import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './metareasoning';
+import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './successor';
+import { calculateDetailedVoI, rankByVoI, selectByVoI, type VoIContext, type VoIBreakdown } from './voi';
+import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOverlay, createCrisisOverlay, createExplorationOverlay, getBuiltinOverlays, applyOverlays, calculateEffectiveWeight, createOverlay, mergeOverlays } from './overlays';
 
 /** High-level economy interface. */
 export interface Economy {
@@ -41,19 +41,19 @@ export interface Economy {
   /** Get all tasks. */
   getAllTasks(): EconomyTask[];
   /** Schedule next task. */
-  schedule(successors?: Map<string, import('./types.js').Successor[]>): SchedulerResult;
+  schedule(successors?: Map<string, import('./types').Successor[]>): SchedulerResult;
   /** Get state. */
   getState(): EconomyState;
   /** Get stats. */
-  getStats(): import('./types.js').SchedulerStats;
+  getStats(): import('./types').SchedulerStats;
   /** Activate overlay. */
-  activateOverlay(overlay: import('./types.js').Overlay): void;
+  activateOverlay(overlay: import('./types').Overlay): void;
   /** Deactivate overlay. */
   deactivateOverlay(overlayId: string): void;
   /** Set RNG seed. */
   setSeed(seed: number): void;
   /** Subscribe to events. */
-  on(type: import('./types.js').EconomyEventType, listener: (event: import('./types.js').EconomyEvent) => void): () => void;
+  on(type: import('./types').EconomyEventType, listener: (event: import('./types').EconomyEvent) => void): () => void;
 }
 
 /** Create a full economy instance. */

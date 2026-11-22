@@ -48,11 +48,11 @@ describe('kernel boundary (§3.3)', () => {
   });
 
   it('flags a chrome import and allows the substrate', () => {
-    expect(chromeViolations(`import { x } from '../components/foo.js';`)).toEqual(['../components/foo.js']);
-    expect(chromeViolations(`import type { GraphLayer } from '../core/graph-layer-defs.js';`)).toEqual([
-      '../core/graph-layer-defs.js',
+    expect(chromeViolations(`import { x } from '../components/foo';`)).toEqual(['../components/foo']);
+    expect(chromeViolations(`import type { GraphLayer } from '../core/graph-layer-defs';`)).toEqual([
+      '../core/graph-layer-defs',
     ]);
-    expect(chromeViolations(`import { connect } from './transport.js';`)).toEqual([]);
-    expect(chromeViolations(`import { $workspaceGraph } from '../core/store.js';`)).toEqual([]);
+    expect(chromeViolations(`import { connect } from './transport';`)).toEqual([]);
+    expect(chromeViolations(`import { $workspaceGraph } from '../core/store';`)).toEqual([]);
   });
 });

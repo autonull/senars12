@@ -1,6 +1,6 @@
 import { victimBy, type EvictByScore } from '@senars/util/collections';
 
-import type { Concept } from '../concept.js';
+import type { Concept } from '../concept';
 
 export type ForgettingPolicy = 'fifo' | 'lowest-priority';
 

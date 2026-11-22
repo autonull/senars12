@@ -1,35 +1,35 @@
-export { inferReactionFromUtterance } from './impls/attribution.js';
+export { inferReactionFromUtterance } from './impls/attribution';
 export type {
   AdaptationOptions,
   AdaptationRecord,
   StrategyController,
-} from './impls/consumers/adapt.js';
-export { RetrospectiveAdapter } from './impls/consumers/adapt.js';
+} from './impls/consumers/adapt';
+export { RetrospectiveAdapter } from './impls/consumers/adapt';
 export type {
   CurriculumSource,
   Probe,
   ProbeKind,
   ProbeSelection,
-} from './impls/consumers/curriculum.js';
-export { selectProbes } from './impls/consumers/curriculum.js';
+} from './impls/consumers/curriculum';
+export { selectProbes } from './impls/consumers/curriculum';
 export type {
   LessonSeed,
   ReconsolidationSink,
   RetrospectiveSource,
-} from './impls/consumers/reconsolidate.js';
-export { Reconsolidator } from './impls/consumers/reconsolidate.js';
-export type { DialogueCaptureDeps, ExchangeInput } from './impls/DialogueCapture.js';
-export { DialogueCapture, sha256 } from './impls/DialogueCapture.js';
-export type { DialogueTextLedgerEntry, DialogueTextRecord } from './impls/DialogueTextStore.js';
-export { DialogueTextStore } from './impls/DialogueTextStore.js';
-export type { SessionReaction, SessionTurn } from './impls/retrospect.js';
+} from './impls/consumers/reconsolidate';
+export { Reconsolidator } from './impls/consumers/reconsolidate';
+export type { DialogueCaptureDeps, ExchangeInput } from './impls/DialogueCapture';
+export { DialogueCapture, sha256 } from './impls/DialogueCapture';
+export type { DialogueTextLedgerEntry, DialogueTextRecord } from './impls/DialogueTextStore';
+export { DialogueTextStore } from './impls/DialogueTextStore';
+export type { SessionReaction, SessionTurn } from './impls/retrospect';
 export {
   digestPin,
   extractLessons,
   loadRetrospectives,
   persistRetrospective,
   retrospect,
-} from './impls/retrospect.js';
+} from './impls/retrospect';
 export type {
   CausalChainEdge,
   CorrectionAnalysis,
@@ -39,5 +39,5 @@ export type {
   ReactionKind,
   Retrospective,
   StrategyAuditEntry,
-} from './types.js';
-export { emptyReactionDistribution, REACTION_KINDS } from './types.js';
+} from './types';
+export { emptyReactionDistribution, REACTION_KINDS } from './types';

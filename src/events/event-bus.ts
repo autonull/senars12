@@ -1,7 +1,7 @@
-import { defaultLogger, type Logger } from '../util/logger.js';
-import { getOrInsert } from '../util/collections.js';
-import { ListenerBag } from './listener-bag.js';
-import type { EventReceiver, EventUnsubscribe } from './types.js';
+import { defaultLogger, type Logger } from '../util/logger';
+import { getOrInsert } from '../util/collections';
+import { ListenerBag } from './listener-bag';
+import type { EventReceiver, EventUnsubscribe } from './types';
 
 /**
  * A named-event fan-out: one listener bag per event name, dropped when empty.

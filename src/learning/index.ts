@@ -1,4 +1,4 @@
-export type { DomainLearningEvent, LearnerDomain } from './domain-learners.js';
+export type { DomainLearningEvent, LearnerDomain } from './domain-learners';
 export {
   ConfigOptimizer,
   CrossDomainError,
@@ -8,7 +8,7 @@ export {
   PreferenceRanker,
   ReflexLearner,
   SchedulerAdapter,
-} from './domain-learners.js';
-export type { InductionResult, SchemaInductionConfig, SchemaPattern } from './schema-induction.js';
-export { createSchemaInductor, SchemaInductor } from './schema-induction.js';
-export { AIKRProcessor, createAikrBag, type AikrBagOptions, type AikrShellOptions, type ProcessOptions } from './aikr-processor.js';
+} from './domain-learners';
+export type { InductionResult, SchemaInductionConfig, SchemaPattern } from './schema-induction';
+export { createSchemaInductor, SchemaInductor } from './schema-induction';
+export { AIKRProcessor, createAikrBag, type AikrBagOptions, type AikrShellOptions, type ProcessOptions } from './aikr-processor';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { payloadOf } from '../../src/client/core/block-payload.js';
-import { segmentText } from '../../src/client/core/segmentation.js';
+import { payloadOf } from '../../src/client/core/block-payload';
+import { segmentText } from '../../src/client/core/segmentation';
 
 describe('typed block payloads (§4.3)', () => {
   it('narrows the payload a segment carries', () => {

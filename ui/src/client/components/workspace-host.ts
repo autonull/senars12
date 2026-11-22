@@ -10,19 +10,19 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { dispatchCommand } from '../core/commands.js';
-import { eventBus } from '../core/events.js';
-import { overlayManager } from '../core/overlay-manager.js';
-import { $activeRenderer, setActiveRenderer, $focus, $aspect, $depth, $time, theme, $view } from '../core/store.js';
-import { focusRefId } from '../framework/coordinates.js';
+import { customElement } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { dispatchCommand } from '../core/commands';
+import { eventBus } from '../core/events';
+import { overlayManager } from '../core/overlay-manager';
+import { $activeRenderer, setActiveRenderer, $focus, $aspect, $depth, $time, theme, $view } from '../core/store';
+import { focusRefId } from '../framework/coordinates';
 import {
   type RendererContext,
   type WorkspaceRenderer,
   workspaceRenderer,
   workspaceRenderers,
-} from '../core/workspace-renderer.js';
+} from '../core/workspace-renderer';
 
 @customElement('workspace-host')
 export class WorkspaceHost extends BaseComponent {

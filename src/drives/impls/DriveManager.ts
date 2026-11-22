@@ -3,10 +3,10 @@ import { clamp01, lerp, meanOf, retain } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { formatNarseseTruth, type TermTruth } from '@senars/types/truth';
 import type { EventBus as InternalEventBus } from '@senars/events';
-import type { IDriveManager } from '../../kernel/interfaces.js';
-import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
-import type { DriveSpec, DriveState } from '../types.js';
-import { BUILTIN_DRIVES } from './builtin.js';
+import type { IDriveManager } from '../../kernel/interfaces';
+import { Truth, type Truth as TruthType } from '../../terms/impls/Truth';
+import type { DriveSpec, DriveState } from '../types';
+import { BUILTIN_DRIVES } from './builtin';
 
 export interface INarInput {
   input(input: string, type: TaskBagKind, truth?: TruthType): Promise<void>;

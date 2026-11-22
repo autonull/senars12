@@ -1,4 +1,4 @@
-import { SHAPES } from './view-spec.js';
+import { SHAPES } from './view-spec';
 import type {
   CodeDataset,
   ColumnSpec,
@@ -11,7 +11,7 @@ import type {
   TreeDataset,
   TreeNode,
   ViewDataset,
-} from './view-spec.js';
+} from './view-spec';
 
 /**
  * The one dataset rendered many ways. Projection is pure and total where it is

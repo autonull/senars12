@@ -5,14 +5,14 @@
  * no human annotation required. RLFP preferences provide a second label source.
  */
 
-import type { Artifact, ArtifactKind } from './repertoire.js';
-import type { EvaluationCertificate } from '../worlds/scorecard.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
-import type { PreferenceData } from '../rlfp/PreferenceCollector.js';
-import type { TrajectoryStep } from '../rlfp/ReasoningTrajectoryLogger.js';
+import type { Artifact, ArtifactKind } from './repertoire';
+import type { EvaluationCertificate } from '../worlds/scorecard';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
+import type { PreferenceData } from '../rlfp/PreferenceCollector';
+import type { TrajectoryStep } from '../rlfp/ReasoningTrajectoryLogger';
 
 /** RLFP preference label. */
 export interface RlfpPreferenceLabel {

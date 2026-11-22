@@ -11,10 +11,10 @@
  * Now implemented as a Facet catalog (P4 unification).
  */
 
-import type { Capability } from './capabilities.js';
-import { decomposeInput, type InputSegment } from './input-decomposition.js';
-import { defineCatalog } from '../framework/catalog.js';
-import { defineFacetCatalog, createModeFacet, type FacetDescriptor } from '../framework/facet.js';
+import type { Capability } from './capabilities';
+import { decomposeInput, type InputSegment } from './input-decomposition';
+import { defineCatalog } from '../framework/catalog';
+import { defineFacetCatalog, createModeFacet, type FacetDescriptor } from '../framework/facet';
 
 /** Internal facet catalog for composer modes — uses the unified Facet system (P4). */
 const COMPOSER_MODE_FACET_DEFS = defineFacetCatalog({

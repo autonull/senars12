@@ -4,9 +4,9 @@
  * reasoning layout is one entry with no hand-written tuple.
  */
 import { describe, expect, it } from 'vitest';
-import { CAPABILITY_DEFS } from '../../src/client/core/capabilities.js';
-import { REASONING_LAYOUT_DEFS } from '../../src/client/core/reasoning-layout.js';
-import type { Catalog } from '../../src/client/framework/catalog.js';
+import { CAPABILITY_DEFS } from '../../src/client/core/capabilities';
+import { REASONING_LAYOUT_DEFS } from '../../src/client/core/reasoning-layout';
+import type { Catalog } from '../../src/client/framework/catalog';
 
 const CATALOGS: ReadonlyArray<[string, Catalog<any>]> = [
   ['capabilities', CAPABILITY_DEFS],

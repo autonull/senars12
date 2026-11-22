@@ -10,16 +10,16 @@
  * subject decides how it reads.
  */
 
-import { linkMeta } from '../utils/link-catalog.js';
-import { blockLabel } from './block-labels.js';
-import type { RevisionEntry } from './store.js';
+import { linkMeta } from '../utils/link-catalog';
+import { blockLabel } from './block-labels';
+import type { RevisionEntry } from './store';
 import type {
   Ref,
   SemanticBlock,
   SemanticLink,
   SemanticLinkKind,
   WorkspaceGraph,
-} from './workspace-graph.js';
+} from './workspace-graph';
 
 export interface ExplainLink {
   readonly id: Ref;

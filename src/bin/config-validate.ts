@@ -14,7 +14,7 @@ import { errMsg } from '@senars/util/error';
 import { parseFlags } from '@senars/util/cli';
 import { jsonMode } from '@senars/cli/commands';
 import { appConfigSchema, loadConfig } from '@senars/config';
-import { runEntrypoint } from './lib/fatal-error.js';
+import { runEntrypoint } from './lib/fatal-error';
 
 interface ValidateOptions {
   configPath?: string;
@@ -47,7 +47,7 @@ async function main(): Promise<void> {
 
   try {
     // Load and validate config
-    let config: import('../config/index.js').AppConfig;
+    let config: import('../config/index').AppConfig;
     if (configPath) {
       // Load from specific path
       const { readFile } = await import('node:fs/promises');

@@ -1,28 +1,28 @@
 import '../../styles/theme.css';
-import { addAgentMessage, addUserMessage, connect } from '../../kernel/index.js';
+import { addAgentMessage, addUserMessage, connect } from '../../kernel/index';
 
 // App surfaces (self-contained content panes).
-import '../ask/ask-app-v2.js';
-import '../notebook/notebook-app.js';
-import '../console/console-app.js';
-import '../goals/goals-app.js';
-import '../explore/explore-app.js';
-import '../hud/hud-app.js';
+import '../ask/ask-app-v2';
+import '../notebook/notebook-app';
+import '../console/console-app';
+import '../goals/goals-app';
+import '../explore/explore-app';
+import '../hud/hud-app';
 
 // Graph content + chrome surfaces.
-import '../../components/renderers/graph-surface.js';
-import '../../core/view-host.js';
-import '../../components/views/index.js';
-import '../../spacegraph/spacegraph-viewport.js';
-import '../../components/cognitive-metrics.js';
-import '../../components/telemetry-panel.js';
-import '../../components/node-detail-drawer.js';
-import '../../components/timeline-scrubber.js';
-import '../../components/graph-minimap.js';
-import '../../components/graph-legend.js';
+import '../../components/renderers/graph-surface';
+import '../../core/view-host';
+import '../../components/views/index';
+import '../../spacegraph/spacegraph-viewport';
+import '../../components/cognitive-metrics';
+import '../../components/telemetry-panel';
+import '../../components/node-detail-drawer';
+import '../../components/timeline-scrubber';
+import '../../components/graph-minimap';
+import '../../components/graph-legend';
 
-import '../../components/s-app-shell.js';
-import './studio-app.js';
+import '../../components/s-app-shell';
+import './studio-app';
 
 connect();
 

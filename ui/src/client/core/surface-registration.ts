@@ -5,11 +5,11 @@
  * surfaceRegistry. Called once at app startup.
  */
 
-import { registerPanels } from './panel-defs.js';
-import { registerRenderers } from './renderer-defs.js';
-import { overlays as getOverlayDescriptors } from './overlay-registry.js';
-import { registerSurface } from '../framework/surface.js';
-import type { OverlayDescriptor } from './overlay-registry.js';
+import { registerPanels } from './panel-defs';
+import { registerRenderers } from './renderer-defs';
+import { overlays as getOverlayDescriptors } from './overlay-registry';
+import { registerSurface } from '../framework/surface';
+import type { OverlayDescriptor } from './overlay-registry';
 
 /** Register all known surfaces into the unified registry. */
 export function registerAllSurfaces(): void {

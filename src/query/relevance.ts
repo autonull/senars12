@@ -1,5 +1,5 @@
 import { maxScore, rankBy } from '@senars/util/collections';
-import { atomicSymbols, containsSubterm, type Term, termKey } from '../terms/index.js';
+import { atomicSymbols, containsSubterm, type Term, termKey } from '../terms/index';
 
 /**
  * Relevance — how much a committed belief bears on what is currently being

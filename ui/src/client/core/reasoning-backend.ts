@@ -12,7 +12,7 @@
  * assuming every engine can do everything.
  */
 
-import type { BlockKind, Ref, SemanticLinkKind, Uncertainty } from './workspace-graph.js';
+import type { BlockKind, Ref, SemanticLinkKind, Uncertainty } from './workspace-graph';
 
 /** The kinds an engine speaks, mapped onto the kinds the substrate speaks. */
 export interface BackendVocabulary {

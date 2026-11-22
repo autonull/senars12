@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { atom } from '../../src/client/core/store.js';
-import { viewSource } from '../../src/client/core/view-sources.js';
-import type { ViewDataset } from '../../src/client/core/view-spec.js';
+import { atom } from '../../src/client/core/store';
+import { viewSource } from '../../src/client/core/view-sources';
+import type { ViewDataset } from '../../src/client/core/view-spec';
 
 describe('view source', () => {
   it('projects the atom value into a dataset and forwards notifications', () => {

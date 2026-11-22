@@ -1,8 +1,8 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { css, html } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { edgeKey } from '../../shared/index.js';
-import { GraphRenderer } from '../core/graph-renderer.js';
+import { customElement, property, state } from 'lit/decorators';
+import { edgeKey } from '../../shared/index';
+import { GraphRenderer } from '../core/graph-renderer';
 import {
   $activeLens,
   $capabilityFilter,
@@ -44,20 +44,20 @@ import {
   attendFocus,
   tierOf,
   tierToZoom,
-} from '../core/index.js';
-import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
-import { FIT_PADDING, labelCutoff, settleZoom, showsLabel, getLoDTier, showsHtmlBody, LOD_TRANSITION } from '../utils/graph-scaling.js';
-import { layoutConversationThread } from '../utils/graph-layout.js';
-import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
-import { layoutRegistry } from '../utils/layout-registry.js';
-import { theme } from '../utils/theme.js';
-import { applyWorkspaceOp, type WorkspaceGraph, type WorkspaceOp } from '../core/workspace-graph.js';
-import { focusKey, focusRefId, MIND_FOCUS } from '../framework/coordinates.js';
-import './graph-minimap.js';
-import './graph-popover.js';
-import './graph-legend.js';
-import './node-body.js';
-import './ambient-layer.js';
+} from '../core/index';
+import { applyDelta, clearNodeStyles } from '../utils/adapter-2d';
+import { FIT_PADDING, labelCutoff, settleZoom, showsLabel, getLoDTier, showsHtmlBody, LOD_TRANSITION } from '../utils/graph-scaling';
+import { layoutConversationThread } from '../utils/graph-layout';
+import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels';
+import { layoutRegistry } from '../utils/layout-registry';
+import { theme } from '../utils/theme';
+import { applyWorkspaceOp, type WorkspaceGraph, type WorkspaceOp } from '../core/workspace-graph';
+import { focusKey, focusRefId, MIND_FOCUS } from '../framework/coordinates';
+import './graph-minimap';
+import './graph-popover';
+import './graph-legend';
+import './node-body';
+import './ambient-layer';
 
 /** Registry of active GraphViewport instances for renderer communication. */
 const viewportRegistry = new Map<string, GraphViewport>();

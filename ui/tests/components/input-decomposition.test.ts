@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   decomposeInput,
   isFaithfulDecomposition,
-} from '../../src/client/core/input-decomposition.js';
+} from '../../src/client/core/input-decomposition';
 
 describe('decomposeInput', () => {
   it('returns nothing for blank input', () => {

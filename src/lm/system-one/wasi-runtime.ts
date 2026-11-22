@@ -1,7 +1,7 @@
 import { SenarsError } from '@senars/errors';
 import { SHA256_PINNED, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 
-import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
+import { createWasiSandbox } from '../../capability/wasi-sandbox';
 import type {
   ConsensusResult,
   EmbeddingPointer,
@@ -10,7 +10,7 @@ import type {
   JudgmentQuery,
   ManifoldHealth,
   ReasoningBudget,
-} from './types.js';
+} from './types';
 
 /**
  * Hash-pin mismatch fails closed — no fallback, no demotion ladder (§10).

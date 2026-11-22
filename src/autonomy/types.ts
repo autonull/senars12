@@ -1,5 +1,5 @@
-import type { NAREventMap } from '../types/events.js';
-import type { AutonomyMode, AutonomyPolicyId } from './config.js';
+import type { NAREventMap } from '../types/events';
+import type { AutonomyMode, AutonomyPolicyId } from './config';
 
 /** One concept the curiosity policy may ask about: its term, best-belief confidence, priority. */
 export interface ConceptObservation {

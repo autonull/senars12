@@ -9,22 +9,22 @@
  */
 
 import { finiteOr } from '@senars/util/numeric';
-import { deserializeStamp, type SerializedStamp, type Stamp, serializeStamp } from '../terms/impls/Stamp.js';
-import { Stamp as StampFactory } from '../terms/impls/Stamp.js';
-import { Truth } from '../terms/impls/Truth.js';
-import { TASK_PUNCTUATION, taskTypeForPunctuation } from '../schemas/task.js';
-import { termParser } from '../terms/index.js';
+import { deserializeStamp, type SerializedStamp, type Stamp, serializeStamp } from '../terms/impls/Stamp';
+import { Stamp as StampFactory } from '../terms/impls/Stamp';
+import { Truth } from '../terms/impls/Truth';
+import { TASK_PUNCTUATION, taskTypeForPunctuation } from '../schemas/task';
+import { termParser } from '../terms/index';
 import type { Term } from '../terms';
-import type { TaskOverrides } from '../types/core.js';
-import type { TermTruth } from '../types/truth.js';
+import type { TaskOverrides } from '../types/core';
+import type { TermTruth } from '../types/truth';
 import {
   createTask,
   createTaskWeight,
   NEUTRAL_BUDGET,
   type Task,
   type TaskType,
-} from '../types/index.js';
-import type { Timestamp } from '../types/primitives.js';
+} from '../types/index';
+import type { Timestamp } from '../types/primitives';
 
 /**
  * The punctuation table lives with the grammar that reads it

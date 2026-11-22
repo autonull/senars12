@@ -1,6 +1,6 @@
 import { mapToRecord } from '@senars/util/collections';
 import { safeRatio, sumBy } from '@senars/util/numeric';
-import type { Focus } from './Focus.js';
+import type { Focus } from './Focus';
 
 /** Compute the total weight across all foci. */
 export const focusTotalWeight = (foci: Iterable<Focus>): number => sumBy(foci, (f) => f.weight);

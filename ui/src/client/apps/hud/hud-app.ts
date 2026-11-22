@@ -5,7 +5,7 @@
  * Kept for power users but not the default entry point.
  */
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $activeLens,
   $graphLayer,
@@ -13,16 +13,16 @@ import {
   BaseComponent,
   narsBackend,
   send,
-} from '../../kernel/index.js';
-import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { defineBundle } from '../../framework/bundle.js';
-import type { Composition } from '../../framework/composition.js';
-import { type SurfaceDescriptor } from '../../framework/surface.js';
-import { PANEL_DEFS, panelSurfaces } from '../../core/panel-defs.js';
-import { rendererSurfaces } from '../../core/renderer-defs.js';
-import { projectWorkspaceGraph } from '../../kernel/domain.js';
-import { $selectedNodeIds, $viewSelection, setWorkspaceFocus, setWorkspaceSelection } from '../../core/store.js';
-import { eventBus } from '../../core/events.js';
+} from '../../kernel/index';
+import { defineApp, type AppDescriptor } from '../../framework/app';
+import { defineBundle } from '../../framework/bundle';
+import type { Composition } from '../../framework/composition';
+import { type SurfaceDescriptor } from '../../framework/surface';
+import { PANEL_DEFS, panelSurfaces } from '../../core/panel-defs';
+import { rendererSurfaces } from '../../core/renderer-defs';
+import { projectWorkspaceGraph } from '../../kernel/domain';
+import { $selectedNodeIds, $viewSelection, setWorkspaceFocus, setWorkspaceSelection } from '../../core/store';
+import { eventBus } from '../../core/events';
 
 /** The HUD app surface — mounted in the viewport. */
 @customElement('hud-surface')

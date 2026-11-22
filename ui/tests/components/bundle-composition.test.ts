@@ -23,23 +23,23 @@ import {
   type BundleConfigFields,
   type ConfigFieldDescriptor,
   type CapabilityDescriptor,
-} from '../../src/client/framework/bundle.js';
-import { resetSurfaces, surfaceRegistry } from '../../src/client/framework/surface.js';
-import { resetViewAdapters, viewAdapterRegistry } from '../../src/client/core/view-adapter.js';
-import { resetFacets, facetFor } from '../../src/client/framework/facet.js';
-import { resetIntents, intentFor } from '../../src/client/framework/intent.js';
-import { resetProjectors, getProjector } from '../../src/client/framework/projector.js';
-import { resetProtocols, protocolFor } from '../../src/client/framework/protocol.js';
-import { resetBackends, backendFor } from '../../src/client/kernel/backends.js';
-import { resetCapabilities, capabilityFor } from '../../src/client/core/capabilities.js';
-import { resetConfigFields, configFieldFor } from '../../src/client/core/config-catalog.js';
-import type { SurfaceDescriptor, Placement } from '../../src/client/framework/surface.js';
-import type { ViewAdapter } from '../../src/client/core/view-adapter.js';
-import type { FacetDescriptor } from '../../src/client/framework/facet.js';
-import type { IntentDescriptor } from '../../src/client/framework/intent.js';
-import type { Projector } from '../../src/client/framework/projector.js';
-import type { ProtocolEntry } from '../../src/client/framework/protocol.js';
-import type { ReasoningBackend } from '../../src/client/kernel/backends.js';
+} from '../../src/client/framework/bundle';
+import { resetSurfaces, surfaceRegistry } from '../../src/client/framework/surface';
+import { resetViewAdapters, viewAdapterRegistry } from '../../src/client/core/view-adapter';
+import { resetFacets, facetFor } from '../../src/client/framework/facet';
+import { resetIntents, intentFor } from '../../src/client/framework/intent';
+import { resetProjectors, getProjector } from '../../src/client/framework/projector';
+import { resetProtocols, protocolFor } from '../../src/client/framework/protocol';
+import { resetBackends, backendFor } from '../../src/client/kernel/backends';
+import { resetCapabilities, capabilityFor } from '../../src/client/core/capabilities';
+import { resetConfigFields, configFieldFor } from '../../src/client/core/config-catalog';
+import type { SurfaceDescriptor, Placement } from '../../src/client/framework/surface';
+import type { ViewAdapter } from '../../src/client/core/view-adapter';
+import type { FacetDescriptor } from '../../src/client/framework/facet';
+import type { IntentDescriptor } from '../../src/client/framework/intent';
+import type { Projector } from '../../src/client/framework/projector';
+import type { ProtocolEntry } from '../../src/client/framework/protocol';
+import type { ReasoningBackend } from '../../src/client/kernel/backends';
 
 // Test helpers
 const createTestSurface = (id: string, placement: Placement = 'viewport'): SurfaceDescriptor => ({

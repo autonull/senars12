@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import { resolveAliases } from './vite.aliases.js';
+import { resolveAliases } from './vite.aliases';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 

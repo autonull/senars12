@@ -1,9 +1,9 @@
 import { maxScore } from '@senars/util/collections';
 import { TERM_SEPARATORS, wordOverlap } from '@senars/util/text';
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
-import type { AttentionContext } from '../types.js';
-import { SimpleAttention } from './SimpleAttention.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
+import type { AttentionContext } from '../types';
+import { SimpleAttention } from './SimpleAttention';
 
 export class GoalRelevanceAttention extends SimpleAttention {
   override readonly metadata = {

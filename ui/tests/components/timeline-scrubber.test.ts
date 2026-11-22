@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/timeline-scrubber.js';
-import { $view } from '../../src/client/core/store.js';
+import '../../src/client/components/timeline-scrubber';
+import { $view } from '../../src/client/core/store';
 
 const mount = async () => {
   const el = document.createElement('timeline-scrubber');

@@ -27,8 +27,8 @@ import type {
   MCPPromptResult,
   GetPromptParams,
   MCPError,
-} from './types.js';
-import { getTask, updateTask, cleanTasks } from './server.js';
+} from './types';
+import { getTask, updateTask, cleanTasks } from './server';
 
 /** Create initialize handler. */
 export function createInitializeHandler(server: MCPServer) {

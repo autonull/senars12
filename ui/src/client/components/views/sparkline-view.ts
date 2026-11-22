@@ -1,10 +1,10 @@
 import { css, html, svg } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { registerViewAdapter } from '../../core/view-adapter.js';
-import type { SeriesDataset, ViewSelection } from '../../core/view-spec.js';
-import { theme } from '../../utils/theme.js';
-import { linePoints } from './series-geometry.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { registerViewAdapter } from '../../core/view-adapter';
+import type { SeriesDataset, ViewSelection } from '../../core/view-spec';
+import { theme } from '../../utils/theme';
+import { linePoints } from './series-geometry';
 
 const HEIGHT = 24;
 

@@ -1,5 +1,5 @@
-export { CompositeAttention } from './CompositeAttention.js';
-export { GoalRelevanceAttention } from './GoalRelevanceAttention.js';
-export { NullAttentionModel } from './NullAttentionModel.js';
-export { SimpleAttention } from './SimpleAttention.js';
-export { SpreadingActivation } from './SpreadingActivation.js';
+export { CompositeAttention } from './CompositeAttention';
+export { GoalRelevanceAttention } from './GoalRelevanceAttention';
+export { NullAttentionModel } from './NullAttentionModel';
+export { SimpleAttention } from './SimpleAttention';
+export { SpreadingActivation } from './SpreadingActivation';

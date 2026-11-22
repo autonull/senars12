@@ -1,8 +1,8 @@
-import type { CommandDefinition } from '../commands/types.js';
-import { formatNarseseTruth } from '../types/truth.js';
-import { filterByTerm } from '../memory/term-filter.js';
+import type { CommandDefinition } from '../commands/types';
+import { formatNarseseTruth } from '../types/truth';
+import { filterByTerm } from '../memory/term-filter';
 import { termParser } from '../terms';
-import { narOf, requiring } from './utils.js';
+import { narOf, requiring } from './utils';
 
 export const narCommands: CommandDefinition[] = [
   {

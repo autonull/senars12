@@ -3,13 +3,13 @@ import { getOrInsert } from '@senars/util/collections';
 import { systemClock, type Clock } from '@senars/util/clock';
 import type { Bag, BagItem } from '@senars/bag';
 import { createBag } from '@senars/bag';
-import type { Game } from '../game/Game.js';
-import type { GateRegistry } from '../kernel/index.js';
-import type { NALDerivation } from '../reflex/negotiation-types.js';
-import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
-import { FOCUS_DEFAULTS } from '../constants.js';
-import type { Term } from '../terms/index.js';
-import type { TermTruth } from '../types/truth.js';
+import type { Game } from '../game/Game';
+import type { GateRegistry } from '../kernel/index';
+import type { NALDerivation } from '../reflex/negotiation-types';
+import type { LearningEvent, Reflex } from '../reflex/Reflex';
+import { FOCUS_DEFAULTS } from '../constants';
+import type { Term } from '../terms/index';
+import type { TermTruth } from '../types/truth';
 import {
   getAntecedent,
   getSubject,
@@ -18,11 +18,11 @@ import {
   isInheritance,
   isOperation,
   operationNameOf,
-} from '../terms/index.js';
-import type { RandomSource } from '../types/primitives.js';
-import { type FocusConcept, type FocusTask, perceptionTasks } from './task.js';
+} from '../terms/index';
+import type { RandomSource } from '../types/primitives';
+import { type FocusConcept, type FocusTask, perceptionTasks } from './task';
 
-export type { FocusConcept, FocusTask } from './task.js';
+export type { FocusConcept, FocusTask } from './task';
 
 export interface FocusStepReport {
   focusId: string;

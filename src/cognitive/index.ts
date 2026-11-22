@@ -17,7 +17,7 @@ export {
   SampledDerivation,
   SimpleAttention,
   SpreadingActivation,
-} from '../strategies/index.js';
+} from '../strategies/index';
 export type {
   AttentionContext,
   AttentionModel,
@@ -32,7 +32,7 @@ export type {
   SearchSpaceParam,
   Strategy,
   StrategyType,
-} from '../strategies/types.js';
+} from '../strategies/types';
 export type {
   StrategyCatalog,
   StrategyConfig,
@@ -40,12 +40,12 @@ export type {
   StrategyRegistration,
   StrategyRegistry,
   StrategySpec,
-} from '../strategies/registration.js';
-export { CognitiveController } from './impls/CognitiveController.js';
-export { runCounterfactual } from './impls/counterfactual.js';
+} from '../strategies/registration';
+export { CognitiveController } from './impls/CognitiveController';
+export { runCounterfactual } from './impls/counterfactual';
 export {
   CognitiveRegistry,
   createDefaultRegistry,
   resolveSlot,
-} from './impls/CognitiveRegistry.js';
-export * from './fold-queries.js';
+} from './impls/CognitiveRegistry';
+export * from './fold-queries';

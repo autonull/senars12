@@ -6,9 +6,9 @@
  * surfaces each preset names. Adding an app is adding a row of data.
  */
 
-import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { defineBundle } from '../../framework/bundle.js';
-import { DEFAULT_STUDIO_COMPOSITION, registerStudioPresets } from './presets.js';
+import { defineApp, type AppDescriptor } from '../../framework/app';
+import { defineBundle } from '../../framework/bundle';
+import { DEFAULT_STUDIO_COMPOSITION, registerStudioPresets } from './presets';
 
 registerStudioPresets();
 
@@ -26,4 +26,4 @@ export const STUDIO_APP: AppDescriptor<'studio'> = defineApp({
   capability: 'language',
 });
 
-export { STUDIO_PRESETS, DEFAULT_STUDIO_COMPOSITION } from './presets.js';
+export { STUDIO_PRESETS, DEFAULT_STUDIO_COMPOSITION } from './presets';

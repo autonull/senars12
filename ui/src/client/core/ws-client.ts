@@ -1,7 +1,7 @@
 import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '@senars/core/protocol';
-import { $connectionState, $lastSeqId, atom, setWsClient } from './store.js';
-import { getClientProtocolCatalog } from './protocol-defs.js';
-import { registerAllSurfaces } from './surface-registration.js';
+import { $connectionState, $lastSeqId, atom, setWsClient } from './store';
+import { getClientProtocolCatalog } from './protocol-defs';
+import { registerAllSurfaces } from './surface-registration';
 
 function resolveWsUrl(): string {
   if (typeof location === 'undefined') return 'ws://localhost/ws';

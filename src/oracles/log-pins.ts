@@ -6,11 +6,11 @@
  */
 
 import { createHash } from 'crypto';
-import type { UUID, TimestampMs } from '../generated/schemas.js';
-import type { OracleOperation } from './oracle.js';
-import type { PinStore, PinKey } from './oracle.js';
-import { LogStore, createLogStore, type LogStoreConfig } from '../log/store.js';
-import { hashEntry, createLogEntry, type LogEntry } from '../log/events.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
+import type { OracleOperation } from './oracle';
+import type { PinStore, PinKey } from './oracle';
+import { LogStore, createLogStore, type LogStoreConfig } from '../log/store';
+import { hashEntry, createLogEntry, type LogEntry } from '../log/events';
 
 /** Pin event payload for the log. */
 interface PinLogEvent {

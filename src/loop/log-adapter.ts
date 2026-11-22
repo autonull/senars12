@@ -5,11 +5,11 @@
  * to the log store for deterministic replay and auditability.
  */
 
-import type { LogStore } from '../log/store.js';
-import type { LogEntry } from '../log/events.js';
-import type { CognitiveEvent } from '../generated/schemas.js';
-import type { LoopEvent, LoopEventType } from './types.js';
-import type { Env } from '../kernel/env.js';
+import type { LogStore } from '../log/store';
+import type { LogEntry } from '../log/events';
+import type { CognitiveEvent } from '../generated/schemas';
+import type { LoopEvent, LoopEventType } from './types';
+import type { Env } from '../kernel/env';
 
 /** Map loop event types to cognitive event types. */
 const LOOP_TO_COGNITIVE_EVENT: Record<LoopEventType, CognitiveEvent['type']> = {

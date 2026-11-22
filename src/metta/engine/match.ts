@@ -1,7 +1,7 @@
-import type { MeTTaAtom } from '../types/ast.js';
-import { isExpression, isSymbol, isVariable } from '../types/ast.js';
-import type { MeTTaSpace } from '../types/space.js';
-import { type Substitution, unify } from './unify.js';
+import type { MeTTaAtom } from '../types/ast';
+import { isExpression, isSymbol, isVariable } from '../types/ast';
+import type { MeTTaSpace } from '../types/space';
+import { type Substitution, unify } from './unify';
 
 export class PatternMatcher {
   constructor(private space: MeTTaSpace) {}

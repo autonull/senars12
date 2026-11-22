@@ -1,5 +1,5 @@
 import { css, html, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $activeLens,
   $graphLayer,
@@ -9,13 +9,13 @@ import {
   BaseComponent,
   narsBackend,
   send,
-} from '../../kernel/index.js';
-import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { defineBundle } from '../../framework/bundle.js';
-import type { Composition } from '../../framework/composition.js';
-import { type SurfaceDescriptor } from '../../framework/surface.js';
-import { projectWorkspaceGraph } from '../../kernel/domain.js';
-import '../../components/graph-viewport.js';
+} from '../../kernel/index';
+import { defineApp, type AppDescriptor } from '../../framework/app';
+import { defineBundle } from '../../framework/bundle';
+import type { Composition } from '../../framework/composition';
+import { type SurfaceDescriptor } from '../../framework/surface';
+import { projectWorkspaceGraph } from '../../kernel/domain';
+import '../../components/graph-viewport';
 
 /** The Goals app surface — mounted in the viewport. */
 @customElement('goals-surface')

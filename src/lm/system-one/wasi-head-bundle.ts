@@ -2,8 +2,8 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ensureDir } from '@senars/util/fs';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
-import { assertWasmPathContained, withSandboxTimeout } from '../../capability/wasi-sandbox.js';
-import { DigestMismatchError } from './wasi-runtime.js';
+import { assertWasmPathContained, withSandboxTimeout } from '../../capability/wasi-sandbox';
+import { DigestMismatchError } from './wasi-runtime';
 
 /**
  * D5/X27: WASI encoder-head bundle artifact. Compiles a trained linear head

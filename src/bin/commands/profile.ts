@@ -3,8 +3,8 @@
 import { removeBy } from '@senars/util/collections';
 import { cmd } from '@senars/cli';
 import type { BotConfig } from '@senars/config';
-import { tokenize } from './args.js';
-import type { BotRuntime } from './context.js';
+import { tokenize } from './args';
+import type { BotRuntime } from './context';
 
 type SkillEntry = BotConfig['skills'][number] & { name?: string };
 

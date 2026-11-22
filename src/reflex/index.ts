@@ -1,5 +1,5 @@
-export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../game/Game.js';
-export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters, validateParameters, mergeParameters } from '../config/cognitive-parameters.js';
+export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../game/Game';
+export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters, validateParameters, mergeParameters } from '../config/cognitive-parameters';
 export {
   forwardingReflex,
   type PrefetchingReflex,
@@ -8,17 +8,17 @@ export {
   recordingReflex,
   vetoAwareReflex,
   wrapReflex,
-} from './adapters.js';
-export type { MettaEvaluator, MettaFactSource } from './algebra-vote.js';
-export { agreeByExactAlgebra } from './algebra-vote.js';
-export { EpsilonGreedyReflex } from './EpsilonGreedyReflex.js';
-export type { MettaProposerOptions } from './MettaProposer.js';
-export { MettaProposer } from './MettaProposer.js';
-export type { NALDerivation, NegotiationDecision, NegotiatorOptions } from './Negotiator.js';
-export { Negotiator } from './Negotiator.js';
-export type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
-export { TabularQReflex } from './TabularQReflex.js';
-export { UCBReflex } from './UCBReflex.js';
-export type { ArbitrationStrategy } from './weighted-quorum.js';
-export { NalVetoArbitration, WeightedQuorum } from './weighted-quorum.js';
-export { RLFPLearner, type TaskOutcome, type TaskRewardMetrics } from '../rlfp/RLFPLearner.js';
+} from './adapters';
+export type { MettaEvaluator, MettaFactSource } from './algebra-vote';
+export { agreeByExactAlgebra } from './algebra-vote';
+export { EpsilonGreedyReflex } from './EpsilonGreedyReflex';
+export type { MettaProposerOptions } from './MettaProposer';
+export { MettaProposer } from './MettaProposer';
+export type { NALDerivation, NegotiationDecision, NegotiatorOptions } from './Negotiator';
+export { Negotiator } from './Negotiator';
+export type { ActionProposal, LearningEvent, Reflex } from './Reflex';
+export { TabularQReflex } from './TabularQReflex';
+export { UCBReflex } from './UCBReflex';
+export type { ArbitrationStrategy } from './weighted-quorum';
+export { NalVetoArbitration, WeightedQuorum } from './weighted-quorum';
+export { RLFPLearner, type TaskOutcome, type TaskRewardMetrics } from '../rlfp/RLFPLearner';

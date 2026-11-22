@@ -1,9 +1,9 @@
 import { css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { registerViewAdapter } from '../../core/view-adapter.js';
-import { formatCell } from '../../core/view-projection.js';
-import type { Budget, TableDataset, ViewSelection } from '../../core/view-spec.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { registerViewAdapter } from '../../core/view-adapter';
+import { formatCell } from '../../core/view-projection';
+import type { Budget, TableDataset, ViewSelection } from '../../core/view-spec';
 
 /** Renders a full `TableDataset`; a row click selects its id. */
 @customElement('s-table')

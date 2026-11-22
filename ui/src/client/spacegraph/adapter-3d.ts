@@ -1,6 +1,6 @@
-import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
-import { getRendererCapability, unsupportedChannels } from '../utils/renderer-capabilities.js';
-import { theme } from '../utils/theme.js';
+import type { Channel, ChannelValue, Delta } from '../modulation/types';
+import { getRendererCapability, unsupportedChannels } from '../utils/renderer-capabilities';
+import { theme } from '../utils/theme';
 
 function getSupport3D(): ReadonlySet<Channel> {
   return getRendererCapability('graph-3d')?.node ?? new Set();

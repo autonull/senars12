@@ -7,8 +7,8 @@
  */
 
 import { z } from 'zod';
-import type { LogStore } from './store.js';
-import { createLogStore } from './store.js';
+import type { LogStore } from './store';
+import { createLogStore } from './store';
 import type {
   LogEntry,
   CognitiveEvent,
@@ -17,9 +17,9 @@ import type {
   EventLog,
   EventLogConfig,
   EventLogQuery,
-} from './events.js';
-import { createLogEntry, hashEntry } from './events.js';
-import { CognitiveEventSchema } from '../generated/schemas.js';
+} from './events';
+import { createLogEntry, hashEntry } from './events';
+import { CognitiveEventSchema } from '../generated/schemas';
 import { PushQueue } from '@senars/util/events';
 
 interface Subscription {
@@ -230,7 +230,7 @@ export class LogStoreEventLog implements EventLog {
  * Create a LogStoreEventLog with default configuration.
  */
 export async function createLogStoreEventLog(config?: { dir?: string }): Promise<LogStoreEventLog> {
-  const { createLogStore } = await import('./store.js');
+  const { createLogStore } = await import('./store');
   const store = createLogStore(config ? { dir: config.dir } : undefined);
   await store.open();
   return new LogStoreEventLog(store);

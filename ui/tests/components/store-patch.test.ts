@@ -5,7 +5,7 @@ import {
   $graphNodes,
   updateEdgeData,
   updateNodeData,
-} from '../../src/client/core/store.js';
+} from '../../src/client/core/store';
 
 const node = (partial: Partial<GraphNodeData>): GraphNodeData => partial as GraphNodeData;
 

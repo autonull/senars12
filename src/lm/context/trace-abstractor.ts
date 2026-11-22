@@ -1,6 +1,6 @@
 import type { DerivationRecord } from '@senars/schemas';
 import { getOrInsert } from '@senars/util/collections';
-import { atom, fromNarsese, getArgs, type Term } from '../../terms/index.js';
+import { atom, fromNarsese, getArgs, type Term } from '../../terms/index';
 
 export interface CriticalPathStep {
   readonly ruleId: string;

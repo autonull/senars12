@@ -1,5 +1,5 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $capabilityFilter,
   $conversationLayout,
@@ -15,12 +15,12 @@ import {
   send,
   setActiveLayout,
   setWorkspaceSelection,
-} from '../core/index.js';
-import { panelDef } from '../core/panel-defs.js';
-import { layoutRegistry } from '../utils/layout-registry.js';
-import { LENS_CATALOG, PRIMARY_LENSES } from '../utils/lens-catalog.js';
-import { renderField } from '../utils/render-field.js';
-import './contradiction-badge.js';
+} from '../core/index';
+import { panelDef } from '../core/panel-defs';
+import { layoutRegistry } from '../utils/layout-registry';
+import { LENS_CATALOG, PRIMARY_LENSES } from '../utils/lens-catalog';
+import { renderField } from '../utils/render-field';
+import './contradiction-badge';
 // lens-controller moved to L2/Display popover; no longer in default toolbar
 
 /** Capability display labels (short names for UI badges). */

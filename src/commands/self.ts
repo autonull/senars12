@@ -1,7 +1,7 @@
-import type { CommandDefinition } from './types.js';
-import type { NAR } from '../nar.js';
-import type { ReasoningAboutReasoning } from '../self/ReasoningAboutReasoning.js';
-import { requiring } from './utils.js';
+import type { CommandDefinition } from './types';
+import type { NAR } from '../nar';
+import type { ReasoningAboutReasoning } from '../self/ReasoningAboutReasoning';
+import { requiring } from './utils';
 
 interface ExtendedNAR extends NAR {
   _reasoningAboutReasoning?: ReasoningAboutReasoning;

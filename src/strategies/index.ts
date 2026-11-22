@@ -4,29 +4,29 @@ export {
   NullAttentionModel,
   SimpleAttention,
   SpreadingActivation,
-} from './attention/index.js';
+} from './attention/index';
 export {
   CompositeLMRuleSelector,
-} from './lm-selectors/CompositeLMRuleSelector.js';
+} from './lm-selectors/CompositeLMRuleSelector';
 export {
   AnytimeDerivation,
   DefaultDerivation,
   FocusedDerivation,
   SampledDerivation,
-} from './derivation/index.js';
+} from './derivation/index';
 export {
   CompositeStrategy,
   PREMISE_PRIMITIVES,
   TermLinkStrategy,
-} from './premise/index.js';
-export { RuleGraph } from './lm-graph/RuleGraph.js';
-export type { RuleGraphOptions } from './lm-graph/RuleGraph.js';
+} from './premise/index';
+export { RuleGraph } from './lm-graph/RuleGraph';
+export type { RuleGraphOptions } from './lm-graph/RuleGraph';
 export {
   AllSelector,
   DiverseSelector,
   PrioritySelector,
   RotationSelector,
-} from './lm-selectors/index.js';
+} from './lm-selectors/index';
 export {
   DiverseSampling,
   GoalBiasedSampling,
@@ -34,7 +34,7 @@ export {
   PrioritySampling,
   WindowedRouletteStrategy,
   createWindowedRouletteStrategy,
-} from './sampling/index.js';
+} from './sampling/index';
 export {
   CompositeBase,
   createConcatenationComposite,
@@ -44,7 +44,7 @@ export {
   createCappedUnionByTerm,
   createWeightedMeanComposite,
   type Composable,
-} from './composite.js';
+} from './composite';
 
 export type {
   AttentionContext,
@@ -60,7 +60,7 @@ export type {
   SearchSpaceParam,
   Strategy,
   StrategyType,
-} from './types.js';
+} from './types';
 
 export type {
   CompositeSpec,
@@ -71,7 +71,7 @@ export type {
   StrategyRegistration,
   StrategyRegistry,
   StrategySpec,
-} from './registration.js';
+} from './registration';
 export {
   canonicalJson,
   configDigest,
@@ -82,4 +82,4 @@ export {
   isStrategyExpression,
   singleton,
   strategySpecErrors,
-} from './registration.js';
+} from './registration';

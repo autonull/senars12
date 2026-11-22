@@ -6,10 +6,10 @@
  */
 
 import type { TemplateResult } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement } from 'lit/decorators';
 
-import type { Contribution, TaggedContribution } from './contribution.js';
-import { createRegistry, type Registry } from './registry.js';
+import type { Contribution, TaggedContribution } from './contribution';
+import { createRegistry, type Registry } from './registry';
 
 /** A class that can receive a descriptor. The descriptor is attached after decoration. */
 export interface DescribedClass<T = unknown> extends CustomElementConstructor {

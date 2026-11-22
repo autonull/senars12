@@ -6,8 +6,8 @@
  * that writes (TODO29.a §1.1's "one owner", narrowed to the task).
  */
 
-import type { Term } from '../../terms/index.js';
-import type { Concept } from '../concept.js';
+import type { Term } from '../../terms/index';
+import type { Concept } from '../concept';
 
 export interface ConceptReader {
   /** Concepts resident in the store, unordered. */

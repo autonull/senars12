@@ -15,7 +15,7 @@
  */
 
 import { errMsg } from '@senars/util/error';
-import type { Engine } from './Engine.js';
+import type { Engine } from './Engine';
 
 /**
  * The optional lifecycle hooks an engine may carry. They are absent from the

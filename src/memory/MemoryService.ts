@@ -1,11 +1,11 @@
 import { BoundedRing, takeLast } from '@senars/util/collections';
 import { generateId } from '@senars/util/id';
-import type { Engine } from '../engine/Engine.js';
-import { sweepEngines } from '../engine/sweep.js';
-import type { EventLog } from '../log/index.js';
-import type { SkillFeedback, ToolRegistry } from '../motor/ToolRegistry.js';
-import type { MemoryEntry, MemoryQuery } from './types.js';
-import { RECALL_WINDOW, WORKING_MEMORY_CAPACITY } from './types.js';
+import type { Engine } from '../engine/Engine';
+import { sweepEngines } from '../engine/sweep';
+import type { EventLog } from '../log/index';
+import type { SkillFeedback, ToolRegistry } from '../motor/ToolRegistry';
+import type { MemoryEntry, MemoryQuery } from './types';
+import { RECALL_WINDOW, WORKING_MEMORY_CAPACITY } from './types';
 
 export class MemoryService {
   /**

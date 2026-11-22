@@ -4,8 +4,8 @@
 
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { OraclePinStore } from '../pins.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
+import { OraclePinStore } from '../pins';
 
 /** Input for Clingo ASP solving. */
 export interface ClingoInput extends OracleInput {

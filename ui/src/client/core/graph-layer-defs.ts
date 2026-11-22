@@ -8,9 +8,9 @@
  * Now implemented as a Facet catalog (P4 unification).
  */
 
-import type { SemanticBlock, SemanticLink } from '../core/workspace-graph.js';
-import { defineCatalog } from '../framework/catalog.js';
-import { defineFacetCatalog, createLayerFacet, type FacetDescriptor, facetKeysByKind } from '../framework/facet.js';
+import type { SemanticBlock, SemanticLink } from '../core/workspace-graph';
+import { defineCatalog } from '../framework/catalog';
+import { defineFacetCatalog, createLayerFacet, type FacetDescriptor, facetKeysByKind } from '../framework/facet';
 
 /** Internal facet catalog for graph layers — uses the unified Facet system (P4). */
 const GRAPH_LAYER_FACET_DEFS = defineFacetCatalog({

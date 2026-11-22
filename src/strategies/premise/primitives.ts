@@ -1,14 +1,14 @@
 import { collectUpTo, getOrInsert } from '@senars/util/collections';
-import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
-import type { Concept } from '../../memory/concept.js';
-import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
-import { LINK_LAYER } from '../../memory/links/types.js';
-import type { MemoryView } from '../../memory/view.js';
+import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative';
+import type { Concept } from '../../memory/concept';
+import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer';
+import { LINK_LAYER } from '../../memory/links/types';
+import type { MemoryView } from '../../memory/view';
 import type { Term } from '../../terms';
 import { getArgs, sharesSymbol, Stamp, TermMap, termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { ConfigurationError, createSecondaryTask } from '../../types';
-import type { TermTruth } from '../../types/truth.js';
+import type { TermTruth } from '../../types/truth';
 
 export type PremiseSource = (task: Task, memory: MemoryView, n?: number) => Concept[];
 

@@ -7,7 +7,7 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
-import { VISUAL_CELLS } from './matrix.js';
+import { VISUAL_CELLS } from './matrix';
 
 /** One captured matrix cell, as consumed by the gallery generator. */
 export type VisualCellResult = {

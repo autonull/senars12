@@ -5,18 +5,18 @@ import type {
   EngineId,
   ToolResult,
 } from '@senars/types';
-import { BaseEngine } from './BaseEngine.js';
+import { BaseEngine } from './BaseEngine';
 import type { CognitiveEvent } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
 import { createLogger } from '@senars/util/logger';
 import { DisposalRegistry } from '@senars/util/disposal';
 import { errMsg } from '@senars/util/error';
 import { takeLast } from '@senars/util/collections';
-import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
-import { filterByTerm } from '../memory/term-filter.js';
-import { NAR } from '../nar.js';
-import { dispatchNarseseIntent } from '../nl/narsese-intent.js';
-import { DEFAULT_CONFIG } from '../types/index.js';
+import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge';
+import { filterByTerm } from '../memory/term-filter';
+import { NAR } from '../nar';
+import { dispatchNarseseIntent } from '../nl/narsese-intent';
+import { DEFAULT_CONFIG } from '../types/index';
 
 export type CognitiveEventEmitter = (event: CognitiveEvent) => void;
 

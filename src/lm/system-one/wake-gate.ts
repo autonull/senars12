@@ -1,13 +1,13 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import type { DistillationLabel, JudgmentDataset } from './distill.js';
-import { HEAD_SPECS, specToQuery } from './head-ontology.js';
+import type { DistillationLabel, JudgmentDataset } from './distill';
+import { HEAD_SPECS, specToQuery } from './head-ontology';
 import type {
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
   JudgmentManifold,
-} from './types.js';
-import { createSystemOneBudget } from './types.js';
+} from './types';
+import { createSystemOneBudget } from './types';
 
 export type WakeDecision = 'wake' | 'not_yet' | 'unrelated';
 

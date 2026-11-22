@@ -5,9 +5,9 @@
  * (e.g., current goal, time pressure, resource constraints).
  */
 
-import type { Overlay, TaskBagKind, TaskSource, EconomyTask, SchedulerConfig } from './types.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Overlay, TaskBagKind, TaskSource, EconomyTask, SchedulerConfig } from './types';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Built-in overlay IDs. */
 export const BUILTIN_OVERLAYS = {

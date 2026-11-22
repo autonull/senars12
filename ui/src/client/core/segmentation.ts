@@ -8,8 +8,8 @@
  * constructs degrade to paragraphs, never to lost text.
  */
 
-import type { ArtifactPayload, TableData } from './block-payload.js';
-import type { BlockKind } from './workspace-graph.js';
+import type { ArtifactPayload, TableData } from './block-payload';
+import type { BlockKind } from './workspace-graph';
 
 /** A parsed segment before the caller assigns ids, role and provenance. */
 export interface Segment<K extends BlockKind = BlockKind> {

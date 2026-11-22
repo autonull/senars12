@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerSurface } from '../../src/client/core/surface-registry.js';
-import { registerOverlay } from '../../src/client/core/overlay-registry.js';
-import { registerViewAdapter } from '../../src/client/core/view-adapter.js';
-import { registerRenderer } from '../../src/client/core/workspace-renderer.js';
-import { registerCommand } from '../../src/client/core/commands.js';
-import { validateAllContributions, validateContribution } from '../../src/client/core/contribution-validator.js';
-import { Capability, CAPABILITY_IDS } from '../../src/client/core/capabilities.js';
-import { WORKSPACE_INTERACTIONS } from '../../src/client/core/workspace-renderer.js';
-import { Shape, Budget, Interaction } from '../../src/client/core/view-spec.js';
+import { registerSurface } from '../../src/client/core/surface-registry';
+import { registerOverlay } from '../../src/client/core/overlay-registry';
+import { registerViewAdapter } from '../../src/client/core/view-adapter';
+import { registerRenderer } from '../../src/client/core/workspace-renderer';
+import { registerCommand } from '../../src/client/core/commands';
+import { validateAllContributions, validateContribution } from '../../src/client/core/contribution-validator';
+import { Capability, CAPABILITY_IDS } from '../../src/client/core/capabilities';
+import { WORKSPACE_INTERACTIONS } from '../../src/client/core/workspace-renderer';
+import { Shape, Budget, Interaction } from '../../src/client/core/view-spec';
 
 // Clear all registries between tests
 afterEach(() => {

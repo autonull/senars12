@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/views/index.js';
-import '../../src/client/components/primitives/empty-state.js';
-import { $selectedNodeId, $viewSelection } from '../../src/client/core/store.js';
-import { ViewHost } from '../../src/client/core/view-host.js';
-import { surfaceFor } from '../../src/client/core/surface-registry.js';
+import '../../src/client/components/views/index';
+import '../../src/client/components/primitives/empty-state';
+import { $selectedNodeId, $viewSelection } from '../../src/client/core/store';
+import { ViewHost } from '../../src/client/core/view-host';
+import { surfaceFor } from '../../src/client/core/surface-registry';
 import type {
   SeriesDataset,
   TableDataset,
   ViewDataset,
   ViewSpec,
-} from '../../src/client/core/view-spec.js';
+} from '../../src/client/core/view-spec';
 
 const series: SeriesDataset = {
   kind: 'series',

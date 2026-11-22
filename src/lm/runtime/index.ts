@@ -1,1 +1,1 @@
-export * from './llama-runtime.js';
+export * from './llama-runtime';

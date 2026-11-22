@@ -2,7 +2,7 @@
  * ToolbarSelect — reusable select component for app toolbars.
  */
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators';
 import { LitElement } from 'lit';
 
 export interface SelectOption {

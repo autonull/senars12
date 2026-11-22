@@ -13,10 +13,10 @@ function mean(values: readonly number[]): number {
 function anneal(temp: number, iter: number, coolingRate = 0.995): number {
   return temp * Math.pow(coolingRate, iter);
 }
-import { type Term, TermBuilder, Truth } from '../../../index.js';
-import type { NAR } from '../../../nar.js';
-import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';
-import type { QBeliefStore } from '../QBeliefStore.js';
+import { type Term, TermBuilder, Truth } from '../../../index';
+import type { NAR } from '../../../nar';
+import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term';
+import type { QBeliefStore } from '../QBeliefStore';
 
 /**
  * Converts RL actions to NAR goals (native AST form)

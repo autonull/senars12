@@ -1,8 +1,8 @@
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
 import { containsSubterm, type Term } from '../../terms';
-import type { SamplingStrategy } from '../types.js';
-import { rankedSample } from './scored.js';
+import type { SamplingStrategy } from '../types';
+import { rankedSample } from './scored';
 
 export const goalBiasScore =
   (goals: readonly { term: Term }[]) =>

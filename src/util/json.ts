@@ -11,7 +11,7 @@
  * is a boundary the gate would have to carve an exception for (TODO29.a §5.2).
  */
 
-import { attempt, match } from './result.js';
+import { attempt, match } from './result';
 
 const OPEN = '{'.charCodeAt(0);
 const CLOSE = '}'.charCodeAt(0);

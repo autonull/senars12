@@ -6,7 +6,7 @@
  * store binds it, it does not bind the store.
  */
 
-import { type FocusRef, focusEquals, MIND_FOCUS } from './coordinates.js';
+import { type FocusRef, focusEquals, MIND_FOCUS } from './coordinates';
 
 type Listener = (ref: FocusRef) => void;
 

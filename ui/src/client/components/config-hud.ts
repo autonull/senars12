@@ -5,13 +5,13 @@
 
 import { z } from 'zod';
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
+import { customElement, state } from 'lit/decorators';
+import { classMap } from 'lit/directives/class-map';
 import { type Debounced, debounce, getOrInsert } from '@senars/util';
-import { $config, BaseComponent, send, type UiConfig, UiConfigSchema, type Theme, type Density, type Motion } from '../core/index.js';
-import { configFieldFor, getConfigFields } from '../core/config-catalog.js';
-import { renderField, type FieldValue } from '../utils/render-field.js';
-import './config-profiles.js';
+import { $config, BaseComponent, send, type UiConfig, UiConfigSchema, type Theme, type Density, type Motion } from '../core/index';
+import { configFieldFor, getConfigFields } from '../core/config-catalog';
+import { renderField, type FieldValue } from '../utils/render-field';
+import './config-profiles';
 
 type ConfigSection = 'appearance' | 'defaults' | 'panels' | 'provider' | 'budgets' | 'nars' | 'advanced';
 

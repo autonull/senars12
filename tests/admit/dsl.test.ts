@@ -11,9 +11,9 @@ import {
   DSLProgram,
   DSL_STDLIB,
   defaultSandboxLimits,
-} from '../../src/admit/dsl.js';
-import { createSandbox, SandboxLimits } from '../../src/admit/sandbox.js';
-import { createDefaultClock } from '../../src/kernel/env.js';
+} from '../../src/admit/dsl';
+import { createSandbox, SandboxLimits } from '../../src/admit/sandbox';
+import { createDefaultClock } from '../../src/kernel/env';
 
 describe('W7 — Skill DSL', () => {
   let clock: ReturnType<typeof createDefaultClock>;

@@ -11,12 +11,12 @@
  */
 
 import { hasVariable } from '../../terms';
-import type { LMRule } from '../LMRule.js';
-import type { LMRuleConfig, LMService } from '../lm-service.js';
-import { createRule } from '../rule-builders.js';
-import { getRuleDef, ruleDefs } from '../rule-templates/index.js';
+import type { LMRule } from '../LMRule';
+import type { LMRuleConfig, LMService } from '../lm-service';
+import { createRule } from '../rule-builders';
+import { getRuleDef, ruleDefs } from '../rule-templates/index';
 
-export { isComplexGoal } from './conditions.js';
+export { isComplexGoal } from './conditions';
 export { hasVariable };
 
 export const LMRules = Object.freeze({

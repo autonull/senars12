@@ -4,9 +4,9 @@
  * Provides continuous assessment of loop quality, efficiency, and alignment.
  */
 
-import type { Task, TimestampMs } from '../kernel/types.js';
-import type { ContractCheckResult } from './contract.js';
-import type { Clock } from '../kernel/env.js';
+import type { Task, TimestampMs } from '../kernel/types';
+import type { ContractCheckResult } from './contract';
+import type { Clock } from '../kernel/env';
 
 /** Appraisal dimensions. */
 export const APPRAISAL_DIMENSIONS = [

@@ -4,15 +4,15 @@ import type { LMExecutionStats } from '@senars/types/llm';
 import { cachePath } from '@senars/util/config';
 import { clamp01 } from '@senars/util/numeric';
 import { envStr } from '@senars/util/config';
-import type { LMSettings } from '../env-config.js';
+import type { LMSettings } from '../env-config';
 import {
   delegate,
   type ProviderRuntime,
   type QualityObjective,
   type RoutingObjective,
   readField,
-} from '../provider-runtime.js';
-import { MODEL_CAPABILITIES, type ModelCapability } from './capabilities.js';
+} from '../provider-runtime';
+import { MODEL_CAPABILITIES, type ModelCapability } from './capabilities';
 
 export const setRouting = delegate('setRouting');
 export const getRouting = delegate('getRouting');

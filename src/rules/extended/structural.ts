@@ -2,7 +2,7 @@
  * Structural extended NAL rules: structural inheritance, structural reduction.
  */
 import { binaryOf, TermBuilder, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
+import type { RuleFn } from '../types';
 
 export const structuralInheritance: RuleFn = ([compound, component]) =>
   compound.kind === 'conjunction' && compound.args.some((a) => termsEqual(a, component))

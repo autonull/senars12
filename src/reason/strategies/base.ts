@@ -1,8 +1,8 @@
-import type { TermTruth } from '@senars/types/truth.js';
-import type { Concept } from '../../memory/concept.js';
+import type { TermTruth } from '@senars/types/truth';
+import type { Concept } from '../../memory/concept';
 import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
 import { samplePremisesFromConfig } from '../../strategies/premise/primitives';
-import type { Strategy } from '../../strategies/types.js';
+import type { Strategy } from '../../strategies/types';
 import type { Task } from '../../types';
 
 type StrategyConfig = Pick<

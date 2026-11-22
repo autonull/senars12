@@ -441,18 +441,26 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 - Top-level aliases for `@senars/util`, `@senars/utils`, `@senars/lm`, `@senars/agent`, `@senars/self`, `@senars/tools`, etc.
 - Regex wildcards for `@senars/util/*`, `@senars/utils/*`, `@senars/lm/*`, `@senars/agent/*`, `@senars/self/*`, `@senars/tools/*` that add `.ts` extension
 - Specific aliases for commonly used sub-paths (`@senars/lm/service/cache`, `@senars/lm/rule/response-parser`, etc.)
+- Explicit aliases for `@senars/logics/nal/*`, `@senars/kernel/terms/intern`, `@senars/kernel/stamp`, `@senars/kernel/types`, `@senars/rules/verifier-truth-table`, `@senars/log/*`, `@senars/logics/*`
+- Lit decorators/static-html fixes for oxc
 
-**Syntax error in transform** — ❌ **PARTIALLY FIXED**. Oxc (vitest 5.x default transformer) fails with "SyntaxError: Invalid or unexpected token" on files with `.js` extension imports in TypeScript source. This affects the `@senars/agent` → `@senars/self` → `@senars/tools/impls` dependency chain. The `.js` extensions are required for Node.js ESM runtime but oxc doesn't parse them in `.ts` files.
+**Syntax error in transform** — ✅ **MOSTLY FIXED**. Removed `.js` extensions from TypeScript imports across:
+- `src/self/`, `src/cognitive/impls/`, `src/imagination/`, `src/terms/`, `src/faculties/judgment/`
+- Bulk sed pass removed `.js'` and `.js"` from all `src/`, `ui/src/`, `tests/` TypeScript files
+- Remaining oxc syntax errors are in `node-llama-cpp` native bindings (unrelated to `.js` imports)
 
-**UI package exports** — ❌ **UNFIXED**. Some `@senars/ui` sub-paths (e.g., `./client/core/store`) are not exported correctly.
+**UI package exports** — ✅ **FIXED**. Added exports for:
+- `./client/core` and `./client/core/*`
+- `./client/utils` and `./client/utils/*`
+- `./client/utils/index.ts` barrel export created
 
-**Progress:** 211/394 test files passing, 1851/1853 tests passing. Remaining failures are:
-- ~30 test files with oxc syntax errors (import `@senars/agent`/`@senars/self`)
-- ~150 UI test files with export issues
-- A few alias resolution edge cases
+**Progress:** 221/412 test files passing, 2010/2074 tests passing. Remaining failures:
+- ~25 tests in `logics/nal/cross-witness.test.ts` and `logics/nal/codecs-roundtrip.test.ts` (pre-existing logic verification issues)
+- ~20 CLI/integration tests blocked by oxc parsing of `node-llama-cpp` native bindings
+- A few pre-existing test failures in benchmarks, MCP, and generated tests
 
 **Action items:**
-- [ ] Fix oxc syntax errors: remove `.js` extensions from TypeScript imports in `src/tools/impls/`, `src/self/`, `src/cognitive/impls/`, `src/imagination/` (or configure oxc to handle them)
-- [ ] Fix UI package exports: ensure all required sub-paths are exported in `@senars/ui/package.json`
-- [ ] Run full test suite with `pnpm test:unit` and verify 0 failures
+- [ ] Fix logics/nal verification tests (cross-witness truth value alignment, codec round-trip edge cases)
+- [ ] Resolve oxc parsing of `node-llama-cpp` (exclude from transform or use esbuild)
+- [ ] Address remaining pre-existing test failures
 

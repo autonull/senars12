@@ -20,25 +20,25 @@ import {
   sliceMergedPayload,
   snapshotBudget,
   zeroConsumed,
-} from '../budget/index.js';
+} from '../budget/index';
 import type {
   BudgetExhaustedEvent,
   CognitiveEvent,
-} from '../schemas/cognitive-events.js';
+} from '../schemas/cognitive-events';
 import type {
   BudgetGateInput,
   BudgetGateOutput,
   GateOutcome,
-} from '../schemas/gate-io.js';
+} from '../schemas/gate-io';
 import type {
   ReasoningBudget,
   TerminationReason,
-} from '../schemas/reasoning-budget.js';
-import { mintCognitiveEvent } from '../schemas/cognitive-events.js';
-import { validateReasoningBudget } from '../schemas/reasoning-budget.js';
+} from '../schemas/reasoning-budget';
+import { mintCognitiveEvent } from '../schemas/cognitive-events';
+import { validateReasoningBudget } from '../schemas/reasoning-budget';
 import { keyedBy, mapValues } from '../util/collections';
-import { BUDGET_SCOPES, withBudgetId } from './budget-scopes.js';
-import { KernelGate, projectOutcome } from './gate-base.js';
+import { BUDGET_SCOPES, withBudgetId } from './budget-scopes';
+import { KernelGate, projectOutcome } from './gate-base';
 
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;

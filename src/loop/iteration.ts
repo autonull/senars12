@@ -2,16 +2,16 @@
  * Loop Iteration — core iteration execution logic.
  */
 
-import type { LoopContext, IterationResult, ActionResult, SelectionResult, SelectionContext, SelectionCandidate, EconomyTask, LoopEventType } from './types.js';
-import type { Economy, EconomyScheduler, SchedulerResult } from '../economy/index.js';
-import type { FacultyInvoker } from './types.js';
-import type { Oracle } from '../oracles/oracle.js';
-import type { ContractRegistry, ContractCheckResult, ContractContext } from './contract.js';
-import type { RepairLoop, RepairContext, RepairResult as LoopRepairResult } from './repair.js';
-import type { LoopAppraisal } from './appraise.js';
-import type { LoopRecorder } from './record.js';
-import type { SelfModelManager } from './self-model.js';
-import { defaultLoopConfig } from './types.js';
+import type { LoopContext, IterationResult, ActionResult, SelectionResult, SelectionContext, SelectionCandidate, EconomyTask, LoopEventType } from './types';
+import type { Economy, EconomyScheduler, SchedulerResult } from '../economy/index';
+import type { FacultyInvoker } from './types';
+import type { Oracle } from '../oracles/oracle';
+import type { ContractRegistry, ContractCheckResult, ContractContext } from './contract';
+import type { RepairLoop, RepairContext, RepairResult as LoopRepairResult } from './repair';
+import type { LoopAppraisal } from './appraise';
+import type { LoopRecorder } from './record';
+import type { SelfModelManager } from './self-model';
+import { defaultLoopConfig } from './types';
 
 /** Runs a single loop iteration. */
 export async function runIteration(
@@ -93,7 +93,7 @@ function buildSelectionContext(context: LoopContext, scheduleResult: SchedulerRe
 
   const candidates: SelectionCandidate[] = scheduleResult.candidates.map(c => ({
     id: c.task.id,
-    action: c.task as unknown as import('../kernel/types.js').Task,
+    action: c.task as unknown as import('../kernel/types').Task,
     utility: c.utility,
     voi: 0,
     confidence: c.task.truth.c,
@@ -106,8 +106,8 @@ function buildSelectionContext(context: LoopContext, scheduleResult: SchedulerRe
 
   return {
     candidates,
-    beliefs: beliefs as unknown as import('../kernel/types.js').Task[],
-    goals: goals as unknown as import('../kernel/types.js').Task[],
+    beliefs: beliefs as unknown as import('../kernel/types').Task[],
+    goals: goals as unknown as import('../kernel/types').Task[],
     budget: scheduleResult.metadata.budgetRemaining,
     urgency: 0.5,
     riskTolerance: 0.5,
@@ -140,7 +140,7 @@ async function executeActions(
           context: { truth: task.truth },
           budget: 10,
           priority: task.weight,
-        } satisfies import('../faculties/specs.js').FacultyInput;
+        } satisfies import('../faculties/specs').FacultyInput;
 
         const output = await invoker.invoke(input);
         const durationMs = context.env.clock.now() - actionStart;
@@ -208,7 +208,7 @@ async function executeActions(
 }
 
 /** Checks if task matches faculty spec. */
-function taskMatchesFaculty(task: EconomyTask, spec: import('../faculties/specs.js').FacultySpec): boolean {
+function taskMatchesFaculty(task: EconomyTask, spec: import('../faculties/specs').FacultySpec): boolean {
   const taskStr = task.term.toString().toLowerCase();
   return task.tags.includes(spec.category) ||
          taskStr.includes(spec.name) ||
@@ -224,12 +224,12 @@ function taskMatchesOracle(task: EconomyTask, oracle: Oracle): boolean {
 }
 
 /** Converts faculty output to effects. */
-function convertFacultyOutput<T>(_output: import('../faculties/specs.js').FacultyOutput<T>): import('./types.js').EffectResult[] {
+function convertFacultyOutput<T>(_output: import('../faculties/specs').FacultyOutput<T>): import('./types').EffectResult[] {
   return [];
 }
 
 /** Converts oracle output to effects. */
-function convertOracleOutput<T>(_output: import('../oracles/oracle.js').OracleOutput<T>): import('./types.js').EffectResult[] {
+function convertOracleOutput<T>(_output: import('../oracles/oracle').OracleOutput<T>): import('./types').EffectResult[] {
   return [];
 }
 
@@ -237,7 +237,7 @@ function convertOracleOutput<T>(_output: import('../oracles/oracle.js').OracleOu
 async function runJudgments(
   task: EconomyTask,
   actions: ActionResult[]
-): Promise<import('./types.js').JudgmentResult[]> {
+): Promise<import('./types').JudgmentResult[]> {
   return [{
     judgmentId: `judgment-${task.id}`,
     task,
@@ -257,17 +257,17 @@ async function checkContracts(
 
   const contractContext: ContractContext = {
     iteration: context.iteration,
-    currentTask: task as unknown as import('../kernel/types.js').Task,
-    focusBag: context.economy.getAllTasks() as unknown as import('../kernel/types.js').Task[],
-    beliefs: context.economy.getTasksByKind('belief') as unknown as import('../kernel/types.js').Task[],
-    goals: context.economy.getTasksByKind('goal') as unknown as import('../kernel/types.js').Task[],
-    selectedAction: task as unknown as import('../kernel/types.js').Task,
+    currentTask: task as unknown as import('../kernel/types').Task,
+    focusBag: context.economy.getAllTasks() as unknown as import('../kernel/types').Task[],
+    beliefs: context.economy.getTasksByKind('belief') as unknown as import('../kernel/types').Task[],
+    goals: context.economy.getTasksByKind('goal') as unknown as import('../kernel/types').Task[],
+    selectedAction: task as unknown as import('../kernel/types').Task,
     oracleCalls: [],
     resources: { tokensUsed: 0, tokensRemaining: 1000, wallTimeMs: 0, cpuTimeMs: 0 },
     clock: context.env.clock,
   };
 
-  const { checkContracts: checkContractsFn } = await import('./contract.js');
+  const { checkContracts: checkContractsFn } = await import('./contract');
   return checkContractsFn(contractContext);
 }
 
@@ -286,8 +286,8 @@ async function runRepairs(
   const repairContext: RepairContext = {
     iteration: context.iteration,
     recentTasks: [],
-    beliefs: context.economy.getTasksByKind('belief') as unknown as import('../kernel/types.js').Task[],
-    goals: context.economy.getTasksByKind('goal') as unknown as import('../kernel/types.js').Task[],
+    beliefs: context.economy.getTasksByKind('belief') as unknown as import('../kernel/types').Task[],
+    goals: context.economy.getTasksByKind('goal') as unknown as import('../kernel/types').Task[],
     resources: { cpu: 0, memory: 0, tokensUsed: 0, tokensRemaining: 1000, wallTimeMs: 0 },
     oracleHealth: [],
     gateStates: [],
@@ -302,7 +302,7 @@ async function appraiseIteration(
   context: LoopContext,
   task: EconomyTask,
   actions: ActionResult[],
-  judgments: import('./types.js').JudgmentResult[],
+  judgments: import('./types').JudgmentResult[],
   contracts: ContractCheckResult[],
   repairs: LoopRepairResult[]
 ): Promise<LoopAppraisal | undefined> {
@@ -331,7 +331,7 @@ async function recordIteration(
   task: EconomyTask,
   selection: SelectionResult,
   actions: ActionResult[],
-  judgments: import('./types.js').JudgmentResult[],
+  judgments: import('./types').JudgmentResult[],
   contracts: ContractCheckResult[],
   repairs: LoopRepairResult[],
   appraisal?: LoopAppraisal
@@ -360,8 +360,8 @@ async function recordIteration(
   const outcome: 'success' | 'failure' | 'partial' = actions.every(a => a.success) ? 'success' : actions.some(a => a.success) ? 'partial' : 'failure';
 
   const payload = {
-    task: task as unknown as import('../kernel/types.js').Task,
-    action: task as unknown as import('../kernel/types.js').Task,
+    task: task as unknown as import('../kernel/types').Task,
+    action: task as unknown as import('../kernel/types').Task,
     outcome,
     durationMs: actions.reduce((sum, a) => sum + a.durationMs, 0),
     resources: {

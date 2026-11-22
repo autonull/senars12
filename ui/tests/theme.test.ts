@@ -6,8 +6,8 @@ import {
   DEFAULT_THEME,
   THEME_NAMES,
   TOKENS,
-} from '../src/client/styles/tokens.generated.js';
-import { cssVar, getTheme, numericToken, setTheme, theme, token, truthColor } from '../src/client/utils/theme.js';
+} from '../src/client/styles/tokens.generated';
+import { cssVar, getTheme, numericToken, setTheme, theme, token, truthColor } from '../src/client/utils/theme';
 
 type Tree = Record<string, unknown>;
 

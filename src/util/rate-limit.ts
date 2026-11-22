@@ -9,9 +9,9 @@
  * the limiter without limit.
  */
 
-import { type Clock, systemClock } from './clock.js';
-import { BoundedRing, getOrInsert } from './collections.js';
-import { LruCache } from './lru-cache.js';
+import { type Clock, systemClock } from './clock';
+import { BoundedRing, getOrInsert } from './collections';
+import { LruCache } from './lru-cache';
 
 export interface RateLimiterOptions {
   /** Arrivals admitted per `windowMs`. */

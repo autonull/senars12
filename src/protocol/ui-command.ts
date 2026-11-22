@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { msg } from './envelope.js';
+import { msg } from './envelope';
 
 export const UiCommandMsg = msg('ui.command', {
   command: z.string().min(1),

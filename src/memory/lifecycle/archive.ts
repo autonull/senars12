@@ -1,7 +1,7 @@
 import { containerStats, type ContainerStats } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
 import type { Term } from '../../terms';
-import type { Concept } from '../concept.js';
+import type { Concept } from '../concept';
 
 export interface ArchiveConfig {
   maxArchivedConcepts: number;

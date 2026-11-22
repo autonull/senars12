@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { blockDescriptor } from '../../src/client/core/block-descriptors.js';
-import { projectWorkspaceGraph } from '../../src/client/core/graph-projection.js';
+import { blockDescriptor } from '../../src/client/core/block-descriptors';
+import { projectWorkspaceGraph } from '../../src/client/core/graph-projection';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, patch: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

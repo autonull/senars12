@@ -1,7 +1,7 @@
 import { Unifier, type UnifierDialect } from '@senars/util/unify';
-import { ATOM_EQUALITY, atomKey } from '../core/hash.js';
-import type { GroundedAtom, MeTTaAtom } from '../types/ast.js';
-import { AtomKind } from '../types/ast.js';
+import { ATOM_EQUALITY, atomKey } from '../core/hash';
+import type { GroundedAtom, MeTTaAtom } from '../types/ast';
+import { AtomKind } from '../types/ast';
 
 export type Substitution = Map<string, MeTTaAtom>;
 

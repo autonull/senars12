@@ -1,5 +1,5 @@
 import type { Core } from 'cytoscape';
-import { getLoDTier, HTML_BODY_BUDGET, showsHtmlBody } from './graph-scaling.js';
+import { getLoDTier, HTML_BODY_BUDGET, showsHtmlBody } from './graph-scaling';
 
 export interface HtmlLabelData {
   id: string;

@@ -3,9 +3,9 @@
  */
 
 import { css, html, LitElement } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { $config, BaseComponent, send, type UiConfig, loadConfig, saveConfig, UiConfigSchema } from '../core/index.js';
-import { ConfigProfile, BUILTIN_PROFILES, loadProfiles, saveProfiles, loadActiveProfile, saveActiveProfile, applyProfile, exportConfig, importConfig } from '../core/config-schema.js';
+import { customElement, property, state } from 'lit/decorators';
+import { $config, BaseComponent, send, type UiConfig, loadConfig, saveConfig, UiConfigSchema } from '../core/index';
+import { ConfigProfile, BUILTIN_PROFILES, loadProfiles, saveProfiles, loadActiveProfile, saveActiveProfile, applyProfile, exportConfig, importConfig } from '../core/config-schema';
 
 const STORAGE_KEY = 'senars:profiles';
 const ACTIVE_KEY = 'senars:activeProfile';

@@ -6,11 +6,11 @@
  * external approval. Higher autonomy requires proven track record.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
-import type { GovernancePolicy, GovernanceRule, GovernanceDecision, GovernanceRunner } from './governance.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
-import type { Repertoire } from './repertoire.js';
+import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire';
+import type { GovernancePolicy, GovernanceRule, GovernanceDecision, GovernanceRunner } from './governance';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import type { Repertoire } from './repertoire';
 
 /** Autonomy level. */
 export type AutonomyLevel = 'minimal' | 'supervised' | 'semi-autonomous' | 'autonomous' | 'full';
@@ -421,7 +421,7 @@ export class AutonomyDial {
 
 /** Create a governance engine for autonomy dial. */
 function createGovernanceEngine(clock?: Clock, rng?: RNG): any {
-  const { createGovernanceEngine } = require('./governance.js');
+  const { createGovernanceEngine } = require('./governance');
   return createGovernanceEngine(clock, rng);
 }
 

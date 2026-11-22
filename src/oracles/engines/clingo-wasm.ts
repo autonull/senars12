@@ -3,9 +3,9 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { OraclePinStore } from '../pins.js';
-import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
+import { OraclePinStore } from '../pins';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget';
 
 /** Input for Clingo ASP solving. */
 export interface ClingoWasmInput extends OracleInput {
@@ -109,7 +109,7 @@ export class ClingoWasmOracle implements Oracle<ClingoWasmInput, ClingoWasmResul
     // Charge budget if configured
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../../budget/budget.js');
+      const { consume } = await import('../../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();

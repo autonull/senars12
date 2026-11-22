@@ -1,25 +1,25 @@
-import type { MettaPort } from '../agent/index.js';
-import type { AutonomyMode } from '@senars/schemas/governance.js';
+import type { MettaPort } from '../agent/index';
+import type { AutonomyMode } from '@senars/schemas/governance';
 import { isStatefulRandomSource, type StatefulRandomSource } from '@senars/util/random';
-import type { Clock } from '@senars/util/clock.js';
-import type { IdSource } from '@senars/util/id.js';
-import type { ReasoningBudget } from '../schemas/reasoning-budget.js';
-import type { SystemOneConfig as SystemOneConfigSchema } from '../config/index.js';
-import type { ToolFeedbackObserver } from '../util/feedback.js';
-import type { AutonomyConfigInput } from '../autonomy/config.js';
-import type { MetaGoalPolicy } from '../drives/meta-goals.js';
+import type { Clock } from '@senars/util/clock';
+import type { IdSource } from '@senars/util/id';
+import type { ReasoningBudget } from '../schemas/reasoning-budget';
+import type { SystemOneConfig as SystemOneConfigSchema } from '../config/index';
+import type { ToolFeedbackObserver } from '../util/feedback';
+import type { AutonomyConfigInput } from '../autonomy/config';
+import type { MetaGoalPolicy } from '../drives/meta-goals';
 import type { CognitiveRegistry } from '../cognitive';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
-import type { BudgetScopeId } from '../kernel/budget-scopes.js';
-import type { GateRegistry } from '../kernel/GateRegistry.js';
+import type { BudgetScopeId } from '../kernel/budget-scopes';
+import type { GateRegistry } from '../kernel/GateRegistry';
 import type { LMService, SeNARSRegistry } from '../lm';
-import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
-import type { JudgmentManifold } from '../lm/system-one/types.js';
-import type { EmbeddingGenerator } from '../memory/embedding.js';
+import type { EmbeddingCache } from '../lm/system-one/embedding-cache';
+import type { JudgmentManifold } from '../lm/system-one/types';
+import type { EmbeddingGenerator } from '../memory/embedding';
 import { ConfigurationError, type CoreConfig } from '../types';
-import type { NarEventBus } from '../types/events.js';
-import type { RandomSource } from '../types/primitives.js';
-import type { DecisionPort } from '../ports/decision.js';
+import type { NarEventBus } from '../types/events';
+import type { RandomSource } from '../types/primitives';
+import type { DecisionPort } from '../ports/decision';
 
 export interface RLFPConfig {
   optimizeInterval?: number;
@@ -66,7 +66,7 @@ export interface NARConfig extends CoreConfig {
   persistState?: boolean;
   statePath?: string;
   /** Unified LogStore for all persistence (replaces SqliteEventLog, StatePersister, KernelLedger). */
-  logStore?: import('../log/store.js').LogStore;
+  logStore?: import('../log/store').LogStore;
 
   cognitiveParams?: CognitiveParameters;
   strategyRegistry?: CognitiveRegistry;

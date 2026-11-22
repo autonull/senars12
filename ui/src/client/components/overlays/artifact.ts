@@ -7,18 +7,18 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { Announcer } from '../../core/announcer.js';
-import { artifactViewSpec } from '../../core/artifacts.js';
-import { payloadOf } from '../../core/block-payload.js';
-import { eventBus } from '../../core/events.js';
-import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import { projectDataset } from '../../core/view-projection.js';
-import type { SemanticBlock } from '../../core/workspace-graph.js';
+import { customElement, property } from 'lit/decorators';
+import { Announcer } from '../../core/announcer';
+import { artifactViewSpec } from '../../core/artifacts';
+import { payloadOf } from '../../core/block-payload';
+import { eventBus } from '../../core/events';
+import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import { projectDataset } from '../../core/view-projection';
+import type { SemanticBlock } from '../../core/workspace-graph';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index';
 
 const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined =>
   payloadOf(block.data, 'image');

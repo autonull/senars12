@@ -1,8 +1,8 @@
-import type { LensSpec } from '../protocol/lens-schema.js';
-import { builtinLensSpecs } from '../protocol/lens-schema.js';
-import type { ToolSpec } from '../motor/ToolRegistry.js';
-import type { SenarsPlugin, TransportFactory } from './Plugin.js';
-import type { Connection, ConnectionConfig, ConnectionDeps } from '../agent/Transport.js';
+import type { LensSpec } from '../protocol/lens-schema';
+import { builtinLensSpecs } from '../protocol/lens-schema';
+import type { ToolSpec } from '../motor/ToolRegistry';
+import type { SenarsPlugin, TransportFactory } from './Plugin';
+import type { Connection, ConnectionConfig, ConnectionDeps } from '../agent/Transport';
 
 /** Wraps a connection constructor into a `TransportFactory` plugin organ. */
 export function createTransportPlugin(opts: {
@@ -59,4 +59,4 @@ export function builtinLensPlugins(): SenarsPlugin[] {
   return builtinLensSpecs().map(createLensPlugin);
 }
 
-export { PluginLoader, type TransportRegistry } from './PluginLoader.js';
+export { PluginLoader, type TransportRegistry } from './PluginLoader';

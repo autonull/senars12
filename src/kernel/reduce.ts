@@ -6,7 +6,7 @@
  * create new knowledge, they restructure existing terms.
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm } from './terms/intern.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm } from './terms/intern';
 
 /** Type guard for CompoundTerm. */
 function isCompound(term: Term): term is CompoundTerm {

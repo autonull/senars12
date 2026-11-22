@@ -5,8 +5,8 @@
  */
 
 import { indexBy } from '@senars/util/collections';
-import type { Perception } from '../../game/Game.js';
-import type { ActionProposal, Reflex } from '../../reflex/Reflex.js';
+import type { Perception } from '../../game/Game';
+import type { ActionProposal, Reflex } from '../../reflex/Reflex';
 
 export class PrefetchTable<Row> {
   readonly #rows = new Map<string, Map<string, Row>>();

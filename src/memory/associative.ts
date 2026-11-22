@@ -12,10 +12,10 @@
  */
 
 import { getOrInsert } from '@senars/util/collections';
-import type { ConceptGraph } from './ConceptGraph.js';
-import type { Layer } from './links/Layer.js';
-import type { LinkType } from './links/types.js';
-import type { Term } from '../terms/index.js';
+import type { ConceptGraph } from './ConceptGraph';
+import type { Layer } from './links/Layer';
+import type { LinkType } from './links/types';
+import type { Term } from '../terms/index';
 
 /** Name of the co-activation graph memory. */
 export const GRAPH_MEMORY = 'graph';

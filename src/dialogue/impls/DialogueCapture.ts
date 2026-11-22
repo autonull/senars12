@@ -2,14 +2,14 @@ import type { Episode, EpisodeType, EpisodicMemory } from '@senars/types/episodi
 import { collectUpTo } from '@senars/util/collections';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import type { DialogueConfig } from '@senars/util/config';
-import type { ContrastiveMemory } from '../../lm/system-one/contrastive.js';
-import type { JudgmentDataset } from '../../lm/system-one/distill.js';
-import { embedCached } from '../../lm/system-one/embedding-cache.js';
-import { recordReactionLabel } from '../../lm/system-one/label-sources.js';
-import type { EmbeddingCache } from '../../lm/system-one/types.js';
-import type { DialogueTurn, Lesson, Reaction, ReactionKind } from '../types.js';
-import { inferReactionFromUtterance } from './attribution.js';
-import { type DialogueTextRecord, DialogueTextStore } from './DialogueTextStore.js';
+import type { ContrastiveMemory } from '../../lm/system-one/contrastive';
+import type { JudgmentDataset } from '../../lm/system-one/distill';
+import { embedCached } from '../../lm/system-one/embedding-cache';
+import { recordReactionLabel } from '../../lm/system-one/label-sources';
+import type { EmbeddingCache } from '../../lm/system-one/types';
+import type { DialogueTurn, Lesson, Reaction, ReactionKind } from '../types';
+import { inferReactionFromUtterance } from './attribution';
+import { type DialogueTextRecord, DialogueTextStore } from './DialogueTextStore';
 
 export const sha256 = sha256Prefixed;
 

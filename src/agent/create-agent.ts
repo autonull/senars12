@@ -1,7 +1,7 @@
-import type { ChatOptions, ChatStreamEvent } from './chat.js';
+import type { ChatOptions, ChatStreamEvent } from './chat';
 import type { CortexSynthesizeRequest, PromptBuilder } from '@senars/cortex';
 import type { Derivation } from '@senars/types';
-import { Agent } from './Agent.js';
+import { Agent } from './Agent';
 import { createLogStore, LogStoreEventLog } from '@senars/log';
 import { createCortexFromLM } from '@senars/cortex';
 import type { PersistableSessionManager } from '@senars/memory';
@@ -14,26 +14,26 @@ import { deadline } from '@senars/util/async';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { parseJsonOr } from '@senars/util/fs';
-import { serializeTruth } from '@senars/types/truth.js';
-import { NAREngine } from '../engine/NAREngine.js';
-import type { EpisodicMemory, LMService, NAR } from '../index.js';
-import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';
-import type { ThreadScope } from '../kernel/thread-scope.js';
-import { evaluateQuery } from '../lm/system-one/head-ontology.js';
-import { createSystemOneBudget } from '../lm/system-one/types.js';
-import { TrajectoryStore } from '../rlfp/trajectory-store.js';
+import { serializeTruth } from '@senars/types/truth';
+import { NAREngine } from '../engine/NAREngine';
+import type { EpisodicMemory, LMService, NAR } from '../index';
+import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent';
+import type { ThreadScope } from '../kernel/thread-scope';
+import { evaluateQuery } from '../lm/system-one/head-ontology';
+import { createSystemOneBudget } from '../lm/system-one/types';
+import { TrajectoryStore } from '../rlfp/trajectory-store';
 import { CoreToolRegistryAdapter } from '../tools';
-import { createCompactionPromptBuilder } from './compaction.js';
-import type { CreateAgentConfig } from './config.js';
-import { recallEpisodes } from './recall.js';
+import { createCompactionPromptBuilder } from './compaction';
+import type { CreateAgentConfig } from './config';
+import { recallEpisodes } from './recall';
 import { WSConnection } from '@senars/io/connections/ws';
 import type { ConnectionConfig } from '@senars/util/types/transport';
-import { handleDelegationMessage, createDelegation } from '../cooperation/delegation.js';
+import { handleDelegationMessage, createDelegation } from '../cooperation/delegation';
 import type {
   DelegationPeer,
   CognitiveTaskDelegation,
   CognitiveTaskResult,
-} from '../cooperation/delegation.js';
+} from '../cooperation/delegation';
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/schemas';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
@@ -324,8 +324,8 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
 
   let narInstance = config.nar;
   if (!narInstance) {
-    const { NAR } = await import('../nar.js');
-    const { DEFAULT_CONFIG } = await import('../types/index.js');
+    const { NAR } = await import('../nar');
+    const { DEFAULT_CONFIG } = await import('../types/index');
     narInstance = new NAR({ ...DEFAULT_CONFIG, feedbackObserver, metta, logStore });
   }
 

@@ -13,7 +13,7 @@ import type { CognitiveEventOf } from '@senars/core/schemas';
 import { TASK_PUNCTUATION } from '@senars/core/schemas';
 import { parseTermToEdges, termParser } from '@senars/nar';
 import { asBeliefTruth } from '@senars/util';
-import type { GraphEdge, UnifiedGraphProjection } from './UnifiedGraphProjection.js';
+import type { GraphEdge, UnifiedGraphProjection } from './UnifiedGraphProjection';
 
 type Truth = { frequency: number; confidence: number };
 type NarBelief = { term: { toString(): string }; truth: { f: number; c: number } };

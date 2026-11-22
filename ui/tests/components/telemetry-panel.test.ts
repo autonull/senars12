@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/views/index.js';
-import '../../src/client/components/telemetry-panel.js';
-import { $telemetry } from '../../src/client/core/store.js';
-import type { ViewHost } from '../../src/client/core/view-host.js';
-import type { TelemetryPanel } from '../../src/client/components/telemetry-panel.js';
+import '../../src/client/components/views/index';
+import '../../src/client/components/telemetry-panel';
+import { $telemetry } from '../../src/client/core/store';
+import type { ViewHost } from '../../src/client/core/view-host';
+import type { TelemetryPanel } from '../../src/client/components/telemetry-panel';
 
 const sample = {
   reasoning_hz: [1, 2, 3],

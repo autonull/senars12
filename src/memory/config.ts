@@ -3,10 +3,10 @@
  * capacity and retention knobs without importing the `Memory` facade.
  */
 
-import type { ResolvedBagSlot } from '../bag/registration.js';
-import { LINK } from '../constants.js';
-import type { EmbeddingGenerator } from './embedding.js';
-import type { LinkForgetPolicy } from './links/types.js';
+import type { ResolvedBagSlot } from '../bag/registration';
+import { LINK } from '../constants';
+import type { EmbeddingGenerator } from './embedding';
+import type { LinkForgetPolicy } from './links/types';
 import type { ForgettingPolicy } from './lifecycle';
 
 export interface MemoryConfig {

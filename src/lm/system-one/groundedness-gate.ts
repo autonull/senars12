@@ -1,8 +1,8 @@
 
-import type { ContrastiveMemory } from './contrastive.js';
-import { createDecider, type Decider } from './decide.js';
-import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types.js';
-import { createSystemOneBudget } from './types.js';
+import type { ContrastiveMemory } from './contrastive';
+import { createDecider, type Decider } from './decide';
+import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types';
+import { createSystemOneBudget } from './types';
 import type { EgressVerdict } from '@senars/util';
 
 export interface GroundednessGateOptions {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { neighborhood } from '../../src/client/core/neighborhood.js';
+import { neighborhood } from '../../src/client/core/neighborhood';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, patch: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

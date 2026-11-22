@@ -7,7 +7,7 @@ import {
   linksByCategory,
   linksByLayout,
   linksByLens,
-} from '../../src/client/utils/link-catalog.js';
+} from '../../src/client/utils/link-catalog';
 
 describe('semantic link catalog', () => {
   it('gives every link kind exactly one complete row', () => {

@@ -14,8 +14,8 @@ import { cachePath } from '@senars/config';
 import { LruCache } from '@senars/util/lru-cache';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
-import type { Clock } from './env.js';
-import { createDefaultClock } from './env.js';
+import type { Clock } from './env';
+import { createDefaultClock } from './env';
 
 export interface ReputationEntry {
   confirmed: number;

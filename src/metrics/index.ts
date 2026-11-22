@@ -74,7 +74,7 @@ export class MetricsCollector {
 }
 
 // Prometheus metrics
-export { handleMetricsRequest } from './http.js';
+export { handleMetricsRequest } from './http';
 export {
   createReasoningRoute,
   DEFAULT_ASK_RUNS,
@@ -82,7 +82,7 @@ export {
   REASONING_HTTP_ENV,
   type ReasoningAnswer,
   type ReasoningHttpEngine,
-} from './reasoning-http.js';
+} from './reasoning-http';
 export {
   getMetricsAsJson,
   getMetricsAsText,
@@ -91,4 +91,4 @@ export {
   recordDerivation,
   recordLmProbe,
   recordLmSpend,
-} from './prometheus.js';
+} from './prometheus';

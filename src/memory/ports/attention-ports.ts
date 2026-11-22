@@ -9,7 +9,7 @@
  * (`memory-ports.ts`) without dragging the strategy layer back into itself.
  */
 
-import type { AttentionModel } from '../../strategies/types.js';
+import type { AttentionModel } from '../../strategies/types';
 
 /** The attention slot's owner surface.
  *

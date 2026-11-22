@@ -3,14 +3,14 @@
  */
 
 import { createHash } from 'crypto';
-import type { FacultySpec, FacultyInput, FacultyOutput, FacultyRegistry, FacultyOracleMeta } from './specs.js';
-import { createFacultyRegistry } from './specs.js';
-import type { Clock, IDGenerator } from '../kernel/env.js';
-import { DeterministicClock, DeterministicIDGenerator, DeterministicRNG } from '../kernel/env.js';
-import type { Oracle, OracleInput, OracleOutput, OracleRegistry } from '../oracles/oracle.js';
-import { createOracleRegistry, createStandardOracleRegistry } from '../oracles/oracle.js';
-import { OraclePinStore } from '../oracles/pins.js';
-import type { ILMService } from '../lm/interfaces.js';
+import type { FacultySpec, FacultyInput, FacultyOutput, FacultyRegistry, FacultyOracleMeta } from './specs';
+import { createFacultyRegistry } from './specs';
+import type { Clock, IDGenerator } from '../kernel/env';
+import { DeterministicClock, DeterministicIDGenerator, DeterministicRNG } from '../kernel/env';
+import type { Oracle, OracleInput, OracleOutput, OracleRegistry } from '../oracles/oracle';
+import { createOracleRegistry, createStandardOracleRegistry } from '../oracles/oracle';
+import { OraclePinStore } from '../oracles/pins';
+import type { ILMService } from '../lm/interfaces';
 
 /** Faculty engine configuration. */
 export interface FacultyEngineConfig {

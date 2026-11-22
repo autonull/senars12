@@ -3,7 +3,7 @@
  * transport and the io connection layers.
  */
 
-import { sleep } from './async.js';
+import { sleep } from './async';
 
 /** Exponential backoff delay for a 0-based attempt number, capped at `maxMs`. */
 const backoffDelay = (attempt: number, baseMs: number, maxMs: number): number =>

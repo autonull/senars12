@@ -12,8 +12,8 @@ import type {
   MCPResource,
   MCPPrompt,
   MCPTask,
-} from './types.js';
-import type { HabitatConfig, HabitatPack } from '../../worlds/index.js';
+} from './types';
+import type { HabitatConfig, HabitatPack } from '../../worlds/index';
 
 /** Create MCP server. */
 export function createMCPServer(config: MCPServerConfig): MCPServer {

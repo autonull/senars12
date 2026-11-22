@@ -18,7 +18,7 @@ export {
   SELECTION_STRATEGIES,
   type SelectionStrategy,
   defaultSelectorConfig,
-} from './select.js';
+} from './select';
 
 export {
   type Action,
@@ -30,7 +30,7 @@ export {
   defaultRetryPolicy,
   ACTION_TYPES,
   ACTION_STATUS,
-} from './act.js';
+} from './act';
 
 export {
   createLoopRecorder,
@@ -51,9 +51,9 @@ export {
   defaultRecordStoreConfig,
   LoopRecordStore,
   createLoopRecordStore,
-} from './record.js';
+} from './record';
 
-export * from './contract.js';
+export * from './contract';
 export {
   CandidateSchema,
   JudgmentSchema,
@@ -75,7 +75,7 @@ export {
   getContractSchema,
   validateContract,
   safeValidateContract,
-} from './contracts/index.js';
+} from './contracts/index';
 export type {
   ContractType,
   AnyContract,
@@ -89,13 +89,13 @@ export type {
   Outcome,
   Lesson,
   WorkItem,
-} from './contracts/index.js';
-export * from './repair.js';
-export * from './appraise.js';
-export * from './self-model.js';
+} from './contracts/index';
+export * from './repair';
+export * from './appraise';
+export * from './self-model';
 
 // Re-export loop types with explicit naming to avoid conflict with contract.js IterationResult
-export { CognitiveLoop, createCognitiveLoop } from './loop.js';
+export { CognitiveLoop, createCognitiveLoop } from './loop';
 export type {
   LoopConfig,
   IterationResult as LoopIterationResult,
@@ -106,29 +106,29 @@ export type {
   LoopEventType,
   LoopEvent,
   FacultyInvoker,
-} from './types.js';
+} from './types';
 
-export { LOOP_EVENTS } from './types.js';
+export { LOOP_EVENTS } from './types';
 
 export {
   createLoopContext,
   initializeFacultyInvokers,
-} from './context.js';
+} from './context';
 
 export {
   createLoopEventEmitter,
-} from './events.js';
+} from './events';
 
 export {
   runIteration,
-} from './iteration.js';
+} from './iteration';
 
 export {
   createSelfModelManager,
-} from './self-model.js';
+} from './self-model';
 
 export {
   LoopLogAdapter,
   createLoopLogAdapter,
   wireLoopToLog,
-} from './log-adapter.js';
+} from './log-adapter';

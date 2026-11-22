@@ -5,14 +5,14 @@
  * bodies in `handlers.ts`. Kept out of `client/core/protocol-defs.ts` so the
  * browser never imports a server handler (and, transitively, `@senars/nar`).
  */
-import { PROTOCOL_SPECS } from '../client/core/protocol-defs.js';
+import { PROTOCOL_SPECS } from '../client/core/protocol-defs';
 import {
   defineProtocolCatalog,
   createProtocolEntry,
   type ProtocolCatalog,
   type ServerHandlerContext,
-} from '../client/framework/protocol.js';
-import * as handlers from './handlers.js';
+} from '../client/framework/protocol';
+import * as handlers from './handlers';
 
 type ServerHandler = (ctx: ServerHandlerContext, msg: unknown) => void | Promise<void>;
 

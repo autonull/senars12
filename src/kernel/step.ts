@@ -5,13 +5,13 @@
  * with truth computation, stamp derivation, and metadata.
  */
 
-import { Term } from './terms/intern.js';
-import { Stamp } from './stamp.js';
-import type { TruthValue } from './types.js';
-import type { TruthOp } from './truth.js';
-import { Truth } from './truth.js';
-import type { Clock } from './env.js';
-import { createDefaultClock } from './env.js';
+import { Term } from './terms/intern';
+import { Stamp } from './stamp';
+import type { TruthValue } from './types';
+import type { TruthOp } from './truth';
+import { Truth } from './truth';
+import type { Clock } from './env';
+import { createDefaultClock } from './env';
 
 /** Inference rule identifier. */
 export type RuleId = string;

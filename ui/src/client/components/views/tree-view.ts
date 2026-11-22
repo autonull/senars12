@@ -1,8 +1,8 @@
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { registerViewAdapter } from '../../core/view-adapter.js';
-import type { TreeDataset, TreeNode } from '../../core/view-spec.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { registerViewAdapter } from '../../core/view-adapter';
+import type { TreeDataset, TreeNode } from '../../core/view-spec';
 
 /** Renders a `TreeDataset` as nested lists — the provenance shape (§6.2). */
 @customElement('s-tree')

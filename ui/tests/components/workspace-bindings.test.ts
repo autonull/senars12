@@ -5,10 +5,10 @@ import {
   $graphEdges,
   $graphNodes,
   $workspaceGraph,
-} from '../../src/client/core/store.js';
-import { mountWorkspaceProjection } from '../../src/client/core/workspace-bindings.js';
-import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph.js';
-import { claimId, turnId } from '../../src/client/core/workspace-projection.js';
+} from '../../src/client/core/store';
+import { mountWorkspaceProjection } from '../../src/client/core/workspace-bindings';
+import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph';
+import { claimId, turnId } from '../../src/client/core/workspace-projection';
 
 const message = (
   over: Partial<ChatMessage> & Pick<ChatMessage, 'id' | 'role'>

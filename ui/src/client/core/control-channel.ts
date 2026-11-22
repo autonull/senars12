@@ -9,7 +9,7 @@
  * one. A request that is never answered settles `ok:false` on timeout — a control
  * that hangs would be a dead end.
  */
-import type { ControlResult } from './reasoning-backend.js';
+import type { ControlResult } from './reasoning-backend';
 
 const CONTROL_TIMEOUT_MS = 15_000;
 

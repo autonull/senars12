@@ -8,50 +8,50 @@
 
 import type {
   AutonomyMode,
-} from '@senars/schemas/governance.js';
+} from '@senars/schemas/governance';
 import type {
   CognitiveEvent,
   TaskAdmittedEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import {
   CognitiveEventSchema,
   validateCognitiveEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import {
   DerivationRecordSchema,
   validateDerivationRecord,
   type DerivationRecord,
-} from '@senars/schemas/derivation-records.js';
-import type { IdSource } from '@senars/util/id.js';
-import type { RandomSource } from '@senars/util/random.js';
-import type { Clock as UtilClock } from '@senars/util/clock.js';
-import type { Clock } from './env.js';
-import { createDefaultClock } from './env.js';
+} from '@senars/schemas/derivation-records';
+import type { IdSource } from '@senars/util/id';
+import type { RandomSource } from '@senars/util/random';
+import type { Clock as UtilClock } from '@senars/util/clock';
+import type { Clock } from './env';
+import { createDefaultClock } from './env';
 import { appendJsonl, readJsonlWith, writeJsonFileSync } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
 import { installIdSource } from '@senars/util/id';
 import { keyedBy } from '@senars/util/collections';
 import { sha256Hex } from '@senars/util/hash';
 import { stableStringify } from '@senars/util/json';
-import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
-import type { CognitiveParameters } from '../config/cognitive-parameters.js';
-import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
-import { Memory } from '../memory/memory.js';
-import type { MemoryPorts } from '../memory/ports/index.js';
-import { serialize as serializeMemory } from '../memory/state/serialization.js';
-import type { ProposalReplayState } from '../proposal/replay.js';
-import { isProposalStream, replayProposalStream } from '../proposal/replay.js';
-import type { AttentionModel } from '../strategies/types.js';
-import { rehydrateTask, type TaskRecord } from '../task/record.js';
-import type { Term } from '../terms/index.js';
-import { Stamp, Truth, termParser, termsEqual } from '../terms/index.js';
-import type { Budget, Timestamp } from '../types/index.js';
-import { NEUTRAL_BUDGET } from '../types/index.js';
+import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry';
+import type { CognitiveParameters } from '../config/cognitive-parameters';
+import type { Concept, ConceptTaskType, TaskData } from '../memory/concept';
+import { Memory } from '../memory/memory';
+import type { MemoryPorts } from '../memory/ports/index';
+import { serialize as serializeMemory } from '../memory/state/serialization';
+import type { ProposalReplayState } from '../proposal/replay';
+import { isProposalStream, replayProposalStream } from '../proposal/replay';
+import type { AttentionModel } from '../strategies/types';
+import { rehydrateTask, type TaskRecord } from '../task/record';
+import type { Term } from '../terms/index';
+import { Stamp, Truth, termParser, termsEqual } from '../terms/index';
+import type { Budget, Timestamp } from '../types/index';
+import { NEUTRAL_BUDGET } from '../types/index';
 import {
   replayTaskAdmissions,
   type CognitiveStateSnapshot,
   replayCognitiveState,
-} from '../log/replay-reducers.js';
+} from '../log/replay-reducers';
 
 function makeDerivedStamp(id: string): Stamp {
   return {
@@ -393,4 +393,4 @@ export function loadGateEvents(path: string): { events: CognitiveEvent[]; invali
   return { events: rows, invalid };
 }
 
-export { replayTaskAdmissions, replayCognitiveState, type CognitiveStateSnapshot } from '../log/replay-reducers.js';
+export { replayTaskAdmissions, replayCognitiveState, type CognitiveStateSnapshot } from '../log/replay-reducers';

@@ -1,5 +1,5 @@
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
-import { getTracer } from '../otel/index.js';
+import { getTracer } from '../otel/index';
 
 /**
  * G5 — arcade OTel spans. Each game tick emits an `arcade.tick` span with

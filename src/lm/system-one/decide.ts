@@ -8,9 +8,9 @@ import { bandOrdinal } from '@senars/util/cognitive-schemas';
 import { chunk, mapToRecord, rankBy } from '@senars/util/collections';
 import { renormalize, retain } from '@senars/util/numeric';
 import { sha256Hex } from '@senars/util/hash';
-import type { AbstainReason, CognitiveAxis } from '../../decision/types.js';
-import { isSafetyFloor } from './algebra.js';
-import { type ContrastiveMemory, candidateProximity, rubricOf } from './contrastive.js';
+import type { AbstainReason, CognitiveAxis } from '../../decision/types';
+import { isSafetyFloor } from './algebra';
+import { type ContrastiveMemory, candidateProximity, rubricOf } from './contrastive';
 import {
   type BandDecision,
   type CompositeScore,
@@ -18,7 +18,7 @@ import {
   ConfidenceRouter,
   compositeScore,
   DEFAULT_CONFIDENCE_BANDS,
-} from './policy.js';
+} from './policy';
 import type {
   EmbeddingCache,
   EmbeddingPointer,
@@ -27,7 +27,7 @@ import type {
   ReasoningBudget,
   RubricId,
   ScoreDistribution,
-} from './types.js';
+} from './types';
 
 export interface JudgmentProvenance {
   modelDigest?: string;

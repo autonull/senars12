@@ -1,6 +1,6 @@
 // Global test utilities setup
 
-import { termInterner } from '../../src/kernel/terms/intern.js';
+import { termInterner } from '../../src/kernel/terms/intern';
 
 // Reset term interner before each test to ensure deterministic term IDs
 beforeEach(() => {

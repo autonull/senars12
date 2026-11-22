@@ -1,10 +1,10 @@
 /**
  * Goal-oriented LM rule definitions.
  */
-import type { LMRuleDefinition } from './definition.js';
-import { isComplexGoal } from '../rule-selectors/conditions.js';
-import { conjunctionDecomposition } from './fallbacks.js';
-import { GoalDecompositionSchema } from './schemas.js';
+import type { LMRuleDefinition } from './definition';
+import { isComplexGoal } from '../rule-selectors/conditions';
+import { conjunctionDecomposition } from './fallbacks';
+import { GoalDecompositionSchema } from './schemas';
 
 export const goalRules: LMRuleDefinition[] = [
   {

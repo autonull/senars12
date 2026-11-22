@@ -12,10 +12,10 @@
  * cannot drift into two budgets — §7 invariant 12.
  */
 
-import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '../budget/index.js';
-import type { ReasoningBudget, ConsumedBudget } from '../schemas/index.js';
-import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './budget-scopes.js';
-import type { KernelBudgetGate } from './KernelBudgetGate.js';
+import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '../budget/index';
+import type { ReasoningBudget, ConsumedBudget } from '../schemas/index';
+import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './budget-scopes';
+import type { KernelBudgetGate } from './KernelBudgetGate';
 
 export interface ControlBudgetPort {
   /**

@@ -9,4 +9,4 @@ export {
   RESOURCE_IDS,
   type ResourceContract,
   type Retention,
-} from './contracts.js';
+} from './contracts';

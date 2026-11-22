@@ -1,8 +1,8 @@
-export { DiverseSampling } from './DiverseSampling.js';
-export { GoalBiasedSampling, goalBiasScore } from './GoalBiasedSampling.js';
-export { NoveltySampling } from './NoveltySampling.js';
-export { PrioritySampling } from './PrioritySampling.js';
-export { WindowedRouletteStrategy, createWindowedRouletteStrategy } from './WindowedRoulette.js';
+export { DiverseSampling } from './DiverseSampling';
+export { GoalBiasedSampling, goalBiasScore } from './GoalBiasedSampling';
+export { NoveltySampling } from './NoveltySampling';
+export { PrioritySampling } from './PrioritySampling';
+export { WindowedRouletteStrategy, createWindowedRouletteStrategy } from './WindowedRoulette';
 export {
   defineScoredSampling,
   rankedSample,
@@ -10,4 +10,4 @@ export {
   type ConceptScore,
   type ConceptSource,
   type ScoredSamplingOptions,
-} from './scored.js';
+} from './scored';

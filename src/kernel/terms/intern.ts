@@ -6,9 +6,9 @@
  * TermFactory which interns all created terms.
  */
 
-import { TermFactory, Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
-import { TermOp } from './term-ops.js';
-import type { Frequency, Confidence, TruthLike } from '../types.js';
+import { TermFactory, Term, VariableTerm, ConstantTerm, CompoundTerm } from './term';
+import { TermOp } from './term-ops';
+import type { Frequency, Confidence, TruthLike } from '../types';
 
 /** Interning statistics. */
 export interface InternStats {
@@ -397,6 +397,6 @@ export function isUnifiable(a: Term, b: Term): boolean {
 }
 
 // Re-export shared types
-export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
-export { TermOp, TermFactory } from './term.js';
-export { isCompound, isAtomic } from './term.js';
+export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term';
+export { TermOp, TermFactory } from './term';
+export { isCompound, isAtomic } from './term';

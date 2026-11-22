@@ -1,6 +1,6 @@
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
-import type { AttentionContext, AttentionModel } from '../types.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
+import type { AttentionContext, AttentionModel } from '../types';
 
 /**
  * The absence of attention, not a registered strategy.

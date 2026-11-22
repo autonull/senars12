@@ -1,10 +1,10 @@
 // Task types and creators
-export type { Budget, Task, TaskType } from '../types/core.js';
-export { createTaskWeight, createTask } from '../types/core.js';
-export type { InputProcessorConfig } from './input.js';
+export type { Budget, Task, TaskType } from '../types/core';
+export { createTaskWeight, createTask } from '../types/core';
+export type { InputProcessorConfig } from './input';
 
 // Task input handling
-export { InputProcessor, inputProcessor } from './input.js';
+export { InputProcessor, inputProcessor } from './input';
 // Task persistence boundary
 export {
   PUNCTUATION_BY_TASK_TYPE,
@@ -12,8 +12,8 @@ export {
   serializeTaskRecord,
   type TaskRecord,
   taskTypeFromPunctuation,
-} from './record.js';
+} from './record';
 // Task management
-export { TaskManager } from './manager.js';
+export { TaskManager } from './manager';
 // Task classification
-export { classifyTask, classifyTaskSignals, type TaskSignal } from './classify.js';
+export { classifyTask, classifyTaskSignals, type TaskSignal } from './classify';

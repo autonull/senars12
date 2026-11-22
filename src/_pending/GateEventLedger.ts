@@ -5,10 +5,10 @@
  * to the unified LogStore instead of separate JSONL files.
  */
 
-import type { LogStore } from '../../../../src/log/store.js';
-import type { CognitiveEvent } from '../../../../src/log/events.js';
-import type { GateRegistry } from '../../../../nar/src/kernel/GateRegistry.js';
-import { GATE_LOG_KEYS } from '../../../../nar/src/kernel/event-ring.js';
+import type { LogStore } from '../../../../src/log/store';
+import type { CognitiveEvent } from '../../../../src/log/events';
+import type { GateRegistry } from '../../../../nar/src/kernel/GateRegistry';
+import { GATE_LOG_KEYS } from '../../../../nar/src/kernel/event-ring';
 import { createLogger } from '@senars/utils';
 
 export interface GateEventLedgerOptions {

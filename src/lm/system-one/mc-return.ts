@@ -1,4 +1,4 @@
-import { computeEvidenceId, type JudgmentDataset } from './distill.js';
+import { computeEvidenceId, type JudgmentDataset } from './distill';
 
 /**
  * L2 (V3): MC-return labels as a LabelSource — not a train.ts special case.

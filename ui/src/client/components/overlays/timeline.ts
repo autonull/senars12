@@ -7,13 +7,13 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { Capability } from '../../core/capabilities.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import '../timeline-scrubber.js';
-import '../overlays/overlay-header.js';
+import { customElement } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { Capability } from '../../core/capabilities';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import '../timeline-scrubber';
+import '../overlays/overlay-header';
 
 @customElement('s-timeline')
 export class TimelineView extends SurfaceComponent {

@@ -4,7 +4,7 @@
  * No sessions; handles are log references. TTL/cacheScope lists; deterministic order.
  */
 
-import type { MCPTask, MCPServer } from './types.js';
+import type { MCPTask, MCPServer } from './types';
 
 /** Task manager for MCP server. */
 export class MCPTaskManager {

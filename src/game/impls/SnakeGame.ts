@@ -1,4 +1,4 @@
-import type { Game, GameOutcome, Perception } from '../Game.js';
+import type { Game, GameOutcome, Perception } from '../Game';
 import { SeededRNG, shuffleInPlace } from '@senars/util/random';
 
 export type Cell = { r: number; c: number };

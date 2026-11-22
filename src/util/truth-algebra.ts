@@ -1,4 +1,4 @@
-import { clamp, clamp01, softSquash } from './numeric.js';
+import { clamp, clamp01, softSquash } from './numeric';
 
 /**
  * Weight a confidence of exactly 1 would carry, which is unbounded. Revision

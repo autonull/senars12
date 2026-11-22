@@ -11,10 +11,10 @@ import type { DerivationRecord, DerivationStep } from '@senars/schemas';
 import { BoundedMap } from '@senars/util/bounded-map';
 import { BoundedRing, getOrInsert, incrementCount, pushCapped, rankBy } from '@senars/util/collections';
 import { mean } from '@senars/util/numeric';
-import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
-import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
-import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
-import type { Term } from '../terms/index.js';
+import { agreeByExactAlgebra } from '../reflex/algebra-vote';
+import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator';
+import type { ActionProposal, LearningEvent } from '../reflex/Reflex';
+import type { Term } from '../terms/index';
 import {
   applySubstitution,
   serializeTerm,
@@ -22,7 +22,7 @@ import {
   termKey,
   termParser,
   walkTerms,
-} from '../terms/index.js';
+} from '../terms/index';
 
 /** Every atomic symbol in a term, counted — the canonical walk, not a second one. */
 const collectAtoms = (term: Term, counts: Map<string, number>): void => {

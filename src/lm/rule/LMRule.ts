@@ -7,16 +7,16 @@ import { SenarsError } from '@senars/errors';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
-import type { Truth as TruthType } from '../../terms/impls/Truth.js';
+import type { Truth as TruthType } from '../../terms/impls/Truth';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
-import { CircuitBreaker } from '@senars/util/circuit-breaker.js';
-import { parseJsonObject } from '../json.js';
-import type { LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
-import { lmTaskWeight } from '../task-weights.js';
-import { LMResponseParser } from './response-parser.js';
-import { interpolateTemplate, type LMContext, type ValidationResult } from './types.js';
-import type { LMRuleConfigV2 } from './types-v2.js';
+import { CircuitBreaker } from '@senars/util/circuit-breaker';
+import { parseJsonObject } from '../json';
+import type { LMRuleConfig, LMService, ModelRuleStats } from '../lm-service';
+import { lmTaskWeight } from '../task-weights';
+import { LMResponseParser } from './response-parser';
+import { interpolateTemplate, type LMContext, type ValidationResult } from './types';
+import type { LMRuleConfigV2 } from './types-v2';
 
 /**
  * Conformance with the core's contract is structural and is checked where it is
@@ -53,10 +53,10 @@ export class LmCallTimeout extends SenarsError {
 /** The default bound on one rule's provider call — the config's `lm.callTimeoutMs`. */
 export const DEFAULT_CALL_TIMEOUT_MS = 8000;
 
-export type { ParsedLMResponse, StructuredLMOutput } from './response-parser.js';
-export { LMResponseParser } from './response-parser.js';
-export type { LMContext, ValidationResult } from './types.js';
-export type { LMRuleConfigV2 } from './types-v2.js';
+export type { ParsedLMResponse, StructuredLMOutput } from './response-parser';
+export { LMResponseParser } from './response-parser';
+export type { LMContext, ValidationResult } from './types';
+export type { LMRuleConfigV2 } from './types-v2';
 
 export class LMRule {
   readonly id: string;

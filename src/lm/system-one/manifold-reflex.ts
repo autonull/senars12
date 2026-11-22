@@ -1,11 +1,11 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import type { Perception } from '../../game/Game.js';
-import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import type { JudgmentDataset } from './distill.js';
-import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
-import { recordReflexOutcome } from './reflex-label-source.js';
-import { DecisionReadout } from './reflex-readout.js';
-import type { EmbeddingPointer, JudgmentManifold } from './types.js';
+import type { Perception } from '../../game/Game';
+import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex';
+import type { JudgmentDataset } from './distill';
+import { PrefetchTable, proposeFromTable } from './prefetch-table';
+import { recordReflexOutcome } from './reflex-label-source';
+import { DecisionReadout } from './reflex-readout';
+import type { EmbeddingPointer, JudgmentManifold } from './types';
 
 /** Optional distillation wiring (C4): record reflex decisions as training labels. */
 export interface ManifoldReflexOptions {

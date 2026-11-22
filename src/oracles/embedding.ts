@@ -4,13 +4,13 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import type { EmbeddingGenerator, EmbeddingRuntimeSource } from '../memory/embedding.js';
-import type { EmbeddingCache } from '../lm/system-one/types.js';
-import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
-import { mineHardNegatives, type MinedNegative, type MiningBagOptions } from '../lm/system-one/hard-negatives.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import type { EmbeddingGenerator, EmbeddingRuntimeSource } from '../memory/embedding';
+import type { EmbeddingCache } from '../lm/system-one/types';
+import type { ContrastiveMemory } from '../lm/system-one/contrastive';
+import { mineHardNegatives, type MinedNegative, type MiningBagOptions } from '../lm/system-one/hard-negatives';
 
 /** Input for embedding generation. */
 export interface EmbeddingGenerateInput extends OracleInput {
@@ -100,7 +100,7 @@ export class EmbeddingOracle implements Oracle<
   ): Promise<OracleOutput<Float32Array | { reranked: Array<{ candidate: string; score: number; reason: string }> } | number | MinedNegative[]>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -212,7 +212,7 @@ export class EmbeddingOracle implements Oracle<
         const args = input.args as [
           { term: string; truth: { f: number } }[],
           string[] | undefined,
-          import('../lm/system-one/hard-negatives.js').MineHardNegativesOptions | undefined
+          import('../lm/system-one/hard-negatives').MineHardNegativesOptions | undefined
         ];
         const [beliefs, episodicErrors, options] = args;
         const beliefSource = {
@@ -353,7 +353,7 @@ export function registerEmbeddingOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

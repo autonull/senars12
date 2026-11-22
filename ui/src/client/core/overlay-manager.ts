@@ -14,8 +14,8 @@
  * sessionStorage persistence.
  */
 
-import { Announcer } from './announcer.js';
-import { FocusTrap } from './focus-trap.js';
+import { Announcer } from './announcer';
+import { FocusTrap } from './focus-trap';
 
 export interface OverlayBounds {
   x: number;

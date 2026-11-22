@@ -1,6 +1,6 @@
 import { selectTopN } from '@senars/util/collections';
-import type { ModelRule } from '../../rules/types.js';
-import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
+import type { ModelRule } from '../../rules/types';
+import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types';
 
 export class PrioritySelector implements ModelRuleSelector {
   readonly metadata = { name: 'priority', description: 'Top-N by rule priority' };

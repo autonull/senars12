@@ -1,5 +1,5 @@
 import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/autonomy';
-import { LM_PROVIDER_NAMES } from '../lm/env-config.js';
+import { LM_PROVIDER_NAMES } from '../lm/env-config';
 import { LM_TASKS } from '@senars/types/llm';
 import {
   dialogueDefaults,
@@ -15,7 +15,7 @@ import {
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
-} from './index.js';
+} from './index';
 import { z } from 'zod';
 
 // System One schema/defaults live in @senars/util/config (single definition —

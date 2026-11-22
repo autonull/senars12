@@ -5,7 +5,7 @@
  * with support for classical and non-classical logics.
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm } from '../../kernel/terms/intern.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm } from '../../kernel/terms/intern';
 
 /** Logical connectives. */
 export enum Connective {

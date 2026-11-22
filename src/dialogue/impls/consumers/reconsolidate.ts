@@ -7,11 +7,11 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive.
  */
 
-import type { BeliefTruth } from '@senars/types/truth.js';
+import type { BeliefTruth } from '@senars/types/truth';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
-import type { Retrospective } from '../../types.js';
-import { extractLessons } from '../retrospect.js';
+import type { Retrospective } from '../../types';
+import { extractLessons } from '../retrospect';
 
 export interface RetrospectiveSource {
   load(n: number): Promise<Retrospective[]>;

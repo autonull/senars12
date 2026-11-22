@@ -7,7 +7,7 @@ import {
   type SemanticBlock,
   type SemanticLink,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

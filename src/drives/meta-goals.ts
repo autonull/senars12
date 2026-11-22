@@ -15,7 +15,7 @@
 import { indexBy } from '@senars/util/collections';
 import { type Term } from '../terms';
 import { termParser } from '../terms/impls/parser-peggy';
-import type { DriveState } from './types.js';
+import type { DriveState } from './types';
 
 /** Drive → self-operation goal for homeostatic injection. */
 const DRIVE_META_GOALS: Record<string, { threshold: number; narsese: string }> = {

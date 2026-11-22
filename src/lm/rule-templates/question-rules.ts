@@ -1,10 +1,10 @@
 /**
  * Question-oriented LM rule definitions (curiosity-driven).
  */
-import type { LMRuleDefinition } from './definition.js';
-import { hasHighCuriosity } from '../rule-selectors/confidence.js';
-import { clarificationFallback, curiosityQuestionFallback } from './fallbacks.js';
-import { QuestionGenerationSchema } from './schemas.js';
+import type { LMRuleDefinition } from './definition';
+import { hasHighCuriosity } from '../rule-selectors/confidence';
+import { clarificationFallback, curiosityQuestionFallback } from './fallbacks';
+import { QuestionGenerationSchema } from './schemas';
 
 export const questionRules: LMRuleDefinition[] = [
   {

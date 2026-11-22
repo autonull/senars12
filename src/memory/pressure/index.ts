@@ -4,4 +4,4 @@ export {
   evictUnderPressure,
   type EvictionReason,
   type EvictionReport,
-} from './consolidation.js';
+} from './consolidation';

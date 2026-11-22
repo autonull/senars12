@@ -8,15 +8,15 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { generateSurfaces } from '../src/client/core/surface-codegen.js';
+import { generateSurfaces } from '../src/client/core/surface-codegen';
 
 // Import surfaces to trigger registration
-import '../src/client/components/overlays/index.js';
-import '../src/client/components/renderers/graph.js';
-import '../src/client/components/renderers/notebook.js';
-import '../src/client/components/renderers/graph3d.js';
-import '../src/client/components/views/index.js';
-import '../src/client/core/view-host.js';
+import '../src/client/components/overlays/index';
+import '../src/client/components/renderers/graph';
+import '../src/client/components/renderers/notebook';
+import '../src/client/components/renderers/graph3d';
+import '../src/client/components/views/index';
+import '../src/client/core/view-host';
 
 const __dirname = join(fileURLToPath(import.meta.url), '..');
 const DOCS_DIR = join(__dirname, '../../docs/readme');

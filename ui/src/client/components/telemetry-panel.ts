@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
+import { customElement, state } from 'lit/decorators';
+import { classMap } from 'lit/directives/class-map';
 import {
   $cognitiveMetrics,
   $telemetry,
@@ -10,9 +10,9 @@ import {
   type SeriesDatum,
   type ViewSpec,
   type ViewSource,
-} from '../core/index.js';
-import { type FieldId, type FieldEntry, fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from '../utils/field-catalog.js';
-import { theme } from '../utils/theme.js';
+} from '../core/index';
+import { type FieldId, type FieldEntry, fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from '../utils/field-catalog';
+import { theme } from '../utils/theme';
 import {
   TELEMETRY_METRIC_KEYS,
   TELEMETRY_RANGE_POINTS,
@@ -20,7 +20,7 @@ import {
   DEFAULT_TELEMETRY_METRICS,
   telemetrySeries,
   type TelemetryRange,
-} from '../utils/telemetry-view.js';
+} from '../utils/telemetry-view';
 
 @customElement('telemetry-panel')
 export class TelemetryPanel extends BaseComponent {

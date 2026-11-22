@@ -8,4 +8,4 @@
  * for back-compat and delegates to the catalog.
  */
 
-export { GRAPH_LAYERS, type GraphLayer, layerVisible, graphLayerDef } from './graph-layer-defs.js';
+export { GRAPH_LAYERS, type GraphLayer, layerVisible, graphLayerDef } from './graph-layer-defs';

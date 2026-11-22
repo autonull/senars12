@@ -16,9 +16,9 @@ import type {
   ReasoningControl,
   SubmitInput,
   ControlResult,
-} from './reasoning-backend.js';
-import { $graphNodes, $graphEdges } from './store.js';
-import type { Ref, SemanticLinkKind } from './workspace-graph.js';
+} from './reasoning-backend';
+import { $graphNodes, $graphEdges } from './store';
+import type { Ref, SemanticLinkKind } from './workspace-graph';
 
 /** The uncertainty vocabulary MeTTa uses (probabilistic/confidence-based). */
 export const METTA_VOCABULARY = 'metta';

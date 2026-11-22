@@ -1,8 +1,8 @@
 import type { CeilingReputation, SourceQuality } from '@senars/schemas';
 import { confidenceCeiling } from '@senars/schemas/truth';
-import { Truth } from '../../terms/impls/Truth.js';
-import type { Desire } from './desire.js';
-import type { JudgmentProposition } from './types.js';
+import { Truth } from '../../terms/impls/Truth';
+import type { Desire } from './desire';
+import type { JudgmentProposition } from './types';
 
 /** Rolling-ECE → calibration authority. Better calibration ⇒ more authority, never above ceiling. */
 export function calibrateAuthority(rollingEce: number): number {

@@ -8,13 +8,13 @@ import {
   type TaskType,
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
-} from '@senars/schemas/task.js';
+} from '@senars/schemas/task';
 import { type BeliefTruth, stripTruthSuffix } from '@senars/types/truth';
 import { errMsg } from '@senars/util/error';
 import { SenarsError } from '@senars/errors';
-import type { Term } from '../types.js';
-import { TermFactory } from './factory.js';
-import { Truth } from './Truth.js';
+import type { Term } from '../types';
+import { TermFactory } from './factory';
+import { Truth } from './Truth';
 
 const require = createRequire(import.meta.url);
 const peggyModule: {

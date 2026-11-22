@@ -7,7 +7,7 @@
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { parseJsonOr } from '@senars/util/fs';
-import type { JudgmentQuery } from '../lm/system-one/types.js';
+import type { JudgmentQuery } from '../lm/system-one/types';
 
 export interface CognitiveTaskDelegation {
   taskId: string;
@@ -81,7 +81,7 @@ import type {
   JudgmentManifold,
   JudgmentProposition,
   ReasoningBudget,
-} from '../lm/system-one/types.js';
+} from '../lm/system-one/types';
 
 export interface JudgmentDelegationResult {
   taskId: string;

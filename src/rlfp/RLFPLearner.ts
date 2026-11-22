@@ -6,15 +6,15 @@ import { entryKey, keyedBy } from '@senars/util/collections';
 import { errMsg } from '@senars/util/error';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
-import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
-import type { ParameterLedger } from '../config/parameter-ledger.js';
+import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters';
+import type { ParameterLedger } from '../config/parameter-ledger';
 import { OperationError } from '../types';
-import type { RandomSource } from '../types/primitives.js';
-import { createKnobSet, type TunableKnob } from './knobs.js';
-import { PolicyOptimizer } from './PolicyOptimizer.js';
-import { PreferenceCollector, type PreferenceData } from './PreferenceCollector.js';
-import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import { RewardModel } from './RewardModel.js';
+import type { RandomSource } from '../types/primitives';
+import { createKnobSet, type TunableKnob } from './knobs';
+import { PolicyOptimizer } from './PolicyOptimizer';
+import { PreferenceCollector, type PreferenceData } from './PreferenceCollector';
+import type { TrajectoryStep } from './ReasoningTrajectoryLogger';
+import { RewardModel } from './RewardModel';
 
 /** Task outcome for unified reward calculation */
 export interface TaskOutcome {

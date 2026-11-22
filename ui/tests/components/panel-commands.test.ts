@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/settings.js';
-import '../../src/client/components/overlays/telemetry.js';
-import { activeCommands, dispatchCommand } from '../../src/client/core/commands.js';
-import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
-import { $panels } from '../../src/client/core/store.js';
+import '../../src/client/components/overlays/settings';
+import '../../src/client/components/overlays/telemetry';
+import { activeCommands, dispatchCommand } from '../../src/client/core/commands';
+import { overlayDescriptor } from '../../src/client/core/overlay-registry';
+import { $panels } from '../../src/client/core/store';
 
 const initialChatOpen = $panels.get().get('chat')?.open;
 const isOpen = (id: string) => $panels.get().get(id)?.open;

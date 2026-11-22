@@ -5,9 +5,9 @@
  * All codecs implement encode/decode with round-trip property tests.
  */
 
-import { Term, TermOp, termInterner, CompoundTerm, ConstantTerm, VariableTerm } from '../../kernel/terms/intern.js';
-import { Stamp } from '../../kernel/stamp.js';
-import type { TruthValue } from '../../kernel/types.js';
+import { Term, TermOp, termInterner, CompoundTerm, ConstantTerm, VariableTerm } from '../../kernel/terms/intern';
+import { Stamp } from '../../kernel/stamp';
+import type { TruthValue } from '../../kernel/types';
 
 /** Belief with truth and stamp. */
 export interface Belief {

@@ -9,9 +9,9 @@
  * carrying the edge for a bench script alone.
  */
 
-import type { Term } from '../terms/index.js';
-import { fromNarsese } from '../terms/index.js';
-import { loadGrammar } from './grammars/index.js';
+import type { Term } from '../terms/index';
+import { fromNarsese } from '../terms/index';
+import { loadGrammar } from './grammars/index';
 
 /** The narrowest seam: a call that may return nothing. */
 type TextProposer = { tryGenerateText(prompt: string, opts?: unknown): Promise<string | null> };

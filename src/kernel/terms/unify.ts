@@ -7,7 +7,7 @@
  * - Most general unifier (MGU)
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, getVariables, substitute, standardizeApart } from './intern.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, getVariables, substitute, standardizeApart } from './intern';
 
 /** Substitution mapping variables to terms. */
 export type Substitution = Map<VariableTerm, Term>;

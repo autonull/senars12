@@ -1,7 +1,7 @@
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
-import { resolveAliases } from './vite.aliases.js';
+import { resolveAliases } from './vite.aliases';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const nodeBuiltinShim = resolve(__dirname, 'src/client/shims/node-builtins.ts');
@@ -57,7 +57,7 @@ export default defineConfig({
           if (
             id.includes('marked') ||
             id.includes('marked-highlight') ||
-            id.includes('highlight.js') ||
+            id.includes('highlight') ||
             id.includes('dompurify')
           )
             return 'vendor';

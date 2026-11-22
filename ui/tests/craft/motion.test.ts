@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated.js';
-import { LOD_TRANSITION } from '../../src/client/utils/graph-scaling.js';
+import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated';
+import { LOD_TRANSITION } from '../../src/client/utils/graph-scaling';
 
 const DURATION_KEYS = [
   'motion.durations.instant',

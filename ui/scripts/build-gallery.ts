@@ -6,7 +6,7 @@
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-import type { VisualCellResult } from '../tests/visual/reporter.js';
+import type { VisualCellResult } from '../tests/visual/reporter';
 
 type VisualReport = {
   version: number;

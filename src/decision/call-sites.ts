@@ -18,15 +18,15 @@
 
 import { JUDGMENT_SHAPES } from '@senars/util/cognitive-schemas';
 import { COGNITIVE_AXES } from '@senars/util/cognitive-schemas';
-import type { Witness } from '@senars/util/witness.js';
-import type { BudgetScopeId } from '../kernel/budget-scopes.js';
+import type { Witness } from '@senars/util/witness';
+import type { BudgetScopeId } from '../kernel/budget-scopes';
 import {
   DECISION_ASK_TIMEOUT_MS,
   DECISION_POSITIONS,
   type DecisionAxis,
   type DecisionPosition,
   SYNTHESIS_AXIS,
-} from '../ports/decision.js';
+} from '../ports/decision';
 
 interface DecisionCallSiteBase extends Witness {
   /** Repo-relative path of the file the call must live in. */

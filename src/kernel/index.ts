@@ -10,36 +10,36 @@ export {
   scopeSpec,
   scopeTerminationReason,
   DECISION_DERIVATIONS_SCOPE,
-} from './budget-scopes.js';
+} from './budget-scopes';
 export {
   type ControlBudgetOverrides,
   type ControlBudgetPort,
   UNBUDGETED,
   ControlBudgets,
-} from './control-budgets.js';
-export type { AutonomyClock } from './cycle-driver.js';
-export { driveCycles } from './cycle-driver.js';
-export type { GateRegistryInit, IGateRegistry } from './GateRegistry.js';
-export { createGateRegistry, GateRegistry } from './GateRegistry.js';
-export { KernelGate } from './gate-base.js';
+} from './control-budgets';
+export type { AutonomyClock } from './cycle-driver';
+export { driveCycles } from './cycle-driver';
+export type { GateRegistryInit, IGateRegistry } from './GateRegistry';
+export { createGateRegistry, GateRegistry } from './GateRegistry';
+export { KernelGate } from './gate-base';
 export type {
   IActionGate,
   IBudgetGate,
   IDriveManager,
   IPerceptionGate,
   IRewardGate,
-} from './interfaces.js';
-export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
-export { createDefaultReasoningBudget, KernelBudgetGate } from './KernelBudgetGate.js';
-export { KernelLedger } from './KernelLedger.js';
-export { KernelPerceptionGate } from './KernelPerceptionGate.js';
+} from './interfaces';
+export { KernelActionGate, NALVetoError } from './KernelActionGate';
+export { createDefaultReasoningBudget, KernelBudgetGate } from './KernelBudgetGate';
+export { KernelLedger } from './KernelLedger';
+export { KernelPerceptionGate } from './KernelPerceptionGate';
 export {
   EpistemicFirewallViolation,
   ExternalRewardGate,
   KernelRewardGate,
   SelfRewardGate,
-} from './KernelRewardGate.js';
-export { domainKey, providerKey } from './reputation-keys.js';
+} from './KernelRewardGate';
+export { domainKey, providerKey } from './reputation-keys';
 export {
   DEFAULT_REPUTATION_CAPACITY,
   DEFAULT_REPUTATION_PATH,
@@ -47,9 +47,9 @@ export {
   type ReputationEntry,
   SourceReputation,
   type SourceReputationOptions,
-} from './source-reputation.js';
-export type { ThreadScopeState } from './thread-scope.js';
-export { ThreadScope, threadScope } from './thread-scope.js';
+} from './source-reputation';
+export type { ThreadScopeState } from './thread-scope';
+export { ThreadScope, threadScope } from './thread-scope';
 
 export {
   type FullReplayOptions,
@@ -65,8 +65,8 @@ export {
   loadGateEvents,
   replayTaskAdmissions,
   replayCognitiveState,
-} from './replay-compat.js';
-export { SNAPSHOT_VERSION, type CognitiveStateSnapshot as KernelCognitiveStateSnapshot } from '../log/replay-reducers.js';
+} from './replay-compat';
+export { SNAPSHOT_VERSION, type CognitiveStateSnapshot as KernelCognitiveStateSnapshot } from '../log/replay-reducers';
 
 export {
   type TruthValue,
@@ -74,8 +74,8 @@ export {
   normalize,
   createTruth,
   verifyTruthLaws,
-} from './truth.js';
-export type { TruthLike } from './types.js';
+} from './truth';
+export type { TruthLike } from './types';
 export {
   type TruthValueSchema,
   toSchemaTruth,
@@ -84,7 +84,7 @@ export {
   formatTruth,
   formatSchemaTruth,
   serializeTruth,
-} from './types.js';
+} from './types';
 
 export {
   conceptValue,
@@ -92,5 +92,5 @@ export {
   evictUnderPressure,
   type EvictionReason,
   type EvictionReport,
-} from '../memory/pressure/index.js';
-export { PriorityBag } from '../bag/index.js';
+} from '../memory/pressure/index';
+export { PriorityBag } from '../bag/index';

@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { graphRenderer } from '../../src/client/components/renderers/graph.js';
-import { graph3dRenderer } from '../../src/client/components/renderers/graph3d.js';
-import { notebookRenderer } from '../../src/client/components/renderers/notebook.js';
+import { graphRenderer } from '../../src/client/components/renderers/graph';
+import { graph3dRenderer } from '../../src/client/components/renderers/graph3d';
+import { notebookRenderer } from '../../src/client/components/renderers/notebook';
 import {
   $selectedNodeIds,
   $workspaceGraph,
   setWorkspaceFocus,
   setWorkspaceSelection,
-} from '../../src/client/core/store.js';
+} from '../../src/client/core/store';
 import {
   declareParity,
   rendererHasControl,
@@ -16,7 +16,7 @@ import {
   rendererSupports,
   workspaceRenderer,
   workspaceRenderers,
-} from '../../src/client/core/workspace-renderer.js';
+} from '../../src/client/core/workspace-renderer';
 
 const must = <T>(value: T | undefined): T => {
   if (value === undefined) throw new Error('expected a registered renderer');

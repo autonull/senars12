@@ -2,7 +2,7 @@
  * Confidence/conflict-based activation conditions for LM rules.
  */
 import type { Term } from '../../terms';
-import { ctxNumber } from './conditions.js';
+import { ctxNumber } from './conditions';
 
 /**
  * No truth reading at all is *not* low confidence: absent is not 0, so this one

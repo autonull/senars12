@@ -6,7 +6,7 @@
  * replay, snapshot, and verification.
  */
 
-import type { UUID, TimestampMs } from '../generated/schemas.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
 import { z } from 'zod';
 import {
   CognitiveEventSchema,
@@ -29,7 +29,7 @@ import {
   type TerminationReason,
   type DerivationStep,
   type DerivationRecord,
-} from '../generated/schemas.js';
+} from '../generated/schemas';
 
 export type {
   UUID,

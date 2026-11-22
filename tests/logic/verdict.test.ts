@@ -6,10 +6,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { atom } from '../../src/logics/axiomatic/ast.js';
-import { check, convert, counterexample, model, prove } from '../../src/logic/commands.js';
-import { parseAtom, parseClause, parseProgram } from '../../src/logic/parse.js';
-import { termInterner } from '../../src/kernel/terms/intern.js';
+import { atom } from '../../src/logics/axiomatic/ast';
+import { check, convert, counterexample, model, prove } from '../../src/logic/commands';
+import { parseAtom, parseClause, parseProgram } from '../../src/logic/parse';
+import { termInterner } from '../../src/kernel/terms/intern';
 
 const PROGRAM = [
   'parent(john, mary)',

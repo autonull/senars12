@@ -35,8 +35,8 @@ import type {
   JudgmentQuery,
   SynthesisProposition,
   SynthesisQuery,
-} from '../decision/types.js';
-import type { BudgetScopeId } from '../kernel/budget-scopes.js';
+} from '../decision/types';
+import type { BudgetScopeId } from '../kernel/budget-scopes';
 
 /** Either profile of the one model-reasoning capability. `J` and `P`, not two capabilities. */
 export type DecisionRequest = JudgmentQuery | SynthesisQuery;
@@ -56,7 +56,7 @@ export const DECISION_POSITIONS = ['cycle', 'boundary'] as const;
 
 export type DecisionPosition = (typeof DECISION_POSITIONS)[number];
 
-import type { CognitiveAxis } from '../decision/types.js';
+import type { CognitiveAxis } from '../decision/types';
 
 /** What a decision is about — the epistemic firewall's own axis, named once. A
  *  `synthesize` is about neither, which is the one axis outside the pair. */

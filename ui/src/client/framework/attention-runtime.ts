@@ -11,16 +11,16 @@
  * the same substrate (§0, §22).
  */
 
-import { AttentionField, type Allocation, decayRateFor, type AttentionPolicy, attentionPolicyFromConfig } from './attention.js';
-import { type FocusRef, MIND_FOCUS } from './coordinates.js';
-import { LOD_ZOOM_THRESHOLDS, densityFactor } from '../utils/graph-scaling.js';
-import type { UiConfig } from '../core/config-schema.js';
+import { AttentionField, type Allocation, decayRateFor, type AttentionPolicy, attentionPolicyFromConfig } from './attention';
+import { type FocusRef, MIND_FOCUS } from './coordinates';
+import { LOD_ZOOM_THRESHOLDS, densityFactor } from '../utils/graph-scaling';
+import type { UiConfig } from '../core/config-schema';
 
 /** The singleton attention field for this UI session. */
 let fieldInstance: AttentionField | null = null;
 let policy: AttentionPolicy | null = null;
 
-import { DEFAULT_UI_CONFIG } from '../core/config-schema.js';
+import { DEFAULT_UI_CONFIG } from '../core/config-schema';
 
 /** Get or create the global attention field, using provided UI config. */
 export function getAttentionField(config?: UiConfig): AttentionField {
@@ -107,12 +107,12 @@ export function currentAllocations(): Allocation[] {
 }
 
 /** A single weighted ambient sample — for the ambient layer (§13). */
-export function sampleAmbient(): import('./attention.js').AttentionItem | undefined {
+export function sampleAmbient(): import('./attention').AttentionItem | undefined {
   return fieldInstance?.sample();
 }
 
 /** A budget of weighted ambient samples — for the ambient layer (§13). */
-export function sampleAmbientMany(budget: number): import('./attention.js').AttentionItem[] {
+export function sampleAmbientMany(budget: number): import('./attention').AttentionItem[] {
   return fieldInstance?.sampleMany(budget) ?? [];
 }
 

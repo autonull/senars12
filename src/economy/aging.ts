@@ -4,10 +4,10 @@
  * Manages activation decay, access-based boosting, and stale task removal.
  */
 
-import type { EconomyTask, AgingPolicy, TaskBagKind } from './types.js';
+import type { EconomyTask, AgingPolicy, TaskBagKind } from './types';
 import type { Histogram } from '@senars/util/bag';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 const nowOf = (clock?: Clock): TimestampMs => (clock ?? createDefaultClock()).now();
 

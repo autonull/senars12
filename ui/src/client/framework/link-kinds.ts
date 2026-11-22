@@ -8,7 +8,7 @@
  * Instrument aspects) agrees on which link kinds mean "support", "revised", "caused".
  */
 
-import type { SemanticLinkKind } from '../core/workspace-graph.js';
+import type { SemanticLinkKind } from '../core/workspace-graph';
 
 /** Re-export for consumers. */
 export type { SemanticLinkKind };

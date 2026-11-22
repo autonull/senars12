@@ -5,7 +5,7 @@
  * byte-identically to pre-flywheel behavior (I5).
  */
 import { z } from 'zod';
-import { positiveInt } from './boundary.js';
+import { positiveInt } from './boundary';
 
 export const dialogueDefaults = {
   enabled: false,

@@ -1,5 +1,5 @@
-import type { GameOutcome, Perception } from '../game/Game.js';
-import type { JudgmentProvenance } from '../lm/system-one/decide.js';
+import type { GameOutcome, Perception } from '../game/Game';
+import type { JudgmentProvenance } from '../lm/system-one/decide';
 
 export interface ActionProposal {
   action: string;

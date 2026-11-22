@@ -1,3 +1,3 @@
-export * from './Layer.js';
-export * from './LinkManager.js';
-export * from './types.js';
+export * from './Layer';
+export * from './LinkManager';
+export * from './types';

@@ -8,8 +8,8 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { UUID, TimestampMs } from '../generated/schemas.js';
-import type { OracleOperation } from './oracle.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
+import type { OracleOperation } from './oracle';
 
 /** A pinned value for deterministic replay. */
 export interface OraclePin<T = unknown> {

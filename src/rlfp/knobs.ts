@@ -5,7 +5,7 @@ import { systemOneBound } from '../config/system-one';
 import type { BoundProjection } from '@senars/config/bounds';
 console.log('[knobs.ts] cognitiveBound:', cognitiveBound, typeof cognitiveBound);
 console.log('[knobs.ts] systemOneBound:', systemOneBound, typeof systemOneBound);
-import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+import type { CognitiveParameters } from '../config/cognitive-parameters';
 
 export interface TunableKnob {
   readonly name: string;

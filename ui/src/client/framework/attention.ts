@@ -18,9 +18,9 @@
  */
 
 import { type Bag, type BagItem, createBag } from '@senars/util/bag';
-import type { LoDTier } from '../utils/graph-scaling.js';
-import { type FocusRef, focusKey } from './coordinates.js';
-import type { UiConfig } from '../core/config-schema.js';
+import type { LoDTier } from '../utils/graph-scaling';
+import { type FocusRef, focusKey } from './coordinates';
+import type { UiConfig } from '../core/config-schema';
 
 /** The fidelity ladder: the LOD tiers, plus the reclaimed (not-drawn) floor. */
 export type FidelityTier = 'reclaimed' | LoDTier;

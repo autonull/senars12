@@ -1,5 +1,5 @@
-import type { TaskRecord } from '../task/record.js';
-import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
+import type { TaskRecord } from '../task/record';
+import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec';
 
 /**
  * The declared consistency boundary (CORE.19 C4.1, D14) — written down once, so

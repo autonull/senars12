@@ -5,8 +5,8 @@
  * and updating beliefs.
  */
 
-import type { EconomyTask, TaskVoI, TaskBagKind } from './types.js';
-import type { Term } from '../kernel/terms/term.js';
+import type { EconomyTask, TaskVoI, TaskBagKind } from './types';
+import type { Term } from '../kernel/terms/term';
 
 /** VoI calculation context. */
 export interface VoIContext {

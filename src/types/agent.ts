@@ -11,7 +11,7 @@ export interface ParsedCommand {
  * third spelling reaching the log and a reader of the log had no way to know
  * which four words were meant.
  */
-import { HEALTH_STATUSES, type HealthLevel } from '../util/health-status.js';
+import { HEALTH_STATUSES, type HealthLevel } from '../util/health-status';
 
 export { HEALTH_STATUSES, type HealthLevel };
 
@@ -47,8 +47,8 @@ export interface BridgeAuthHandler {
 
 export interface BridgeOptions {
   auth?: BridgeAuthHandler;
-  commandRegistry?: import('../commands/registry.js').CommandRegistry;
-  sessionManager?: import('./memory.js').SessionManager;
+  commandRegistry?: import('../commands/registry').CommandRegistry;
+  sessionManager?: import('./memory').SessionManager;
   episodicMemory?: unknown;
   generationService?: unknown;
   understandingService?: unknown;

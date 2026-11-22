@@ -9,13 +9,13 @@ import {
   LMSwitchMsg,
   LMStatusMsg,
   LMStatusRequest,
-} from './chat.js';
-import { type ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
-import { ServerError } from './error.js';
-import { CognitiveDelta } from './graph-ops.js';
-import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
-import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
-import { ObjectSetMsg } from './object-patch.js';import { UiCommandMsg } from './ui-command.js';
+} from './chat';
+import { type ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config';
+import { ServerError } from './error';
+import { CognitiveDelta } from './graph-ops';
+import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history';
+import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs';
+import { ObjectSetMsg } from './object-patch';import { UiCommandMsg } from './ui-command';
 import {
   ReasoningSubmitMsg,
   ReasoningAskMsg,
@@ -28,7 +28,7 @@ import {
   ReasoningAdjustBudgetMsg,
   ReasoningAdjustProviderMsg,
   ReasoningControlResponse,
-} from './reasoning-control.js';
+} from './reasoning-control';
 import {
   CognitiveEventsMsg,
   FocusSet,
@@ -41,7 +41,7 @@ import {
   CyclePauseMsg,
   CycleResumeMsg,
   CycleRewindMsg,
-} from './sync.js';
+} from './sync';
 
 export const IncomingFromClient = z.discriminatedUnion('type', [
   ChatUserMsg,

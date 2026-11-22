@@ -12,25 +12,25 @@ import { egressVerdict } from '@senars/util/cognitive-schemas';
 import type { LMTask } from '@senars/types/llm';
 import { toolError } from '@senars/types/engine';
 import { createLogger } from '@senars/util/logger';
-import type { ChatStreamEvent } from './chat.js';
-import { SHELL_TIMEOUT_MS } from './constants.js';
-import type { CognitiveStimulus, Context, Derivation } from '@senars/types/cognitive.js';
-import type { ToolResult } from '@senars/types/engine.js';
-import { sweepEngines } from '../engine/sweep.js';
+import type { ChatStreamEvent } from './chat';
+import { SHELL_TIMEOUT_MS } from './constants';
+import type { CognitiveStimulus, Context, Derivation } from '@senars/types/cognitive';
+import type { ToolResult } from '@senars/types/engine';
+import { sweepEngines } from '../engine/sweep';
 import { recalledEventTypes } from '@senars/schemas/recalled-events';
-import { RECALL_WINDOW } from '../memory/types.js';
-import { NAR_ORIGIN } from '../schemas/event-base.js';
-import { mintCognitiveEvent } from '../schemas/cognitive-events.js';
+import { RECALL_WINDOW } from '../memory/types';
+import { NAR_ORIGIN } from '../schemas/event-base';
+import { mintCognitiveEvent } from '../schemas/cognitive-events';
 import {
   type CycleHost,
   createMacroContext,
   type MacroContext,
   type MacroPhase,
   motorTools,
-} from './pipeline.js';
+} from './pipeline';
 
-export type { CycleHost, MacroContext, MacroPhase } from './pipeline.js';
-export { createCapturePhase, createReflectPhase } from './pipeline.js';
+export type { CycleHost, MacroContext, MacroPhase } from './pipeline';
+export { createCapturePhase, createReflectPhase } from './pipeline';
 
 const logger = createLogger({ scope: 'agent-phases', level: 'warn' });
 

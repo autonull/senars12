@@ -2,17 +2,17 @@
  * Loop Context — creates and manages the loop execution context.
  */
 
-import { createActionSelector, type ActionSelector } from './select.js';
-import { createLoopRecorder, type LoopRecorder } from './record.js';
-import { createSelfModelManager, type SelfModelManager } from './self-model.js';
-import type { ContractRegistry } from './contract.js';
-import { createRepairLoop, type RepairLoop } from './repair.js';
-import type { Economy, EconomyScheduler } from '../economy/index.js';
-import type { FacultyRegistry } from '../faculties/specs.js';
-import type { OracleRegistry } from '../oracles/oracle.js';
-import type { Env, RNG, Clock } from '../kernel/env.js';
-import type { LoopConfig, LoopContext, FacultyInvoker, FacultySpec, FacultyInput, FacultyOutput } from './types.js';
-import { defaultLoopConfig } from './types.js';
+import { createActionSelector, type ActionSelector } from './select';
+import { createLoopRecorder, type LoopRecorder } from './record';
+import { createSelfModelManager, type SelfModelManager } from './self-model';
+import type { ContractRegistry } from './contract';
+import { createRepairLoop, type RepairLoop } from './repair';
+import type { Economy, EconomyScheduler } from '../economy/index';
+import type { FacultyRegistry } from '../faculties/specs';
+import type { OracleRegistry } from '../oracles/oracle';
+import type { Env, RNG, Clock } from '../kernel/env';
+import type { LoopConfig, LoopContext, FacultyInvoker, FacultySpec, FacultyInput, FacultyOutput } from './types';
+import { defaultLoopConfig } from './types';
 
 /** Creates the loop context with all dependencies. */
 export function createLoopContext(

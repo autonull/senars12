@@ -1,6 +1,6 @@
 import { defaultLogger, type Logger } from '../util/logger';
-import type { EventReceiver, EventUnsubscribe } from './types.js';
-import { ListenerBag } from './listener-bag.js';
+import type { EventReceiver, EventUnsubscribe } from './types';
+import { ListenerBag } from './listener-bag';
 
 /**
  * One subject, any number of listeners — the unnamed case {@link EventBus} generalises.

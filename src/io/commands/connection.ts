@@ -1,6 +1,6 @@
 import { silentLogger } from '@senars/util/logger';
-import type { ConnectionManager } from '../connection-manager.js';
-import type { CommandDefinition } from '../../commands/types.js';
+import type { ConnectionManager } from '../connection-manager';
+import type { CommandDefinition } from '../../commands/types';
 
 const NO_MANAGER = 'Connection manager not configured';
 

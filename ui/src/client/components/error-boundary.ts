@@ -4,13 +4,13 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/index.js';
-import { UiError, createError, type RecoveryAction } from '../core/error-taxonomy.js';
-import { eventBus, type UiSignals } from '../core/events.js';
-import { getIcon, type IconName } from '../utils/icon-registry.js';
-import './primitives/button.js';
-import './primitives/icon.js';
+import { customElement, state } from 'lit/decorators';
+import { BaseComponent } from '../core/index';
+import { UiError, createError, type RecoveryAction } from '../core/error-taxonomy';
+import { eventBus, type UiSignals } from '../core/events';
+import { getIcon, type IconName } from '../utils/icon-registry';
+import './primitives/button';
+import './primitives/icon';
 
 interface ErrorEntry {
   id: number;

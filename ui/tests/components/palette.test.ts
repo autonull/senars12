@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '../../src/client/components/overlays/index.js';
-import '../../src/client/components/renderers/graph.js';
-import '../../src/client/components/renderers/graph3d.js';
-import '../../src/client/components/renderers/notebook.js';
-import { resetCommandHistory } from '../../src/client/core/command-history.js';
-import { dispatchCommand } from '../../src/client/core/commands.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { $activeRenderer } from '../../src/client/core/store.js';
-import { setCapability } from '../../src/client/core/capabilities.js';
+import '../../src/client/components/overlays/index';
+import '../../src/client/components/renderers/graph';
+import '../../src/client/components/renderers/graph3d';
+import '../../src/client/components/renderers/notebook';
+import { resetCommandHistory } from '../../src/client/core/command-history';
+import { dispatchCommand } from '../../src/client/core/commands';
+import { eventBus } from '../../src/client/core/events';
+import { $activeRenderer } from '../../src/client/core/store';
+import { setCapability } from '../../src/client/core/capabilities';
 
 const mount = async () => {
   const el = document.createElement('s-palette');

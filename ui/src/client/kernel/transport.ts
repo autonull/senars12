@@ -1,2 +1,2 @@
-export { connect, disconnect, send, reconnect } from '../core/ws-client.js';
-export { addAgentMessage, addUserMessage, applyServerMessage } from '../core/store-bindings.js';
+export { connect, disconnect, send, reconnect } from '../core/ws-client';
+export { addAgentMessage, addUserMessage, applyServerMessage } from '../core/store-bindings';

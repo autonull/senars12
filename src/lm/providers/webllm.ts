@@ -1,4 +1,4 @@
-import { delegate } from '../provider-runtime.js';
+import { delegate } from '../provider-runtime';
 
 /** UI layer installs the WebLLM runtime at startup (browser only). */
 export const configureWebLLM = delegate('configureWebLLM');

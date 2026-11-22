@@ -1,5 +1,5 @@
 import { SeededRNG } from '@senars/utils';
-import type { Game } from '../../../../nar/src/game/Game.js';
+import type { Game } from '../../../../nar/src/game/Game';
 
 /**
  * Epsilon-Greedy Bandit Algorithm

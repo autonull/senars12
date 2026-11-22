@@ -4,7 +4,7 @@
  * (`src/config/schema.ts`) and the UI slider configs (`ui/src/server/config-schema.ts`).
  * Avoids drift between validation limits, engine defaults and UI control ranges.
  */
-import { flatBounds } from './bounds.js';
+import { flatBounds } from './bounds';
 
 export const narCoreBounds = {
   maxConcepts: { min: 100, max: 10000, default: 1000, step: 100 },

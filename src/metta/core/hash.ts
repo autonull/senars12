@@ -19,8 +19,8 @@ import type {
   StringAtom,
   SymbolAtom,
   VariableAtom,
-} from '../types/ast.js';
-import { AtomKind, isVariable } from '../types/ast.js';
+} from '../types/ast';
+import { AtomKind, isVariable } from '../types/ast';
 
 /** An atom with no children is every kind but `Expression` and `Grounded`. */
 const NO_CHILDREN: readonly MeTTaAtom[] = Object.freeze([]);

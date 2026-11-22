@@ -5,14 +5,14 @@
  * lossless round-trip encoding/decoding with full operator support.
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON } from '../intern.js';
-import { getArgs } from '../term.js';
-import type { TruthValue } from '../../types.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON } from '../intern';
+import { getArgs } from '../term';
+import type { TruthValue } from '../../types';
 import {
   formatTerm as sharedFormatTerm,
   getPunctuation,
   escapeConstant,
-} from './formatters.js';
+} from './formatters';
 
 /** Narsese codec options. */
 export interface NarseseCodecOptions {
@@ -89,7 +89,7 @@ export function encodeNarseseWithTruth(
 }
 
 // Re-export shared utilities for backward compatibility
-export { escapeConstant, getPunctuation } from './formatters.js';
+export { escapeConstant, getPunctuation } from './formatters';
 
 /**
  * Decode a Narsese string to a term.

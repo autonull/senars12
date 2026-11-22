@@ -5,8 +5,8 @@
  * numbering follows document (insertion) order.
  */
 
-import { payloadOf } from './block-payload.js';
-import type { WorkspaceGraph } from './workspace-graph.js';
+import { payloadOf } from './block-payload';
+import type { WorkspaceGraph } from './workspace-graph';
 
 export interface Source {
   /** Stable citation key as written, e.g. `1` or `iso-42001`. */

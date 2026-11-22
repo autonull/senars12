@@ -1,5 +1,5 @@
 import type { SourceQuality } from '@senars/schemas';
-import type { TermTruth } from '../types/truth.js';
+import type { TermTruth } from '../types/truth';
 import type { TaskTypeName } from '../terms';
 
 /**

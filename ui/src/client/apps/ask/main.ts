@@ -1,5 +1,5 @@
 import '../../styles/theme.css';
-import { connect } from '../../kernel/index.js';
-import './ask-app.js';
+import { connect } from '../../kernel/index';
+import './ask-app';
 
 connect();

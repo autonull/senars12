@@ -1,7 +1,7 @@
-import { equalAtoms } from '../core/hash.js';
-import { defineOp, registerOp } from '../core/ops.js';
-import type { ExpressionAtom, MeTTaAtom, NumberAtom } from '../types/ast.js';
-import { expr, num, str, sym } from '../types/ast.js';
+import { equalAtoms } from '../core/hash';
+import { defineOp, registerOp } from '../core/ops';
+import type { ExpressionAtom, MeTTaAtom, NumberAtom } from '../types/ast';
+import { expr, num, str, sym } from '../types/ast';
 
 const toNumber = (a: MeTTaAtom): number | null => (a.kind === 2 ? (a as NumberAtom).value : null);
 

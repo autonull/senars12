@@ -1,5 +1,5 @@
-import type { CommandContext, CommandHandler } from './types.js';
-import type { NAR } from '../nar.js';
+import type { CommandContext, CommandHandler } from './types';
+import type { NAR } from '../nar';
 
 export interface NarCommandContext extends CommandContext {
   readonly nar?: NAR;

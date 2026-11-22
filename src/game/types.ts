@@ -6,11 +6,11 @@
  * - rewards score outcomes and are firewall-classified (`extrinsic` rewards
  *   may only update policy-weights, `intrinsic` may shape attention).
  */
-import type { FocusBag } from '../focus/FocusBag.js';
-import type { FocusStepReport } from '../focus/Focus.js';
-import type { ParameterTable } from '../config/parameter-table.js';
-import type { CapabilityTier } from '../agent/profiles.js';
-import type { MemoryStatistics } from '../memory/ports/index.js';
+import type { FocusBag } from '../focus/FocusBag';
+import type { FocusStepReport } from '../focus/Focus';
+import type { ParameterTable } from '../config/parameter-table';
+import type { CapabilityTier } from '../agent/profiles';
+import type { MemoryStatistics } from '../memory/ports/index';
 
 /** Structural NAR subset sensors may read (never mutate). */
 export interface NARState {

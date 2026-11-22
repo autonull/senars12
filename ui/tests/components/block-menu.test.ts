@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '../../src/client/components/overlays/block-menu.js';
-import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities.js';
-import { $embeddedViews, embeddedViewsShown } from '../../src/client/core/embedded-views.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store.js';
+import '../../src/client/components/overlays/block-menu';
+import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities';
+import { $embeddedViews, embeddedViewsShown } from '../../src/client/core/embedded-views';
+import { eventBus } from '../../src/client/core/events';
+import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

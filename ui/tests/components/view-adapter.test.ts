@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import '../../src/client/components/views/index.js';
+import '../../src/client/components/views/index';
 import {
   adaptersFor,
   capabilitiesFor,
   supportedShapes,
   viewAdapterFor,
   viewAdapters,
-} from '../../src/client/core/view-adapter.js';
+} from '../../src/client/core/view-adapter';
 
 describe('view adapter registry', () => {
   it('registers one adapter per shape with its element tag', () => {

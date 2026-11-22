@@ -15,7 +15,7 @@ import {
   widgetById,
   type LayoutId,
   type Spec,
-} from '../../src/client/apps/lab/compose.js';
+} from '../../src/client/apps/lab/compose';
 
 const AREA_LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
 const areaNames = (areas: string): Set<string> =>

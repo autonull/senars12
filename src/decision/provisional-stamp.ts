@@ -1,5 +1,5 @@
 import { decayCurve } from '@senars/util/numeric';
-import type { Stamp } from '../terms/impls/Stamp.js';
+import type { Stamp } from '../terms/impls/Stamp';
 
 export interface ProvisionalStamp {
   kind: 'provisional';

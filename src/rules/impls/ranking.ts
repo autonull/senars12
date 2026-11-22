@@ -1,5 +1,5 @@
 import { rankBy } from '@senars/util/collections';
-import type { TermTruth } from '../../types/truth.js';
+import type { TermTruth } from '../../types/truth';
 
 export interface RankableDerivation {
   term: { toString(): string };

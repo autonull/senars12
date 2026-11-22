@@ -7,16 +7,16 @@
 import { budgetRemaining } from '@senars/budget';
 import { clamp } from '@senars/util/numeric';
 import { sha256Hex } from '@senars/util/hash';
-import { type JudgmentProvenance, stageProvenance } from './decide.js';
-import { HEAD_SPECS } from './head-ontology.js';
-import type { BandDecision } from './policy.js';
+import { type JudgmentProvenance, stageProvenance } from './decide';
+import { HEAD_SPECS } from './head-ontology';
+import type { BandDecision } from './policy';
 import {
   type CascadeJudge,
   type ConfidenceBands,
   judgeCascade,
   routeConfidence,
   truthProbability,
-} from './policy.js';
+} from './policy';
 import type {
   EmbeddingPointer,
   EvaluateProposition,
@@ -24,7 +24,7 @@ import type {
   JudgmentProposition,
   JudgmentQuery,
   ReasoningBudget,
-} from './types.js';
+} from './types';
 
 export interface VerifyResult {
   decision: BandDecision;

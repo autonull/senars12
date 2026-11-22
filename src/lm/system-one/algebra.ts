@@ -1,5 +1,5 @@
 import { SenarsError } from '@senars/errors';
-import type { JudgmentProposition, JudgmentQuery, SynthesisQuery } from './types.js';
+import type { JudgmentProposition, JudgmentQuery, SynthesisQuery } from './types';
 
 export class AlgebraPurityError extends SenarsError {
   constructor(

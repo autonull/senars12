@@ -18,7 +18,7 @@
  * dispatchCommand(id, args) becomes dispatch(id, args).
  */
 import { z, type ZodSchema, type ZodType } from 'zod';
-import { defineCatalog, type Catalog } from './catalog.js';
+import { defineCatalog, type Catalog } from './catalog';
 
 /** Signal payload is void or an object. */
 export type SignalPayload = void | string | number | boolean | Record<string, unknown>;

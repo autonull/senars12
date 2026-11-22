@@ -12,13 +12,13 @@
  */
 
 // ── Transport ────────────────────────────────────────────────────────────────
-export { connect, disconnect, send, reconnect } from './transport.js';
-export { addAgentMessage, addUserMessage, applyServerMessage } from '../core/store-bindings.js';
-export { mountWorkspaceProjection } from '../core/workspace-bindings.js';
+export { connect, disconnect, send, reconnect } from './transport';
+export { addAgentMessage, addUserMessage, applyServerMessage } from '../core/store-bindings';
+export { mountWorkspaceProjection } from '../core/workspace-bindings';
 
 // ── State (the shared atoms) ─────────────────────────────────────────────────
-export { atom, setWsClient } from './state.js';
-export type { Readable, Writable, GraphNodeData } from './state.js';
+export { atom, setWsClient } from './state';
+export type { Readable, Writable, GraphNodeData } from './state';
 export {
   $chatMessages,
   $cognitiveEvents,
@@ -66,13 +66,13 @@ export {
   setTime,
   type FocusRef,
   type FocusStack,
-} from './state.js';
+} from './state';
 
 // ── UI state (lens, layer, viewport, filter) ──────────────────────────────────
-export { $activeLens, $graphLayer, $graphFit, $graphShape, $viewportMode, $graphFilter } from '../core/store.js';
+export { $activeLens, $graphLayer, $graphFit, $graphShape, $viewportMode, $graphFilter } from '../core/store';
 export type { Lens } from '@senars/core';
-export type { ViewportMode } from '../core/store.js';
-export { VIEWPORT_MODES } from '../core/store.js';
+export type { ViewportMode } from '../core/store';
+export { VIEWPORT_MODES } from '../core/store';
 
 // ── Domain: the workspace graph and its projections ──────────────────────────
 export {
@@ -80,7 +80,7 @@ export {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   linksTouching,
-} from './domain.js';
+} from './domain';
 export type {
   Artifact,
   BlockKind,
@@ -94,8 +94,8 @@ export type {
   Uncertainty,
   WorkspaceGraph,
   WorkspaceOp,
-} from './domain.js';
-export { diffWorkspaceGraph } from './domain.js';
+} from './domain';
+export { diffWorkspaceGraph } from './domain';
 export {
   blockRefFor,
   derivationsFor,
@@ -107,17 +107,17 @@ export {
   projectWorkspace,
   projectWorkspaceGraph,
   resolveBlockRef,
-} from './domain.js';
+} from './domain';
 export type {
   WorkspaceEdgeData,
   WorkspaceNodeData,
   WorkspaceProjection,
-} from './domain.js';
+} from './domain';
 
 // ── Backends: the reasoning engines behind one control surface ───────────────
-export { narsBackend, NAL_VOCABULARY } from './backends.js';
-export { mettaBackend, METTA_VOCABULARY } from './backends.js';
-export { awaitControl, settleControl } from './backends.js';
+export { narsBackend, NAL_VOCABULARY } from './backends';
+export { mettaBackend, METTA_VOCABULARY } from './backends';
+export { awaitControl, settleControl } from './backends';
 export type {
   BackendCaps,
   BackendEdge,
@@ -128,16 +128,16 @@ export type {
   ReasoningBackend,
   ReasoningControl,
   SubmitInput,
-} from './backends.js';
+} from './backends';
 
 // ── Events ───────────────────────────────────────────────────────────────────
-export { eventBus } from './events.js';
+export { eventBus } from './events';
 
 // ── View system: one dataset, many shapes, one host ──────────────────────────
-export { ViewHost } from './view.js';
-export { viewSource } from './view.js';
-export { viewAdapterFor, viewAdapters } from './view.js';
-export { artifactViewSpec, tableFromColumns } from './view.js';
+export { ViewHost } from './view';
+export { viewSource } from './view';
+export { viewAdapterFor, viewAdapters } from './view';
+export { artifactViewSpec, tableFromColumns } from './view';
 export type {
   Shape as ViewShape,
   TableDataset,
@@ -148,24 +148,24 @@ export type {
   ViewSelection,
   ViewSource,
   ViewSpec,
-} from './view.js';
+} from './view';
 
 // ── Block vocabulary: kinds, labels, payloads ────────────────────────────────
-export { blockDescriptor, kindsWhere } from '../core/block-descriptors.js';
-export { blockLabel } from '../core/block-labels.js';
-export { payloadOf } from '../core/block-payload.js';
-export type { BlockEntry as BlockDescriptor } from '../core/block-descriptors.js';
-export type { BlockPayloads, TableData, CodeData, ChartData } from '../core/block-payload.js';
+export { blockDescriptor, kindsWhere } from '../core/block-descriptors';
+export { blockLabel } from '../core/block-labels';
+export { payloadOf } from '../core/block-payload';
+export type { BlockEntry as BlockDescriptor } from '../core/block-descriptors';
+export type { BlockPayloads, TableData, CodeData, ChartData } from '../core/block-payload';
 
 // ── Capabilities: honest gating ──────────────────────────────────────────────
-export { $capabilities, capabilityGate, setCapability } from '../core/capabilities.js';
-export type { Capability } from '../core/capabilities.js';
+export { $capabilities, capabilityGate, setCapability } from '../core/capabilities';
+export type { Capability } from '../core/capabilities';
 
 // ── Store mutations (graph patches) ──────────────────────────────────────────
-export { updateEdgeData, updateNodeData } from '../core/store.js';
+export { updateEdgeData, updateNodeData } from '../core/store';
 
 // ── Components + commands ────────────────────────────────────────────────────
-export { BaseComponent } from '../core/base-component.js';
-export { activeCommands, registerCommand } from '../core/commands.js';
-export type { Command } from '../core/commands.js';
-export { matchCommands } from '../core/command-match.js';
+export { BaseComponent } from '../core/base-component';
+export { activeCommands, registerCommand } from '../core/commands';
+export type { Command } from '../core/commands';
+export { matchCommands } from '../core/command-match';

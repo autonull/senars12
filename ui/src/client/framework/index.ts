@@ -8,7 +8,7 @@
 
 export type {
   Contribution,
-} from './contribution.js';
+} from './contribution';
 
 export type {
   Catalog,
@@ -19,7 +19,7 @@ export type {
   KeyOf,
   EntryOf,
   FacetsOf,
-} from './catalog.js';
+} from './catalog';
 
 export type {
   SurfaceDescriptor,
@@ -28,7 +28,7 @@ export type {
   SurfaceBinding,
   SurfaceSource,
   SurfaceA11y,
-} from './surface.js';
+} from './surface';
 
 export type {
   FacetDescriptor,
@@ -37,7 +37,7 @@ export type {
   FacetData,
   FacetKey,
   FacetEntryOf,
-} from './facet.js';
+} from './facet';
 
 export type {
   IntentDescriptor,
@@ -47,7 +47,7 @@ export type {
   CommandArgs,
   IntentCatalog,
   IntentDispatch,
-} from './intent.js';
+} from './intent';
 
 export type {
   AppDescriptor,
@@ -55,18 +55,18 @@ export type {
   AppLifecycle,
   AppContext,
   ConnectionConfig,
-} from './app.js';
+} from './app';
 
 export type {
   Composition,
   Cell,
   Globals,
   LayoutId,
-} from './composition.js';
+} from './composition';
 
 export type {
   LayoutTemplate,
-} from './layout.js';
+} from './layout';
 
 export type {
   MessageDirection,
@@ -79,7 +79,7 @@ export type {
   ProtocolDefinition,
   ProtocolCatalog,
   ProtocolKey,
-} from './protocol.js';
+} from './protocol';
 
 export type {
   Projector,
@@ -87,7 +87,7 @@ export type {
   ProjectorEntry,
   ProjectorCatalogDefinition,
   ProjectorCatalog,
-} from './projector.js';
+} from './projector';
 
 export type {
   BundleDescriptor,
@@ -101,24 +101,24 @@ export type {
   BundleCapabilities,
   BundleConfigFields,
   ConfigFieldDescriptor,
-} from './bundle.js';
+} from './bundle';
 
 export type {
   ValidationError,
   ValidationResult,
   ContributionValidator,
-} from './validator.js';
+} from './validator';
 
 export {
   createContribution,
   registerContribution,
   unregisterContribution,
-} from './contribution.js';
+} from './contribution';
 
 export {
   defineCatalog,
   catalogFromContributions,
-} from './catalog.js';
+} from './catalog';
 
 export {
   surfaceRegistry,
@@ -132,7 +132,7 @@ export {
   surfaceTag,
   defaultPresentation,
   resolvedPresentation,
-} from './surface.js';
+} from './surface';
 
 export {
   defineFacetCatalog,
@@ -152,7 +152,7 @@ export {
   getFacets,
   facetIds,
   resetFacets,
-} from './facet.js';
+} from './facet';
 
 export {
   defineIntentCatalog,
@@ -166,7 +166,7 @@ export {
   intentIds,
   resetIntents,
   buildIntentCatalog,
-} from './intent.js';
+} from './intent';
 
 export {
   defineApp,
@@ -177,7 +177,7 @@ export {
   appSurfaces,
   resolveConnectionConfig,
   APP_SHELL_TAG,
-} from './app.js';
+} from './app';
 
 export {
   registerComposition,
@@ -200,7 +200,7 @@ export {
   type RegisteredArrangement,
   arrangementsForLayout,
   arrangementsForShape,
-} from './composition.js';
+} from './composition';
 
 export type {
   FocusKind,
@@ -210,7 +210,7 @@ export type {
   Aspect,
   Depth,
   FocusCell,
-} from './coordinates.js';
+} from './coordinates';
 
 export {
   focus,
@@ -254,10 +254,10 @@ export {
   decodeFocusRef,
   labelFocusRef,
   iconFocusRef,
-} from './coordinates.js';
+} from './coordinates';
 
-export type { FocusStack } from './focus-stack.js';
-export { createFocusStack } from './focus-stack.js';
+export type { FocusStack } from './focus-stack';
+export { createFocusStack } from './focus-stack';
 
 export type {
   ContentSlice,
@@ -268,9 +268,9 @@ export type {
   ResolverContext,
   Resolver,
   FocusSlice,
-} from './resolver.js';
+} from './resolver';
 
-export { resolveFocus, workspaceResolver, aspectSlice, hasSlice } from './resolver.js';
+export { resolveFocus, workspaceResolver, aspectSlice, hasSlice } from './resolver';
 
 export {
   registerAspectProjection,
@@ -285,11 +285,11 @@ export {
   type ProjectionContext,
   type RegisteredAspect,
   aspectsForFocus,
-} from './aspect-registry.js';
+} from './aspect-registry';
 
 export type {
   LinkPurpose,
-} from './link-kinds.js';
+} from './link-kinds';
 
 export {
   LINK_KIND_PURPOSES,
@@ -302,9 +302,9 @@ export {
   CONTAINMENT_LINK_KINDS,
   NEIGHBORHOOD_LINK_KINDS,
   THREAD_LINK_KINDS,
-} from './link-kinds.js';
+} from './link-kinds';
 
-export type { FidelityTier, AttentionClass, Allocation, AttentionItem } from './attention.js';
+export type { FidelityTier, AttentionClass, Allocation, AttentionItem } from './attention';
 
 export {
   tierRank,
@@ -318,7 +318,7 @@ export {
   decayRateFor,
   TIER_COST,
   AttentionField,
-} from './attention.js';
+} from './attention';
 
 export {
   getAttentionField,
@@ -331,7 +331,7 @@ export {
   attendMind,
   sampleAmbient,
   sampleAmbientMany,
-} from './attention-runtime.js';
+} from './attention-runtime';
 
 export {
   AREA_LETTERS,
@@ -339,12 +339,12 @@ export {
   layoutTemplate,
   layoutOf,
   areaName,
-} from './layout.js';
+} from './layout';
 
 export type {
   PerceivedPrompt,
   FormalizationCandidate,
-} from './prompt-perception.js';
+} from './prompt-perception';
 
 export {
   perceivePrompt,
@@ -352,7 +352,7 @@ export {
   resolveTurn,
   heuristicFormalize,
   turnCellFromPerceived,
-} from './prompt-perception.js';
+} from './prompt-perception';
 
 // Re-export core workspace-graph types needed by prompt-perception
 export {
@@ -363,7 +363,7 @@ export {
   type SemanticLink,
   type WorkspaceOp,
   type Ref,
-} from '../core/workspace-graph.js';
+} from '../core/workspace-graph';
 
 export {
   defineProtocolCatalog,
@@ -375,7 +375,7 @@ export {
   getProtocols,
   protocolTypes,
   resetProtocols,
-} from './protocol.js';
+} from './protocol';
 
 export {
   defineProjectorCatalog,
@@ -386,7 +386,7 @@ export {
   resetProjectors,
   mergeProjectorFragments,
   mergeFragments,
-} from './projector.js';
+} from './projector';
 
 export {
   derived,
@@ -395,7 +395,7 @@ export {
   setEqual,
   mapEqual,
   arrayEqual,
-} from './derived.js';
+} from './derived';
 
 export {
   defineBundle,
@@ -405,11 +405,11 @@ export {
   bundleIds,
   resetBundles,
   applyBundle,
-} from './bundle.js';
+} from './bundle';
 
 export {
   createDefaultValidator,
   validateContribution,
   validateAllCatalogs,
   assertValid,
-} from './validator.js';
+} from './validator';

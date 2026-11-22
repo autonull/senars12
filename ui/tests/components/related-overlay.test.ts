@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/related.js';
-import { $neighborhoodDepth, $workspaceGraph } from '../../src/client/core/store.js';
+import '../../src/client/components/overlays/related';
+import { $neighborhoodDepth, $workspaceGraph } from '../../src/client/core/store';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string): SemanticBlock => ({
   id,

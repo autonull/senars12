@@ -1,10 +1,10 @@
 import { getOrInsert } from '@senars/util/collections';
-import { LINK } from '../../constants.js';
+import { LINK } from '../../constants';
 import type { Term } from '../../terms';
-import type { RandomSource } from '../../types/primitives.js';
-import { Layer } from './Layer.js';
-import { EmbeddingLayer } from './EmbeddingLayer.js';
-import { LINK_LAYER, type LinkEntry, type LinkManagerConfig, type LinkType } from './types.js';
+import type { RandomSource } from '../../types/primitives';
+import { Layer } from './Layer';
+import { EmbeddingLayer } from './EmbeddingLayer';
+import { LINK_LAYER, type LinkEntry, type LinkManagerConfig, type LinkType } from './types';
 
 const DEFAULT_LAYER: string = LINK_LAYER.TERM;
 

@@ -16,9 +16,9 @@ import {
   createLedger,
   type Ledger,
   type LedgerQuery,
-} from '../util/ledger.js';
-import { cachePath } from './paths.js';
-import { mean } from '../util/numeric.js';
+} from '../util/ledger';
+import { cachePath } from './paths';
+import { mean } from '../util/numeric';
 import { z } from 'zod';
 
 export interface ParameterRecord {

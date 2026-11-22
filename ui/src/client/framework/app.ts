@@ -11,11 +11,11 @@
  * provides the connection/overlay/palette chrome, and exposes a test API.
  */
 
-import { createIdRegistry, type Registry } from '../core/registry.js';
-import type { SurfaceDescriptor, Placement } from './surface.js';
-import type { Composition } from './composition.js';
-import type { Capability } from '../core/capabilities.js';
-import { applyBundle, type BundleDescriptor } from './bundle.js';
+import { createIdRegistry, type Registry } from '../core/registry';
+import type { SurfaceDescriptor, Placement } from './surface';
+import type { Composition } from './composition';
+import type { Capability } from '../core/capabilities';
+import { applyBundle, type BundleDescriptor } from './bundle';
 
 /** App-level lifecycle hooks. */
 export interface AppLifecycle {

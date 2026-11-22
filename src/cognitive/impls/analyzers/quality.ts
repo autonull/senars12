@@ -1,7 +1,7 @@
 import { clamp01, roundTo, safeRatio } from '@senars/util/numeric';
-import type { SelfHost } from '../../../self/host.js';
+import type { SelfHost } from '../../../self/host';
 import { containsSubterm, getSubject } from '../../../terms';
-import type { QualityAssessment } from '../../types.js';
+import type { QualityAssessment } from '../../types';
 
 export const assessQuality = async (nar: SelfHost | null): Promise<QualityAssessment> => {
   if (!nar) {

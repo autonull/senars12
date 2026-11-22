@@ -1,17 +1,17 @@
 import type { ReasoningBudget } from '@senars/schemas';
 import { LruCache } from '@senars/util/lru-cache';
 import { rankBy } from '@senars/util/collections';
-import type { Perception } from '../../game/Game.js';
-import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import type { Truth } from '../../terms/impls/Truth.js';
-import { actionGrammar } from './action-grammar.js';
-import type { ContrastiveMemory } from './contrastive.js';
-import { createDecider, type Decider } from './decide.js';
-import type { JudgmentDataset } from './distill.js';
-import { recordReflexOutcome } from './reflex-label-source.js';
-import { DecisionReadout } from './reflex-readout.js';
-import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types.js';
-import { DEFAULT_SYNTHESIS_CANDIDATES } from './types.js';
+import type { Perception } from '../../game/Game';
+import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex';
+import type { Truth } from '../../terms/impls/Truth';
+import { actionGrammar } from './action-grammar';
+import type { ContrastiveMemory } from './contrastive';
+import { createDecider, type Decider } from './decide';
+import type { JudgmentDataset } from './distill';
+import { recordReflexOutcome } from './reflex-label-source';
+import { DecisionReadout } from './reflex-readout';
+import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types';
+import { DEFAULT_SYNTHESIS_CANDIDATES } from './types';
 
 export interface LMReflexOptions {
   /** Incumbent reflex served when the LM is cold, failed, or breaker-open (C2). */

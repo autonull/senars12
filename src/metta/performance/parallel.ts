@@ -1,6 +1,6 @@
 import { chunk } from '@senars/util/collections';
 import { Effect } from 'effect';
-import type { MeTTaAtom } from '../types/ast.js';
+import type { MeTTaAtom } from '../types/ast';
 
 export interface ParallelOptions {
   readonly workers?: number;

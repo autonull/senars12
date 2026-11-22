@@ -2,8 +2,8 @@
  * MCP Transport — MCP transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types.js';
-import type { MCPTransportConfig } from '../mcp/types.js';
+import type { Transport, TransportConfig, TransportMessage } from './types';
+import type { MCPTransportConfig } from '../mcp/types';
 
 /** Create MCP transport. */
 export function createMCPTransport(config: MCPTransportConfig): Transport {

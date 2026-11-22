@@ -4,13 +4,13 @@
  * Generates possible successor states from executing a task.
  */
 
-import type { EconomyTask, Successor, TaskBagKind, TaskSource } from './types.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import { termFactory, TermOp } from '../kernel/terms/term.js';
-import { TaskType } from '../kernel/types.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { EconomyTask, Successor, TaskBagKind, TaskSource } from './types';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import { termFactory, TermOp } from '../kernel/terms/term';
+import { TaskType } from '../kernel/types';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Successor generation context. */
 export interface SuccessorContext {

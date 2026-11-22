@@ -1,9 +1,9 @@
 import { bench, describe } from 'vitest';
-import { beliefLens, contradictionLens } from '../../src/client/modulation/compile.js';
-import { evaluate } from '../../src/client/modulation/evaluate.js';
-import { createMemoCache, resetMemoCache } from '../../src/client/modulation/memo.js';
-import { evaluateModulation } from '../../src/client/modulation/operators.js';
-import type { Item, Lens, View } from '../../src/client/modulation/types.js';
+import { beliefLens, contradictionLens } from '../../src/client/modulation/compile';
+import { evaluate } from '../../src/client/modulation/evaluate';
+import { createMemoCache, resetMemoCache } from '../../src/client/modulation/memo';
+import { evaluateModulation } from '../../src/client/modulation/operators';
+import type { Item, Lens, View } from '../../src/client/modulation/types';
 
 function makeItems(n: number): Item[] {
   const items: Item[] = [];

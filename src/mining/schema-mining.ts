@@ -6,13 +6,13 @@
  */
 
 import type { Episode } from '@senars/types/episodic-memory';
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task } from '../types/task.js';
-import type { RandomSource } from '../types/primitives.js';
-import { createAikrBag, type AikrBagOptions, AIKRProcessor, BagPrioritySampling, type ProcessOptions, type BagSamplingStrategy } from '../learning/aikr-processor.js';
-import { SchemaInductor, type SchemaPattern, type InductionResult, type DerivationChainItem, type SchemaInductionConfig } from '../learning/schema-induction.js';
-import type { DomainLearner, DomainLearningEvent, LearnerDomain } from '../learning/domain-learners.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task } from '../types/task';
+import type { RandomSource } from '../types/primitives';
+import { createAikrBag, type AikrBagOptions, AIKRProcessor, BagPrioritySampling, type ProcessOptions, type BagSamplingStrategy } from '../learning/aikr-processor';
+import { SchemaInductor, type SchemaPattern, type InductionResult, type DerivationChainItem, type SchemaInductionConfig } from '../learning/schema-induction';
+import type { DomainLearner, DomainLearningEvent, LearnerDomain } from '../learning/domain-learners';
 import type { TextGenerator } from '../ports';
 
 // ============================================================================

@@ -1,7 +1,7 @@
 import { clamp01 } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { SeededRNG } from '@senars/util/random';
-import type { Game, GameOutcome, Perception } from '../Game.js';
+import type { Game, GameOutcome, Perception } from '../Game';
 
 export type Move2048 = 0 | 1 | 2 | 3; // left, up, right, down
 

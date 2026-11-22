@@ -9,11 +9,11 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import '../config-hud.js';
+import { customElement } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import '../config-hud';
 
 @customElement('s-settings')
 export class SettingsView extends SurfaceComponent {

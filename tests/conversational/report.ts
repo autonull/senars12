@@ -1,5 +1,5 @@
-import type { ProbeResult, ScenarioResult } from './framework.js';
-import type { LMProvider } from './providers.js';
+import type { ProbeResult, ScenarioResult } from './framework';
+import type { LMProvider } from './providers';
 
 export interface TestReport {
   provider: string;

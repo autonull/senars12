@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import type { MeTTaAtom } from '../types/ast.js';
+import type { MeTTaAtom } from '../types/ast';
 
 const MeTTaAtomSchema: v.GenericSchema<MeTTaAtom> = v.lazy(
   () =>

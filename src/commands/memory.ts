@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
-import type { CommandDefinition } from './types.js';
+import type { CommandDefinition } from './types';
 import { limitList } from '@senars/util/text';
 import { writeJsonFile } from '@senars/util/fs';
-import { filterByTerm } from '../memory/term-filter.js';
-import { narOf, requiring } from './utils.js';
+import { filterByTerm } from '../memory/term-filter';
+import { narOf, requiring } from './utils';
 
 const CONCEPT_PREVIEW_LIMIT = 20;
 

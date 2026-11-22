@@ -1,4 +1,4 @@
-import { SenarsError } from './senars-error.js';
+import { SenarsError } from './senars-error';
 
 export class PolicyViolation extends SenarsError {
   constructor(command: string, reason: string, options?: ErrorOptions) {

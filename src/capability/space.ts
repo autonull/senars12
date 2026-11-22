@@ -1,7 +1,7 @@
-import type { ApprovalService } from '../agent/ApprovalService.js';
+import type { ApprovalService } from '../agent/ApprovalService';
 import { BoundedRing } from '@senars/util/collections';
 import { errMsg } from '@senars/util/error';
-import type { CapabilityRisk } from '@senars/util/capability-risk.js';
+import type { CapabilityRisk } from '@senars/util/capability-risk';
 
 export type { CapabilityRisk };
 

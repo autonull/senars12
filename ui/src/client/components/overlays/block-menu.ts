@@ -8,26 +8,26 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { Announcer } from '../../core/announcer.js';
-import { artifactViewSpec } from '../../core/artifacts.js';
-import { capabilityGate, $capabilities } from '../../core/capabilities.js';
-import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus, toggleCollapsed } from '../../core/store.js';
-import { eventBus } from '../../core/events.js';
+import { customElement, property } from 'lit/decorators';
+import { Announcer } from '../../core/announcer';
+import { artifactViewSpec } from '../../core/artifacts';
+import { capabilityGate, $capabilities } from '../../core/capabilities';
+import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus, toggleCollapsed } from '../../core/store';
+import { eventBus } from '../../core/events';
 import {
   $embeddedViews,
   embeddedViewMeta,
   embeddedViewsFor,
   type EmbeddedViewId,
   toggleEmbeddedView,
-} from '../../core/embedded-views.js';
-import { explainModel } from '../../core/explain.js';
-import { neighborhood } from '../../core/neighborhood.js';
-import { $activeRenderer } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { linkMeta } from '../../utils/link-catalog.js';
+} from '../../core/embedded-views';
+import { explainModel } from '../../core/explain';
+import { neighborhood } from '../../core/neighborhood';
+import { $activeRenderer } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { linkMeta } from '../../utils/link-catalog';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index';
 
 @customElement('s-block-menu')
 export class BlockMenuView extends SurfaceComponent {

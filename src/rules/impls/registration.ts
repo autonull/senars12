@@ -18,10 +18,10 @@
  */
 import { keyedBy } from '@senars/util/collections';
 import { type Term, Truth } from '../../terms';
-import { NALExtendedRules } from '../extended/index.js';
-import { NALRules } from '../nal/index.js';
-import type { RuleDef, RuleFn } from '../types.js';
-import { RulePatterns } from './rule-patterns.js';
+import { NALExtendedRules } from '../extended/index';
+import { NALRules } from '../nal/index';
+import type { RuleDef, RuleFn } from '../types';
+import { RulePatterns } from './rule-patterns';
 
 const _rule = (
   id: string,

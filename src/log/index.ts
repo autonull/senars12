@@ -11,8 +11,8 @@ export type {
   EventLogConfig,
   EventLogQuery,
   CognitiveEvent,
-} from './events.js';
-export { LogStoreEventLog, InMemoryEventLog } from './EventLogAdapter.js';
-export { createLogStoreEventLog, createLogStoreEventLogFromStore } from './EventLogAdapter.js';
-export { createLogStore } from './store.js';
-export { replayTaskAdmissions } from './EventLogPersistence.js';
+} from './events';
+export { LogStoreEventLog, InMemoryEventLog } from './EventLogAdapter';
+export { createLogStoreEventLog, createLogStoreEventLogFromStore } from './EventLogAdapter';
+export { createLogStore } from './store';
+export { replayTaskAdmissions } from './EventLogPersistence';

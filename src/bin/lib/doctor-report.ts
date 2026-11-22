@@ -12,9 +12,9 @@
  */
 
 import { cpus } from 'node:os';
-import { createBotNAR } from '../../agent/index.js';
-import { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../state/index.js';
-import { runHealthChecks } from '../../health/index.js';
+import { createBotNAR } from '../../agent/index';
+import { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../state/index';
+import { runHealthChecks } from '../../health/index';
 import {
   cloudApiKey,
   endpointPath,
@@ -34,14 +34,14 @@ import {
   resolveLMSettings,
   resolveOfflineTier,
   setRouting,
-} from '../../lm/index.js';
+} from '../../lm/index';
 import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
-import type { HealthReport } from '@senars/types/health.js';
-import { LM_TASKS } from '@senars/types/llm.js';
-import { loadConfig } from '../../config/index.js';
-import { jsonMode } from '../commands/args.js';
-import { credentialReport } from './doctor-checks.js';
-import { type DerivationCost, runDerivationBenchmarks } from './benchmarks.js';
+import type { HealthReport } from '@senars/types/health';
+import { LM_TASKS } from '@senars/types/llm';
+import { loadConfig } from '../../config/index';
+import { jsonMode } from '../commands/args';
+import { credentialReport } from './doctor-checks';
+import { type DerivationCost, runDerivationBenchmarks } from './benchmarks';
 
 const logger = createLogger({ scope: 'doctor' });
 

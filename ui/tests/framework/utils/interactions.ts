@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import type { TestApiClient } from './test-api.js';
+import type { TestApiClient } from './test-api';
 
 /** Poll until the client reports a live WebSocket. */
 export async function waitConnected(api: TestApiClient, timeout = 10000): Promise<void> {

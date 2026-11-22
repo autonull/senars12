@@ -1,10 +1,10 @@
-import type { CapabilityApproval } from '../../capability/space.js';
-import type { ActionProposal } from '../../reflex/Reflex.js';
-import type { JudgmentDataset } from './distill.js';
-import { recordApprovalLabel } from './label-sources.js';
-import { type BandDecision, ConfidenceRouter } from './policy.js';
-import { seedDesire } from './seed.js';
-import type { JudgmentProposition } from './types.js';
+import type { CapabilityApproval } from '../../capability/space';
+import type { ActionProposal } from '../../reflex/Reflex';
+import type { JudgmentDataset } from './distill';
+import { recordApprovalLabel } from './label-sources';
+import { type BandDecision, ConfidenceRouter } from './policy';
+import { seedDesire } from './seed';
+import type { JudgmentProposition } from './types';
 
 export interface ActionGateTransducerOptions {
   /** HITL hook; headless environments auto-reject by default. */

@@ -11,13 +11,13 @@
  */
 
 import { css, html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { $workspaceGraph } from '../core/store.js';
-import { blockBodyStyles, renderBlockBody } from '../utils/render-block.js';
-import { collectSources } from '../core/citations.js';
+import { customElement, property, state } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { $workspaceGraph } from '../core/store';
+import { blockBodyStyles, renderBlockBody } from '../utils/render-block';
+import { collectSources } from '../core/citations';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../framework/index.js';
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../framework/index';
 
 type NodeTier = 'card' | 'full';
 

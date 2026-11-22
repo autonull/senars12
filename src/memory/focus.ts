@@ -1,6 +1,6 @@
 import { type Term, TermMap } from '../terms';
 import type { Task } from '../types';
-import type { Concept } from './concept.js';
+import type { Concept } from './concept';
 
 export interface FocusConfig {
   maxConcepts: number;

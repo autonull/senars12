@@ -11,7 +11,7 @@
  * `feasibility` twice and had never heard of `episodic_match`.
  */
 
-import { TASK_TYPES } from '@senars/schemas/task.js';
+import { TASK_TYPES } from '@senars/schemas/task';
 import { z } from 'zod';
 
 /** Local copy of SourceQualitySchema to avoid module evaluation order issues. */
@@ -30,7 +30,7 @@ import type {
   EvaluateQuery,
   JudgmentQuery,
   RubricId,
-} from './types.js';
+} from './types';
 
 export interface HeadSpec {
   readonly rubric: RubricId;

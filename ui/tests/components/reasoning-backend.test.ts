@@ -1,13 +1,13 @@
 import type { GraphNodeData } from '@senars/core';
 import { describe, expect, it } from 'vitest';
-import { narsBackend } from '../../src/client/core/nars-backend.js';
+import { narsBackend } from '../../src/client/core/nars-backend';
 import type {
   BackendEdge,
   BackendNode,
   ReasoningBackend,
-} from '../../src/client/core/reasoning-backend.js';
-import { $graphEdges, $graphNodes } from '../../src/client/core/store.js';
-import { payloadOf } from '../../src/client/core/block-payload.js';
+} from '../../src/client/core/reasoning-backend';
+import { $graphEdges, $graphNodes } from '../../src/client/core/store';
+import { payloadOf } from '../../src/client/core/block-payload';
 import {
   blockRefFor,
   claimId,
@@ -15,7 +15,7 @@ import {
   projectReasoning,
   projectWorkspace,
   resolveBlockRef,
-} from '../../src/client/core/workspace-projection.js';
+} from '../../src/client/core/workspace-projection';
 
 const engine = (
   nodes: GraphNodeData[] = [],

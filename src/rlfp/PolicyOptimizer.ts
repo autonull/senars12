@@ -3,9 +3,9 @@ import { mean } from '@senars/util/numeric';
 import { weightedMean } from '@senars/util/stats';
 import { ambientRng, nextInt, type RandomSource } from '@senars/util/random';
 
-import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import type { RewardModel } from './RewardModel.js';
-import { findCommonFeatures } from './utils.js';
+import type { TrajectoryStep } from './ReasoningTrajectoryLogger';
+import type { RewardModel } from './RewardModel';
+import { findCommonFeatures } from './utils';
 
 /** Prior-sample weight for a strategy's success rate: proven, or still unproven. */
 const PROVEN_WEIGHT = 10;

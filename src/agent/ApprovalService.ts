@@ -2,9 +2,9 @@ import { deferred, withTimeout } from '@senars/util/async';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { envBool } from '@senars/util/config';
-import { APPROVAL_TIMEOUT_MS } from './constants.js';
-import type { Verdict } from '../schemas/gate-io.js';
-import type { CapabilityRisk } from '@senars/util/capability-risk.js';
+import { APPROVAL_TIMEOUT_MS } from './constants';
+import type { Verdict } from '../schemas/gate-io';
+import type { CapabilityRisk } from '@senars/util/capability-risk';
 
 /** A question put to whoever holds the gate, and the one way it is answered.
  *  There is no rejection channel: a request nobody answered and a request that was

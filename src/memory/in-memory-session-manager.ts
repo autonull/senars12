@@ -1,7 +1,7 @@
-import type { ConversationSession, SessionManager } from '@senars/types/memory.js';
-import { trimCapped } from '@senars/util/collections.js';
-import { generateId } from '@senars/util/id.js';
-import { LruCache } from '@senars/util/lru-cache.js';
+import type { ConversationSession, SessionManager } from '@senars/types/memory';
+import { trimCapped } from '@senars/util/collections';
+import { generateId } from '@senars/util/id';
+import { LruCache } from '@senars/util/lru-cache';
 
 export function abortSession(session: ConversationSession): void {
   session.metadata.aborted = true;

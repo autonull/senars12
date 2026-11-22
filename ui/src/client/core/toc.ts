@@ -8,10 +8,10 @@
  * than from a re-derived parent map.
  */
 
-import { blockDescriptor, kindsWhere } from './block-descriptors.js';
-import { blockLabel } from './block-labels.js';
-import { sectionTree } from './sections.js';
-import type { BlockKind, Ref, WorkspaceGraph } from './workspace-graph.js';
+import { blockDescriptor, kindsWhere } from './block-descriptors';
+import { blockLabel } from './block-labels';
+import { sectionTree } from './sections';
+import type { BlockKind, Ref, WorkspaceGraph } from './workspace-graph';
 
 /** The block kinds worth a ToC row (paragraphs and raw payloads stay out). */
 export const TOC_KINDS_TYPE = kindsWhere((descriptor) => descriptor.navigable);

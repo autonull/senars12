@@ -5,8 +5,8 @@
  * regression detection, and certificate generation.
  */
 
-import type { Scorecard, EpisodeResult, ScorecardMetrics } from './pack.js';
-import type { HabitatConfig, HabitatId } from './habitat.js';
+import type { Scorecard, EpisodeResult, ScorecardMetrics } from './pack';
+import type { HabitatConfig, HabitatId } from './habitat';
 
 /** Fold identifier. */
 export type FoldId = string & { readonly __brand: unique symbol };

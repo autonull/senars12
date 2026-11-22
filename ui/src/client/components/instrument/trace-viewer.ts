@@ -4,12 +4,12 @@
  */
 
 import { css, html, nothing, TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { $workspaceGraph } from '../../core/store.js';
-import { type FocusRef, focus, type SemanticBlock } from '../../framework/index.js';
-import { resolveFocus } from '../../framework/resolver.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import '../primitives/icon.js';
+import { customElement, property, state } from 'lit/decorators';
+import { $workspaceGraph } from '../../core/store';
+import { type FocusRef, focus, type SemanticBlock } from '../../framework/index';
+import { resolveFocus } from '../../framework/resolver';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import '../primitives/icon';
 
 @customElement('s-trace-viewer')
 export class STraceViewer extends SurfaceComponent {

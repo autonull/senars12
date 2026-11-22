@@ -39,9 +39,9 @@ export {
   sliceConsumedPayload,
   sliceExhaustedPayload,
   sliceMergedPayload,
-} from './budget.js';
-export { BUDGET_TYPES, BudgetTypeSchema } from '../schemas/reasoning-budget.js';
-export { createCapturePhase, createReflectPhase, DEFAULT_MACRO_PIPELINE, runCycle } from '../agent/phases.js';
+} from './budget';
+export { BUDGET_TYPES, BudgetTypeSchema } from '../schemas/reasoning-budget';
+export { createCapturePhase, createReflectPhase, DEFAULT_MACRO_PIPELINE, runCycle } from '../agent/phases';
 export {
   ALL_RESOURCES,
   BUDGET_RESOURCES,
@@ -49,6 +49,6 @@ export {
   type BudgetResource,
   type ConsumedBudget,
   traceDimensions,
-} from './budget-resources.js';
-export type { BudgetEventMap } from './budget-events.js';
-export { announceBudgetTrace } from './budget-otel.js';
+} from './budget-resources';
+export type { BudgetEventMap } from './budget-events';
+export { announceBudgetTrace } from './budget-otel';

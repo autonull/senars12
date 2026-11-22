@@ -2,8 +2,8 @@
  * Deck Pressure — system pressure monitoring and visualization.
  */
 
-import type { EconomyState, SchedulerStats } from '@senars/economy/types.js';
-import type { RepertoireStats } from '@senars/admit/repertoire.js';
+import type { EconomyState, SchedulerStats } from '@senars/economy/types';
+import type { RepertoireStats } from '@senars/admit/repertoire';
 
 /** Pressure metrics. */
 export interface PressureMetrics {

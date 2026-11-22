@@ -1,7 +1,7 @@
 import { mulberry32 } from '@senars/util/random';
-import { isTruthEqual, Truth } from '../../terms/impls/Truth.js';
-import type { HiddenRule, OracleExpectation, ScenarioProfile } from '../types.js';
-import type { TermTruth } from '../../types/truth.js';
+import { isTruthEqual, Truth } from '../../terms/impls/Truth';
+import type { HiddenRule, OracleExpectation, ScenarioProfile } from '../types';
+import type { TermTruth } from '../../types/truth';
 
 export class HiddenModelOracle {
   private readonly hiddenRules: HiddenRule[];

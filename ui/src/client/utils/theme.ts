@@ -3,7 +3,7 @@ import {
   THEME_NAMES,
   TOKENS,
   type ThemeName,
-} from '../styles/tokens.generated.js';
+} from '../styles/tokens.generated';
 
 export type { ThemeName };
 export { THEME_NAMES };

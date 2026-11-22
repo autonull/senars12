@@ -1,6 +1,6 @@
-import type { BagOptions } from '../bag/index.js';
-import { PriorityBag } from '../bag/index.js';
-import { Focus, type FocusOptions } from './Focus.js';
+import type { BagOptions } from '../bag/index';
+import { PriorityBag } from '../bag/index';
+import { Focus, type FocusOptions } from './Focus';
 import {
   allocateFocusBudget,
   deserializeFocusWeights,
@@ -8,7 +8,7 @@ import {
   focusWeightMap,
   rebalanceFocusWeights,
   serializeFocusWeights,
-} from './weight-allocation.js';
+} from './weight-allocation';
 
 export interface FocusBagOptions
   extends Pick<BagOptions, 'capacity' | 'decayRate' | 'forgetRate' | 'rng' | 'clock' | 'id'> {}

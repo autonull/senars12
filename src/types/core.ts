@@ -6,21 +6,21 @@
 import { narCoreBounds, narCoreDefaults } from '../config';
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
-import type { Truth as TruthType } from '../terms/impls/Truth.js';
-import { canonicalTask } from '../terms/reduce-task.js';
-import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
-import type { Task } from './task.js';
+import type { Truth as TruthType } from '../terms/impls/Truth';
+import { canonicalTask } from '../terms/reduce-task';
+import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives';
+import type { Task } from './task';
 
-export type { Source, Stamp } from '../terms/impls/Stamp.js';
-export type { Truth as TruthType } from '../terms/impls/Truth.js';
+export type { Source, Stamp } from '../terms/impls/Stamp';
+export type { Truth as TruthType } from '../terms/impls/Truth';
 // Re-export domain types
-export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
+export type { AtomicTerm, CompoundTerm, Term } from '../terms/types';
 
 // Core identity and hashing
 
 // Branded types for temporal and probabilistic reasoning safety
-export type { Duration, Timestamp } from './primitives.js';
-export { createDuration, createTimestamp, DEPTH_MAX } from './primitives.js';
+export type { Duration, Timestamp } from './primitives';
+export { createDuration, createTimestamp, DEPTH_MAX } from './primitives';
 
 export type Hash = number;
 export type TermSymbol = string;
@@ -31,7 +31,7 @@ import type { Budget, TaskType } from '@senars/schemas';
 export type { Budget, TaskType };
 
 // Core Task interface — defined in ./task.js to break cycle with reduce-task.ts
-export type { Task } from './task.js';
+export type { Task } from './task';
 
 // Memory concepts
 export interface ConceptLike {

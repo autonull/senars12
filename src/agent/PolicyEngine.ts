@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { Verdict } from '../schemas/gate-io.js';
+import type { Verdict } from '../schemas/gate-io';
 import { containsPath } from '@senars/util/fs';
 
 export interface PolicyRule {

@@ -6,8 +6,8 @@
  * Gate events are identified by engine='kernel' and specific event types.
  */
 
-import type { LogStore } from './store.js';
-import type { CognitiveEvent } from './events.js';
+import type { LogStore } from './store';
+import type { CognitiveEvent } from './events';
 import { createLogger } from '@senars/util/logger';
 
 /** Gate log keys — must match nar/src/kernel/event-ring.ts */

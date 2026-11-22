@@ -1,15 +1,15 @@
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
-import { BaseComponent } from './base-component.js';
-import { surfaceRegistry, surfaceTag, type SurfaceDescriptor, type SurfaceSource } from './surface-registry.js';
-import { mountTestApi } from './store.js';
-import { createDefineTagged, type DescribedClass } from './define-contribution.js';
+import { BaseComponent } from './base-component';
+import { surfaceRegistry, surfaceTag, type SurfaceDescriptor, type SurfaceSource } from './surface-registry';
+import { mountTestApi } from './store';
+import { createDefineTagged, type DescribedClass } from './define-contribution';
 
 export type {
   SurfaceBinding,
   SurfaceDescriptor,
   SurfaceSource,
-} from './surface-registry.js';
+} from './surface-registry';
 
 /**
  * The reflective surface contract. A product surface declares a descriptor and

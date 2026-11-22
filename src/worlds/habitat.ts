@@ -5,9 +5,9 @@
  * explicit state transitions, and verifiable outcomes.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Task, TaskType } from '../kernel/types.js';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Task, TaskType } from '../kernel/types';
 
 /** Habitat identifier. */
 export type HabitatId = string & { readonly __brand: unique symbol };

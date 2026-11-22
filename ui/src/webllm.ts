@@ -18,7 +18,7 @@ import {
   CreateMLCEngine,
   type MLCEngineInterface,
 } from '@mlc-ai/web-llm';
-import { estimateTokens } from './shared/index.js';
+import { estimateTokens } from './shared/index';
 
 interface WebLLMModelConfig {
   modelId: string;

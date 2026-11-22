@@ -2,10 +2,10 @@
  * Task type definition — extracted to break reduce-task.ts <-> types/core.ts cycle.
  */
 
-import type { Term } from '../terms/types.js';
-import type { Truth } from '../terms/impls/Truth.js';
-import type { Stamp } from '../terms/impls/Stamp.js';
-import type { Timestamp } from './primitives.js';
+import type { Term } from '../terms/types';
+import type { Truth } from '../terms/impls/Truth';
+import type { Stamp } from '../terms/impls/Stamp';
+import type { Timestamp } from './primitives';
 import type { Budget, TaskType } from '@senars/schemas';
 
 // Core Task interface

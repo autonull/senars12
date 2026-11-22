@@ -2,16 +2,16 @@ import type { ReasoningBudget } from '@senars/schemas';
 import { ambientRng, nextInt } from '@senars/util/random';
 import { maxBy } from '@senars/util/collections';
 import { QTable, ucb } from '@senars/util/bandit';
-import { type Game, type GameOutcome, perceptionKey } from '../../game/Game.js';
-import type { Decider } from './decide.js';
-import type { JudgmentDataset } from './distill.js';
-import { recordReflexOutcome } from './reflex-label-source.js';
+import { type Game, type GameOutcome, perceptionKey } from '../../game/Game';
+import type { Decider } from './decide';
+import type { JudgmentDataset } from './distill';
+import { recordReflexOutcome } from './reflex-label-source';
 import type {
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
   JudgmentManifold,
-} from './types.js';
+} from './types';
 
 export interface ManifoldRLAgentOptions {
   cache: EmbeddingCache;

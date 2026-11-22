@@ -7,16 +7,16 @@ export type {
   CapabilityResult,
   CapabilityRisk,
   CapabilitySpaceOptions,
-} from './space.js';
-export { CapabilitySpace } from './space.js';
+} from './space';
+export { CapabilitySpace } from './space';
 export {
   CapabilityOntology,
   createCapabilityOntology,
   type CapabilityOntologyEntry,
   type CapabilitySchema,
   type CapabilityType,
-} from './ontology.js';
-export type { WasiSandboxOptions, WasmModuleOptions } from './wasi-sandbox.js';
+} from './ontology';
+export type { WasiSandboxOptions, WasmModuleOptions } from './wasi-sandbox';
 export {
   assertWasmPathContained,
   containsPath,
@@ -27,4 +27,4 @@ export {
   SandboxTimeoutError,
   sanitizePreopens,
   withSandboxTimeout,
-} from './wasi-sandbox.js';
+} from './wasi-sandbox';

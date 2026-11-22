@@ -1,37 +1,37 @@
 import '../../styles/theme.css';
-import { addAgentMessage, addUserMessage, connect, mountWorkspaceProjection } from '../../kernel/index.js';
+import { addAgentMessage, addUserMessage, connect, mountWorkspaceProjection } from '../../kernel/index';
 
 // App surfaces (self-contained full panes).
-import '../ask/ask-app-v2.js';
-import '../notebook/notebook-app.js';
-import '../console/console-app.js';
-import '../goals/goals-app.js';
-import '../explore/explore-app.js';
-import '../hud/hud-app.js';
+import '../ask/ask-app-v2';
+import '../notebook/notebook-app';
+import '../console/console-app';
+import '../goals/goals-app';
+import '../explore/explore-app';
+import '../hud/hud-app';
 
 // Graph chrome + panels + views.
-import '../../components/renderers/graph-surface.js';
-import '../../core/view-host.js';
-import '../../components/views/index.js';
-import '../../spacegraph/spacegraph-viewport.js';
-import '../../components/graph-minimap.js';
-import '../../components/graph-legend.js';
-import '../../components/graph-toolbar.js';
-import '../../components/lens-controller.js';
-import '../../components/cognitive-metrics.js';
-import '../../components/telemetry-panel.js';
-import '../../components/chat-history-panel.js';
-import '../../components/node-detail-drawer.js';
-import '../../components/timeline-scrubber.js';
-import '../../components/config-hud.js';
-import '../../components/lens-designer.js';
-import '../../components/overlays/toc.js';
-import '../../components/overlays/events.js';
-import '../../components/overlays/nodes.js';
-import '../../components/overlays/related.js';
-import '../../components/overlays/explain.js';
+import '../../components/renderers/graph-surface';
+import '../../core/view-host';
+import '../../components/views/index';
+import '../../spacegraph/spacegraph-viewport';
+import '../../components/graph-minimap';
+import '../../components/graph-legend';
+import '../../components/graph-toolbar';
+import '../../components/lens-controller';
+import '../../components/cognitive-metrics';
+import '../../components/telemetry-panel';
+import '../../components/chat-history-panel';
+import '../../components/node-detail-drawer';
+import '../../components/timeline-scrubber';
+import '../../components/config-hud';
+import '../../components/lens-designer';
+import '../../components/overlays/toc';
+import '../../components/overlays/events';
+import '../../components/overlays/nodes';
+import '../../components/overlays/related';
+import '../../components/overlays/explain';
 
-import './lab-app.js';
+import './lab-app';
 
 connect();
 mountWorkspaceProjection();

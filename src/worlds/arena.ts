@@ -5,8 +5,8 @@
  * enabling tournaments, cooperation tests, and comparison.
  */
 
-import type { HabitatConfig, HabitatState, HabitatAction, HabitatStepResult, HabitatRegistry } from './habitat.js';
-import type { Scorecard, EpisodeResult } from './pack.js';
+import type { HabitatConfig, HabitatState, HabitatAction, HabitatStepResult, HabitatRegistry } from './habitat';
+import type { Scorecard, EpisodeResult } from './pack';
 
 /** Arena identifier. */
 export type ArenaId = string & { readonly __brand: unique symbol };

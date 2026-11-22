@@ -11,36 +11,36 @@
  * module that grows a field cannot silently widen a sibling's.
  */
 /** Truth schemas — imported first to break circular dependency with cognitive-events → proposal → truth. */
-export type { CeilingLimits, CeilingReputation, SourceQuality, TruthValue } from './truth.js';
+export type { CeilingLimits, CeilingReputation, SourceQuality, TruthValue } from './truth';
 export {
   confidenceCeiling,
   SOURCE_QUALITY_CONFIDENCE,
   SourceQualitySchema,
   TruthValueSchema,
-} from './truth.js';
+} from './truth';
 /** Budget types — shared to avoid circular dependency. */
 export type {
   BudgetScopeId,
   BudgetType,
   TerminationReason,
-} from './budget-types.js';
+} from './budget-types';
 export {
   BUDGET_SCOPE_IDS,
   BUDGET_TYPES,
   BudgetTypeSchema,
   TerminationReasonSchema,
-} from './budget-types.js';
+} from './budget-types';
 /** Reasoning budget — uses budget-types. */
 export type {
   ConsumedBudget,
   ReasoningBudget,
-} from './reasoning-budget.js';
+} from './reasoning-budget';
 export {
   ConsumedBudgetSchema,
   ReasoningBudgetSchema,
   validateReasoningBudget,
   zeroConsumed,
-} from './reasoning-budget.js';
+} from './reasoning-budget';
 export type {
   AutonomyModeChangedEvent,
   BeliefRevisedEvent,
@@ -56,7 +56,7 @@ export type {
   ShadowValidationDropEvent,
   StimulusSource,
   TaskAdmittedEvent,
-} from './cognitive-events.js';
+} from './cognitive-events';
 export {
   AutonomyModeChangedEventSchema,
   BeliefRevisedEventSchema,
@@ -76,14 +76,14 @@ export {
   StimulusSourceSchema,
   TaskAdmittedEventSchema,
   validateCognitiveEvent,
-} from './cognitive-events.js';
+} from './cognitive-events';
 export type {
   Budget,
   HistoryEntry,
   Independence,
   RulePattern,
   RulePatternSide,
-} from './common.js';
+} from './common';
 export {
   BudgetSchema,
   HistoryEntrySchema,
@@ -91,16 +91,16 @@ export {
   IndependenceSchema,
   RulePatternSchema,
   RulePatternSideSchema,
-} from './common.js';
-export type { DerivationRecord, DerivationStep, RuleCategory } from './derivation-records.js';
+} from './common';
+export type { DerivationRecord, DerivationStep, RuleCategory } from './derivation-records';
 export {
   DerivationRecordSchema,
   DerivationStepSchema,
   RULE_CATEGORIES,
   RuleCategorySchema,
   validateDerivationRecord,
-} from './derivation-records.js';
-export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';
+} from './derivation-records';
+export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base';
 export type {
   AmbiguityFlag,
   AmbiguityReport,
@@ -110,7 +110,7 @@ export type {
   FormalizationBatch,
   FormalizationCandidate,
   SourceSpan,
-} from './formalization.js';
+} from './formalization';
 export {
   AMBIGUITY_SEVERITIES,
   AMBIGUITY_SEVERITY,
@@ -125,7 +125,7 @@ export {
   SourceSpanSchema,
   validateFormalizationBatch,
   validateFormalizationCandidate,
-} from './formalization.js';
+} from './formalization';
 /**
  * Gate I/O types and schemas are deliberately NOT re-exported from this barrel
  * to avoid a circular dependency with reasoning-budget. Import directly from
@@ -142,7 +142,7 @@ export type {
   RiskAssessment,
   RiskLevel,
   SelfImprovementProposal,
-} from './governance.js';
+} from './governance';
 export {
   AUTONOMITY_AUTHORITIES,
   AutonomyAuthoritySchema,
@@ -160,10 +160,10 @@ export {
   RiskLevelSchema,
   riskLevelOf,
   SelfImprovementProposalSchema,
-} from './governance.js';
-export { NarEventSchemas } from './nar-events.js';
-export type { KernelControlState } from './nar-events.js';
-export { KERNEL_CONTROL_STATES } from './nar-events.js';
+} from './governance';
+export { NarEventSchemas } from './nar-events';
+export type { KernelControlState } from './nar-events';
+export { KERNEL_CONTROL_STATES } from './nar-events';
 export type {
   ContentProposal,
   Proposal,
@@ -171,7 +171,7 @@ export type {
   ProposalRejectedEvent,
   ProposalRejection,
   RuleProposal,
-} from './proposal.js';
+} from './proposal';
 export {
   ContentProposalSchema,
   PROPOSAL_KINDS,
@@ -180,8 +180,8 @@ export {
   ProposalSchema,
   RuleProposalSchema,
   validateProposal,
-} from './proposal.js';
-export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events.js';
+} from './proposal';
+export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events';
 export type {
   RuleArtifactEntry,
   RuleDeclaration,
@@ -190,7 +190,7 @@ export type {
   RuleTableDiff,
   RuleTableFault,
   RuleTableRejection,
-} from './rule-table.js';
+} from './rule-table';
 export {
   BUILTIN_RULE_ARTIFACT_VERSION,
   RULE_TABLE_REJECTIONS,
@@ -200,8 +200,8 @@ export {
   RuleProvenanceSchema,
   RuleTableSchema,
   validateRuleTable,
-} from './rule-table.js';
-export type { TaskBagKind, TaskPunctuation, TaskType } from './task.js';
+} from './rule-table';
+export type { TaskBagKind, TaskPunctuation, TaskType } from './task';
 export {
   TASK_BAG_KINDS,
   TASK_PUNCTUATION,
@@ -212,7 +212,7 @@ export {
   TaskTypeSchema,
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
-} from './task.js';
+} from './task';
 
 /**
  * Which cognitive events the append-only log keeps, and which of those episodic
@@ -224,4 +224,4 @@ export {
   RECALLED_EVENT_TYPES,
   isDurableEvent,
   recalledEventTypes,
-} from './recalled-events.js';
+} from './recalled-events';

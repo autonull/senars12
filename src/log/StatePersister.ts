@@ -6,14 +6,14 @@
  * It provides the same interface as the legacy StatePersister for compatibility.
  */
 
-import type { LogStore } from './store.js';
-import { SnapshotManager, createSnapshotManager, type SnapshotConfig } from './snapshot.js';
-import { encodeState, decodeState, NAR_STATE_SCHEMA_VERSION } from '../state/codec.js';
-import { serializeTaskRecord, rehydrateTask, type TaskRecord } from '../task/record.js';
-import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILENAME } from '../state/boundary.js';
+import type { LogStore } from './store';
+import { SnapshotManager, createSnapshotManager, type SnapshotConfig } from './snapshot';
+import { encodeState, decodeState, NAR_STATE_SCHEMA_VERSION } from '../state/codec';
+import { serializeTaskRecord, rehydrateTask, type TaskRecord } from '../task/record';
+import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILENAME } from '../state/boundary';
 import type { Memory } from '../memory';
 import type { DriveManager } from '../drives';
-import type { QueryAPI } from '../query/api.js';
+import type { QueryAPI } from '../query/api';
 import { createLogger } from '@senars/util/logger';
 import type { TaskType } from '../types';
 import { termParser } from '../terms';
@@ -283,7 +283,7 @@ export class LogStoreStatePersister {
       this.logger.info('NAR state snapshot restored', { seq, timestamp: snapshot.timestamp });
 
       // Replay events from snapshot to current head
-      const { replay } = await import('./replay.js');
+      const { replay } = await import('./replay');
       const reducer = createNARStateReducer(this.deps);
 
       await replay(this.store, {

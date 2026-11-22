@@ -3,13 +3,13 @@
  */
 
 import { describe, expect, it, beforeEach } from 'vitest';
-import { createCalibrationManager } from '../../src/faculties/judgment/calibration.js';
-import { createJudge } from '../../src/faculties/judgment/judge.js';
-import { createTelemetryCollector, MemoryTelemetrySink } from '../../src/faculties/judgment/telemetry.js';
-import type { JudgmentCandidate, JudgmentContext } from '../../src/faculties/judgment/cascade.js';
-import { termInterner } from '../../src/kernel/terms/intern.js';
-import { createTask } from '../../src/kernel/types.js';
-import { Truth } from '../../src/kernel/truth.js';
+import { createCalibrationManager } from '../../src/faculties/judgment/calibration';
+import { createJudge } from '../../src/faculties/judgment/judge';
+import { createTelemetryCollector, MemoryTelemetrySink } from '../../src/faculties/judgment/telemetry';
+import type { JudgmentCandidate, JudgmentContext } from '../../src/faculties/judgment/cascade';
+import { termInterner } from '../../src/kernel/terms/intern';
+import { createTask } from '../../src/kernel/types';
+import { Truth } from '../../src/kernel/truth';
 
 describe('W5 — judgment telemetry', () => {
   let sink: MemoryTelemetrySink;

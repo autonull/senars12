@@ -1,5 +1,5 @@
-import { expect, test } from '../framework/fixtures/senars-app.js';
-import { LEGIBLE_NODE_PX, ZOOM } from '../../src/client/utils/graph-scaling.js';
+import { expect, test } from '../framework/fixtures/senars-app';
+import { LEGIBLE_NODE_PX, ZOOM } from '../../src/client/utils/graph-scaling';
 
 type GraphProbe = {
   graph?: {

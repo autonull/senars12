@@ -6,12 +6,12 @@
  * provides an independent execution path for cross-checking.
  */
 
-import { Term, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Truth, type TruthValue } from '../../kernel/truth.js';
-import { Stamp } from '../../kernel/stamp.js';
-import type { RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult, Logic } from '../port.js';
-import type { NALTerm, NALPremise, NALStepResult } from './rules-ast.js';
-import { NAL_RULES_AST } from './rules-ast.js';
+import { Term, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Truth, type TruthValue } from '../../kernel/truth';
+import { Stamp } from '../../kernel/stamp';
+import type { RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult, Logic } from '../port';
+import type { NALTerm, NALPremise, NALStepResult } from './rules-ast';
+import { NAL_RULES_AST } from './rules-ast';
 
 /** Evaluation context for the interpreter. */
 interface EvalContext {

@@ -9,8 +9,8 @@
 
 import { HEALTH_STATUSES } from '../util/health-status';
 import { z } from 'zod';
-import { CognitiveEventBaseSchema } from './event-base.js';
-import { TruthValueSchema } from './truth.js';
+import { CognitiveEventBaseSchema } from './event-base';
+import { TruthValueSchema } from './truth';
 
 /** Nar events are the `engine: 'nar'` discriminant `isNarEvent` narrows on. */
 const NarBase = CognitiveEventBaseSchema.extend({ engine: z.literal('nar') });

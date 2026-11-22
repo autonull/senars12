@@ -2,16 +2,16 @@ import { stopwatch } from '@senars/util/async';
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
-import { withSpan } from '../../otel/index.js';
-import type { ILMService } from '../interfaces.js';
-import { toCachedJsonSchema } from '../json.js';
-import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
-import { LM_PROVIDER_NAMES } from '../env-config.js';
+import { withSpan } from '../../otel/index';
+import type { ILMService } from '../interfaces';
+import { toCachedJsonSchema } from '../json';
+import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime';
+import { LM_PROVIDER_NAMES } from '../env-config';
 import type {
   LMProviderName,
   ModelDownloadProgressCallback,
   SeNARSRegistry,
-} from '../providers.js';
+} from '../providers';
 import type {
   LMGenerateOptions,
   LMTask,
@@ -24,13 +24,13 @@ import {
   getModelForTask,
   resolveActiveProvider,
   setBuiltinProgressCallback,
-} from '../providers.js';
-import { CallAccounting, type CallEnvelope, type Gate, textCodec } from './accounting.js';
-import { buildCacheKey } from './cache.js';
-import { LMUnavailableError, temperatureLadder } from './errors.js';
-import { enforceLMOutputSize, LMOutputTooLargeError, maxLMOutputChars } from './sanitize.js';
-import type { ProviderSpend } from './spend.js';
-import { generateObjectViaText } from './structured.js';
+} from '../providers';
+import { CallAccounting, type CallEnvelope, type Gate, textCodec } from './accounting';
+import { buildCacheKey } from './cache';
+import { LMUnavailableError, temperatureLadder } from './errors';
+import { enforceLMOutputSize, LMOutputTooLargeError, maxLMOutputChars } from './sanitize';
+import type { ProviderSpend } from './spend';
+import { generateObjectViaText } from './structured';
 
 /** AI SDK model provider ids → SeNARS CHAINS keys. */
 const PROVIDER_ALIASES: Readonly<Record<string, LMProviderName>> = Object.freeze({

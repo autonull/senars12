@@ -9,9 +9,9 @@
 
 import { BoundedRing, removeLastBy } from '@senars/util/collections';
 
-import { CYCLE_STAGES, type TraceRegion } from './stages.js';
+import { CYCLE_STAGES, type TraceRegion } from './stages';
 
-export type { CycleStage, TraceRegion } from './stages.js';
+export type { CycleStage, TraceRegion } from './stages';
 
 export interface CycleStageEvent {
   readonly cycle: number;

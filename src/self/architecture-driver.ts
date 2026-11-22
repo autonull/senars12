@@ -183,7 +183,7 @@ export class ArchitectureDriver {
   private async injectSelfBeliefs(gap: ArchitectureGap): Promise<void> {
     try {
       await this.nar.believe(gap.narseseBelief);
-      const { Truth } = await import('../terms/impls/Truth.js');
+      const { Truth } = await import('../terms/impls/Truth');
       await this.nar.goal(gap.narseseGoal, Truth.create(0.8, 0.9));
     } catch (error) {
       console.warn('Failed to inject self-beliefs:', error);

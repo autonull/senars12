@@ -4,7 +4,7 @@
  * (src/config/schema.ts), and UI slider configs.
  * Avoids drift between validation limits, config defaults, and UI control ranges.
  */
-import { nestedBounds } from './bounds.js';
+import { nestedBounds } from './bounds';
 
 export const cognitiveBounds = {
   priority: {

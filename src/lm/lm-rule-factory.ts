@@ -4,15 +4,15 @@
  */
 import type { Term } from '../terms';
 import type { Task } from '../types';
-import type { LMRule } from './LMRule.js';
-import type { LMService } from './lm-service.js';
-import type { LMRuleFactoryConfig } from './rule-builders.js';
-import { createCustomRule, createRule } from './rule-builders.js';
-import { getRuleDef, ruleDefs } from './rule-templates/index.js';
+import type { LMRule } from './LMRule';
+import type { LMService } from './lm-service';
+import type { LMRuleFactoryConfig } from './rule-builders';
+import { createCustomRule, createRule } from './rule-builders';
+import { getRuleDef, ruleDefs } from './rule-templates/index';
 
-export type { LMRuleDefinition } from './rule-templates/definition.js';
-export type { LMRuleFactoryConfig } from './rule-builders.js';
-export { LMRules } from './rule-selectors/factory.js';
+export type { LMRuleDefinition } from './rule-templates/definition';
+export type { LMRuleFactoryConfig } from './rule-builders';
+export { LMRules } from './rule-selectors/factory';
 
 export class LMRuleFactory {
   private readonly config: LMRuleFactoryConfig;

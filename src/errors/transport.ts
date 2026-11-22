@@ -1,4 +1,4 @@
-import { codedError } from './senars-error.js';
+import { codedError } from './senars-error';
 
 export const TransportError = codedError('TransportError', 'TRANSPORT_ERROR');
 export type TransportError = InstanceType<typeof TransportError>;

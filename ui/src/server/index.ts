@@ -17,18 +17,18 @@ import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
-import { applyConfigField, buildConfigSchema } from './config-schema.js';
-import { spendTerminations, type SpendSummary, mergeSpendSummaries } from './spend-terminations.js';
+import { applyConfigField, buildConfigSchema } from './config-schema';
+import { spendTerminations, type SpendSummary, mergeSpendSummaries } from './spend-terminations';
 import {
   BOOTSTRAP_SCENARIO,
   loadScenario,
   scenarioById,
   scenarioIds,
   type Scenario,
-} from './scenarios.js';
-import { UnifiedGraphProjection, type GraphEdge } from './UnifiedGraphProjection.js';
-import { dispatchGraphEvent, type ReducerContext } from './event-reducers.js';
-import { handleClientMessage, initializeHandlers, getProtocolCatalog, type HandlerContext } from './handler-registry.js';
+} from './scenarios';
+import { UnifiedGraphProjection, type GraphEdge } from './UnifiedGraphProjection';
+import { dispatchGraphEvent, type ReducerContext } from './event-reducers';
+import { handleClientMessage, initializeHandlers, getProtocolCatalog, type HandlerContext } from './handler-registry';
 import {
   testState,
   clearTestState,
@@ -48,7 +48,7 @@ import {
   RevisionEntry,
   DEFAULT_RUN_CYCLES,
   ASK_RUN_CYCLES,
-} from './server-utils.js';
+} from './server-utils';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
@@ -57,7 +57,7 @@ const TEST_ENDPOINTS = envBool('SENARS_TEST_ENDPOINTS', process.env.NODE_ENV !==
 
 const mimeTypes: Record<string, string> = {
   '.html': 'text/html',
-  '.js': 'application/javascript',
+  '': 'application/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
   '.png': 'image/png',

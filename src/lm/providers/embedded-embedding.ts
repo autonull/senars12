@@ -7,9 +7,9 @@
  * receives and the manifold's scorers hash a fixed sample, so nothing here
  * carries a 384-dimension assumption.
  */
-import type { EmbeddingGenerator } from '../../memory/embedding.js';
-import { getEmbeddingContext } from '../runtime/llama-runtime.js';
-import { ensureRuntimeLoaded } from './embedded-llamacpp.js';
+import type { EmbeddingGenerator } from '../../memory/embedding';
+import { getEmbeddingContext } from '../runtime/llama-runtime';
+import { ensureRuntimeLoaded } from './embedded-llamacpp';
 
 export class LlamaCppEmbeddingGenerator implements EmbeddingGenerator {
   #dimension = 0;

@@ -3,8 +3,8 @@
  * Tests the SeNARS MCP server using the official SDK client
  */
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
 
 async function runIntegrationTest() {
   console.log('Starting MCP integration test...');

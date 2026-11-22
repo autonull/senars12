@@ -7,7 +7,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { collectUpTo } from './collections.js';
+import { collectUpTo } from './collections';
 
 export interface JsonlLoadResult<T> {
   rows: T[];

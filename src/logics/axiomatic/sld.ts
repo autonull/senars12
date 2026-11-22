@@ -5,7 +5,7 @@
  * This is the deterministic, synchronous inference engine for the axiomatic module.
  */
 
-import { Term, VariableTerm, TermOp, termInterner, CompoundTerm, ConstantTerm } from '../../kernel/terms/intern.js';
+import { Term, VariableTerm, TermOp, termInterner, CompoundTerm, ConstantTerm } from '../../kernel/terms/intern';
 import {
   Atom,
   Clause,
@@ -17,7 +17,7 @@ import {
   freeVariables,
   clause,
   literal,
-} from './ast.js';
+} from './ast';
 
 /** SLD engine configuration. */
 export interface SLDConfig {

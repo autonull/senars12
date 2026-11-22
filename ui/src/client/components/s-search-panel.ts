@@ -1,8 +1,8 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
-import { $graphNodes } from '../core/store.js';
-import { BaseComponent } from '../core/base-component.js';
+import { customElement, property, state } from 'lit/decorators';
+import { classMap } from 'lit/directives/class-map';
+import { $graphNodes } from '../core/store';
+import { BaseComponent } from '../core/base-component';
 
 @customElement('s-search-panel')
 export class SSearchPanel extends BaseComponent {
@@ -46,7 +46,7 @@ export class SSearchPanel extends BaseComponent {
   }
 
   private handleClose() {
-    import('../core/store.js').then(({ togglePanel }) => togglePanel('search'));
+    import('../core/store').then(({ togglePanel }) => togglePanel('search'));
   }
 }
 

@@ -14,7 +14,7 @@
  * copy is how a gate ends up charging `cycles` where the engine charges
  * `llmCalls`.
  */
-import type { ReasoningBudget, TerminationReason } from '../schemas/index.js';
+import type { ReasoningBudget, TerminationReason } from '../schemas/index';
 
 export type { TerminationReason };
 

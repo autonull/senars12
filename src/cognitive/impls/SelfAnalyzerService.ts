@@ -18,15 +18,15 @@ import type {
   SelfAnalyzerConfig,
 } from '../types';
 import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities';
-import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
-import { analyzePerformancePatterns } from './analyzers/performance.js';
-import { createPolicyManager } from './analyzers/policy.js';
-import { assessQuality } from './analyzers/quality.js';
-import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
-import { getResourceAnalysis } from './analyzers/resources.js';
-import type { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
+import { applyCorrections, identifyIssues } from './analyzers/corrections';
+import { analyzePerformancePatterns } from './analyzers/performance';
+import { createPolicyManager } from './analyzers/policy';
+import { assessQuality } from './analyzers/quality';
+import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns';
+import { getResourceAnalysis } from './analyzers/resources';
+import type { MetacognitiveMonitor } from './MetacognitiveMonitor';
 
-export type { MetaCognitiveResult, MonitorState } from '../types.js';
+export type { MetaCognitiveResult, MonitorState } from '../types';
 
 const log = createLogger({ scope: 'self-analyzer' });
 

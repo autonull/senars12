@@ -4,9 +4,9 @@
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { JudgmentContext, JudgmentResult, JudgmentCandidate, JudgmentStage } from './cascade.js';
-import type { CalibrationResult } from './calibration.js';
-import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env.js';
+import type { JudgmentContext, JudgmentResult, JudgmentCandidate, JudgmentStage } from './cascade';
+import type { CalibrationResult } from './calibration';
+import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env';
 
 /** Telemetry event types. */
 export const TELEMETRY_EVENT_TYPES = [

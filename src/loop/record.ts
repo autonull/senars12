@@ -4,12 +4,12 @@
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { Task, TaskType, TimestampMs } from '../kernel/types.js';
-import type { Truth } from '../kernel/truth.js';
-import type { SelectionResult } from './select.js';
-import type { ActionResult } from './act.js';
-import type { JudgmentResult } from '../faculties/judgment/cascade.js';
-import type { Clock, IDGenerator } from '../kernel/env.js';
+import type { Task, TaskType, TimestampMs } from '../kernel/types';
+import type { Truth } from '../kernel/truth';
+import type { SelectionResult } from './select';
+import type { ActionResult } from './act';
+import type { JudgmentResult } from '../faculties/judgment/cascade';
+import type { Clock, IDGenerator } from '../kernel/env';
 
 /** Record types. */
 export const RECORD_TYPES = [

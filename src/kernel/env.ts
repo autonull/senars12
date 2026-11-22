@@ -6,13 +6,13 @@
  * substituting deterministic implementations.
  */
 
-import type { UUID, TimestampMs } from '../generated/schemas.js';
-import type { OracleRegistry } from '../oracles/oracle.js';
-import type { FacultyRegistry } from '../faculties/specs.js';
-import type { Economy } from '../economy/index.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
+import type { OracleRegistry } from '../oracles/oracle';
+import type { FacultyRegistry } from '../faculties/specs';
+import type { Economy } from '../economy/index';
 
 /** Re-export TimestampMs for consumers. */
-export type { TimestampMs } from '../generated/schemas.js';
+export type { TimestampMs } from '../generated/schemas';
 
 /** Random number generator interface. */
 export interface RNG {

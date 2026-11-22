@@ -1,8 +1,8 @@
-import type { Concept } from '../memory/concept.js';
-import type { AutonomyNAR } from './ports.js';
-import { resolveAutonomyConfig } from './config.js';
-import { AutonomyHeartbeat } from './heartbeat.js';
-import type { AutonomyPorts } from './types.js';
+import type { Concept } from '../memory/concept';
+import type { AutonomyNAR } from './ports';
+import { resolveAutonomyConfig } from './config';
+import { AutonomyHeartbeat } from './heartbeat';
+import type { AutonomyPorts } from './types';
 
 /**
  * The confidence the curiosity policy ranks on: the concept's best-supported

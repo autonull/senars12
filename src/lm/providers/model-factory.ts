@@ -14,16 +14,16 @@ import {
   cloudApiKey,
   defaultModelFor,
   type LMSettings,
-} from '../env-config.js';
+} from '../env-config';
 
-import { delegate } from '../provider-runtime.js';
-import { createEmbeddedLlamaCppLanguageModel } from './embedded-llamacpp.js';
-import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT } from './llamacpp.js';
-import { createMockModel } from './mock-model.js';
-import { resolveOfflineTier } from './routing.js';
-import { getLMSettings } from './settings.js';
-import { withThinkingDisabled } from './thinking.js';
-import { detectDevice, getWebLLMRuntime } from './webllm.js';
+import { delegate } from '../provider-runtime';
+import { createEmbeddedLlamaCppLanguageModel } from './embedded-llamacpp';
+import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT } from './llamacpp';
+import { createMockModel } from './mock-model';
+import { resolveOfflineTier } from './routing';
+import { getLMSettings } from './settings';
+import { withThinkingDisabled } from './thinking';
+import { detectDevice, getWebLLMRuntime } from './webllm';
 
 // S4 (TODO20): strip tool-calling directives local models cannot honor —
 // prevents spoofed function-call payloads from leaking into responses.

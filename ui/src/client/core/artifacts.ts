@@ -6,11 +6,11 @@
  * unsupported block returns `undefined` rather than a wrong view.
  */
 
-import type { ChartData, ConfigChangeData, DerivationData, DerivationRecordData } from './block-payload.js';
-import { payloadOf } from './block-payload.js';
-import { blockDescriptor } from './block-descriptors.js';
-import { linkMeta, LINK_KINDS } from '../utils/link-catalog.js';
-import { diffLines } from './diff.js';
+import type { ChartData, ConfigChangeData, DerivationData, DerivationRecordData } from './block-payload';
+import { payloadOf } from './block-payload';
+import { blockDescriptor } from './block-descriptors';
+import { linkMeta, LINK_KINDS } from '../utils/link-catalog';
+import { diffLines } from './diff';
 import type {
   CodeDataset,
   ColumnSpec,
@@ -22,8 +22,8 @@ import type {
   TextDataset,
   ViewSource,
   ViewSpec,
-} from './view-spec.js';
-import type { SemanticBlock, SemanticLinkKind } from './workspace-graph.js';
+} from './view-spec';
+import type { SemanticBlock, SemanticLinkKind } from './workspace-graph';
 
 /** Build a `TableDataset` from a header row and a matrix of cell values. */
 export function tableFromColumns(

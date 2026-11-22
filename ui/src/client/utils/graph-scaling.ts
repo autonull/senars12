@@ -5,7 +5,7 @@
  * T.4) share one definition and the tokens are the only source of the numbers.
  */
 
-import { numericToken, token } from './theme.js';
+import { numericToken, token } from './theme';
 
 const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
 

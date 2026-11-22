@@ -6,7 +6,7 @@
  * chat block, an artifact and an engine claim navigate identically.
  */
 
-import { type Ref, type SemanticBlock, type SemanticLink, type WorkspaceGraph } from './workspace-graph.js';
+import { type Ref, type SemanticBlock, type SemanticLink, type WorkspaceGraph } from './workspace-graph';
 import { neighborhood as contractNeighborhood } from '@senars/ui-contract/core';
 
 export interface Neighbor {

@@ -5,10 +5,10 @@
  * DO NOT EDIT MANUALLY - changes will be overwritten.
  */
 
-import type { MCPTool } from './types.js';
-import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index.js';
-import type { Artifact, ArtifactKind } from '../../admit/repertoire.js';
-import type { Curriculum } from '../../admit/curriculum.js';
+import type { MCPTool } from './types';
+import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index';
+import type { Artifact, ArtifactKind } from '../../admit/repertoire';
+import type { Curriculum } from '../../admit/curriculum';
 
 /** Generated tool registry. */
 export interface GeneratedToolRegistry {

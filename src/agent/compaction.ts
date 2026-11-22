@@ -1,5 +1,5 @@
 import type { CortexSynthesizeRequest, PromptBuilder } from '@senars/cortex';
-import type { LMService } from '../lm/lm-service.js';
+import type { LMService } from '../lm/lm-service';
 
 export interface CompactionConfig {
   /** Working-memory entries beyond this trigger (re)summarization. */

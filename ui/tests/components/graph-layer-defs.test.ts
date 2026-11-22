@@ -5,7 +5,7 @@ import {
   graphLayerDef,
   graphLayerKindsWhere,
   layerVisible,
-} from '../../src/client/core/graph-layer-defs.js';
+} from '../../src/client/core/graph-layer-defs';
 
 const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 

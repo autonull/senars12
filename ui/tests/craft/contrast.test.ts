@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated.js';
+import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated';
 
 /** Parse a color string (hex, rgb, rgba) to RGB values 0-255 */
 function parseColor(color: string): { r: number; g: number; b: number; a: number } | null {

@@ -8,8 +8,8 @@
  * freshly-parsed terms address the same entry.
  */
 
-import type { Term } from '../types.js';
-import { TermCollection } from './term-collection.js';
+import type { Term } from '../types';
+import { TermCollection } from './term-collection';
 
 export interface TermMapEntry<V> {
   key: Term;

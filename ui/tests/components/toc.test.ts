@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '../../src/client/components/overlays/toc.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { $collapsedBlocks, $workspaceGraph } from '../../src/client/core/store.js';
-import { tocEntries } from '../../src/client/core/toc.js';
+import '../../src/client/components/overlays/toc';
+import { eventBus } from '../../src/client/core/events';
+import { $collapsedBlocks, $workspaceGraph } from '../../src/client/core/store';
+import { tocEntries } from '../../src/client/core/toc';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

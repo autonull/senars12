@@ -1,10 +1,10 @@
 import { stopwatch } from '@senars/util/async';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { runProcess } from '../proc.js';
-import { SCENARIO_PROFILES } from '../scenario-profiles.js';
-import { parseVitestJson } from '../vitest-json.js';
-import { type SelfToolsContext, toToolResult, unavailable, withShadowWorktree } from './context.js';
+import { runProcess } from '../proc';
+import { SCENARIO_PROFILES } from '../scenario-profiles';
+import { parseVitestJson } from '../vitest-json';
+import { type SelfToolsContext, toToolResult, unavailable, withShadowWorktree } from './context';
 
 export const runTestsShadowTool = (ctx: SelfToolsContext) =>
   tool({

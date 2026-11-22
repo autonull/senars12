@@ -6,10 +6,10 @@
  * `--testing` uses the deterministic testing factory (replaces multi-agent-demo).
  */
 
-import { NARBuilder } from '../../agent/index.js';
-import { parseFlags } from '@senars/util/cli.js';
-import { mettaPort } from './metta.js';
-import { runMultiAgent } from './multi-agent-runner.js';
+import { NARBuilder } from '../../agent/index';
+import { parseFlags } from '@senars/util/cli';
+import { mettaPort } from './metta';
+import { runMultiAgent } from './multi-agent-runner';
 
 export const runMultiAgentEntry = async (): Promise<void> => {
   const testing = parseFlags().has('--testing');

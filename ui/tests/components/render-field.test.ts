@@ -1,6 +1,6 @@
 import { render } from 'lit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderField, type FieldSpec, type FieldValue } from '../../src/client/utils/render-field.js';
+import { renderField, type FieldSpec, type FieldValue } from '../../src/client/utils/render-field';
 
 describe('renderField', () => {
   let container: HTMLDivElement;

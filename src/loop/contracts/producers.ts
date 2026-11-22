@@ -4,8 +4,8 @@
 
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import type { Term } from '../../kernel/terms/term.js';
-import type { Truth } from '../../kernel/truth.js';
+import type { Term } from '../../kernel/terms/term';
+import type { Truth } from '../../kernel/truth';
 import {
   CandidateSchema,
   JudgmentSchema,
@@ -29,7 +29,7 @@ import {
   type WorkItem,
   TermRefSchema,
   TruthRefSchema,
-} from './schemas.js';
+} from './schemas';
 
 // ============================================================================
 // Helper functions

@@ -6,9 +6,9 @@
  * runs the result through a `preset` layout.
  */
 
-import { blocksInOrder, type Point } from './conversation-layout.js';
-import type { CreatedBy, Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
-import { defineCatalog } from '../framework/catalog.js';
+import { blocksInOrder, type Point } from './conversation-layout';
+import type { CreatedBy, Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph';
+import { defineCatalog } from '../framework/catalog';
 
 export interface ReasoningLayoutFacets {
   /** Short description for tooltips. */

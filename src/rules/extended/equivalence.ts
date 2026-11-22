@@ -2,9 +2,9 @@
  * Equivalence extended NAL rules: equivalence, variable introduction, decomposition.
  */
 import { TermBuilder } from '../../terms';
-import { equivalenceIntro } from '../nal/propositional.js';
-import { buildInhRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { equivalenceIntro } from '../nal/propositional';
+import { buildInhRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /**
  * `A==>B, A==>B ⊢ A<=>B` — NAL's `equivalenceIntro`, re-exported under the name

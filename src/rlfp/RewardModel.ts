@@ -3,9 +3,9 @@ import { flooredRatio, normalizeToSum, safeRatio, softFalloff } from '@senars/ut
 import { ensureArray } from '@senars/util/guards';
 import type { RandomSource } from '@senars/util';
 
-import type { PreferenceData } from './PreferenceCollector.js';
-import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import { extractTrajectoryFeatures } from './utils.js';
+import type { PreferenceData } from './PreferenceCollector';
+import type { TrajectoryStep } from './ReasoningTrajectoryLogger';
+import { extractTrajectoryFeatures } from './utils';
 
 export interface RewardFeatures {
   trajectoryLength: number;

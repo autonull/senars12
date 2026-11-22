@@ -7,8 +7,8 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { UUID, TimestampMs } from '../generated/schemas.js';
-import type { OracleInput, OracleOutput, OracleOperation } from './oracle.js';
+import type { UUID, TimestampMs } from '../generated/schemas';
+import type { OracleInput, OracleOutput, OracleOperation } from './oracle';
 
 /** Memo entry. */
 export interface MemoEntry<T = unknown> {

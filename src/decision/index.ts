@@ -15,20 +15,20 @@ export {
   DECISION_POSITIONS,
   DECISION_QUERIES,
   type DecisionCallSite,
-} from './call-sites.js';
+} from './call-sites';
 export {
   createProvisionalStamp,
   isProvisionalStamp,
   type ProvisionalStamp,
-} from './provisional-stamp.js';
+} from './provisional-stamp';
 export {
   asRubricId,
   COGNITIVE_AXES,
   cognitiveAxisSchema,
   RUBRIC_IDS,
   rubricIdSchema,
-} from './types.js';
-export { SYNTHESIS_AXIS } from '../ports/decision.js';
+} from './types';
+export { SYNTHESIS_AXIS } from '../ports/decision';
 export type {
   BackendId,
   Calibration,
@@ -61,5 +61,5 @@ export type {
   ScoreLegend,
   SynthesisProposition,
   SynthesisQuery,
-} from './types.js';
-export { createSystemOneBudget, SYSTEM_ONE_BUDGET_DEFAULTS } from './types.js';
+} from './types';
+export { createSystemOneBudget, SYSTEM_ONE_BUDGET_DEFAULTS } from './types';

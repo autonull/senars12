@@ -1,18 +1,18 @@
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { ApprovalService } from '../../../agent/ApprovalService.js';
+import type { ApprovalService } from '../../../agent/ApprovalService';
 import type { CapabilityRisk } from '@senars/util/capability-risk';
 import { ensureParentDir } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
-import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
-import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
-import type { RuleProcessor } from '../../../rules/impls/processor.js';
-import type { ToolManager } from '../../impls/tool-registry.js';
-import type { ShadowWorktreeManager, TestRunResult } from '../shadow-worktree.js';
-import type { SelfToolsDeps, SelfToolsNAR } from './context-port.js';
+import type { CognitiveController } from '../../../cognitive/impls/CognitiveController';
+import type { RLFPLearner } from '../../../rlfp/RLFPLearner';
+import type { RuleProcessor } from '../../../rules/impls/processor';
+import type { ToolManager } from '../../impls/tool-registry';
+import type { ShadowWorktreeManager, TestRunResult } from '../shadow-worktree';
+import type { SelfToolsDeps, SelfToolsNAR } from './context-port';
 import type { Result } from '@senars/util/result';
 
-export type { SelfToolsDeps, SelfToolsNAR } from './context-port.js';
+export type { SelfToolsDeps, SelfToolsNAR } from './context-port';
 
 export interface SelfToolsContext {
   deps: SelfToolsDeps;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/input-hud.js';
+import '../../src/client/components/input-hud';
 
 const mount = async () => {
   const el = document.createElement('input-hud');

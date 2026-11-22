@@ -1,4 +1,4 @@
-import { getSurfaces, surfaceTag, type SurfaceDescriptor } from './surface-registry.js';
+import { getSurfaces, surfaceTag, type SurfaceDescriptor } from './surface-registry';
 
 /**
  * Reflective generators: turn a surface descriptor into the parameters each

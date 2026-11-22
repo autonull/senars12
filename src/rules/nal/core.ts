@@ -1,6 +1,6 @@
 import { TermBuilder, termsEqual } from '../../terms';
-import { buildBinaryInhRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { buildBinaryInhRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /** `S1--P1, P1--P2 ⊢ S1--P2` — the first predicate chains into the second subject. */
 export const deduction: RuleFn = buildBinaryInhRule(([s1, p1], [s2, p2]) =>

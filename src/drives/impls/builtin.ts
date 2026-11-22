@@ -1,6 +1,6 @@
 import { clamp, saturationRamp } from '@senars/util/numeric';
 import { Truth } from '../../terms';
-import type { DriveSpec } from '../types.js';
+import type { DriveSpec } from '../types';
 
 export const BUILTIN_DRIVES: DriveSpec[] = [
   {

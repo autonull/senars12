@@ -13,7 +13,7 @@ import {
   showsLabel,
   ZOOM,
   zoomFloor,
-} from '../../src/client/utils/graph-scaling.js';
+} from '../../src/client/utils/graph-scaling';
 
 const VIEWPORTS = {
   narrow: 360 * 640,

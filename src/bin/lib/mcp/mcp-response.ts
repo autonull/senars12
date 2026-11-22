@@ -3,8 +3,8 @@
  * Shared JSON serialization for MCP tools and resources
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types';
 
 export interface MCPStructuredContent<T = unknown> {
   [key: string]: unknown;

@@ -2,7 +2,7 @@ import { addToSet, removeFromSet, unique } from '@senars/util/collections';
 import { systemClock } from '@senars/util/clock';
 
 import { atomKey, termKey } from '../terms';
-import type { Concept } from './concept.js';
+import type { Concept } from './concept';
 
 /** Every family defaults on; a caller opts out of the ones it does not maintain. */
 export interface MemoryIndexConfig {

@@ -1,10 +1,10 @@
 import { mulberry32, nextInt } from '@senars/util/random';
-import { Truth } from '../../terms/impls/Truth.js';
-import { type Term, termParser } from '../../terms/index.js';
-import type { Task } from '../../types/core.js';
-import { createTask, createTaskWeight, NEUTRAL_BUDGET } from '../../types/core.js';
-import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from '../types.js';
-import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';
+import { Truth } from '../../terms/impls/Truth';
+import { type Term, termParser } from '../../terms';
+import type { Task } from '../../types/core';
+import { createTask, createTaskWeight, NEUTRAL_BUDGET } from '../../types/core';
+import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from '../types';
+import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle';
 
 export class ScenarioGenerator {
   private readonly rng: () => number;

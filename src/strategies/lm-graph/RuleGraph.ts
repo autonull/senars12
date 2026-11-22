@@ -30,12 +30,12 @@ export type RulePerformance = { get(ruleId: string): CallTally | undefined };
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
-import { ConceptGraph } from '../../memory/ConceptGraph.js';
+import { ConceptGraph } from '../../memory/ConceptGraph';
 
-import type { ModelRule } from '../../rules/types.js';
+import type { ModelRule } from '../../rules/types';
 import { termKey } from '../../terms';
-import type { Term } from '../../terms/index.js';
-import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
+import type { Term } from '../../terms/index';
+import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types';
 
 export interface RuleGraphOptions {
   maxNodes?: number;

@@ -1,4 +1,4 @@
-import { deserialize, type IPCMessage, serialize } from './protocol.js';
+import { deserialize, type IPCMessage, serialize } from './protocol';
 
 export class SharedMemoryQueue {
   private readonly buffer: SharedArrayBuffer;

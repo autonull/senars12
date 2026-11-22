@@ -10,4 +10,4 @@ export {
   Lens,
 } from '@senars/core/protocol';
 export { edgeKey, estimateTokens, extractTerm } from '@senars/util';
-export * from './constants.js';
+export * from './constants';

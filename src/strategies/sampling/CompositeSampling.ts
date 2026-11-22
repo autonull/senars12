@@ -1,7 +1,7 @@
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
-import type { ComponentMetadata, SamplingStrategy } from '../types.js';
-import { createCappedUnionByTerm, type Composable } from '../composite.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
+import type { ComponentMetadata, SamplingStrategy } from '../types';
+import { createCappedUnionByTerm, type Composable } from '../composite';
 
 /**
  * Union of several sampling strategies: each proposes `count` concepts, the

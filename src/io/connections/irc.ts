@@ -3,8 +3,8 @@ import { createLogger } from '@senars/util/logger';
 import { deadline, periodic } from '@senars/util/async';
 import irc, { type Client as IRCClient } from 'irc';
 import { withDefaults } from '@senars/util/config';
-import type { ConnectionConfig, ConnectionDeps } from '../types.js';
-import { BaseConnection } from './base.js';
+import type { ConnectionConfig, ConnectionDeps } from '../types';
+import { BaseConnection } from './base';
 
 export interface IRCConnectionConfig {
   server: string;

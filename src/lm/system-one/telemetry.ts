@@ -2,12 +2,12 @@ import { trace } from '@opentelemetry/api';
 import {
   type JudgmentResolvedEvent,
   mintCognitiveEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import { makeId } from '@senars/util/id';
-import type { CognitiveAxis } from '../../decision/types.js';
-import { recordJudgmentMetric } from '../../metrics/prometheus.js';
-import type { BandDecision } from './policy.js';
-import type { JudgmentProposition, JudgmentQuery } from './types.js';
+import type { CognitiveAxis } from '../../decision/types';
+import { recordJudgmentMetric } from '../../metrics/prometheus';
+import type { BandDecision } from './policy';
+import type { JudgmentProposition, JudgmentQuery } from './types';
 
 export interface TelemetrySinks {
   emitEvent?: (event: JudgmentResolvedEvent) => void;

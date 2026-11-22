@@ -3,10 +3,10 @@ import {
   type ShadowValidationDropEvent,
 } from '@senars/schemas';
 import { makeId } from '@senars/util';
-import type { GateRegistry } from '../kernel/index.js';
+import type { GateRegistry } from '../kernel/index';
 import type { Memory } from '../memory';
 import type { Task } from '../types';
-import { type ShadowValidationResult, shadowValidator } from './shadow-validation.js';
+import { type ShadowValidationResult, shadowValidator } from './shadow-validation';
 
 export async function admitTasks(
   memory: Memory,

@@ -2,8 +2,8 @@
  * CLI REPL — interactive read-eval-print loop.
  */
 
-import type { CLIApp, CLIContext, CLICommand } from './types.js';
-import { parseArgs, executeCLI } from './entry.js';
+import type { CLIApp, CLIContext, CLICommand } from './types';
+import { parseArgs, executeCLI } from './entry';
 
 /** REPL state. */
 export interface REPLState {

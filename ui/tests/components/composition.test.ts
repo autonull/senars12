@@ -11,14 +11,14 @@ import {
   registerComposition,
   resetCompositions,
   type Composition,
-} from '../../src/client/framework/composition.js';
-import { areaName, layoutOf, layoutTemplate } from '../../src/client/framework/layout.js';
+} from '../../src/client/framework/composition';
+import { areaName, layoutOf, layoutTemplate } from '../../src/client/framework/layout';
 import {
   applyGlobals,
   compositionFromUrl,
   compositionToSearch,
   resolveGlobals,
-} from '../../src/client/apps/shared/config-sync.js';
+} from '../../src/client/apps/shared/config-sync';
 import {
   $activeLens,
   $graphFilter,
@@ -26,7 +26,7 @@ import {
   $graphLayer,
   $graphShape,
   $viewportMode,
-} from '../../src/client/kernel/index.js';
+} from '../../src/client/kernel/index';
 
 const composition = (over: Partial<Composition> = {}): Composition => ({
   id: 'test',

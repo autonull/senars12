@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
-import { msg } from './envelope.js';
+import { msg } from './envelope';
 
 export const NodeHistoryRequestMsg = msg('node.history.request', { term: z.string() });
 

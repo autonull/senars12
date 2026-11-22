@@ -9,10 +9,10 @@
  * Now reads from the unified surface registry (P2).
  */
 
-import { capabilityGate } from './capabilities.js';
-import { getOverlayManager, OverlayManager } from './overlay-manager.js';
-import { overlayDescriptor, type OverlayDescriptor } from './overlay-registry.js';
-import { surfaceFor, type SurfaceDescriptor, resolvedPresentation } from '../framework/surface.js';
+import { capabilityGate } from './capabilities';
+import { getOverlayManager, OverlayManager } from './overlay-manager';
+import { overlayDescriptor, type OverlayDescriptor } from './overlay-registry';
+import { surfaceFor, type SurfaceDescriptor, resolvedPresentation } from '../framework/surface';
 
 export interface OpenOverlayOptions {
   /** Element focus returns to when the overlay closes. */

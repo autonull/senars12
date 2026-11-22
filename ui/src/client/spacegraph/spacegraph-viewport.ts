@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 // Dynamic import SpaceGraphJS (source-level via Vite alias)
 // Import the class module directly, not the package barrel: the barrel also
 // re-exports `VisionSystem`, whose analyzer pulls `child_process`/`fs`/`path`.
@@ -8,8 +8,8 @@ import { customElement, state } from 'lit/decorators.js';
 // the whole entry bundle (3D viewport never registers). Only `SpaceGraph` is
 // needed here.
 import { SpaceGraph } from 'spacegraphjs/SpaceGraph';
-import { BaseComponent } from '../core/base-component.js';
-import { GraphRenderer } from '../core/graph-renderer.js';
+import { BaseComponent } from '../core/base-component';
+import { GraphRenderer } from '../core/graph-renderer';
 import {
   $activeLens,
   $capabilityFilter,
@@ -26,10 +26,10 @@ import {
   eventBus,
   mountTestApi,
   setWorkspaceFocus,
-} from '../core/index.js';
-import { layoutRegistry } from '../utils/layout-registry.js';
-import { theme } from '../utils/theme.js';
-import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
+} from '../core/index';
+import { layoutRegistry } from '../utils/layout-registry';
+import { theme } from '../utils/theme';
+import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d';
 
 interface NodeSpec3D {
   id: string;

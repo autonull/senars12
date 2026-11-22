@@ -1,4 +1,4 @@
-import { dispatchNarseseIntent } from './narsese-intent.js';
+import { dispatchNarseseIntent } from './narsese-intent';
 
 export type InputType =
   | 'command'

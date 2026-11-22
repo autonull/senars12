@@ -10,11 +10,11 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { $graphShape, $viewportMode } from '../../core/store.js';
-import { GRAPH_VIEW_SPEC } from '../views/graph-view-spec.js';
-import '../graph-viewport.js';
+import { customElement } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { $graphShape, $viewportMode } from '../../core/store';
+import { GRAPH_VIEW_SPEC } from '../views/graph-view-spec';
+import '../graph-viewport';
 
 @customElement('graph-surface')
 export class GraphSurface extends BaseComponent {

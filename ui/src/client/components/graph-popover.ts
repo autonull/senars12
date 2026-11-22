@@ -14,17 +14,17 @@
  */
 
 import { css, html, LitElement, nothing } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { blockDescriptor } from '../core/block-descriptors.js';
-import { blockLabel } from '../core/block-labels.js';
-import { collectSources } from '../core/citations.js';
-import { embeddedViewSpec, hasEmbeddedView } from '../core/embedded-views.js';
-import { type ExplainLink, type ExplainModel, explainLinkModel, explainModel } from '../core/explain.js';
-import { eventBus } from '../core/events.js';
-import { $workspaceGraph, type Ref, revealBlock } from '../core/index.js';
-import type { SemanticBlock, WorkspaceGraph } from '../core/workspace-graph.js';
-import { linkMeta } from '../utils/link-catalog.js';
-import { blockBodyStyles, renderBlockBody } from '../utils/render-block.js';
+import { customElement, property } from 'lit/decorators';
+import { blockDescriptor } from '../core/block-descriptors';
+import { blockLabel } from '../core/block-labels';
+import { collectSources } from '../core/citations';
+import { embeddedViewSpec, hasEmbeddedView } from '../core/embedded-views';
+import { type ExplainLink, type ExplainModel, explainLinkModel, explainModel } from '../core/explain';
+import { eventBus } from '../core/events';
+import { $workspaceGraph, type Ref, revealBlock } from '../core/index';
+import type { SemanticBlock, WorkspaceGraph } from '../core/workspace-graph';
+import { linkMeta } from '../utils/link-catalog';
+import { blockBodyStyles, renderBlockBody } from '../utils/render-block';
 
 /** The body says something the head did not: a payload, or text beyond the label. */
 const showsBody = (block: SemanticBlock): boolean =>

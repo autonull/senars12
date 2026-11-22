@@ -1,7 +1,7 @@
 import { clamp01, flooredRatio, mean, safeRatio, sumBy } from '@senars/util/numeric';
-import type { PressureLevel } from '@senars/util/bag.js';
+import type { PressureLevel } from '@senars/util/bag';
 
-import { type CognitionContext, failClosed, type Sensor, type SensorReading } from './types.js';
+import { type CognitionContext, failClosed, type Sensor, type SensorReading } from './types';
 
 /** Map pressure level to numeric value. */
 const pressureToNumber = (level: PressureLevel): number =>

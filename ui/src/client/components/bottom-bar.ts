@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { estimateTokens } from '../../shared/index.js';
-import { BaseComponent } from '../core/base-component.js';
+import { customElement, state } from 'lit/decorators';
+import { estimateTokens } from '../../shared/index';
+import { BaseComponent } from '../core/base-component';
 import {
   $capabilities,
   $connectionState,
@@ -27,11 +27,11 @@ import {
   decomposeForMode,
   narsBackend,
   send,
-} from '../core/index.js';
-import { dispatchCommand } from '../core/commands.js';
-import { refreshLmStatus, switchLmProvider } from '../core/lm-transport.js';
-import './contradiction-badge.js';
-import './primitives/icon.js';
+} from '../core/index';
+import { dispatchCommand } from '../core/commands';
+import { refreshLmStatus, switchLmProvider } from '../core/lm-transport';
+import './contradiction-badge';
+import './primitives/icon';
 
 const MAX_HISTORY = 50;
 const SLASH_COMMANDS = [

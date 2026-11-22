@@ -1,6 +1,6 @@
-import type { ReactionKind } from '../../dialogue/types.js';
-import { computeEvidenceId, type JudgmentDataset } from './distill.js';
-import { REACTION_SOURCE } from './eval-set.js';
+import type { ReactionKind } from '../../dialogue/types';
+import { computeEvidenceId, type JudgmentDataset } from './distill';
+import { REACTION_SOURCE } from './eval-set';
 
 export interface CorrectionLabelInput {
   originalNL: string;

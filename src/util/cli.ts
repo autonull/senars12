@@ -2,7 +2,7 @@
  * Typed accessor over `--flag value` style argv arrays.
  */
 
-import { finiteOr } from './numeric.js';
+import { finiteOr } from './numeric';
 
 /** Typed accessor over `--flag value` style argv arrays. */
 export interface Flags {

@@ -27,7 +27,7 @@ import {
   type SurfaceSource,
   type SurfaceA11y,
   type SurfaceBase,
-} from '../framework/surface.js';
+} from '../framework/surface';
 
 /** @deprecated Use the unified Placement from framework/surface.ts */
 export type { Placement, Presentation, SurfaceBinding, SurfaceSource, SurfaceA11y, SurfaceBase };

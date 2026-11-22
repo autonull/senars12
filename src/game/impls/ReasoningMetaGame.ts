@@ -3,8 +3,8 @@ import {
   createParameterTable,
   type ParameterScope,
   type ParameterTable,
-} from '../../config/parameter-table.js';
-import type { ReasoningGame } from './ReasoningGame.js';
+} from '../../config/parameter-table';
+import type { ReasoningGame } from './ReasoningGame';
 
 /**
  * R3: the per-game MetaGame (TODO18 §1e) — reward-weight/difficulty tuning for

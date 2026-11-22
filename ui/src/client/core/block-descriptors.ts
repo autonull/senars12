@@ -7,7 +7,7 @@
  * BLOCK_DESCRIPTORS`, so adding a kind is one entry and no hand union to edit.
  */
 
-import { defineCatalog } from '../framework/catalog.js';
+import { defineCatalog } from '../framework/catalog';
 
 export const BLOCK_DESCRIPTORS = defineCatalog({
   turn: {

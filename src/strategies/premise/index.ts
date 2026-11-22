@@ -4,7 +4,7 @@
  */
 
 // Premise formation utilities
-export { samplePremisesFromConfig } from './primitives.js';
+export { samplePremisesFromConfig } from './primitives';
 export type {
   FilterName,
   FilterSpec,
@@ -15,14 +15,14 @@ export type {
   SampleConfig,
   ScorerName,
   SourceName,
-} from './primitives.js';
+} from './primitives';
 export {
   PREMISE_FILTER_NAMES,
   PREMISE_SCORER_NAMES,
   PREMISE_SOURCE_NAMES,
   premiseSampleShape,
-} from './config.js';
-export type { PremiseOverrides, PremiseSampleSpec } from './config.js';
+} from './config';
+export type { PremiseOverrides, PremiseSampleSpec } from './config';
 
 // Premise selection strategies
 export {
@@ -31,6 +31,6 @@ export {
   PREMISE_PRIMITIVES,
   PrologResolutionStrategy,
 } from './selection-strategies';
-export type { PremisePrimitiveSpec } from './selection-strategies.js';
+export type { PremisePrimitiveSpec } from './selection-strategies';
 export { createLinkLayerStrategy, LinkLayerStrategy, TermLinkStrategy } from './term-link';
 export type { Strategy } from '../types';

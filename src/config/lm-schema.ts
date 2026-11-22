@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { positiveInt } from './boundary.js';
+import { positiveInt } from './boundary';
 /**
  * Canonical field shape for LM settings — shared by @senars/nar/lm (LMSettings),
  * src/config (senars.config.json `lm` block), and tooling/config UIs.

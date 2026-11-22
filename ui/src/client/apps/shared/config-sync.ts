@@ -17,17 +17,17 @@ import {
   $graphShape,
   $viewportMode,
   VIEWPORT_MODES,
-} from '../../kernel/index.js';
+} from '../../kernel/index';
 import {
   compositionFor,
   type Composition,
   type Globals,
   type LayoutId,
-} from '../../framework/composition.js';
-import { LAYOUT_IDS } from '../../framework/layout.js';
-import { LENS_FACETS } from '../../utils/lens-catalog.js';
-import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
-import { FILTER_FACETS } from '../../core/filter-facets.js';
+} from '../../framework/composition';
+import { LAYOUT_IDS } from '../../framework/layout';
+import { LENS_FACETS } from '../../utils/lens-catalog';
+import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs';
+import { FILTER_FACETS } from '../../core/filter-facets';
 
 /** The preset the Studio opens on when the URL names none. */
 export const DEFAULT_PRESET = 'chat-graph';

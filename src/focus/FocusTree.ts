@@ -16,14 +16,14 @@ import {
 } from '@senars/budget';
 import { SeededRNG, weightedPick } from '@senars/util/random';
 import { systemClock } from '@senars/util/clock';
-import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
-import type { FocusBag } from '../focus/FocusBag.js';
-import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler.js';
-import type { GameFocus } from '../focus/GameFocus.js';
-import type { MetaGame } from '../game/impls/MetaGame.js';
-import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import { publishFocusStepReport } from './scheduler-reward.js';
-import { DEFAULT_FOCUS_DEADLINE_MS, stepFocusUnderDeadline } from './step.js';
+import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus';
+import type { FocusBag } from '../focus/FocusBag';
+import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler';
+import type { GameFocus } from '../focus/GameFocus';
+import type { MetaGame } from '../game/impls/MetaGame';
+import type { SchedulerAdapter } from '../learning/domain-learners';
+import { publishFocusStepReport } from './scheduler-reward';
+import { DEFAULT_FOCUS_DEADLINE_MS, stepFocusUnderDeadline } from './step';
 
 export interface FocusTreeNode {
   readonly id: string;

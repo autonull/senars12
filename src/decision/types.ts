@@ -11,13 +11,13 @@
  * every existing importer is untouched and there is no second copy.
  */
 
-import { type BudgetLimits, createBudget } from '../budget/budget.js';
-import type { ReasoningBudget } from '../schemas/reasoning-budget.js';
-import type { SourceQuality } from '../schemas/truth.js';
-import type { BandDecision, CognitiveAxis } from '../util/index.js';
-import type { CriticalityLevel } from '../config/index.js';
+import { type BudgetLimits, createBudget } from '../budget/budget';
+import type { ReasoningBudget } from '../schemas/reasoning-budget';
+import type { SourceQuality } from '../schemas/truth';
+import type { BandDecision, CognitiveAxis } from '../util/index';
+import type { CriticalityLevel } from '../config/index';
 import { z } from 'zod';
-import type { ProvisionalStamp } from './provisional-stamp.js';
+import type { ProvisionalStamp } from './provisional-stamp';
 
 export type { CriticalityLevel, ReasoningBudget, SourceQuality };
 
@@ -88,7 +88,7 @@ export {
   COGNITIVE_AXES,
   CognitiveAxisSchema as cognitiveAxisSchema,
   bandOrdinal,
-} from '../util/index.js';
+} from '../util/index';
 export type { BandDecision, CognitiveAxis };
 
 export interface HeadResult {
@@ -364,11 +364,11 @@ export interface CognitiveDispatcher {
 export interface PEAResult {
   candidates: readonly string[];
   judgments: readonly JudgmentProposition[];
-  ranked: readonly { candidate: string; truth: import('../terms/impls/Truth.js').Truth }[];
+  ranked: readonly { candidate: string; truth: import('../terms/impls/Truth').Truth }[];
   admitted: readonly {
     candidate: string;
-    truth: import('../terms/impls/Truth.js').Truth;
-    stamp: import('../terms/impls/Stamp.js').Stamp;
+    truth: import('../terms/impls/Truth').Truth;
+    stamp: import('../terms/impls/Stamp').Stamp;
   }[];
   provisional: readonly { candidate: string; provisional: ProvisionalStamp }[];
 }

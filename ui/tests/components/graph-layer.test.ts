@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { GRAPH_LAYERS, layerVisible } from '../../src/client/core/graph-layer.js';
-import { $graphLayer, setGraphLayer } from '../../src/client/core/store.js';
+import { GRAPH_LAYERS, layerVisible } from '../../src/client/core/graph-layer';
+import { $graphLayer, setGraphLayer } from '../../src/client/core/store';
 
 afterEach(() => $graphLayer.set('both'));
 

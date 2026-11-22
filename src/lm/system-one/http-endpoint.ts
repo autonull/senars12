@@ -1,13 +1,13 @@
-import type { TermTruth } from '@senars/types/truth.js';
+import type { TermTruth } from '@senars/types/truth';
 import { criticalitySchema } from '@senars/util/config';
 import { z } from 'zod';
-import { seedTruth } from './seed.js';
+import { seedTruth } from './seed';
 import type {
   EmbeddingPointer,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
-} from './types.js';
+} from './types';
 
 /**
  * TypeSafe-compatible `/v1/systemone` endpoint (§10). Requests are
@@ -15,7 +15,7 @@ import type {
  * seeds them at the `LLM_PRIOR` ceiling — never above 0.5 confidence.
  */
 
-import { cognitiveAxisSchema } from '../../decision/types.js';
+import { cognitiveAxisSchema } from '../../decision/types';
 
 export const SystemOneQuerySchema = z.discriminatedUnion('kind', [
   z.object({

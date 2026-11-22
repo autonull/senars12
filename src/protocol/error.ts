@@ -6,7 +6,7 @@
  * is the one typed reply every rejected message gets.
  */
 import { z } from 'zod';
-import { msg } from './envelope.js';
+import { msg } from './envelope';
 
 export const ServerErrorCode = z.enum([
   'invalid_message',

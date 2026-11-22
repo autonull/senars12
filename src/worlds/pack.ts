@@ -5,8 +5,8 @@
  * The fairness gate ensures balanced exposure across lanes.
  */
 
-import type { HabitatConfig, HabitatPack, HabitatId, HabitatRegistry, EntityState } from './habitat.js';
-import { createHabitatPack } from './habitat.js';
+import type { HabitatConfig, HabitatPack, HabitatId, HabitatRegistry, EntityState } from './habitat';
+import { createHabitatPack } from './habitat';
 
 /** Lane identifier. */
 export type LaneId = string & { readonly __brand: unique symbol };

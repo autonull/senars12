@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import '../../src/client/components/renderers/graph3d.js';
-import type { BlockKind } from '../../src/client/core/workspace-graph.js';
+import '../../src/client/components/renderers/graph3d';
+import type { BlockKind } from '../../src/client/core/workspace-graph';
 import {
   registerRenderer,
   rendererSupports,
@@ -9,7 +9,7 @@ import {
   workspaceRenderer,
   workspaceRendererIds,
   type WorkspaceRenderer,
-} from '../../src/client/core/workspace-renderer.js';
+} from '../../src/client/core/workspace-renderer';
 
 const fakeRenderer = (
   id: string,

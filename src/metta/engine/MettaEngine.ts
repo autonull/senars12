@@ -7,10 +7,10 @@ import type {
 } from '@senars/engine';
 import { BaseEngine } from '@senars/engine';
 import { Effect } from 'effect';
-import { parseMeTTa } from '../parser/runtime.js';
-import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
-import type { MeTTaAtom } from '../types/ast.js';
-import { AtomKind, type ExpressionAtom } from '../types/ast.js';
+import { parseMeTTa } from '../parser/runtime';
+import { createMeTTa, type MeTTaRuntime } from '../runtime/builder';
+import type { MeTTaAtom } from '../types/ast';
+import { AtomKind, type ExpressionAtom } from '../types/ast';
 
 function atomToString(atom: MeTTaAtom): string {
   switch (atom.kind) {

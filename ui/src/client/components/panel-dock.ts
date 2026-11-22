@@ -1,9 +1,9 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { $panels, panelTabs, togglePanel, type PanelTab } from '../core/index.js';
-import { panelDef, type PanelKind } from '../core/panel-defs.js';
-import { panelSurface, panelSurfaces } from '../core/panel-defs.js';
+import { customElement, state } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { $panels, panelTabs, togglePanel, type PanelTab } from '../core/index';
+import { panelDef, type PanelKind } from '../core/panel-defs';
+import { panelSurface, panelSurfaces } from '../core/panel-defs';
 
 @customElement('panel-dock')
 export class PanelDock extends BaseComponent {

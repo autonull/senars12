@@ -15,7 +15,7 @@ import { parseFlags } from '@senars/util/cli';
 import { pct } from '@senars/util/format';
 import { sleep } from '@senars/util/async';
 import { thaw } from '@senars/util/object';
-import { runEntrypoint } from './fatal-error.js';
+import { runEntrypoint } from './fatal-error';
 
 interface TuneOptions {
   iterations: number;

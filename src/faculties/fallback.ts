@@ -4,13 +4,13 @@
  * These provide deterministic, LM-free alternatives when oracle calls fail.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task } from '../kernel/types.js';
-import type { FacultyInput, FacultyOutput, FacultyFallback, FacultyRegistry } from './specs.js';
-import { Truth as TruthOps, createTruth } from '../kernel/truth.js';
-import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms/term.js';
-import { createTask, type TaskType } from '../kernel/types.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task } from '../kernel/types';
+import type { FacultyInput, FacultyOutput, FacultyFallback, FacultyRegistry } from './specs';
+import { Truth as TruthOps, createTruth } from '../kernel/truth';
+import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms/term';
+import { createTask, type TaskType } from '../kernel/types';
 
 /** Common fallback utilities. */
 

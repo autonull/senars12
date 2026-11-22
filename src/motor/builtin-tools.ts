@@ -8,10 +8,10 @@ import { errMsg } from '@senars/util/error';
 import { objectSpec } from '@senars/types/tools';
 import { toolAttempt, toolError, toolOk } from '@senars/types/engine';
 import { z } from 'zod';
-import type { ApprovalService } from '../agent/ApprovalService.js';
-import { APPROVAL_TIMEOUT_MS, SHELL_TIMEOUT_MS } from '../agent/constants.js';
-import type { ToolResult } from '../engine/Engine.js';
-import type { ToolSpec } from './ToolRegistry.js';
+import type { ApprovalService } from '../agent/ApprovalService';
+import { APPROVAL_TIMEOUT_MS, SHELL_TIMEOUT_MS } from '../agent/constants';
+import type { ToolResult } from '../engine/Engine';
+import type { ToolSpec } from './ToolRegistry';
 import {
   braveApiKey,
   braveSearch,
@@ -19,8 +19,8 @@ import {
   tavilySearch,
   type WebSearchResult,
   webFetch,
-} from './web-search.js';
-import { withinWorkspace } from './workspace.js';
+} from './web-search';
+import { withinWorkspace } from './workspace';
 
 export type CmdArgSet = Record<string, unknown>;
 

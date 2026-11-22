@@ -4,7 +4,7 @@ import {
   RENDERER_IDS,
   rendererDef,
   rendererIdsWhere,
-} from '../../src/client/core/renderer-defs.js';
+} from '../../src/client/core/renderer-defs';
 
 const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 

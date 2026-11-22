@@ -5,7 +5,7 @@
  * Tseitin encoding to avoid exponential blowup.
  */
 
-import { Term, VariableTerm, TermOp, termInterner, CompoundTerm, ConstantTerm } from '../../kernel/terms/intern.js';
+import { Term, VariableTerm, TermOp, termInterner, CompoundTerm, ConstantTerm } from '../../kernel/terms/intern';
 import {
   Formula,
   Atom,
@@ -27,7 +27,7 @@ import {
   clause,
   literal,
   cnf,
-} from './ast.js';
+} from './ast';
 
 /** Tseitin variable generator. */
 class TseitinGenerator {
@@ -363,7 +363,7 @@ function substituteTerm(term: Term, variable: VariableTerm, replacement: Term): 
   if (term === variable) return replacement;
   if (term.op === TermOp.VARIABLE || term.op === TermOp.CONSTANT) return term;
 
-  const ct = term as import('../../kernel/terms/intern.js').CompoundTerm;
+  const ct = term as import('../../kernel/terms/intern').CompoundTerm;
   const newArgs = ct.args.map(arg => substituteTerm(arg, variable, replacement));
   if (newArgs.every((arg, i) => arg === ct.args[i])) return term;
   return termInterner.compound(ct.op, ...newArgs);

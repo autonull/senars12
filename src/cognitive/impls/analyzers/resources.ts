@@ -3,10 +3,10 @@
  */
 import { mean } from '@senars/util/numeric';
 
-import type { Concept } from '../../../memory/concept.js';
-import type { SelfHost } from '../../../self/host.js';
-import type { ResourceUsage } from '../../types.js';
-import { getMemory } from './constants.js';
+import type { Concept } from '../../../memory/concept';
+import type { SelfHost } from '../../../self/host';
+import type { ResourceUsage } from '../../types';
+import { getMemory } from './constants';
 
 export const getResourceAnalysis = (
   nar: SelfHost | null

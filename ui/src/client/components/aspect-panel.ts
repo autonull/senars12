@@ -6,14 +6,14 @@
  */
 
 import { css, html, nothing, TemplateResult } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { $workspaceGraph, BaseComponent } from '../core/index.js';
-import { type FocusRef, type Aspect, ASPECTS, DEFAULT_ASPECT, focus, ASPECT_LABELS, ASPECT_ICONS } from '../framework/coordinates.js';
-import { resolveFocus, type FocusResolution } from '../framework/resolver.js';
-import { defineSurface, SurfaceComponent } from '../core/surface.js';
-import { Capability } from '../core/capabilities.js';
-import { type SemanticBlock } from '../core/workspace-graph.js';
-import { SIcon } from './primitives/index.js';
+import { customElement, property, state } from 'lit/decorators';
+import { $workspaceGraph, BaseComponent } from '../core/index';
+import { type FocusRef, type Aspect, ASPECTS, DEFAULT_ASPECT, focus, ASPECT_LABELS, ASPECT_ICONS } from '../framework/coordinates';
+import { resolveFocus, type FocusResolution } from '../framework/resolver';
+import { defineSurface, SurfaceComponent } from '../core/surface';
+import { Capability } from '../core/capabilities';
+import { type SemanticBlock } from '../core/workspace-graph';
+import { SIcon } from './primitives/index';
 
 @customElement('s-aspect-panel')
 export class SAspectPanel extends SurfaceComponent {

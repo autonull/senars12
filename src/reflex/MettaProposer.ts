@@ -7,9 +7,9 @@
  * agent's `mettaExecutor` + `Effect.runSync` is the canonical wiring); a null
  * return (engine absent/faulted) means abstain, never a veto.
  */
-import { agreeByExactAlgebra, type MettaEvaluator, type MettaFactSource } from './algebra-vote.js';
-import type { IProposer, NegotiationInput, ProposerContribution } from './Negotiator.js';
-import type { LearningEvent } from './Reflex.js';
+import { agreeByExactAlgebra, type MettaEvaluator, type MettaFactSource } from './algebra-vote';
+import type { IProposer, NegotiationInput, ProposerContribution } from './Negotiator';
+import type { LearningEvent } from './Reflex';
 
 export interface MettaProposerOptions {
   /**

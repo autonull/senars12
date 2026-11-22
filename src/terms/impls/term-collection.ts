@@ -14,8 +14,8 @@
  * deep-equality scan over the whole collection.
  */
 
-import type { Term } from '../types.js';
-import { termKey } from './accessors.js';
+import type { Term } from '../types';
+import { termKey } from './accessors';
 import { KeyedCollection } from '@senars/util/keyed-collection';
 
 export abstract class TermCollection<T> extends KeyedCollection<Term, T, string> {

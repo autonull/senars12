@@ -1,7 +1,7 @@
 import { ambientRng } from '@senars/util/random';
 import { isYoung } from '@senars/util/bandit';
-import { BanditReflex } from './BanditReflex.js';
-import type { Reflex } from './Reflex.js';
+import { BanditReflex } from './BanditReflex';
+import type { Reflex } from './Reflex';
 import type { RandomSource } from '@senars/util';
 import type { QEntry } from '@senars/util/bandit';
 

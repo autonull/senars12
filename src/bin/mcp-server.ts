@@ -5,11 +5,11 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { DialogueCapture } from '../dialogue/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
+import { DialogueCapture } from '../dialogue/index';
 import {
   createLogger,
   envStr,
@@ -21,14 +21,14 @@ import {
   BoundedMap,
   generateId,
 } from '@senars/util';
-import { runEntrypoint } from './lib/fatal-error.js';
-import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
-import { createAgentFromEnv } from './lib/lifecycle.js';
-import { JobManager } from './lib/mcp/job-manager.js';
-import { registerDialogueTools } from './lib/mcp/mcp-dialogue-tools.js';
-import { registerMCPPrompts } from './lib/mcp/mcp-prompts.js';
-import { registerMCPResources } from './lib/mcp/mcp-resources.js';
-import { registerNARTools } from './lib/mcp/mcp-tools.js';
+import { runEntrypoint } from './lib/fatal-error';
+import { HttpGuard, rejectWithStatus } from './lib/http-guards';
+import { createAgentFromEnv } from './lib/lifecycle';
+import { JobManager } from './lib/mcp/job-manager';
+import { registerDialogueTools } from './lib/mcp/mcp-dialogue-tools';
+import { registerMCPPrompts } from './lib/mcp/mcp-prompts';
+import { registerMCPResources } from './lib/mcp/mcp-resources';
+import { registerNARTools } from './lib/mcp/mcp-tools';
 
 const logger = createLogger({ scope: 'mcp' });
 

@@ -17,12 +17,12 @@ import { LruCache } from '@senars/util/lru-cache';
 import { minBy, sortBy } from '@senars/util/collections';
 import { errMsg } from '@senars/util/error';
 import type { BagItem } from '@senars/bag';
-import type { MemoryReader } from '../memory/ports/index.js';
+import type { MemoryReader } from '../memory/ports/index';
 import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth, termKey } from '../terms';
 import { createTask, createTaskWeight, type Task } from '../types';
-import type { RandomSource } from '../types/primitives.js';
+import type { RandomSource } from '../types/primitives';
 
 /** Serialized chain terms — the single rendering behind signatures, templates, and instances. */
 const chainTerms = (chain: readonly Task[]): string[] => chain.map((t) => t.term.toString());
@@ -41,7 +41,7 @@ import {
   createAikrBag,
   BagPrioritySampling,
   type ProcessOptions,
-} from './aikr-processor.js';
+} from './aikr-processor';
 
 export interface SchemaPattern {
   id: string;

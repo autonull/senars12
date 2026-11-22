@@ -25,6 +25,18 @@ const debugResolverPlugin = {
   },
 };
 
+// Debug plugin to trace transform errors
+const debugTransformPlugin = {
+  name: 'debug-transform',
+  enforce: 'post' as const,
+  transform(code, id) {
+    if (id.includes('llamacpp')) {
+      console.log('[DEBUG] Transforming:', id);
+    }
+    return null;
+  },
+};
+
 // Aliases as array for explicit priority order.
 // Deep sub-paths FIRST, then top-level, then wildcards with regex for .js -> .ts
 const aliases = [
@@ -33,6 +45,17 @@ const aliases = [
   { find: '@senars/metta/engine/egraph', replacement: path.resolve(__dirname, './src/metta/engine/egraph.ts') },
   { find: '@senars/strategies/premise/term-link', replacement: path.resolve(__dirname, './src/strategies/premise/term-link.ts') },
   { find: '@senars/strategies/sampling/WindowedRoulette', replacement: path.resolve(__dirname, './src/strategies/sampling/WindowedRoulette.ts') },
+  { find: '@senars/logics/nal/codecs', replacement: path.resolve(__dirname, './src/logics/nal/codecs.ts') },
+  { find: '@senars/logics/nal/rules-ast', replacement: path.resolve(__dirname, './src/logics/nal/rules-ast.ts') },
+  { find: '@senars/logics/nal/rules', replacement: path.resolve(__dirname, './src/logics/nal/rules.ts') },
+  { find: '@senars/logics/nal/interpreter', replacement: path.resolve(__dirname, './src/logics/nal/interpreter.ts') },
+  { find: '@senars/logics/nal/laws', replacement: path.resolve(__dirname, './src/logics/nal/laws.ts') },
+  { find: '@senars/logics/nal/temporal', replacement: path.resolve(__dirname, './src/logics/nal/temporal.ts') },
+  { find: '@senars/logics/nal/index', replacement: path.resolve(__dirname, './src/logics/nal/index.ts') },
+  { find: '@senars/kernel/terms/intern', replacement: path.resolve(__dirname, './src/kernel/terms/intern.ts') },
+  { find: '@senars/kernel/stamp', replacement: path.resolve(__dirname, './src/kernel/stamp.ts') },
+  { find: '@senars/kernel/types', replacement: path.resolve(__dirname, './src/kernel/types.ts') },
+  { find: '@senars/rules/verifier-truth-table', replacement: path.resolve(__dirname, './src/rules/verifier-truth-table.ts') },
   { find: '@senars/util/index', replacement: path.resolve(__dirname, './src/util/index.ts') },
   { find: '@senars/util/memory/in-memory-session-manager', replacement: path.resolve(__dirname, './src/memory/in-memory-session-manager.ts') },
   { find: '@senars/util/utils/unify', replacement: path.resolve(__dirname, './src/util/unify.ts') },
@@ -152,7 +175,9 @@ const aliases = [
   { find: '@senars/admit/repertoire.js', replacement: path.resolve(__dirname, './src/admit/repertoire.ts') },
   { find: '@senars/economy/types.js', replacement: path.resolve(__dirname, './src/economy/types.ts') },
   { find: '@senars/kernel/types.js', replacement: path.resolve(__dirname, './src/kernel/types.ts') },
+  { find: '@senars/log/DerivationLedger', replacement: path.resolve(__dirname, './src/log/DerivationLedger.ts') },
   { find: '@senars/log/DerivationLedger.js', replacement: path.resolve(__dirname, './src/log/DerivationLedger.ts') },
+  { find: '@senars/log/GateEventLedger', replacement: path.resolve(__dirname, './src/log/GateEventLedger.ts') },
   { find: '@senars/log/GateEventLedger.js', replacement: path.resolve(__dirname, './src/log/GateEventLedger.ts') },
   { find: '@senars/schemas/cognitive-events.js', replacement: path.resolve(__dirname, './src/schemas/cognitive-events.ts') },
   { find: '@senars/schemas/derivation-records.js', replacement: path.resolve(__dirname, './src/schemas/derivation-records.ts') },
@@ -701,22 +726,34 @@ const aliases = [
   // Scripts aliases for test helpers
   { find: '@senars/scripts/lib', replacement: path.resolve(__dirname, './scripts/lib') },
   { find: '@senars/scripts/lib/*', replacement: path.resolve(__dirname, './scripts/lib/*') },
+  // lit decorators fix for oxc
+  { find: 'lit/decorators', replacement: path.resolve(__dirname, './ui/node_modules/lit/decorators.js') },
+  { find: 'lit/decorators.js', replacement: path.resolve(__dirname, './ui/node_modules/lit/decorators.js') },
+  { find: 'lit/static-html.js', replacement: path.resolve(__dirname, './ui/node_modules/lit/static-html.js') },
+  { find: 'lit/static-html', replacement: path.resolve(__dirname, './ui/node_modules/lit/static-html.js') },
 ];
 
 console.log('Vitest aliases loaded:', aliases.length);
 
 export default defineConfig({
-  plugins: [normalizeImportsPlugin, debugResolverPlugin],
+  plugins: [normalizeImportsPlugin, debugResolverPlugin, debugTransformPlugin],
   resolve: {
     alias: aliases,
     tsconfigPaths: false,
   },
   transformMode: {
     web: ['**/*.ts'],
+    ssr: ['**/*.ts'],
   },
-  esbuild: {
-    target: 'node20',
-    include: ['src/**/*.ts', 'tests/**/*.ts'],
+  // Force esbuild by disabling oxc
+  experimental: {
+    vm: {
+      isolate: false,
+    },
+  },
+  // Exclude problematic native modules from transformation
+  deps: {
+    external: ['node-llama-cpp', 'src/lm/providers/embedded-llamacpp.ts', 'src/lm/providers/llamacpp.ts'],
   },
   test: {
     globals: true,

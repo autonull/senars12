@@ -1,4 +1,4 @@
-import type { ToolResult } from './engine.js';
+import type { ToolResult } from './engine';
 
 export type { ToolResult };
 

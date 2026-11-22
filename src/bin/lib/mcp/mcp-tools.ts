@@ -1,23 +1,23 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { ChatStreamEvent } from '../../../agent/index.js';
-import { withinWorkspace } from '../../../motor/index.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { ChatStreamEvent } from '../../../agent/index';
+import { withinWorkspace } from '../../../motor/index';
 import type { NAR } from '@senars/nar';
 import { Truth } from '@senars/nar/terms';
-import type { ExtendedAgent as Agent } from '../../../agent/index.js';
-import { resetDemotions } from '../../../lm/index.js';
-import { filterFolded } from '@senars/util/text.js';
-import { takeLast } from '@senars/util/collections.js';
+import type { ExtendedAgent as Agent } from '../../../agent/index';
+import { resetDemotions } from '../../../lm/index';
+import { filterFolded } from '@senars/util/text';
+import { takeLast } from '@senars/util/collections';
 import { positiveInt } from '@senars/config';
-import { evaluateExpression } from '@senars/util/eval.js';
+import { evaluateExpression } from '@senars/util/eval';
 import { z } from 'zod';
-import type { JobManager } from './job-manager.js';
-import { registerNARRegistryTools } from './mcp-bridge.js';
+import type { JobManager } from './job-manager';
+import { registerNARRegistryTools } from './mcp-bridge';
 import {
   ANNOTATIONS,
   createMCPResponse,
   formatBeliefsForMCP,
   stringifyMCP,
-} from './mcp-response.js';
+} from './mcp-response';
 
 export interface NARToolsOptions {
   jobs?: JobManager;

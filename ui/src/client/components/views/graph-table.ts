@@ -1,5 +1,5 @@
 import type { GraphNodeData } from '@senars/core';
-import type { TableDataset } from '../../core/view-spec.js';
+import type { TableDataset } from '../../core/view-spec';
 
 /**
  * The graph's tabular projection: the same concepts the viewport paints, as rows.

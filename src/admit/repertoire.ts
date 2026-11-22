@@ -5,11 +5,11 @@
  * Every admit/demote/retire is an event; rollback is one event.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Stamp } from '../kernel/types.js';
-import type { Clock, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Stamp } from '../kernel/types';
+import type { Clock, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Artifact kinds. */
 export const ARTIFACT_KINDS = [

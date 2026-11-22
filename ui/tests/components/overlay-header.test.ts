@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/overlay-header.js';
-import { getOverlayManager, resetOverlayManager } from '../../src/client/core/overlay-manager.js';
-import { registerOverlay } from '../../src/client/core/overlay-registry.js';
+import '../../src/client/components/overlays/overlay-header';
+import { getOverlayManager, resetOverlayManager } from '../../src/client/core/overlay-manager';
+import { registerOverlay } from '../../src/client/core/overlay-registry';
 
 type Header = HTMLElement & { overlayId: string; title: string; updateComplete: Promise<unknown> };
 

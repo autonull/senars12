@@ -15,10 +15,10 @@
  */
 
 import { readFileSync } from 'node:fs';
-import type { Formula } from '../logics/axiomatic/ast.js';
-import { parseFlags } from '../util/cli.js';
-import { check, convert, counterexample, model, prove, type ConvertTarget } from '../logic/commands.js';
-import type { CommandResult } from '../logic/verdict.js';
+import type { Formula } from '../logics/axiomatic/ast';
+import { parseFlags } from '../util/cli';
+import { check, convert, counterexample, model, prove, type ConvertTarget } from '../logic/commands';
+import type { CommandResult } from '../logic/verdict';
 
 const flags = parseFlags();
 const [command, first, ...remaining] = flags.positional;

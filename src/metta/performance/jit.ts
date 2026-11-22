@@ -1,6 +1,6 @@
 import { LruCache } from '@senars/util/lru-cache';
-import { atomKey } from '../core/hash.js';
-import type { MeTTaAtom } from '../types/ast.js';
+import { atomKey } from '../core/hash';
+import type { MeTTaAtom } from '../types/ast';
 
 export interface JitCacheEntry {
   readonly code: (...args: MeTTaAtom[]) => MeTTaAtom;

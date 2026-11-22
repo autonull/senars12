@@ -3,13 +3,13 @@ import { formatTruth } from '@senars/types/truth';
 import { stableKeyOf } from '@senars/util/json';
 import { takeFirst, unique } from '@senars/util/collections';
 import { getModelForTask } from '../lm';
-import type { ILMService } from '../lm/interfaces.js';
-import { buildGenerationPrompt } from './prompts/generation-v1.js';
-import { GenerationOutputSchema } from './schemas.js';
-import { SingleFlight } from './singleflight.js';
-import type { BeliefInfo, DerivationTrace, ConflictInfo } from './types.js';
+import type { ILMService } from '../lm/interfaces';
+import { buildGenerationPrompt } from './prompts/generation-v1';
+import { GenerationOutputSchema } from './schemas';
+import { SingleFlight } from './singleflight';
+import type { BeliefInfo, DerivationTrace, ConflictInfo } from './types';
 
-export type { BeliefInfo, DerivationTrace, ConflictInfo } from './types.js';
+export type { BeliefInfo, DerivationTrace, ConflictInfo } from './types';
 
 export interface GenerationInput {
   query: string;

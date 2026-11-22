@@ -2,8 +2,8 @@ import { BoundedMap } from '@senars/util/bounded-map';
 import { deadline } from '@senars/util/async';
 import { maxBy, rankBy } from '@senars/util/collections';
 
-import type { GateRegistry } from '../kernel/GateRegistry.js';
-import type { TaskAdmission } from '../memory/ports/index.js';
+import type { GateRegistry } from '../kernel/GateRegistry';
+import type { TaskAdmission } from '../memory/ports/index';
 import type { Task } from '../types';
 
 export type TaskLifecycle = 'pending' | 'running' | 'completed' | 'failed' | 'expired';

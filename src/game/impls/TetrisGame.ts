@@ -1,7 +1,7 @@
 import { clamp01 } from '@senars/util/numeric';
 import { maxScore, minScore } from '@senars/util/collections';
 import { SeededRNG, shuffleInPlace } from '@senars/util/random';
-import type { Game, GameOutcome, Perception } from '../Game.js';
+import type { Game, GameOutcome, Perception } from '../Game';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
 export type TetrisPlacement = string;

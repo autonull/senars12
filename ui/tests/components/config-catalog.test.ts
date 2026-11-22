@@ -5,10 +5,10 @@
  * settings UI — a new field needs no edit outside the catalog.
  */
 import { describe, expect, it } from 'vitest';
-import { configFieldFor, getConfigFields } from '../../src/client/core/config-catalog.js';
-import { DEFAULT_UI_CONFIG } from '../../src/client/core/config-schema.js';
-import { buildConfigSchema as buildServerConfigSchema } from '../../src/server/config-schema.js';
-import { fieldsForSection } from '../../src/client/components/config-hud.js';
+import { configFieldFor, getConfigFields } from '../../src/client/core/config-catalog';
+import { DEFAULT_UI_CONFIG } from '../../src/client/core/config-schema';
+import { buildConfigSchema as buildServerConfigSchema } from '../../src/server/config-schema';
+import { fieldsForSection } from '../../src/client/components/config-hud';
 
 const valueAt = (path: string): unknown =>
   path

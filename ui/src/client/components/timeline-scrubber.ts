@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi, eventBus } from '../core/index.js';
+import { customElement, state } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi, eventBus } from '../core/index';
 
 @customElement('timeline-scrubber')
 export class TimelineScrubber extends BaseComponent {

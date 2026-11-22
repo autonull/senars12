@@ -1,6 +1,6 @@
 import { makeId } from '@senars/util/id';
-import { validateBatchQueries } from './algebra.js';
-import { composeProposition, dominantDistribution } from './distribution.js';
+import { validateBatchQueries } from './algebra';
+import { composeProposition, dominantDistribution } from './distribution';
 import type {
   BackendId,
   CalibrationVersion,
@@ -13,8 +13,8 @@ import type {
   ModelDigest,
   QueryId,
   ReasoningBudget,
-} from './types.js';
-import { NO_COST } from './types.js';
+} from './types';
+import { NO_COST } from './types';
 
 interface ConstantManifoldConfig {
   tier: 0 | 3;

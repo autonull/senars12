@@ -4,10 +4,10 @@
  * Unified world system for seeded, replayable evaluation.
  */
 
-export * from './habitat.js';
-export * from './pack.js';
-export * from './scorecard.js';
-export * from './arena.js';
-export * from './arena-lanes.js';
-export * from './world-packs.js';
-export * from './soak.js';
+export * from './habitat';
+export * from './pack';
+export * from './scorecard';
+export * from './arena';
+export * from './arena-lanes';
+export * from './world-packs';
+export * from './soak';

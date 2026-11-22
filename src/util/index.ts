@@ -2,7 +2,7 @@
 /** @public Shared cognitive event types and guards used across core, nar, io, and bins. */
 
 /** @public Unified command registry. */
-export { CommandRegistry } from '../commands/registry.js';
+export { CommandRegistry } from '../commands/registry';
 // Commands
 /** @public Command system types. */
 export {
@@ -11,7 +11,7 @@ export {
   type CommandHandler,
   isQuitResult,
   QUIT_SENTINEL,
-} from '../commands/types.js';
+} from '../commands/types';
 // Config
 /** @public Shared configuration types, validation, and env mapping. */
 /** @public Standardized SENARS_* env → config path mapping. */
@@ -39,7 +39,7 @@ export {
   systemOneDefaults,
   systemOneSchema,
   type SystemOneConfig,
-} from '../config/index.js';
+} from '../config/index';
 // Errors
 /** @public Unified error hierarchy for all SeNARS packages. */
 export {
@@ -52,13 +52,13 @@ export {
   ToolError,
   TransportError,
   ValidationError,
-} from '../errors/index.js';
+} from '../errors/index';
 /** @public Event bus receiver/unsubscribe contracts. */
-export type { EventReceiver, EventUnsubscribe } from '../events/types.js';
+export type { EventReceiver, EventUnsubscribe } from '../events/types';
 // Events
 /** @public Generic typed event bus runtime. */
-export { EventBus } from '../events/event-bus.js';
-export { ListenerBag } from '../events/listener-bag.js';
+export { EventBus } from '../events/event-bus';
+export { ListenerBag } from '../events/listener-bag';
 // Bag
 /** @public AIKR bag substrate — one implementation, many consumers. */
 export type {
@@ -75,11 +75,11 @@ export type {
   PressureTransition,
   PriorityBag,
   RandomSource,
-} from './bag.js';
+} from './bag';
 /** @public Push-to-async-iterator bridge shared by config views and event logs. */
-export { PushQueue } from '../events/push-queue.js';
+export { PushQueue } from '../events/push-queue';
 /** @public Single-subject fan-out with isolated listeners. */
-export { Signal } from '../events/signal.js';
+export { Signal } from '../events/signal';
 /** @public Tool feedback observer for unified statistics tracking. */
 export {
   DefaultToolFeedbackObserver,
@@ -87,7 +87,7 @@ export {
   type ToolFeedback,
   type ToolFeedbackObserver,
   toSkillFeedback,
-} from '../feedback/ToolFeedbackObserver.js';
+} from '../feedback/ToolFeedbackObserver';
 /** @public The monorepo's one logger. */
 export {
   createLogger,
@@ -95,8 +95,8 @@ export {
   Logger,
   registerLogEnricher,
   silentLogger,
-} from './logger.js';
-export type { SessionStoreOptions } from '../memory/in-memory-session-manager.js';
+} from './logger';
+export type { SessionStoreOptions } from '../memory/in-memory-session-manager';
 // Memory
 /** @public Bounded session store and the in-memory session manager over it. */
 export {
@@ -104,10 +104,10 @@ export {
   createSession,
   InMemorySessionManager,
   SessionStore,
-} from '../memory/in-memory-session-manager.js';
-export type { Middleware } from './middleware.js';
+} from '../memory/in-memory-session-manager';
+export type { Middleware } from './middleware';
 /** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
-export { dispatch } from './middleware.js';
+export { dispatch } from './middleware';
 /** @public Agent-facing option and capability types. */
 export type {
   AgentOptions,
@@ -116,11 +116,11 @@ export type {
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
-} from '../types/agent.js';
+} from '../types/agent';
 /** @public Health status levels. */
-export { HEALTH_STATUSES, type HealthLevel } from './health-status.js';
+export { HEALTH_STATUSES, type HealthLevel } from './health-status';
 /** @public The shared capability risk vocabulary. */
-export { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from './capability-risk.js';
+export { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from './capability-risk';
 export type {
   AgentTrace,
   BandDecision,
@@ -133,7 +133,7 @@ export type {
   GroundednessGate,
   TracedToolCall,
   TraceGrader,
-} from '../types/cognitive.js';
+} from '../types/cognitive';
 /** @public The vocabularies a cognitive event carries, so the zod boundary in `core`
  *  cannot admit an origin, a band, an axis or a query shape the types do not carry. */
 export {
@@ -145,13 +145,13 @@ export {
   egressVerdict,
   JUDGMENT_SHAPES,
   JudgmentShapeSchema,
-} from './cognitive-schemas.js';
+} from './cognitive-schemas';
 /** @public Engine origin discriminants. */
-export { ENGINE_ORIGINS, type EngineOrigin, PROPOSER_ORIGIN, NAR_ORIGIN } from './origins.js';
+export { ENGINE_ORIGINS, type EngineOrigin, PROPOSER_ORIGIN, NAR_ORIGIN } from './origins';
 /** @public Engine contract and identifiers. */
-export type { Engine, EngineId } from '../types/engine.js';
+export type { Engine, EngineId } from '../types/engine';
 /** @public The one tool outcome shape and its two constructors. */
-export { toolAttempt, toolError, toolOk } from '../types/engine.js';
+export { toolAttempt, toolError, toolOk } from '../types/engine';
 /** @public Episodic memory contracts. */
 export type {
   Episode,
@@ -159,10 +159,10 @@ export type {
   EpisodeType,
   EpisodicMemory,
   EpisodicMemoryConfig,
-} from '../types/episodic-memory.js';
-export { EPISODE_TYPES } from '../types/episodic-memory.js';
+} from '../types/episodic-memory';
+export { EPISODE_TYPES } from '../types/episodic-memory';
 /** @public Health-report types (O3, TODO20). */
-export type { HealthCheckResult, HealthReport } from '../types/health.js';
+export type { HealthCheckResult, HealthReport } from '../types/health';
 /** @public Component lifecycle and observability contracts. */
 export type {
   BaseComponent,
@@ -173,7 +173,7 @@ export type {
   LoggerConfig,
   LogLevel,
   ScopedLogger,
-} from '../types/lifecycle.js';
+} from '../types/lifecycle';
 /** @public LM service contract. */
 export type {
   LMExecutionStats,
@@ -186,16 +186,16 @@ export type {
   LMTaskGenerator,
   MockLMConfig,
   ModelRuleStats,
-} from '../types/llm.js';
-export { CIRCUIT_STATES, LM_TASKS } from '../types/llm.js';
+} from '../types/llm';
+export { CIRCUIT_STATES, LM_TASKS } from '../types/llm';
 /** @public Session/memory manager contracts. */
 export type {
   ConversationSession,
   HistoryEntry,
   MessageRole,
   SessionManager,
-} from '../types/memory.js';
-export { HistoryEntrySchema, MESSAGE_ROLES, MessageRoleSchema } from '../types/memory.js';
+} from '../types/memory';
+export { HistoryEntrySchema, MESSAGE_ROLES, MessageRoleSchema } from '../types/memory';
 /** @public Tool contracts. */
 export type {
   ToolBudget,
@@ -208,8 +208,8 @@ export type {
   ToolSchema,
   ToolSchemaProperty,
   ToolSpec,
-} from '../types/tools.js';
-export { objectSpec } from '../types/tools.js';
+} from '../types/tools';
+export { objectSpec } from '../types/tools';
 
 /** @public Transport/connection contracts shared by io and core. */
 export type {
@@ -221,9 +221,9 @@ export type {
   IOMessage,
   MessageClassification,
   TransportDeps,
-} from '../types/transport.js';
+} from '../types/transport';
 /** @public Truth value branded types. */
-export type { BeliefTruth, Confidence, Frequency, TermTruth, TruthLike } from '../types/truth.js';
+export type { BeliefTruth, Confidence, Frequency, TermTruth, TruthLike } from '../types/truth';
 /** @public Truth value constructors. */
 export {
   asBeliefTruth,
@@ -236,25 +236,25 @@ export {
   toConfidence,
   toFrequency,
   toTermTruth,
-} from '../types/truth.js';
+} from '../types/truth';
 /** @public Truth schemas. */
-export { BeliefTruthSchema, TermTruthSchema } from './truth-schema.js';
+export { BeliefTruthSchema, TermTruthSchema } from './truth-schema';
 /** @public Truth algebra (confidence/weight conversion, weakening). */
 export {
   WEIGHT_AT_CERTAINTY,
   confidenceToWeight,
   weightToConfidence,
   weakenConfidence,
-} from './truth-algebra.js';
+} from './truth-algebra';
 // Utils
 /** @public Assertion helpers. */
-export { assertDefined, invariant } from './assert.js';
+export { assertDefined, invariant } from './assert';
 /**
  * @public The general-purpose primitives, grouped by domain: clocks and
  * deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
  * text measurement, schema-failure rendering, and error coercion.
  */
-export type { Deadline, Debounced, Deferred } from './async.js';
+export type { Deadline, Debounced, Deferred } from './async';
 export {
   boundedDeadline,
   boundedFetch,
@@ -275,10 +275,10 @@ export {
   TRUNCATION_MARKER,
   withDeadline,
   withTimeout,
-} from './async.js';
+} from './async';
 // Bandit substrate
 /** @public One `(state, action)` estimate store for every tabular policy. */
-export type { ConfidenceCurve, Exploration, QEntry, QUpdate } from './bandit.js';
+export type { ConfidenceCurve, Exploration, QEntry, QUpdate } from './bandit';
 export {
   greedy,
   isYoung,
@@ -289,22 +289,22 @@ export {
   UNVISITED,
   ucb,
   visitConfidence,
-} from './bandit.js';
+} from './bandit';
 /** @public Bounded map with pluggable eviction order and optional TTL. */
-export type { BoundedMapOptions, EvictionOrder } from './bounded-map.js';
-export { BoundedMap } from './bounded-map.js';
-export type { Flags } from './cli.js';
-export { parseFlags } from './cli.js';
+export type { BoundedMapOptions, EvictionOrder } from './bounded-map';
+export { BoundedMap } from './bounded-map';
+export type { Flags } from './cli';
+export { parseFlags } from './cli';
 /** @public The one injectable time source; every bounded container and cache takes one. */
-export type { Clock } from './clock.js';
-export { fixedClock, systemClock } from './clock.js';
+export type { Clock } from './clock';
+export { fixedClock, systemClock } from './clock';
 export type {
   BoundedContainer,
   ContainerStats,
   EvictByScore,
   OverflowPolicy,
   ReadOnlyLookup,
-} from './collections.js';
+} from './collections';
 
 // Collections
 /** @public Bounded FIFO ring buffer; evicting or refusing at capacity. */
@@ -353,8 +353,8 @@ export {
   unique,
   uniqueBy,
   victimBy,
-} from './collections.js';
-export { formatIssues, type SchemaIssue } from './diagnostics.js';
+} from './collections';
+export { formatIssues, type SchemaIssue } from './diagnostics';
 /** @public Circuit breaker state machine for provider routing health. */
 export type {
   CircuitBreakerConfig,
@@ -362,23 +362,23 @@ export type {
   CircuitSnapshot,
   CircuitState,
   TransitionReason,
-} from './circuit-breaker.js';
-export { CircuitBreaker } from './circuit-breaker.js';
+} from './circuit-breaker';
+export { CircuitBreaker } from './circuit-breaker';
 /** @public Config migration utilities. */
 export {
   CURRENT_CONFIG_VERSION,
   migrateConfig,
   migrateConfigFile,
   type MigrationOutcome,
-} from './config-migrate.js';
+} from './config-migrate';
 /** @public Frequency divergence detection for contradiction mining. */
-export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from './divergence.js';
+export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from './divergence';
 /** @public Environment variable validation against declared grammar. */
-export { validateEnv, assertValidEnv, type ValidationResult } from './env-validate.js';
+export { validateEnv, assertValidEnv, type ValidationResult } from './env-validate';
 /** @public The registry every component records its teardown in. */
-export type { Teardown } from './disposal.js';
-export { DisposalRegistry } from './disposal.js';
-export { degrade, errMsg, toError } from './error.js';
+export type { Teardown } from './disposal';
+export { DisposalRegistry } from './disposal';
+export { degrade, errMsg, toError } from './error';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export {
   bar,
@@ -390,8 +390,8 @@ export {
   percentiles,
   section,
   utcDate,
-} from './format.js';
-export type { JsonlLoadResult } from './fs.js';
+} from './format';
+export type { JsonlLoadResult } from './fs';
 // Filesystem
 export {
   appendJsonl,
@@ -414,9 +414,9 @@ export {
   writeJsonFile,
   writeJsonFileSync,
   writeJsonl,
-} from './fs.js';
-export { compact, ensureArray, isNil, isPlainObject } from './guards.js';
-export type { DigestInput } from './hash.js';
+} from './fs';
+export { compact, ensureArray, isNil, isPlainObject } from './guards';
+export type { DigestInput } from './hash';
 // Hashing
 /** @public SHA-256 digests for provenance keys, digest pinning, and state hashes. */
 export {
@@ -431,7 +431,7 @@ export {
   sha256HexParts,
   sha256Prefixed,
   shortSha256Hex,
-} from './hash.js';
+} from './hash';
 /** @public ULID id generation. */
 export {
   currentIdCount,
@@ -442,18 +442,18 @@ export {
   primeIdCount,
   sequentialIdSource,
   sortableIdSource,
-} from './id.js';
+} from './id';
 /** @public Deterministic JSON with sorted object keys — the one serializer behind every cache key and content digest. */
-export { extractJsonObject, parseJsonObject, stableKeyOf, stableStringify } from './json.js';
+export { extractJsonObject, parseJsonObject, stableKeyOf, stableStringify } from './json';
 /** @public Keyed storage by derived identity, and the named registry over it. */
-export type { KeyedRegistryOptions } from './keyed-collection.js';
+export type { KeyedRegistryOptions } from './keyed-collection';
 export {
   KeyedCollection,
   KeyedRegistry,
-} from './keyed-collection.js';
-export type { LruCacheOptions } from './lru-cache.js';
+} from './keyed-collection';
+export type { LruCacheOptions } from './lru-cache';
 /** @public Bounded recency-ordered cache with optional TTL. */
-export { LruCache } from './lru-cache.js';
+export { LruCache } from './lru-cache';
 export {
   anneal,
   CHARS_PER_TOKEN,
@@ -490,9 +490,9 @@ export {
   ucb1,
   variance,
   invTemperature,
-} from './numeric.js';
-export { deepEqual, deepFreeze, deepMerge, getNested, setNested, thaw } from './object.js';
-export { extractLastUserMessage } from './prompt.js';
+} from './numeric';
+export { deepEqual, deepFreeze, deepMerge, getNested, setNested, thaw } from './object';
+export { extractLastUserMessage } from './prompt';
 /** @public The seeded PRNG, weighted sampling, and the deterministic split primitive. */
 export {
   ambientRng,
@@ -514,11 +514,11 @@ export {
   weightedPick,
   weightedSample,
   weightedSampleBy,
-} from './random.js';
-export type { RateLimiterOptions } from './rate-limit.js';
+} from './random';
+export type { RateLimiterOptions } from './rate-limit';
 /** @public Keyed sliding-window rate limiter for transports and guards. */
-export { SlidingWindowRateLimiter } from './rate-limit.js';
-export type { Err, Ok, Result } from './result.js';
+export { SlidingWindowRateLimiter } from './rate-limit';
+export type { Err, Ok, Result } from './result';
 /** @public The fallible-result union, and the folds over it. */
 export {
   attempt,
@@ -533,15 +533,15 @@ export {
   match,
   ok,
   unwrapOrThrow,
-} from './result.js';
-export type { RetryOptions } from './retry.js';
+} from './result';
+export type { RetryOptions } from './retry';
 // Caching
-export { withRetry } from './retry.js';
+export { withRetry } from './retry';
 /** @public Process signal → graceful shutdown for every binary; returns its own uninstall. */
-export { setupGracefulShutdown } from './shutdown.js';
-export { weightedMean } from './stats.js';
+export { setupGracefulShutdown } from './shutdown';
+export { weightedMean } from './stats';
 /** @public Vector and set similarity functions (cosine, Jaccard, L2 normalization). */
-export type { NormalizedVector, ReadonlySetLike } from './similarity.js';
+export type { NormalizedVector, ReadonlySetLike } from './similarity';
 export {
   cosine,
   cosineNormalized,
@@ -549,10 +549,10 @@ export {
   jaccard,
   l2Normalize,
   normalize,
-} from './similarity.js';
+} from './similarity';
 /** @public One tally of attempts, and the bounded per-key series of them. */
-export type { CallTally, CallTallySeriesOptions } from './tally.js';
-export { CallTallySeries, createCallTally, recordCall } from './tally.js';
+export type { CallTally, CallTallySeriesOptions } from './tally';
+export { CallTallySeries, createCallTally, recordCall } from './tally';
 export {
   appendTextDelta,
   collectText,
@@ -571,10 +571,10 @@ export {
   truncate,
   truncateBytes,
   wordOverlap,
-} from './text.js';
-export { NARSESE_ATOM_CHARS } from './alphabet.js';
+} from './text';
+export { NARSESE_ATOM_CHARS } from './alphabet';
 /** @public Base registry classes for type-safe registries. */
-export { BaseRegistry, IdRegistry, NameRegistry, FunctionRegistry } from './registry.js';
+export { BaseRegistry, IdRegistry, NameRegistry, FunctionRegistry } from './registry';
 /** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
 export type {
   EqualityDialect,
@@ -582,8 +582,8 @@ export type {
   UnifierDialect,
   UnifyOptions,
   VariablePolicy,
-} from './unify.js';
-export { structuralEqual, Unifier } from './unify.js';
+} from './unify';
+export { structuralEqual, Unifier } from './unify';
 /** @public Source-anchored call-site declarations for the seam ledgers. */
 export {
   formatWitness,
@@ -591,7 +591,7 @@ export {
   type WitnessList,
   witnessFiles,
   witnessHolds,
-} from './witness.js';
+} from './witness';
 /** @public Append-only ledger with content-addressable entries. */
 export {
   BaseLedgerEntrySchema,
@@ -599,4 +599,4 @@ export {
   type LedgerConfig,
   createLedger,
   Ledger,
-} from './ledger.js';
+} from './ledger';

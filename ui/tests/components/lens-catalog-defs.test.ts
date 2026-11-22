@@ -4,7 +4,7 @@ import {
   LENS_IDS,
   lensDef,
   lensIdsWhere,
-} from '../../src/client/utils/lens-catalog.js';
+} from '../../src/client/utils/lens-catalog';
 
 const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 

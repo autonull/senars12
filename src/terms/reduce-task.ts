@@ -1,7 +1,7 @@
-import type { Task } from '../types/task.js';
-import { canonicalTerm } from './reduce.js';
-import { getArgs } from './impls/accessors.js';
-import { Truth } from './impls/Truth.js';
+import type { Task } from '../types/task';
+import { canonicalTerm } from './reduce';
+import { getArgs } from './impls/accessors';
+import { Truth } from './impls/Truth';
 
 /**
  * One rewrite over a *claim* rather than a formula (TODO29.a §5.12), with the

@@ -1,13 +1,13 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { EpisodicMemory } from '@senars/nar/memory/episodic';
-import type { DialogueCapture as DialogueCaptureType } from '../../../dialogue/index.js';
-import { retrospect, selectProbes } from '../../../dialogue/index.js';
-import { parseJsonOr } from '@senars/util/fs.js';
-import type { ReadOnlyLookup } from '@senars/util/collections.js';
-import { takeLast, unique } from '@senars/util/collections.js';
+import type { DialogueCapture as DialogueCaptureType } from '../../../dialogue/index';
+import { retrospect, selectProbes } from '../../../dialogue/index';
+import { parseJsonOr } from '@senars/util/fs';
+import type { ReadOnlyLookup } from '@senars/util/collections';
+import { takeLast, unique } from '@senars/util/collections';
 import { positiveInt } from '@senars/config';
 import { z } from 'zod';
-import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
+import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response';
 
 const EMPTY_GRADES: ReadOnlyLookup<string, number> = {
   get: () => undefined,

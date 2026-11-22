@@ -1,7 +1,7 @@
 import { dispatch } from '@senars/util/middleware';
-import type { Middleware } from '@senars/util/middleware.js';
-import type { ConnectionManager } from './connection-manager.js';
-import type { Connection, IOMessage } from './types.js';
+import type { Middleware } from '@senars/util/middleware';
+import type { ConnectionManager } from './connection-manager';
+import type { Connection, IOMessage } from './types';
 
 export interface MessageContext {
   readonly connection: Connection;

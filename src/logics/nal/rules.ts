@@ -5,12 +5,12 @@
  * rule definitions with truth functions, conditions, and priorities.
  */
 
-import { Term, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Truth, type TruthOp, type TruthValue } from '../../kernel/truth.js';
-import { getArgs } from '../../kernel/terms/term.js';
-import { Stamp } from '../../kernel/stamp.js';
-import type { RuleCategory, RuleId, Premise, StepResult } from '../../kernel/step.js';
-import { StepExecutor } from '../../kernel/step.js';
+import { Term, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Truth, type TruthOp, type TruthValue } from '../../kernel/truth';
+import { getArgs } from '../../kernel/terms/term';
+import { Stamp } from '../../kernel/stamp';
+import type { RuleCategory, RuleId, Premise, StepResult } from '../../kernel/step';
+import { StepExecutor } from '../../kernel/step';
 
 /** Wrap a function to check premises length matches arity. */
 function withArity<const N extends 1 | 2, R>(

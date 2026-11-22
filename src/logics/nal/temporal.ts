@@ -5,13 +5,13 @@
  * sequences, predictions, and concurrent processes.
  */
 
-import { Term, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Truth, type TruthValue } from '../../kernel/truth.js';
-import { getArgs } from '../../kernel/terms/term.js';
-import { Stamp } from '../../kernel/stamp.js';
-import type { Premise } from '../../kernel/step.js';
-import type { Clock } from '../../kernel/env.js';
-import { createDefaultClock } from '../../kernel/env.js';
+import { Term, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Truth, type TruthValue } from '../../kernel/truth';
+import { getArgs } from '../../kernel/terms/term';
+import { Stamp } from '../../kernel/stamp';
+import type { Premise } from '../../kernel/step';
+import type { Clock } from '../../kernel/env';
+import { createDefaultClock } from '../../kernel/env';
 
 /** Wrap a function to check premises length matches arity. */
 function withArity<const N extends 1 | 2, R>(

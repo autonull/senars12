@@ -6,8 +6,8 @@
  * otherwise have to carry a second, console-only implementation of this surface.
  */
 
-import { getOrInsert } from './collections.js';
-import type { LogEntry, LoggerConfig, LogLevel, ScopedLogger } from '@senars/types/lifecycle.js';
+import { getOrInsert } from './collections';
+import type { LogEntry, LoggerConfig, LogLevel, ScopedLogger } from '@senars/types/lifecycle';
 
 const LOG_LEVELS: readonly LogLevel[] = ['debug', 'info', 'warn', 'error'];
 

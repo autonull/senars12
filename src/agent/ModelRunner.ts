@@ -9,7 +9,7 @@ import {
   streamText,
   type ToolSet,
 } from 'ai';
-import type { LMTask } from '@senars/types/llm.js';
+import type { LMTask } from '@senars/types/llm';
 
 /** Local ToolCall type matching the ai SDK structure. */
 export interface ToolCall {

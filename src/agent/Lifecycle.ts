@@ -3,7 +3,7 @@ import type {
   ComponentContext,
   ComponentState,
   ScopedLogger,
-} from '../types/lifecycle.js';
+} from '../types/lifecycle';
 
 const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
   created: ['initialized', 'disposed'],

@@ -1,15 +1,15 @@
 import type { ReasoningBudget } from '@senars/schemas';
 import { collectUpTo, takeFirst } from '@senars/util/collections';
 import { splitLines } from '@senars/util/text';
-import type { LMService } from '../lm-service.js';
+import type { LMService } from '../lm-service';
 import type {
   CognitiveContext,
   CortexHealth,
   GenerativeCortex,
   SynthesisProposition,
   SynthesisQuery,
-} from './types.js';
-import { candidateSlots, nextCandidateSlot, NO_COST, synthesisCandidateCount } from './types.js';
+} from './types';
+import { candidateSlots, nextCandidateSlot, NO_COST, synthesisCandidateCount } from './types';
 
 export interface LMServiceCortexConfig {
   lmService: LMService;

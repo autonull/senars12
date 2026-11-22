@@ -1,15 +1,15 @@
 import { appendTextDelta, collectText } from '@senars/util/text';
 import { estimateTokens } from '@senars/util/numeric';
 import { formatTruth } from '@senars/types/truth';
-import type { ChatStreamEvent } from '../agent/chat.js';
-import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
+import type { ChatStreamEvent } from '../agent/chat';
+import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine';
 import type {
   ComposedRequest,
   ModelEvent,
   ModelRunner,
   ModelTier,
   ToolSet,
-} from '../agent/ModelRunner.js';
+} from '../agent/ModelRunner';
 
 export interface CortexSynthesizeRequest {
   stimulus: CognitiveStimulus;

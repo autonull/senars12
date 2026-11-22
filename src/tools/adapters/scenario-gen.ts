@@ -14,8 +14,8 @@ import {
   type ScenarioSpec,
   scenarioLogger,
   validators,
-} from './scenario-execute.js';
-import { SCENARIO_PROFILES, type ScenarioTemplateProfile } from './scenario-profiles.js';
+} from './scenario-execute';
+import { SCENARIO_PROFILES, type ScenarioTemplateProfile } from './scenario-profiles';
 
 export type {
   ScenarioGenDeps,
@@ -23,7 +23,7 @@ export type {
   ScenarioResult,
   ScenarioSpec,
   ScenarioSuccessCriteria,
-} from './scenario-execute.js';
+} from './scenario-execute';
 
 import { intBetween } from '@senars/util/config';
 

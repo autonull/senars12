@@ -10,25 +10,25 @@ import { systemClock, type Clock } from '@senars/util/clock';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { PriorityBag } from '@senars/bag';
-import { FOCUS_DEFAULTS } from '../constants.js';
-import type { TermTruth } from '../types/truth.js';
-import { type Game, type GameOutcome, perceptionKey, type Perception } from '../game/Game.js';
-import type { GateRegistry } from '../kernel/index.js';
-import type { ConfidenceRouter } from '../lm/system-one/policy.js';
-import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold } from '../lm/system-one/types.js';
+import { FOCUS_DEFAULTS } from '../constants';
+import type { TermTruth } from '../types/truth';
+import { type Game, type GameOutcome, perceptionKey, type Perception } from '../game/Game';
+import type { GateRegistry } from '../kernel/index';
+import type { ConfidenceRouter } from '../lm/system-one/policy';
+import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold } from '../lm/system-one/types';
 import {
   type IProposer,
   type NALDerivation,
   type NegotiationDecision,
   Negotiator,
-} from '../reflex/Negotiator.js';
-import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
-import { recordBagPressure, recordHandover, pressureToNumber } from '../telemetry/index.js';
-import type { NarEventBus } from '../types/events.js';
-import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
-import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
-import { Focus, type FocusOptions } from './Focus.js';
-import { outcomeTasks, proposalTasks } from './task.js';
+} from '../reflex/Negotiator';
+import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex';
+import { recordBagPressure, recordHandover, pressureToNumber } from '../telemetry/index';
+import type { NarEventBus } from '../types/events';
+import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding';
+import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas';
+import { Focus, type FocusOptions } from './Focus';
+import { outcomeTasks, proposalTasks } from './task';
 
 const GameTraceEntrySchema = BaseLedgerEntrySchema.extend({
   cycle: z.number(),

@@ -1,7 +1,7 @@
 /**
  * Constants - extracted from SelfAnalyzerService
  */
-import type { PatternAnalysis } from '../../types.js';
+import type { PatternAnalysis } from '../../types';
 
 export const EMPTY_PATTERN: PatternAnalysis = {
   frequentPatterns: [],

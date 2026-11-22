@@ -3,8 +3,8 @@
  */
 import { getOrInsert, selectTopN } from '@senars/util/collections';
 import { mean } from '@senars/util/numeric';
-import type { Concept } from '../../../memory/concept.js';
-import type { TermPattern } from '../../types.js';
+import type { Concept } from '../../../memory/concept';
+import type { TermPattern } from '../../types';
 
 interface TermFreqEntry {
   count: number;

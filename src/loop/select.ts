@@ -4,11 +4,11 @@
  * Implements multiple selection strategies: utility-based, VoI-based, epsilon-greedy, etc.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task, TimestampMs } from '../kernel/types.js';
-import type { FacultyOutput } from '../faculties/specs.js';
-import type { RNG, Clock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task, TimestampMs } from '../kernel/types';
+import type { FacultyOutput } from '../faculties/specs';
+import type { RNG, Clock } from '../kernel/env';
 
 /** Selection strategies. */
 export const SELECTION_STRATEGIES = [

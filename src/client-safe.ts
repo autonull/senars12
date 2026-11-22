@@ -4,7 +4,7 @@
 export type {
   ComponentContext,
   ComponentState,
-} from '@senars/types/lifecycle.js';
+} from '@senars/types/lifecycle';
 
 // Bag (AIKR substrate)
 export {
@@ -13,13 +13,13 @@ export {
   type Bag,
   type BagItem,
   type BagOptions,
-} from './bag/index.js';
+} from './bag/index';
 export {
   resolveBagSlot,
   bagSlotErrors,
   type BagSlotParams,
   type ResolvedBagSlot,
-} from './bag/index.js';
+} from './bag/index';
 
 // Resources
 export {
@@ -28,7 +28,7 @@ export {
   type CapacitySource,
   type ResourceContract,
   type Retention,
-} from './resources/index.js';
+} from './resources/index';
 
 // Cognitive Parameters
 export {
@@ -50,7 +50,7 @@ export {
   type ModelRunnerConfig,
   type MemoryParams,
   type StrategySlotParams,
-} from './config/cognitive-parameters.js';
+} from './config/cognitive-parameters';
 
 // Strategies
 export {
@@ -105,7 +105,7 @@ export {
   type StrategyRegistration,
   type StrategyRegistry,
   type StrategySpec,
-} from './strategies/index.js';
+} from './strategies/index';
 
 // Eval
 export {
@@ -120,17 +120,17 @@ export {
   type ArmSummary,
   type ArcadeTickRecord,
   type ArcadeTickSpan,
-} from './eval/index.js';
+} from './eval/index';
 
 // Memory
-export { PriorityBag as MemoryPriorityBag, createBag as createMemoryBag, type Bag as MemoryBag, type BagItem as MemoryBagItem, type BagOptions as MemoryBagOptions } from './bag/index.js';
-export { Concept, Memory } from './memory/index.js';
-export type { ConceptTaskType, MemoryConfig } from './memory/index.js';
-export { EpisodicMemory } from './memory/EpisodicMemory.js';
-export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory.js';
+export { PriorityBag as MemoryPriorityBag, createBag as createMemoryBag, type Bag as MemoryBag, type BagItem as MemoryBagItem, type BagOptions as MemoryBagOptions } from './bag/index';
+export { Concept, Memory } from './memory/index';
+export type { ConceptTaskType, MemoryConfig } from './memory/index';
+export { EpisodicMemory } from './memory/EpisodicMemory';
+export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory';
 
 // Cognitive
-export { runCounterfactual } from './cognitive/index.js';
+export { runCounterfactual } from './cognitive/index';
 
 // Errors
 export {
@@ -141,7 +141,7 @@ export {
   PerceptionGateError,
   RewardGateError,
   SenarsError,
-} from './errors/index.js';
+} from './errors/index';
 
 // Imagination Engine
 export {
@@ -157,14 +157,14 @@ export {
   type ScenarioProfile,
   type StressMetrics,
   type TreadmillConfig,
-} from './imagination/index.js';
+} from './imagination/index';
 
 // Base Component
-export { BaseComponent } from './agent/Lifecycle.js';
+export { BaseComponent } from './agent/Lifecycle';
 
 // Log
-export { LogStoreEventLog, InMemoryEventLog, createLogStoreEventLog, createLogStoreEventLogFromStore } from './log/index.js';
-export { createLogStore, type LogStore } from './log/store.js';
+export { LogStoreEventLog, InMemoryEventLog, createLogStoreEventLog, createLogStoreEventLogFromStore } from './log/index';
+export { createLogStore, type LogStore } from './log/store';
 
 // Terms
 export {
@@ -213,7 +213,7 @@ export {
   termsEqual,
   visitTerms,
   walkTerms,
-} from './terms/index.js';
+} from './terms/index';
 export type {
   AtomicTerm,
   Budget,
@@ -226,7 +226,7 @@ export type {
   Term,
   TermSymbol,
   TruthType,
-} from './types/core.js';
+} from './types/core';
 export {
   ConfigurationError,
   createTaskWeight,
@@ -244,7 +244,7 @@ export {
   ToolError,
   unwrapOrThrow,
   ValidationError,
-} from './types/core.js';
+} from './types/core';
 
 // Autonomy
 export {
@@ -262,7 +262,7 @@ export {
   createAutonomyHeartbeat,
   DEFAULT_AUTONOMY_CONFIG,
   resolveAutonomyConfig,
-} from './autonomy/index.js';
+} from './autonomy/index';
 
 // NL
 export {
@@ -281,7 +281,7 @@ export {
   type PerceivedOrigin,
   StructuredFormalizer,
   validateInterpretation,
-} from './nl/index.js';
+} from './nl/index';
 
 // Drives
 export {
@@ -290,7 +290,7 @@ export {
   DRIVE_META_GOAL_TABLE,
   type MetaGoalContext,
   type MetaGoalPolicy,
-} from './drives/index.js';
+} from './drives/index';
 
 // Protocol types
 export {
@@ -374,12 +374,12 @@ export {
   MettaAtomNode,
   MettaSkillNode,
   NarConceptNode,
-} from './protocol/index.js';
+} from './protocol/index';
 export { isNarsese } from '@senars/util/text';
-export { builtinLensSpecs } from './protocol/lens-schema.js';
-export type { LensSpec, ModulationSpec, BuiltinLens } from './protocol/lens-schema.js';
-export type { Agent } from './agent/Agent.js';
-export type { CognitiveEvent } from './schemas/cognitive-events.js';
+export { builtinLensSpecs } from './protocol/lens-schema';
+export type { LensSpec, ModulationSpec, BuiltinLens } from './protocol/lens-schema';
+export type { Agent } from './agent/Agent';
+export type { CognitiveEvent } from './schemas/cognitive-events';
 
 // Rules (verifier truth table for UI vocabulary)
 export {
@@ -387,8 +387,8 @@ export {
   UNARY_TRUTH,
   VERIFIER_TRUTH_TABLE,
   resolveTruthFn,
-} from './rules/verifier-truth-table.js';
-export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index.js';
+} from './rules/verifier-truth-table';
+export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index';
 export {
   createRulePattern,
   loadBuiltinTable,
@@ -397,16 +397,16 @@ export {
   RuleIndex,
   RuleProcessor,
   RuleTableStore,
-} from './rules/index.js';
+} from './rules/index';
 
 // Query
-export type { Answer, QueryAPI, ReasoningTrace } from './query/index.js';
+export type { Answer, QueryAPI, ReasoningTrace } from './query/index';
 
 // Task
-export { TaskManager } from './task/index.js';
-export type { SerializedStamp } from './terms/impls/Stamp.js';
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp.js';
-export { isTruthEqual, Truth } from './terms/impls/Truth.js';
+export { TaskManager } from './task/index';
+export type { SerializedStamp } from './terms/impls/Stamp';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp';
+export { isTruthEqual, Truth } from './terms/impls/Truth';
 
 // Game (types only, no LM dependencies)
 export type {
@@ -423,4 +423,4 @@ export type {
   RewardClassification,
   Sensor,
   SensorReading,
-} from './game/index.js';
+} from './game/index';

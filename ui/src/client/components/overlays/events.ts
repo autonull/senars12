@@ -4,14 +4,14 @@
  */
 
 import { css, html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { $cognitiveEvents, BaseComponent } from '../../core/index.js';
+import { customElement, property, state } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { $cognitiveEvents, BaseComponent } from '../../core/index';
 import type { CognitiveEvent } from '@senars/core';
-import { viewSource } from '../../core/view-sources.js';
-import type { Shape, ViewSpec } from '../../core/view-spec.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { eventMeta, EVENT_TYPES, type EventType } from '../../utils/event-catalog.js';
+import { viewSource } from '../../core/view-sources';
+import type { Shape, ViewSpec } from '../../core/view-spec';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { eventMeta, EVENT_TYPES, type EventType } from '../../utils/event-catalog';
 
 @customElement('s-events')
 export class EventsView extends SurfaceComponent {

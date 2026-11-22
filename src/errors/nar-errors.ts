@@ -1,4 +1,4 @@
-import { codedError } from './senars-error.js';
+import { codedError } from './senars-error';
 
 export const ValidationError = codedError('ValidationError', 'VALIDATION_ERROR');
 export type ValidationError = InstanceType<typeof ValidationError>;

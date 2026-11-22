@@ -1,19 +1,19 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { NAR } from '../../../agent/index.js';
-import { readPersistedBoundary } from '../../../agent/index.js';
-import type { ExtendedAgent as Agent } from '../../../agent/index.js';
-import { cloudApiKey, getRoutingStatus } from '../../../lm/index.js';
-import { keyedBy } from '@senars/util/collections.js';
-import { sumBy } from '@senars/util/numeric.js';
-import { LM_TASKS } from '@senars/types/llm.js';
-import type { JobManager } from './job-manager.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
+import type { NAR } from '../../../agent/index';
+import { readPersistedBoundary } from '../../../agent/index';
+import type { ExtendedAgent as Agent } from '../../../agent/index';
+import { cloudApiKey, getRoutingStatus } from '../../../lm/index';
+import { keyedBy } from '@senars/util/collections';
+import { sumBy } from '@senars/util/numeric';
+import { LM_TASKS } from '@senars/types/llm';
+import type { JobManager } from './job-manager';
 import {
   formatBeliefsForMCP,
   jsonContents,
   registerJsonResource,
   textContents,
-} from './mcp-response.js';
+} from './mcp-response';
 
 export interface MCPResourceContext {
   nar: NAR;

@@ -8,16 +8,16 @@ import {
   embeddedViewSpec,
   hasEmbeddedView,
   toggleEmbeddedView,
-} from '../../src/client/core/embedded-views.js';
-import { $workspaceGraph } from '../../src/client/core/store.js';
-import type { TableDataset, TreeDataset } from '../../src/client/core/view-spec.js';
+} from '../../src/client/core/embedded-views';
+import { $workspaceGraph } from '../../src/client/core/store';
+import type { TableDataset, TreeDataset } from '../../src/client/core/view-spec';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

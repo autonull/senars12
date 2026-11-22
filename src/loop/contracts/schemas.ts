@@ -5,8 +5,8 @@
  */
 
 import { z } from 'zod';
-import type { Term } from '../../kernel/terms/term.js';
-import type { Truth } from '../../kernel/truth.js';
+import type { Term } from '../../kernel/terms/term';
+import type { Truth } from '../../kernel/truth';
 
 // ============================================================================
 // Base schemas

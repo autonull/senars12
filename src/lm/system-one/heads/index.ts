@@ -1,3 +1,3 @@
-export * from '../head-ontology.js';
-export * from '../head-specs.js';
-export * from './factory.js';
+export * from '../head-ontology';
+export * from '../head-specs';
+export * from './factory';

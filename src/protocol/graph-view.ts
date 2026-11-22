@@ -2,8 +2,8 @@
  * Graph node data (UI flat view) + lens
  */
 import { z } from 'zod';
-import { TaskPunctuationSchema } from '../schemas/task.js';
-import { cognitionShape, lensShape } from './graph-nodes.js';
+import { TaskPunctuationSchema } from '../schemas/task';
+import { cognitionShape, lensShape } from './graph-nodes';
 
 export const GraphNodeDataView = z.object({
   id: z.string().optional(),

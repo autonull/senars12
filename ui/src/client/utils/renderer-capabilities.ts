@@ -11,8 +11,8 @@
  */
 
 import { unique } from '@senars/util';
-import type { Channel, Delta } from '../modulation/types.js';
-import { workspaceRenderer, workspaceRendererIds } from '../core/workspace-renderer.js';
+import type { Channel, Delta } from '../modulation/types';
+import { workspaceRenderer, workspaceRendererIds } from '../core/workspace-renderer';
 
 export type RenderTarget = 'node' | 'edge';
 

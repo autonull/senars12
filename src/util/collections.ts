@@ -3,7 +3,7 @@
  * bounded logs, bags, and priority ordering.
  */
 
-import { occupancy } from './numeric.js';
+import { occupancy } from './numeric';
 
 /** Fixed-size slices for batched work — the one chunking primitive. */
 export const chunk = <T>(items: readonly T[], size: number): T[][] => {

@@ -1,3 +1,3 @@
-export { SCycleControls } from './cycle-controls.js';
-export { STraceViewer } from './trace-viewer.js';
-export { SGateInspector } from './gate-inspector.js';
+export { SCycleControls } from './cycle-controls';
+export { STraceViewer } from './trace-viewer';
+export { SGateInspector } from './gate-inspector';

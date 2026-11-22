@@ -12,8 +12,8 @@ import { removeBy } from '@senars/util/collections';
 import { LM_TASKS } from '@senars/types/llm';
 import { attempted, cmd } from '@senars/cli';
 import type { BotConfig } from '@senars/config';
-import { tokenize } from './args.js';
-import type { BotRuntime } from './context.js';
+import { tokenize } from './args';
+import type { BotRuntime } from './context';
 
 /** Supported GPU types, or `cpu`/`unknown` when the native probe is unavailable. */
 export const gpuSummary = async (): Promise<string> => {
@@ -87,7 +87,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
     }),
     cmd('routing', 'Show routing matrix', async () => {
       return attempted('routing unavailable', async () => {
-        const { getModelChain } = await import('../../lm/index.js');
+        const { getModelChain } = await import('../../lm/index');
         const cfg = resolveLMConfig(appConfig.lm as never);
         return LM_TASKS.map((t) => `  ${t}: ${getModelChain(cfg.provider, t).join(' → ')}`).join(
           '\n'
@@ -98,7 +98,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
       const candidates = tokenize(args);
       if (!candidates.length) return 'Usage: .routing-set <model-id...>';
       return attempted('routing-set', async () => {
-        const { getRouting, setRouting } = await import('../../lm/index.js');
+        const { getRouting, setRouting } = await import('../../lm/index');
         setRouting({ ...(getRouting() ?? {}), candidates });
         if (appConfig.routing) {
           (appConfig.routing as Record<string, unknown>).candidates = candidates;
@@ -110,7 +110,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
       const offlineLadder = tokenize(args);
       if (!offlineLadder.length) return 'Usage: .routing-offline <model-id...>';
       return attempted('routing-offline', async () => {
-        const { getRouting, setRouting } = await import('../../lm/index.js');
+        const { getRouting, setRouting } = await import('../../lm/index');
         setRouting({ ...(getRouting() ?? {}), offlineLadder });
         if (appConfig.routing) {
           (appConfig.routing as Record<string, unknown>).offlineLadder = offlineLadder;
@@ -120,7 +120,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
     }),
     cmd('circuit-breakers', 'Show circuit breaker states', async () => {
       return attempted('circuit info unavailable', async () => {
-        const { getCircuitBreaker, getEffectiveCircuitConfig } = await import('../../lm/index.js');
+        const { getCircuitBreaker, getEffectiveCircuitConfig } = await import('../../lm/index');
         const s = resolveLMSettings(appConfig.lm as never);
         return LM_PROVIDER_NAMES.map((p) => {
           try {
@@ -137,7 +137,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
       const name = args.trim().toLowerCase();
       if (!name) return 'Usage: .circuit-reset <provider>|all';
       return attempted('circuit-reset', async () => {
-        const { getCircuitBreaker, resetCircuitBreakers } = await import('../../lm/index.js');
+        const { getCircuitBreaker, resetCircuitBreakers } = await import('../../lm/index');
         if (name === 'all') {
           resetCircuitBreakers();
           return 'All circuit breakers reset';

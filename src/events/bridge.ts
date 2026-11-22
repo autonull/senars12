@@ -1,5 +1,5 @@
-import { type CognitiveEvent, mintCognitiveEvent as mint } from '@senars/schemas/cognitive-events.js';
-import type { NAREventMap } from '../types/events.js';
+import { type CognitiveEvent, mintCognitiveEvent as mint } from '@senars/schemas/cognitive-events';
+import type { NAREventMap } from '../types/events';
 
 /**
  * Every NAR event becomes an `engine: 'nar'` cognitive event. The origin is the

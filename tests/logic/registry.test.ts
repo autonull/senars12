@@ -7,13 +7,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createFacultyRegistry, FacultyEngine } from '../../src/faculties/index.js';
-import { createOracleRegistry, type Oracle, type OracleInput, type OracleOutput } from '../../src/oracles/oracle.js';
-import { createJudge } from '../../src/faculties/judgment/judge.js';
-import { createEnv, createEnvCore, type Env } from '../../src/kernel/env.js';
-import { createEconomyScheduler, type Economy } from '../../src/economy/index.js';
-import { createCognitiveLoop } from '../../src/loop/index.js';
-import { termInterner } from '../../src/kernel/terms/intern.js';
+import { createFacultyRegistry, FacultyEngine } from '../../src/faculties/index';
+import { createOracleRegistry, type Oracle, type OracleInput, type OracleOutput } from '../../src/oracles/oracle';
+import { createJudge } from '../../src/faculties/judgment/judge';
+import { createEnv, createEnvCore, type Env } from '../../src/kernel/env';
+import { createEconomyScheduler, type Economy } from '../../src/economy/index';
+import { createCognitiveLoop } from '../../src/loop/index';
+import { termInterner } from '../../src/kernel/terms/intern';
 
 const makeOracle = (operation: Oracle['operation']): Oracle => ({
   operation,
@@ -46,7 +46,7 @@ describe('W1 — per-instance registries', () => {
   it('creates an isolated faculty registry with the core faculties', () => {
     const first = createFacultyRegistry();
     const second = createFacultyRegistry();
-    expect(first.getAll()).toHaveLength(11);
+    expect(first.getAll()).toHaveLength(21);
     expect(first).not.toBe(second);
   });
 
@@ -67,7 +67,7 @@ describe('W1 — per-instance registries', () => {
   it('lets an engine use only its injected registry', () => {
     const registry = createFacultyRegistry();
     const engine = new FacultyEngine({ registry });
-    expect(engine.getAvailableFaculties()).toHaveLength(11);
+    expect(engine.getAvailableFaculties()).toHaveLength(21);
   });
 
   it('runs two agents in one process with isolated registries', async () => {
@@ -185,4 +185,4 @@ describe('W1 — per-instance registries', () => {
   });
 });
 
-import { type EconomyTask } from '../../src/economy/index.js';
+import { type EconomyTask } from '../../src/economy/index';

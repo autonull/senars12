@@ -17,9 +17,9 @@ import { divider, bar } from '@senars/util/format';
 import { mean } from '@senars/util/numeric';
 import { pct } from '@senars/util/format';
 import { selectTopN } from '@senars/util/collections';
-import { formatNarseseTruth } from '@senars/types/truth.js';
-import { runEntrypoint } from './lib/fatal-error.js';
-import { mettaPort } from './lib/metta.js';
+import { formatNarseseTruth } from '@senars/types/truth';
+import { runEntrypoint } from './lib/fatal-error';
+import { mettaPort } from './lib/metta';
 
 const logger = createLogger({ scope: 'self-report' });
 

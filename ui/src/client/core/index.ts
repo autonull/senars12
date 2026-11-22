@@ -1,11 +1,11 @@
 export { generateId, makeId, truncate } from '@senars/util';
-export { Announcer } from './announcer.js';
-export { BaseComponent } from './base-component.js';
-export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockEntry, kindsWhere } from './block-descriptors.js';
-export { blockLabel } from './block-labels.js';
-export { PANEL_KINDS, PANEL_DEFS, panelDef, type PanelEntry, panelKindsWhere } from './panel-defs.js';
-export { RENDERER_IDS, RENDERER_DEFS, rendererDef, type RendererEntry, rendererIdsWhere } from './renderer-defs.js';
-export { GRAPH_LAYERS, GRAPH_LAYER_DEFS, graphLayerDef, type GraphLayer, graphLayerKindsWhere, layerVisible } from './graph-layer-defs.js';
+export { Announcer } from './announcer';
+export { BaseComponent } from './base-component';
+export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockEntry, kindsWhere } from './block-descriptors';
+export { blockLabel } from './block-labels';
+export { PANEL_KINDS, PANEL_DEFS, panelDef, type PanelEntry, panelKindsWhere } from './panel-defs';
+export { RENDERER_IDS, RENDERER_DEFS, rendererDef, type RendererEntry, rendererIdsWhere } from './renderer-defs';
+export { GRAPH_LAYERS, GRAPH_LAYER_DEFS, graphLayerDef, type GraphLayer, graphLayerKindsWhere, layerVisible } from './graph-layer-defs';
 export {
   type ArtifactKind,
   type ArtifactPayload,
@@ -19,13 +19,13 @@ export {
   payloadOf,
   type PayloadOf,
   type TableData,
-} from './block-payload.js';
+} from './block-payload';
 export {
   type WorkspaceEdgeData,
   type WorkspaceNodeData,
   type WorkspaceProjection,
   projectWorkspaceGraph,
-} from './graph-projection.js';
+} from './graph-projection';
 export {
   $capabilities,
   CAPABILITY_CATALOG,
@@ -37,7 +37,7 @@ export {
   capabilityGate,
   defaultCapabilities,
   setCapability,
-} from './capabilities.js';
+} from './capabilities';
 export {
   availableComposerModes,
   COMPOSER_MODE_CATALOG,
@@ -49,37 +49,37 @@ export {
   decomposeForMode,
   DEFAULT_COMPOSER_MODE,
   isComposerMode,
-} from './composer-modes.js';
+} from './composer-modes';
 export type {
   Contribution,
   TaggedContribution,
   BoundContribution,
   AccessibleContribution,
   GatedContribution,
-} from './contribution.js';
+} from './contribution';
 export {
   createRegistry,
   createIdRegistry,
   createLabelRegistry,
   type Registry,
   type RegistryOptions,
-} from './registry.js';
+} from './registry';
 export {
   defineContribution,
   createDefineContribution,
   createDefineTagged,
   type DefineContributionOptions,
   type DescribedClass,
-} from './define-contribution.js';
-export { artifactViewSpec, tableFromColumns } from './artifacts.js';
-export { matchCommands } from './command-match.js';
+} from './define-contribution';
+export { artifactViewSpec, tableFromColumns } from './artifacts';
+export { matchCommands } from './command-match';
 export {
   validateCommandArgs,
   getCommandSchema,
   getAllCommandSchemas,
   COMMAND_SCHEMAS,
   type InferCommandArgs,
-} from './command-schemas.js';
+} from './command-schemas';
 export {
   UiConfigSchema,
   DEFAULT_UI_CONFIG,
@@ -107,7 +107,7 @@ export {
   CONFIG_STORAGE_KEY,
   PROFILES_STORAGE_KEY,
   ACTIVE_PROFILE_KEY,
-} from './config-schema.js';
+} from './config-schema';
 export {
   type PerformanceBudget,
   DEFAULT_PERFORMANCE_BUDGET,
@@ -123,7 +123,7 @@ export {
   PERF_MARKS,
   markStart,
   markEnd,
-} from './performance-budget.js';
+} from './performance-budget';
 export {
   UiError,
   ConnectionError,
@@ -144,9 +144,9 @@ export {
   createError,
   emitError,
   type RecoveryAction,
-} from './error-taxonomy.js';
-export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands, type CommandArgs } from './commands.js';
-export { eventBus } from './events.js';
+} from './error-taxonomy';
+export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands, type CommandArgs } from './commands';
+export { eventBus } from './events';
 export {
   explain,
   type ExplainedCitation,
@@ -158,7 +158,7 @@ export {
   explainEventModel,
   explainLinkModel,
   explainModel,
-} from './explain.js';
+} from './explain';
 export {
   CONVERSATION_LAYOUT_CATALOG,
   CONVERSATION_LAYOUT_DEFS,
@@ -170,7 +170,7 @@ export {
   type ConversationPositions,
   conversationPositions,
   type Point,
-} from './conversation-layout.js';
+} from './conversation-layout';
 export {
   type ReasoningLayoutDescriptor,
   type ReasoningLayoutId,
@@ -181,8 +181,8 @@ export {
   reasoningLayoutIdsWhere,
   type ReasoningPositions,
   reasoningPositions,
-} from './reasoning-layout.js';
-export { collectSources, resolveSource, type Source } from './citations.js';
+} from './reasoning-layout';
+export { collectSources, resolveSource, type Source } from './citations';
 export {
   $lmProvider,
   applyLmStatus,
@@ -192,8 +192,8 @@ export {
   providerUsable,
   type ProviderKind,
   requestLmProvider,
-} from './lm-provider.js';
-export { refreshLmStatus, switchLmProvider } from './lm-transport.js';
+} from './lm-provider';
+export { refreshLmStatus, switchLmProvider } from './lm-transport';
 export {
   $embeddedViews,
   contradictionTable,
@@ -209,10 +209,10 @@ export {
   hasEmbeddedView,
   toggleEmbeddedView,
   topicTable,
-} from './embedded-views.js';
-export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
-export { narsBackend, NAL_VOCABULARY } from './nars-backend.js';
-export { mettaBackend, METTA_VOCABULARY } from './metta-backend.js';
+} from './embedded-views';
+export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood';
+export { narsBackend, NAL_VOCABULARY } from './nars-backend';
+export { mettaBackend, METTA_VOCABULARY } from './metta-backend';
 export {
   type BackendCaps,
   type BackendEdge,
@@ -223,8 +223,8 @@ export {
   type ReasoningBackend,
   type ReasoningControl,
   type SubmitInput,
-} from './reasoning-backend.js';
-export { FocusTrap } from './focus-trap.js';
+} from './reasoning-backend';
+export { FocusTrap } from './focus-trap';
 export {
   breadcrumb,
   type Crumb,
@@ -232,22 +232,22 @@ export {
   rootOf,
   stepBlock,
   stepPage,
-} from './navigation.js';
+} from './navigation';
 export {
   decomposeInput,
   type InputSegment,
   isFaithfulDecomposition,
-} from './input-decomposition.js';
-export { type InlineToken, tokenizeInline } from './inline-text.js';
-export { type OverlayEntry, OverlayManager, getOverlayManager, resetOverlayManager } from './overlay-manager.js';
-export { OverlayHost, type OpenOverlayOptions } from './overlay-host.js';
+} from './input-decomposition';
+export { type InlineToken, tokenizeInline } from './inline-text';
+export { type OverlayEntry, OverlayManager, getOverlayManager, resetOverlayManager } from './overlay-manager';
+export { OverlayHost, type OpenOverlayOptions } from './overlay-host';
 export {
   overlayDescriptor,
   type OverlayDescriptor,
   overlays,
   registerOverlay,
-} from './overlay-registry.js';
-export { defineOverlay, type OverlayClass } from './overlay.js';
+} from './overlay-registry';
+export { defineOverlay, type OverlayClass } from './overlay';
 export {
   admittedRoots,
   foldableSections,
@@ -256,8 +256,8 @@ export {
   type SectionNode,
   type SectionTree,
   sectionTree,
-} from './sections.js';
-export { type TocEntry, TOC_KINDS_TYPE, tocEntries } from './toc.js';
+} from './sections';
+export { type TocEntry, TOC_KINDS_TYPE, tocEntries } from './toc';
 export {
   $activeLens,
   $activeRenderer,
@@ -355,17 +355,17 @@ export {
   updateEdgeData,
   updateNodeData,
   type ViewportMode,
-} from './store.js';
-export { addAgentMessage, addUserMessage, applyServerMessage } from './store-bindings.js';
+} from './store';
+export { addAgentMessage, addUserMessage, applyServerMessage } from './store-bindings';
 
-export { connect, disconnect, send } from './ws-client.js';
+export { connect, disconnect, send } from './ws-client';
 export {
   defineSurface,
   SurfaceComponent,
   type SurfaceDescriptor,
   type SurfaceState,
   type SurfaceTestApi,
-} from './surface.js';
+} from './surface';
 export {
   getSurfaces,
   registerSurface,
@@ -373,7 +373,7 @@ export {
   surfaceTag,
   type SurfaceBinding,
   type SurfaceSource,
-} from './surface-registry.js';
+} from './surface-registry';
 export {
   generateSurfaces,
   surfaceA11y,
@@ -385,7 +385,7 @@ export {
   type SurfaceDoc,
   type SurfaceGalleryCell,
   type SurfaceStory,
-} from './surface-codegen.js';
+} from './surface-codegen';
 export {
   capabilitiesFor,
   registerViewAdapter,
@@ -393,14 +393,14 @@ export {
   type ViewAdapter,
   viewAdapterFor,
   viewAdapters,
-} from './view-adapter.js';
+} from './view-adapter';
 export {
   datasetIsEmpty,
   formatCell,
   projectableShapes,
   projectDataset,
-} from './view-projection.js';
-export { type Readable, viewSource } from './view-sources.js';
+} from './view-projection';
+export { type Readable, viewSource } from './view-sources';
 export type {
   Budget,
   ColumnSpec,
@@ -419,7 +419,7 @@ export type {
   ViewSelection,
   ViewSource,
   ViewSpec,
-} from './view-spec.js';
+} from './view-spec';
 export {
   registerShape,
   getShape,
@@ -435,8 +435,8 @@ export {
   shapesForInteraction,
   shapeTag,
   shapeFidelityRange,
-} from './view-spec.js';
-export { ViewHost } from './view-host.js';
+} from './view-spec';
+export { ViewHost } from './view-host';
 export {
   encodeAddress,
   decodeAddress,
@@ -444,7 +444,7 @@ export {
   addressEquals,
   type WorkspaceAddress,
   DEFAULT_WORKSPACE_ADDRESS,
-} from './workspace-address.js';
+} from './workspace-address';
 export {
   applyWorkspaceOp,
   applyWorkspaceOps,
@@ -462,8 +462,8 @@ export {
   type Uncertainty,
   type WorkspaceGraph,
   type WorkspaceOp,
-} from './workspace-graph.js';
-export { diffWorkspaceGraph } from './workspace-diff.js';
+} from './workspace-graph';
+export { diffWorkspaceGraph } from './workspace-diff';
 export {
   blockRefFor,
   childId,
@@ -478,18 +478,18 @@ export {
   projectWorkspace,
   resolveBlockRef,
   type WorkspaceFragment,
-} from './workspace-projection.js';
+} from './workspace-projection';
 export {
   type Segment,
   segmentText,
-} from './segmentation.js';
-export { initConfigChangeProducer, mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
+} from './segmentation';
+export { initConfigChangeProducer, mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings';
 export {
   validateAllContributions,
   validateContribution,
   type ValidationError,
   type ValidationResult,
-} from './contribution-validator.js';
+} from './contribution-validator';
 export {
   declareParity,
   registerRenderer,
@@ -510,7 +510,7 @@ export {
   workspaceRenderer,
   workspaceRendererIds,
   workspaceRenderers,
-} from './workspace-renderer.js';
+} from './workspace-renderer';
 export {
   type ToolSpec,
   type PendingApproval,
@@ -525,5 +525,5 @@ export {
   promptUserTool,
   registerBuiltinTools,
   callTool,
-} from './tool-registry.js';
-export { OverlayHeader } from '../components/overlays/overlay-header.js';
+} from './tool-registry';
+export { OverlayHeader } from '../components/overlays/overlay-header';

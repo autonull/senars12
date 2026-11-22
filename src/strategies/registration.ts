@@ -17,9 +17,9 @@ import { indexBy } from '@senars/util/collections';
 import { sha256HexParts } from '@senars/util/hash';
 import { stableStringify } from '@senars/util/json';
 import { type ZodError, z } from 'zod';
-import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
-import type { RandomSource } from '../types/primitives.js';
-import type { StrategyImpl, StrategyType } from './types.js';
+import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra';
+import type { RandomSource } from '../types/primitives';
+import type { StrategyImpl, StrategyType } from './types';
 
 export type { StrategyType };
 

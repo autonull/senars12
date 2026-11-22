@@ -2,7 +2,7 @@
  * CLI Profiles — named configurations for different use cases.
  */
 
-import type { CLIProfile, CLIConfig } from './types.js';
+import type { CLIProfile, CLIConfig } from './types';
 
 /** Profile manager. */
 export class ProfileManager {

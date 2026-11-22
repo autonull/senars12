@@ -1,9 +1,9 @@
 import type { GraphNodeData } from '@senars/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/inspector.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { narsBackend } from '../../src/client/core/nars-backend.js';
-import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
+import '../../src/client/components/overlays/inspector';
+import { eventBus } from '../../src/client/core/events';
+import { narsBackend } from '../../src/client/core/nars-backend';
+import { overlayDescriptor } from '../../src/client/core/overlay-registry';
 import {
   $activeRenderer,
   $graphEdges,
@@ -11,9 +11,9 @@ import {
   $selectedEdgeId,
   $selectedNodeId,
   $workspaceGraph,
-} from '../../src/client/core/store.js';
-import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph.js';
-import { projectWorkspace } from '../../src/client/core/workspace-projection.js';
+} from '../../src/client/core/store';
+import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph';
+import { projectWorkspace } from '../../src/client/core/workspace-projection';
 
 /** The engine graph and the projection that turns it into blocks. */
 const engine = (...ids: string[]): void => {

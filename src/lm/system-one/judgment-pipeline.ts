@@ -5,8 +5,8 @@
  */
 
 import { shortSha256Hex } from '@senars/util/hash';
-import type { HeadResult } from '../../decision/types.js';
-import { HEAD_SPECS, headSpecsInGroup } from './head-ontology.js';
+import type { HeadResult } from '../../decision/types';
+import { HEAD_SPECS, headSpecsInGroup } from './head-ontology';
 import {
   type CalibrationVersion,
   createHead,
@@ -15,8 +15,8 @@ import {
   type HeadGroup,
   type HeadId,
   type JudgmentQuery,
-} from './head-specs.js';
-import { type BandDecision, DEFAULT_CONFIDENCE_BANDS } from './policy.js';
+} from './head-specs';
+import { type BandDecision, DEFAULT_CONFIDENCE_BANDS } from './policy';
 
 export interface PipelineStage {
   readonly group: HeadGroup;

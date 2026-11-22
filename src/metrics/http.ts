@@ -8,7 +8,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { getMetricsAsJson, getMetricsAsText } from './prometheus.js';
+import { getMetricsAsJson, getMetricsAsText } from './prometheus';
 
 /**
  * Answer `/metrics` (`text`) or `/metrics.json`, or return `false` for any other

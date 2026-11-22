@@ -1,6 +1,6 @@
-import type { AtomicTerm, OperatorKey, Term } from '../types.js';
-import { canonicalTerm } from '../reduce.js';
-import { containsSubterm } from './accessors.js';
+import type { AtomicTerm, OperatorKey, Term } from '../types';
+import { canonicalTerm } from '../reduce';
+import { containsSubterm } from './accessors';
 import {
   atomOf,
   clearTerms,
@@ -8,7 +8,7 @@ import {
   evictTerm,
   rawCompoundCtors,
   termCacheSize,
-} from './intern.js';
+} from './intern';
 
 /**
  * Every public construction path canonicalises before it keys, so interning,

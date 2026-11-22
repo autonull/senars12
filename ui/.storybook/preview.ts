@@ -1,7 +1,7 @@
 import type { Preview } from '@storybook/web-components-vite';
 import { html } from 'lit';
 import '../src/client/styles/theme.css';
-import '../src/client/components/primitives/index.js';
+import '../src/client/components/primitives/index';
 
 const preview: Preview = {
   parameters: {

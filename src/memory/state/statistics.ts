@@ -1,7 +1,7 @@
 import { occupancy } from '@senars/util/numeric';
 import { percentiles } from '@senars/util/format';
-import type { Concept } from '../concept.js';
-import type { StoreBounds, StorePressure } from '../ports/index.js';
+import type { Concept } from '../concept';
+import type { StoreBounds, StorePressure } from '../ports/index';
 
 export interface ConceptStats {
   totalConcepts: number;

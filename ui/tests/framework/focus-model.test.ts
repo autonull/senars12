@@ -4,8 +4,8 @@ import {
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
-} from '../../src/client/core/workspace-graph.js';
-import { blockToFocusRef } from '../../src/client/kernel/state.js';
+} from '../../src/client/core/workspace-graph';
+import { blockToFocusRef } from '../../src/client/kernel/state';
 import {
   ASPECTS,
   atTime,
@@ -26,9 +26,9 @@ import {
   FOCUS_FRAGMENT_PREFIX,
   encodeFocusFragment,
   decodeFocusFragment,
-} from '../../src/client/framework/coordinates.js';
-import { createFocusStack } from '../../src/client/framework/focus-stack.js';
-import { aspectSlice, hasSlice, resolveFocus } from '../../src/client/framework/resolver.js';
+} from '../../src/client/framework/coordinates';
+import { createFocusStack } from '../../src/client/framework/focus-stack';
+import { aspectSlice, hasSlice, resolveFocus } from '../../src/client/framework/resolver';
 
 const block = (id: string, patch: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

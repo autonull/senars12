@@ -1,4 +1,4 @@
-import type { MeTTaAtom } from './ast.js';
+import type { MeTTaAtom } from './ast';
 
 export interface MeTTaSpace {
   readonly id: string;

@@ -4,8 +4,8 @@
  * are the same kind of number.
  */
 
-import { SenarsError } from '../errors/senars-error.js';
-import { type Clock, systemClock } from './clock.js';
+import { SenarsError } from '../errors/senars-error';
+import { type Clock, systemClock } from './clock';
 
 /** Raised by {@link withTimeout} unless a domain error is supplied. */
 export class TimeoutError extends SenarsError {

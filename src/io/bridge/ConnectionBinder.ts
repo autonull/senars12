@@ -3,19 +3,19 @@ import { aggregateChatResponse } from '@senars/bridge';
 import type { BridgeOptions } from '@senars/types/agent';
 import type { Connection, IOMessage } from '@senars/types/transport';
 import { InMemorySessionManager } from '@senars/util/memory';
-import type { ConnectionManager } from '../connection-manager.js';
+import type { ConnectionManager } from '../connection-manager';
 import {
   ctxAsRecord,
   type MessageContext,
   type MessageMiddleware,
   MessageRouter,
   resolveSessionKey,
-} from '../router.js';
+} from '../router';
 import {
   createAuthMiddleware,
   createCommandInterceptor,
   createSessionBinder,
-} from './MiddlewarePipeline.js';
+} from './MiddlewarePipeline';
 
 const respondWith =
   (conn: Connection, message: IOMessage) =>

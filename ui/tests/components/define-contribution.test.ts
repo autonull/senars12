@@ -3,9 +3,9 @@ import {
   createDefineTagged,
   type Registry,
   type TaggedContribution,
-} from '../../src/client/core/define-contribution.js';
-import { createRegistry } from '../../src/client/core/registry.js';
-import { BaseComponent } from '../../src/client/core/base-component.js';
+} from '../../src/client/core/define-contribution';
+import { createRegistry } from '../../src/client/core/registry';
+import { BaseComponent } from '../../src/client/core/base-component';
 
 interface TestDescriptor extends TaggedContribution {
   id: string;

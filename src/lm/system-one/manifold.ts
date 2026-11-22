@@ -4,7 +4,7 @@ import { makeId } from '@senars/util/id';
 import { monotonicNow, stopwatch } from '@senars/util/async';
 import { unique } from '@senars/util/collections';
 import { assertDefined } from '@senars/util/assert';
-import { validateBatchQueries } from './algebra.js';
+import { validateBatchQueries } from './algebra';
 import {
   createDefaultCalibrationSuite,
   type DriftDemotionConfig,
@@ -12,15 +12,15 @@ import {
   type IsotonicCalibrator,
   type RollingECEConfig,
   RollingECEMonitor,
-} from './calibration.js';
+} from './calibration';
 import {
   applyCalibrationLock,
   assertLockMatches,
   type CalibrationLock,
-} from './calibration-fit.js';
-import { type ContrastiveMemory, rubricOf } from './contrastive.js';
-import { composeProposition } from './distribution.js';
-import { createAllHeads, type PerHeadConfig } from './heads/index.js';
+} from './calibration-fit';
+import { type ContrastiveMemory, rubricOf } from './contrastive';
+import { composeProposition } from './distribution';
+import { createAllHeads, type PerHeadConfig } from './heads/index';
 import type {
   BackendId,
   CalibrationVersion,
@@ -39,7 +39,7 @@ import type {
   QueryId,
   ResourceCost,
   RubricId,
-} from './types.js';
+} from './types';
 
 export interface ManifoldConfig {
   backendId: BackendId;

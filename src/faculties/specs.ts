@@ -5,11 +5,11 @@
  * Faculties are invoked through the oracle seam for deterministic replay.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Task } from '../kernel/types.js';
-import type { Truth } from '../kernel/truth.js';
-import type { OracleOperation } from '../oracles/oracle.js';
-import { NameRegistry } from '../util/registry.js';
+import type { Term } from '../kernel/terms/term';
+import type { Task } from '../kernel/types';
+import type { Truth } from '../kernel/truth';
+import type { OracleOperation } from '../oracles/oracle';
+import { NameRegistry } from '../util/registry';
 
 /** Faculty categories. */
 export const FACULTY_CATEGORIES = [
@@ -755,7 +755,7 @@ export const perceiveFormalizeSpec: FacultySpec = {
 
     if (mode === 'nl-to-formal') {
       // Use structured formalizer as fallback
-      const { StructuredFormalizer } = await import('../nl/formalizer.js');
+      const { StructuredFormalizer } = await import('../nl/formalizer');
       const formalizer = new StructuredFormalizer();
       const interpretation = await formalizer.nlToFormal(text);
       return {
@@ -768,7 +768,7 @@ export const perceiveFormalizeSpec: FacultySpec = {
       };
     } else {
       // formal-to-nl fallback
-      const { StructuredFormalizer } = await import('../nl/formalizer.js');
+      const { StructuredFormalizer } = await import('../nl/formalizer');
       const formalizer = new StructuredFormalizer();
       const generationInput = { query: text, derivation: null, beliefs: [], conflicts: [], userProfile: { expertise: 'technical' as const, verbosity: 'concise' as const } };
       const translation = await formalizer.formalToNl(generationInput);

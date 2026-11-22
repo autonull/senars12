@@ -10,10 +10,10 @@ import { groupBy, mapToRecord } from '@senars/util/collections';
 import { writeJsonFile } from '@senars/util/fs';
 import { sha256Prefixed } from '@senars/util/hash';
 import { SenarsError } from '@senars/errors';
-import { identityECE, meanBrier } from './calibration-fit.js';
-import type { JudgmentDataset } from './distill.js';
-import { frozenRegression } from './metrics.js';
-import { DigestMismatchError } from './wasi-runtime.js';
+import { identityECE, meanBrier } from './calibration-fit';
+import type { JudgmentDataset } from './distill';
+import { frozenRegression } from './metrics';
+import { DigestMismatchError } from './wasi-runtime';
 
 /** TODO22 auto-capture source — never eligible for the frozen set. */
 export const CONVERSATION_SOURCE = 'conversation';

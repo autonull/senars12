@@ -4,7 +4,7 @@
  * One binary serves CLI, HTTP, WS, IRC, MCP, browser and edge.
  */
 
-import type { CLIConfig, CLICommand, CLIContext, CLIOption, CLIApp } from './types.js';
+import type { CLIConfig, CLICommand, CLIContext, CLIOption, CLIApp } from './types';
 
 /** Create CLI app. */
 export function createCLIApp(config: CLIConfig): CLIApp {

@@ -11,10 +11,10 @@ import {
   $lensLayout,
   $layoutScope,
   $capabilityFilter,
-} from '../core/store.js';
-import { LENS_IDS } from '../utils/lens-catalog.js';
-import { layoutRegistry } from '../utils/layout-registry.js';
-import { CHANNEL_IDS } from '../utils/lens-catalog.js';
+} from '../core/store';
+import { LENS_IDS } from '../utils/lens-catalog';
+import { layoutRegistry } from '../utils/layout-registry';
+import { CHANNEL_IDS } from '../utils/lens-catalog';
 
 /** The canonical view presets — the L2 ladder rung. */
 export type ViewPresetId = 'ask' | 'explore' | 'read' | 'plan';

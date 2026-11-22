@@ -3,10 +3,10 @@ import { selectTopN } from '@senars/util/collections';
 import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
-import type { EmbeddingGenerator } from '../../memory/embedding.js';
-import { cosineSimilarity } from '../../memory/embedding.js';
-import { resolveEmbeddingGenerator } from '../../lm/embedding-runtime.js';
+import type { EpisodicMemory } from '../../memory/EpisodicMemory';
+import type { EmbeddingGenerator } from '../../memory/embedding';
+import { cosineSimilarity } from '../../memory/embedding';
+import { resolveEmbeddingGenerator } from '../../lm/embedding-runtime';
 
 // --- rag_query ---
 

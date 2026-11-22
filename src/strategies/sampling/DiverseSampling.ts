@@ -1,7 +1,7 @@
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
-import type { SamplingStrategy } from '../types.js';
-import { stratifiedSample } from './scored.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
+import type { SamplingStrategy } from '../types';
+import { stratifiedSample } from './scored';
 
 export class DiverseSampling implements SamplingStrategy {
   readonly metadata = { name: 'diverse', description: 'Stratified sample across priority bands' };

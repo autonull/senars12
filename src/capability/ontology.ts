@@ -7,8 +7,8 @@
 import type { ToolSpec } from '@senars/motor';
 import { addToSet, mapValues } from '@senars/util/collections';
 import { shortSha256Hex } from '@senars/util/hash';
-import { type CapabilityDef, CapabilitySpace } from './space.js';
-import type { CapabilityRisk } from '@senars/util/capability-risk.js';
+import { type CapabilityDef, CapabilitySpace } from './space';
+import type { CapabilityRisk } from '@senars/util/capability-risk';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 

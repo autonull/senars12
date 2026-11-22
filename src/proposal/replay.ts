@@ -28,10 +28,10 @@
  *    skipped by a caller that replays without a lifecycle.
  */
 
-import type { CognitiveEvent } from '@senars/schemas/cognitive-events.js';
-import type { ProposalRejection } from '@senars/schemas/proposal.js';
-import type { RuleDeclaration } from '@senars/schemas/rule-table.js';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal.js';
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
+import type { ProposalRejection } from '@senars/schemas/proposal';
+import type { RuleDeclaration } from '@senars/schemas/rule-table';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal';
 import { unique } from '@senars/util/collections';
 import { SenarsError } from '@senars/errors';
 

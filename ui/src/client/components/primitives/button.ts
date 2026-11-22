@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
+import { customElement, property } from 'lit/decorators';
+import { classMap } from 'lit/directives/class-map';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon';
 type ButtonSize = 'sm' | 'md' | 'lg';

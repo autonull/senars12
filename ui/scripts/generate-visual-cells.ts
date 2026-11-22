@@ -12,7 +12,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { VisualCell } from '../tests/visual/matrix.js';
+import type { VisualCell } from '../tests/visual/matrix';
 
 interface SurfaceDescriptor {
   id: string;
@@ -101,7 +101,7 @@ function main(): void {
  * DO NOT EDIT DIRECTLY — run \`pnpm generate:visual-cells\` to regenerate.
  * Hand-curated cells in matrix.ts override/extend these.
  */
-import type { VisualCell } from './matrix.js';
+import type { VisualCell } from './matrix';
 
 export const GENERATED_VISUAL_CELLS: VisualCell[] = ${JSON.stringify(cells, null, 2)};
 `;

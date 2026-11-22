@@ -1,8 +1,8 @@
 import { roundTo } from '@senars/util/numeric';
 
-import { composeProposition } from './distribution.js';
-import { createRemoteManifold } from './remote-manifold.js';
-import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire.js';
+import { composeProposition } from './distribution';
+import { createRemoteManifold } from './remote-manifold';
+import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire';
 import type {
   BackendId,
   CalibrationVersion,
@@ -12,8 +12,8 @@ import type {
   JudgmentQuery,
   ModelDigest,
   QueryId,
-} from './types.js';
-import { NO_COST } from './types.js';
+} from './types';
+import { NO_COST } from './types';
 
 export const OPEN_REPLICA_BACKEND = 'open-systemone' as BackendId;
 

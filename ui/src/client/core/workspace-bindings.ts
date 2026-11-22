@@ -9,16 +9,16 @@
  * re-projections because it is not event-sourced.
  */
 
-import { narsBackend } from './nars-backend.js';
-import { mettaBackend } from './metta-backend.js';
-import { $chatMessages, $cognitiveEvents, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store.js';
-import { projectWorkspace } from './workspace-projection.js';
-import { initConfigChangeProducer } from './config-change-producer.js';
-import { registerBuiltinTools } from './tool-registry.js';
-import type { WorkspaceGraph } from './workspace-graph.js';
+import { narsBackend } from './nars-backend';
+import { mettaBackend } from './metta-backend';
+import { $chatMessages, $cognitiveEvents, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store';
+import { projectWorkspace } from './workspace-projection';
+import { initConfigChangeProducer } from './config-change-producer';
+import { registerBuiltinTools } from './tool-registry';
+import type { WorkspaceGraph } from './workspace-graph';
 
 /** Re-export initConfigChangeProducer for the core index. */
-export { initConfigChangeProducer } from './config-change-producer.js';
+export { initConfigChangeProducer } from './config-change-producer';
 
 /** Re-project current client state into `$workspaceGraph`, preserving session state. */
 export function syncWorkspaceGraph(): WorkspaceGraph {

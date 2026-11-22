@@ -1,31 +1,31 @@
-import type { Agent } from './Agent.js';
+import type { Agent } from './Agent';
 import type { PromptBuilder } from '@senars/cortex';
-import type { MettaPort } from './metta-port.js';
+import type { MettaPort } from './metta-port';
 import { entryKey, keyedBy } from '@senars/util/collections';
 import { errMsg } from '@senars/util/error';
 import type { SystemOneConfig } from '@senars/util/config';
-import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry.js';
+import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry';
 import {
   type CognitiveParameters,
   DEFAULT_COGNITIVE_PARAMETERS,
-} from '../config/cognitive-parameters.js';
-import { BuilderError } from '../errors/index.js';
-import type { GateRegistry, GateRegistryInit } from '../kernel/GateRegistry.js';
-import { createGateRegistry } from '../kernel/GateRegistry.js';
-import type { ThreadScope } from '../kernel/thread-scope.js';
+} from '../config/cognitive-parameters';
+import { BuilderError } from '../errors/index';
+import type { GateRegistry, GateRegistryInit } from '../kernel/GateRegistry';
+import { createGateRegistry } from '../kernel/GateRegistry';
+import type { ThreadScope } from '../kernel/thread-scope';
 import type { LMService } from '../lm';
-import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
-import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
-import { withSpan } from '../otel/index.js';
-import type { CapabilityTier } from './profiles.js';
-import { resolveProfile } from './profiles.js';
+import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle';
+import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle';
+import type { EpisodicMemory } from '../memory/EpisodicMemory';
+import { withSpan } from '../otel/index';
+import type { CapabilityTier } from './profiles';
+import { resolveProfile } from './profiles';
 
-export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
-export { NAR_PROFILES, resolveProfile } from './profiles.js';
+export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles';
+export { NAR_PROFILES, resolveProfile } from './profiles';
 
-import { NAR, type NARConfig } from '../nar.js';
-import type { CreateAgentConfig } from './config.js';
+import { NAR, type NARConfig } from '../nar';
+import type { CreateAgentConfig } from './config';
 
 export interface CapabilitySpec {
   enabled?: boolean;
@@ -66,7 +66,7 @@ export interface WiredNAR {
   /** P7: tier-0 sandboxed reflex-value head (zero-import WASM, digest-pinned). */
   deviceHead?: LoadedHeadBundle;
   /** Phase E: CapabilityOntology for tool/rule/skill inventory with provenance. */
-  capabilityOntology?: import('../capability/ontology.js').CapabilityOntology;
+  capabilityOntology?: import('../capability/ontology').CapabilityOntology;
   describe(): { steps: BuilderStepRecord[]; subsystems: string[] };
 }
 
@@ -324,7 +324,7 @@ export class NARBuilder {
       ...(this.threadScope ? { threadScope: this.threadScope } : {}),
     };
 
-    const { createAgent } = await import('./index.js');
+    const { createAgent } = await import('./index');
     const agent = (await createAgent(agentConfig)) as unknown as WiredNAR['agent'];
 
     const deviceHead = this.deviceHeadSpec
@@ -334,9 +334,9 @@ export class NARBuilder {
       : undefined;
 
     // Phase E: CapabilityOntology — register tools into CapabilitySpace
-    let capabilityOntology: import('../capability/ontology.js').CapabilityOntology | undefined;
+    let capabilityOntology: import('../capability/ontology').CapabilityOntology | undefined;
     if (this.capabilityOntologyEnabled) {
-      const { createCapabilityOntology } = await import('../capability/ontology.js');
+      const { createCapabilityOntology } = await import('../capability/ontology');
       capabilityOntology = createCapabilityOntology();
       // Register all tools from NAR's ToolManager
       const tools = nar.listTools();

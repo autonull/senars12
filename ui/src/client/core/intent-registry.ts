@@ -17,13 +17,13 @@ import {
   type IntentCatalog,
   type IntentPayload,
 } from '../framework/intent';
-import { capabilityGate } from './capabilities.js';
-import { recordCommandUse } from './command-history.js';
-import { eventBus } from './events.js';
-import { surfaceRegistry, registerSurface } from '../framework/surface.js';
-import { foldableSections, sectionTree } from './sections.js';
-import { narsBackend } from './nars-backend.js';
-import { workspaceRenderers } from './workspace-renderer.js';
+import { capabilityGate } from './capabilities';
+import { recordCommandUse } from './command-history';
+import { eventBus } from './events';
+import { surfaceRegistry, registerSurface } from '../framework/surface';
+import { foldableSections, sectionTree } from './sections';
+import { narsBackend } from './nars-backend';
+import { workspaceRenderers } from './workspace-renderer';
 import {
   $activeRenderer,
   $controlMode,
@@ -31,13 +31,13 @@ import {
   $runTerminations,
   $workspaceGraph,
   $collapsedBlocks,
-} from '../kernel/state.js';
-import { $capabilities } from './capabilities.js';
-import { $panels, $conversationLayout, $selectedNodeIds, setConversationLayout, setCollapsed } from './store.js';
-import { availableComposerModes, type ComposerMode } from './composer-modes.js';
-import { panelDef, PANEL_KINDS } from './panel-defs.js';
-import { validateCommandArgs } from './command-schemas.js';
-import { atom } from './store.js';
+} from '../kernel/state';
+import { $capabilities } from './capabilities';
+import { $panels, $conversationLayout, $selectedNodeIds, setConversationLayout, setCollapsed } from './store';
+import { availableComposerModes, type ComposerMode } from './composer-modes';
+import { panelDef, PANEL_KINDS } from './panel-defs';
+import { validateCommandArgs } from './command-schemas';
+import { atom } from './store';
 
 // ===== Signal Intents (fire-and-forget, no palette entry) =====
 

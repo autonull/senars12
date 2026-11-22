@@ -7,9 +7,9 @@
  * new kind cannot land without its presentation, and a typo cannot land at all.
  */
 
-import type { BuiltinLens } from '../../shared/lens-schema.js';
-import type { SemanticLinkKind } from '../core/workspace-graph.js';
-import { defineCatalog } from '../framework/catalog.js';
+import type { BuiltinLens } from '../../shared/lens-schema';
+import type { SemanticLinkKind } from '../core/workspace-graph';
+import { defineCatalog } from '../framework/catalog';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
 export const LINK_CATEGORIES = ['structure', 'discourse', 'evidence', 'action', 'provenance'] as const;

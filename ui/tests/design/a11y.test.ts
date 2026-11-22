@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/index.js';
-import '../../src/client/components/renderers/notebook.js';
-import '../../src/client/components/contradiction-badge.js';
-import '../../src/client/core/view-host.js';
-import { surfaceA11y, generateSurfaces, validateSurfaceA11y } from '../../src/client/core/surface-codegen.js';
-import { getSurfaces } from '../../src/client/core/surface-registry.js';
+import '../../src/client/components/overlays/index';
+import '../../src/client/components/renderers/notebook';
+import '../../src/client/components/contradiction-badge';
+import '../../src/client/core/view-host';
+import { surfaceA11y, generateSurfaces, validateSurfaceA11y } from '../../src/client/core/surface-codegen';
+import { getSurfaces } from '../../src/client/core/surface-registry';
 
 describe('design: surface accessibility', () => {
   it('every registered surface exposes a label, role and keyboard path', () => {

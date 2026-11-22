@@ -1,9 +1,9 @@
-import type { CognitiveEvent, PolicyViolationEvent } from '@senars/schemas/cognitive-events.js';
-import type { GateName, GateOutcome } from '@senars/schemas/gate-io.js';
-import { mintCognitiveEvent, validateCognitiveEvent } from '@senars/schemas/cognitive-events.js';
+import type { CognitiveEvent, PolicyViolationEvent } from '@senars/schemas/cognitive-events';
+import type { GateName, GateOutcome } from '@senars/schemas/gate-io';
+import { mintCognitiveEvent, validateCognitiveEvent } from '@senars/schemas/cognitive-events';
 import { makeId } from '@senars/util/id';
-import { gateLog, type PolicyViolationInput } from './event-ring.js';
-import { recordGateDecision } from '../telemetry/index.js';
+import { gateLog, type PolicyViolationInput } from './event-ring';
+import { recordGateDecision } from '../telemetry/index';
 
 /**
  * Read one gate's own output as the single outcome vocabulary. Each gate names

@@ -5,13 +5,13 @@ import {
   surfaceDoc,
   surfaceGalleryCell,
   surfaceStory,
-} from '../../src/client/core/surface-codegen.js';
+} from '../../src/client/core/surface-codegen';
 import {
   getSurfaces,
   registerSurface,
   surfaceFor,
   surfaceTag,
-} from '../../src/client/core/surface-registry.js';
+} from '../../src/client/core/surface-registry';
 
 const descriptor = {
   id: 'probe',

@@ -1,20 +1,20 @@
-import type { CognitiveEvent } from '../schemas/index.js';
+import type { CognitiveEvent } from '../schemas/index';
 import { PushQueue } from '@senars/events/push-queue';
-import type { ChatOptions, ChatStreamEvent } from './chat.js';
-import type { LLMCortex } from '../cortex/LLMCortex.js';
-import type { CognitiveStimulus, Context, Derivation, GroundednessGate, TraceGrader, EgressVerdict } from '@senars/types/cognitive.js';
-import type { LMTask } from '@senars/types/llm.js';
-import type { Engine } from '@senars/types/engine.js';
-import type { ToolResult } from '@senars/types/engine.js';
-import type { EventLog } from '../log/index.js';
-import type { MemoryService } from '../memory/MemoryService.js';
-import type { ToolRegistry } from '../motor/ToolRegistry.js';
-import { motorToToolSet } from '../motor/toToolSet.js';
-import type { PolicyEngine } from './PolicyEngine.js';
-import type { CorrelationScopeStore } from './correlation-scope.js';
+import type { ChatOptions, ChatStreamEvent } from './chat';
+import type { LLMCortex } from '../cortex/LLMCortex';
+import type { CognitiveStimulus, Context, Derivation, GroundednessGate, TraceGrader, EgressVerdict } from '@senars/types/cognitive';
+import type { LMTask } from '@senars/types/llm';
+import type { Engine } from '@senars/types/engine';
+import type { ToolResult } from '@senars/types/engine';
+import type { EventLog } from '../log/index';
+import type { MemoryService } from '../memory/MemoryService';
+import type { ToolRegistry } from '../motor/ToolRegistry';
+import { motorToToolSet } from '../motor/toToolSet';
+import type { PolicyEngine } from './PolicyEngine';
+import type { CorrelationScopeStore } from './correlation-scope';
 import type { EpisodicMemory } from '@senars/types/episodic-memory';
-import type { ParsedCommand } from './types.js';
-import type { Middleware } from '@senars/util/middleware.js';
+import type { ParsedCommand } from './types';
+import type { Middleware } from '@senars/util/middleware';
 
 /**
  * Shared macro-cycle pipeline (REFACTOR.todo1 Phase A).

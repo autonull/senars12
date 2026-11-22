@@ -1,6 +1,6 @@
 import type { Clock } from '@senars/util/clock';
 import type { Term } from '../../terms';
-import type { RandomSource } from '../../types/primitives.js';
+import type { RandomSource } from '../../types/primitives';
 
 export type LinkType =
   | 'term-link'

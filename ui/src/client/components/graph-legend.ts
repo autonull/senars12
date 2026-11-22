@@ -1,9 +1,9 @@
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { $activeLens, BaseComponent, eventBus } from '../core/index.js';
-import { LENS_CATALOG, type LensEntry } from '../utils/lens-catalog.js';
-import { theme } from '../utils/theme.js';
-import type { BuiltinLens, ModulationSpec } from '../../shared/lens-schema.js';
+import { customElement } from 'lit/decorators';
+import { $activeLens, BaseComponent, eventBus } from '../core/index';
+import { LENS_CATALOG, type LensEntry } from '../utils/lens-catalog';
+import { theme } from '../utils/theme';
+import type { BuiltinLens, ModulationSpec } from '../../shared/lens-schema';
 
 @customElement('graph-legend')
 export class GraphLegend extends BaseComponent {

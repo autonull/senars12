@@ -6,8 +6,8 @@ import { mintCognitiveEvent, type DerivationRecord } from '@senars/core/schemas'
 import { termParser } from '@senars/nar';
 import { makeId, splitLines } from '@senars/util';
 import { WebSocket } from 'ws';
-import { applyConfigField, buildConfigSchema } from './config-schema.js';
-import { spendTerminations, type SpendSummary, mergeSpendSummaries } from './spend-terminations.js';
+import { applyConfigField, buildConfigSchema } from './config-schema';
+import { spendTerminations, type SpendSummary, mergeSpendSummaries } from './spend-terminations';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 
 export { applyConfigField, LM_PROVIDER_NAMES, spendTerminations, mergeSpendSummaries };

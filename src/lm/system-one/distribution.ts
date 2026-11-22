@@ -5,8 +5,8 @@ import type {
   JudgmentQuery,
   PropositionBase,
   ScoreDistribution,
-} from '../../decision/types.js';
-import type { ScoreLegend } from './types.js';
+} from '../../decision/types';
+import type { ScoreLegend } from './types';
 
 /** Shannon entropy in bits (log2). */
 export const shannonEntropy = (distribution: readonly ScoreDistribution[]): number => {

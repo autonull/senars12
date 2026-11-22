@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { derivationsFor } from '../../src/client/core/workspace-projection.js';
+import { derivationsFor } from '../../src/client/core/workspace-projection';
 import type {
   SemanticBlock,
   SemanticLink,
   WorkspaceGraph,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, kind: SemanticBlock['kind']): SemanticBlock => ({
   id,

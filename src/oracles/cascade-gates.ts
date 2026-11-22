@@ -4,16 +4,16 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import { createGroundednessGate, type GroundednessGateOptions } from '../lm/system-one/groundedness-gate.js';
-import { createTraceGrader, type TraceGraderOptions, type TraceGradeResult } from '../lm/system-one/trace-grader.js';
-import { createWakeGate, type WakeGateOptions, type WakeVerdict } from '../lm/system-one/wake-gate.js';
-import { chargeJudgment, type ResourceCost, type JudgmentBudgetVerdict } from '../lm/system-one/resource-gate.js';
-import type { KernelBudgetGate } from '../kernel/KernelBudgetGate.js';
-import type { EmbeddingCache, JudgmentManifold, ReasoningBudget } from '../lm/system-one/types.js';
-import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import { createGroundednessGate, type GroundednessGateOptions } from '../lm/system-one/groundedness-gate';
+import { createTraceGrader, type TraceGraderOptions, type TraceGradeResult } from '../lm/system-one/trace-grader';
+import { createWakeGate, type WakeGateOptions, type WakeVerdict } from '../lm/system-one/wake-gate';
+import { chargeJudgment, type ResourceCost, type JudgmentBudgetVerdict } from '../lm/system-one/resource-gate';
+import type { KernelBudgetGate } from '../kernel/KernelBudgetGate';
+import type { EmbeddingCache, JudgmentManifold, ReasoningBudget } from '../lm/system-one/types';
+import type { ContrastiveMemory } from '../lm/system-one/contrastive';
 import type { AgentTrace } from '@senars/types/cognitive';
 import type { EgressVerdict } from '@senars/util';
 
@@ -148,7 +148,7 @@ export class CascadeGatesOracle implements Oracle<
   ): Promise<OracleOutput<CascadeGatesResult>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -231,7 +231,7 @@ export class CascadeGatesOracle implements Oracle<
       }
 
       case 'cascade.resourceCharge': {
-        const args = input.args as [string, import('../lm/system-one/types.js').ResourceCost];
+        const args = input.args as [string, import('../lm/system-one/types').ResourceCost];
         const [scopeId, cost] = args;
         if (!this.budgetGate) throw new Error('Budget gate not configured');
         return chargeJudgment(this.budgetGate, scopeId, cost);
@@ -342,7 +342,7 @@ export function registerCascadeGatesOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

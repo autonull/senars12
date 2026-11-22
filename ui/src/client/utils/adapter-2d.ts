@@ -1,8 +1,8 @@
 import type { Core } from 'cytoscape';
-import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
-import { nodeSize } from './graph-scaling.js';
-import { getRendererCapability } from './renderer-capabilities.js';
-import { numericToken, theme, truthColor } from './theme.js';
+import type { Channel, ChannelValue, Delta } from '../modulation/types';
+import { nodeSize } from './graph-scaling';
+import { getRendererCapability } from './renderer-capabilities';
+import { numericToken, theme, truthColor } from './theme';
 
 const confidenceOpacityMin = numericToken('colors.confidence.opacity-min', 0.3);
 const confidenceOpacityMax = numericToken('colors.confidence.opacity-max', 1);

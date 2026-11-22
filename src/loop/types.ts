@@ -2,20 +2,20 @@
  * Loop Types — shared type definitions for the cognitive loop.
  */
 
-import type { Economy, EconomyTask, EconomyScheduler, SchedulerResult, EconomyEvent, EconomyEventType } from '../economy/index.js';
-import type { FacultyRegistry, FacultySpec, FacultyInput, FacultyOutput } from '../faculties/specs.js';
-import type { OracleRegistry, Oracle, OracleInput, OracleOutput } from '../oracles/oracle.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { Task } from '../kernel/types.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Env } from '../kernel/env.js';
-import type { LoopAppraisal } from './appraise.js';
-import type { RepairLoop, RepairContext, RepairResult as LoopRepairResult } from './repair.js';
-import type { ContractCheckResult, ContractContext } from './contract.js';
-import type { SelectionResult, SelectionCandidate, SelectionContext, ActionSelector } from './select.js';
-import type { ContractRegistry } from './contract.js';
-import type { LoopRecorder } from './record.js';
-import type { SelfModelManager } from './self-model.js';
+import type { Economy, EconomyTask, EconomyScheduler, SchedulerResult, EconomyEvent, EconomyEventType } from '../economy/index';
+import type { FacultyRegistry, FacultySpec, FacultyInput, FacultyOutput } from '../faculties/specs';
+import type { OracleRegistry, Oracle, OracleInput, OracleOutput } from '../oracles/oracle';
+import type { Term } from '../kernel/terms/term';
+import type { Task } from '../kernel/types';
+import type { Truth } from '../kernel/truth';
+import type { Env } from '../kernel/env';
+import type { LoopAppraisal } from './appraise';
+import type { RepairLoop, RepairContext, RepairResult as LoopRepairResult } from './repair';
+import type { ContractCheckResult, ContractContext } from './contract';
+import type { SelectionResult, SelectionCandidate, SelectionContext, ActionSelector } from './select';
+import type { ContractRegistry } from './contract';
+import type { LoopRecorder } from './record';
+import type { SelfModelManager } from './self-model';
 
 /** Re-export commonly used types. */
 export type {

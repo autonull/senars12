@@ -9,7 +9,7 @@
  * only test needed and neither arm needs a cast.
  */
 
-import { toError } from './error.js';
+import { toError } from './error';
 
 export type Ok<T> = { readonly ok: true; readonly value: T };
 export type Err<E> = { readonly ok: false; readonly error: E };

@@ -1,16 +1,16 @@
-import { createKnobSet, type TunableKnob } from './knobs.js';
-import { PolicyOptimizer } from './PolicyOptimizer.js';
-import { PreferenceCollector } from './PreferenceCollector.js';
-import { ReasoningTrajectoryLogger, type TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import { RewardModel } from './RewardModel.js';
-import type { TaskOutcome, TaskRewardMetrics } from './RLFPLearner.js';
-import { RLFPLearner } from './RLFPLearner.js';
+import { createKnobSet, type TunableKnob } from './knobs';
+import { PolicyOptimizer } from './PolicyOptimizer';
+import { PreferenceCollector } from './PreferenceCollector';
+import { ReasoningTrajectoryLogger, type TrajectoryStep } from './ReasoningTrajectoryLogger';
+import { RewardModel } from './RewardModel';
+import type { TaskOutcome, TaskRewardMetrics } from './RLFPLearner';
+import { RLFPLearner } from './RLFPLearner';
 import {
   type CycleGrades,
   type CycleTrajectory,
   type TrajectoryPair,
   TrajectoryStore,
-} from './trajectory-store.js';
+} from './trajectory-store';
 
 export type {
   CycleGrades,

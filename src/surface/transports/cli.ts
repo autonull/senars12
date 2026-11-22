@@ -2,7 +2,7 @@
  * CLI Transport — CLI transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types.js';
+import type { Transport, TransportConfig, TransportMessage } from './types';
 
 /** CLI transport config. */
 export interface CLITransportConfig extends TransportConfig {

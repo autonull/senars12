@@ -1,6 +1,6 @@
-import { $graphNodes, viewSource } from '../../core/index.js';
-import type { ViewSpec } from '../../core/view-spec.js';
-import { graphTable } from './graph-table.js';
+import { $graphNodes, viewSource } from '../../core/index';
+import type { ViewSpec } from '../../core/view-spec';
+import { graphTable } from './graph-table';
 
 /**
  * The graph's tabular view. The 2D/3D viewport is the `graph` shape and stays

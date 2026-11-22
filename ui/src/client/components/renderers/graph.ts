@@ -5,12 +5,12 @@
  * Implements incremental `present`/`apply` with animation (§P2.1).
  */
 
-import type { Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from '../../core/workspace-graph.js';
-import type { ConversationLayoutId } from '../../core/conversation-layout.js';
-import { kindsWhere } from '../../core/block-descriptors.js';
-import { $activeRenderer, $conversationLayout, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setConversationLayout, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index.js';
-import { eventBus } from '../../core/events.js';
-import { getViewportInstance } from '../graph-viewport.js';
+import type { Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from '../../core/workspace-graph';
+import type { ConversationLayoutId } from '../../core/conversation-layout';
+import { kindsWhere } from '../../core/block-descriptors';
+import { $activeRenderer, $conversationLayout, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setConversationLayout, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index';
+import { eventBus } from '../../core/events';
+import { getViewportInstance } from '../graph-viewport';
 import {
   registerRenderer,
   WORKSPACE_INTERACTIONS,
@@ -23,13 +23,13 @@ import {
   type Patch,
   type ItemPatch,
   type Cell,
-} from '../../core/workspace-renderer.js';
-import { focusRefId } from '../../framework/coordinates.js';
-import type { Channel, ChannelValue } from '../../modulation/types.js';
-import { diffWorkspaceGraph } from '../../core/workspace-diff.js';
-import { applyWorkspaceOps } from '../../core/workspace-graph.js';
-import { applyDelta } from '../../utils/adapter-2d.js';
-import './graph-surface.js';
+} from '../../core/workspace-renderer';
+import { focusRefId } from '../../framework/coordinates';
+import type { Channel, ChannelValue } from '../../modulation/types';
+import { diffWorkspaceGraph } from '../../core/workspace-diff';
+import { applyWorkspaceOps } from '../../core/workspace-graph';
+import { applyDelta } from '../../utils/adapter-2d';
+import './graph-surface';
 
 const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
   const blocks = $workspaceGraph.get().blocks;

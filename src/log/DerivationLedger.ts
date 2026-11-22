@@ -5,12 +5,12 @@
  * Uses the unified event log for all derivation events.
  */
 
-import type { LogStore } from './store.js';
-import type { CognitiveEvent } from './events.js';
-import type { DerivationRecorder } from '../rules/impls/recorder.js';
-import type { DerivationStep, DerivationRecord } from '../schemas/index.js';
-import { createLogger } from '../util/index.js';
-import { isDerivationAcceptedEvent, isDerivationRecordEvent } from './events.js';
+import type { LogStore } from './store';
+import type { CognitiveEvent } from './events';
+import type { DerivationRecorder } from '../rules/impls/recorder';
+import type { DerivationStep, DerivationRecord } from '../schemas/index';
+import { createLogger } from '../util/index';
+import { isDerivationAcceptedEvent, isDerivationRecordEvent } from './events';
 
 export interface DerivationLedgerOptions {
   /** Where a replay reports what it resumed. */

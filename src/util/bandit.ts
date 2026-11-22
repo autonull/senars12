@@ -1,5 +1,5 @@
-import { getOrInsert, maxBy } from './collections.js';
-import { clamp01, lerp, saturationRamp, ucb1 } from './numeric.js';
+import { getOrInsert, maxBy } from './collections';
+import { clamp01, lerp, saturationRamp, ucb1 } from './numeric';
 
 /** The running estimate for one `(state, action)` pair. */
 export interface QEntry {

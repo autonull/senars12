@@ -13,7 +13,7 @@ import { ArchitectureDriver } from '@senars/self';
 import { divider, formatDuration, pct, section } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
 import { writeJsonFile } from '@senars/util/fs';
-import { runEntrypoint } from './lib/fatal-error.js';
+import { runEntrypoint } from './lib/fatal-error';
 
 interface ImagineOptions {
   profile: ScenarioProfile;

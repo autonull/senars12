@@ -5,7 +5,7 @@
  * pages. Demonstrates the Notebook renderer as a standalone app.
  */
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $collapsedBlocks,
   $workspaceGraph,
@@ -15,20 +15,20 @@ import {
   send,
   setWorkspaceFocus,
   toggleCollapsed,
-} from '../../kernel/index.js';
-import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { defineBundle } from '../../framework/bundle.js';
-import type { Composition } from '../../framework/composition.js';
-import { type SurfaceDescriptor } from '../../framework/surface.js';
-import { blockDescriptor } from '../../core/block-descriptors.js';
-import { breadcrumb } from '../../core/navigation.js';
-import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections.js';
-import { $embeddedViews, embeddedViewMeta, embeddedViewSpec } from '../../core/embedded-views.js';
-import { collectSources } from '../../core/citations.js';
-import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
-import '../../components/primitives/empty-state.js';
-import type { BlockKind } from '../../core/block-descriptors.js';
-import type { Source } from '../../core/citations.js';
+} from '../../kernel/index';
+import { defineApp, type AppDescriptor } from '../../framework/app';
+import { defineBundle } from '../../framework/bundle';
+import type { Composition } from '../../framework/composition';
+import { type SurfaceDescriptor } from '../../framework/surface';
+import { blockDescriptor } from '../../core/block-descriptors';
+import { breadcrumb } from '../../core/navigation';
+import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections';
+import { $embeddedViews, embeddedViewMeta, embeddedViewSpec } from '../../core/embedded-views';
+import { collectSources } from '../../core/citations';
+import { blockBodyStyles, renderBlockBody } from '../../utils/render-block';
+import '../../components/primitives/empty-state';
+import type { BlockKind } from '../../core/block-descriptors';
+import type { Source } from '../../core/citations';
 
 const isSection = (block: { kind: string }): boolean => blockDescriptor(block.kind as BlockKind).section;
 

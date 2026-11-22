@@ -4,9 +4,9 @@ import { resolveLMSettings } from '@senars/lm';
 import { clamp, finiteOr, perSecond } from '@senars/util/numeric';
 import { stopwatch } from '@senars/util/async';
 import { attempted, cmd } from '@senars/cli';
-import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks.js';
-import { jsonMode } from './args.js';
-import type { BotRuntime } from './context.js';
+import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks';
+import { jsonMode } from './args';
+import type { BotRuntime } from './context';
 
 export const diagnosticCommandsFor = (rt: BotRuntime) => [
   cmd('doctor', 'Lightweight health check', async (args = '') => {
@@ -32,7 +32,7 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
   }),
   cmd('routing-log', 'Routing telemetry status', async () => {
     return attempted('routing-log unavailable', async () => {
-      const { getRoutingLogStatus } = await import('../../lm/index.js');
+      const { getRoutingLogStatus } = await import('../../lm/index');
       const st = getRoutingLogStatus();
       return `enabled=${st.enabled} buffered=${st.bufferSize} log=${st.logPath}`;
     });

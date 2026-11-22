@@ -1,11 +1,11 @@
 import { css, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
-import { property, state } from 'lit/decorators.js';
-import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
-import { defineSurface, SurfaceComponent, type SurfaceState } from './surface.js';
-import { $selectedNodeId, $viewSelection } from './store.js';
-import { viewAdapterFor } from './view-adapter.js';
-import { datasetIsEmpty, projectDataset } from './view-projection.js';
-import type { Budget, Shape, ViewSpec, ViewStateSpec } from './view-spec.js';
+import { property, state } from 'lit/decorators';
+import { html as staticHtml, unsafeStatic } from 'lit/static-html';
+import { defineSurface, SurfaceComponent, type SurfaceState } from './surface';
+import { $selectedNodeId, $viewSelection } from './store';
+import { viewAdapterFor } from './view-adapter';
+import { datasetIsEmpty, projectDataset } from './view-projection';
+import type { Budget, Shape, ViewSpec, ViewStateSpec } from './view-spec';
 
 /**
  * `<s-view>` — the one host every dataset renders through. It resolves an adapter

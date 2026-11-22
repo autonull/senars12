@@ -6,9 +6,9 @@
  * This replaces the separate drive machinery with a single gradient view.
  */
 
-import type { EconomyTask, TaskBagKind, TaskSource, Overlay, SchedulerConfig } from './types.js';
-import type { Truth } from '../kernel/truth.js';
-import { calculateTaskUtility, calculateTotalUtility, KIND_UTILITY_WEIGHTS } from './utility.js';
+import type { EconomyTask, TaskBagKind, TaskSource, Overlay, SchedulerConfig } from './types';
+import type { Truth } from '../kernel/truth';
+import { calculateTaskUtility, calculateTotalUtility, KIND_UTILITY_WEIGHTS } from './utility';
 
 /** Drive type. */
 export const DRIVE_TYPES = [

@@ -1,7 +1,7 @@
 import { Unifier, type UnifierDialect, type UnifierSubstitution } from '@senars/util/unify';
-import type { Term } from '../types.js';
-import { TERM_EQUALITY, termKey } from './accessors.js';
-import { TermBuilder } from './factory.js';
+import type { Term } from '../types';
+import { TERM_EQUALITY, termKey } from './accessors';
+import { TermBuilder } from './factory';
 
 /** The unifier's own substitution type — util's, bound to the term dialect. */
 export type Substitution = UnifierSubstitution<Term>;

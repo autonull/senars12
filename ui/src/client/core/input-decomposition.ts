@@ -7,7 +7,7 @@
  * they are conversational content.
  */
 
-import type { BlockKind } from './workspace-graph.js';
+import type { BlockKind } from './workspace-graph';
 
 export type InputKind = Extract<BlockKind, 'claim' | 'question' | 'command'>;
 

@@ -1,6 +1,6 @@
 import { errMsg } from '@senars/util/error';
 import { withRetry as utilWithRetry } from '@senars/util/retry';
-import { type LMTask } from '@senars/types/llm.js';
+import { type LMTask } from '@senars/types/llm';
 import { SenarsError } from '@senars/errors';
 
 /** H6/X14: provider-specific remediation hints appended to LM failures. */

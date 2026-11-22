@@ -3,7 +3,7 @@
  *
  * Each handler takes the context and message directly (not curried).
  */
-import type { ServerHandlerContext } from '../client/framework/protocol.js';
+import type { ServerHandlerContext } from '../client/framework/protocol';
 import { WebSocket } from 'ws';
 import {
   errorFrame,
@@ -21,11 +21,11 @@ import {
   LM_PROVIDER_NAMES,
   spendTerminations,
   mergeSpendSummaries,
-} from './server-utils.js';
+} from './server-utils';
 import type { Agent } from '@senars/core';
-import type { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
+import type { UnifiedGraphProjection } from './UnifiedGraphProjection';
 import type { LensSpec } from '@senars/core';
-import { type NarLike } from './server-utils.js';
+import { type NarLike } from './server-utils';
 
 /** Type guard for WebSocket ready state. */
 function isOpen(ws: WebSocket): boolean {
@@ -73,7 +73,7 @@ export function handleConfigSet(
       () => getNar(ctx),
       ctx.currentNarConfig,
       () => {
-        import('./server-utils.js').then(({ broadcastConfigSchema }) =>
+        import('./server-utils').then(({ broadcastConfigSchema }) =>
           broadcastConfigSchema(getWss(ctx), ctx.currentNarConfig)
         );
       }

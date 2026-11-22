@@ -9,7 +9,7 @@
  * or reach up to `nar` for it.
  */
 
-import { shareCount } from './collections.js';
+import { shareCount } from './collections';
 
 /** Injectable randomness — a seeded stream, an LCG, or `Math.random`. */
 export type RandomSource = () => number;

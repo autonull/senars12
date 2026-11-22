@@ -3,12 +3,12 @@
  * Extracted to break context.ts <-> nar.ts cycle.
  */
 
-import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
-import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
-import type { RuleProcessor } from '../../../rules/impls/processor.js';
-import type { ToolManager } from '../../impls/tool-registry.js';
-import type { ApprovalService } from '../../../agent/ApprovalService.js';
-import type { NARExecution } from '../../../nar-execution.js';
+import type { RLFPLearner } from '../../../rlfp/RLFPLearner';
+import type { CognitiveController } from '../../../cognitive/impls/CognitiveController';
+import type { RuleProcessor } from '../../../rules/impls/processor';
+import type { ToolManager } from '../../impls/tool-registry';
+import type { ApprovalService } from '../../../agent/ApprovalService';
+import type { NARExecution } from '../../../nar-execution';
 
 export interface SelfToolsNAR {
   getExecution(): NARExecution | undefined;

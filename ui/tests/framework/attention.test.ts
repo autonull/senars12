@@ -10,7 +10,7 @@ import {
   tierCeiling,
   tierFor,
   tierRank,
-} from '../../src/client/framework/index.js';
+} from '../../src/client/framework/index';
 
 describe('attention classifies and ranks', () => {
   it('classifies by ring distance', () => {

@@ -3,10 +3,10 @@ export type {
   CognitiveTaskResult,
   DelegationPeer,
   JudgmentDelegationResult,
-} from './delegation.js';
+} from './delegation';
 export {
   createDelegation,
   createJudgmentDelegation,
   handleDelegationMessage,
   JudgmentDelegationPeer,
-} from './delegation.js';
+} from './delegation';

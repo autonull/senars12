@@ -2,7 +2,7 @@
  * CLI Format — output formatting for CLI.
  */
 
-import type { CLIFormat, CLIOutput } from './types.js';
+import type { CLIFormat, CLIOutput } from './types';
 
 /** Format manager. */
 export class FormatManager {

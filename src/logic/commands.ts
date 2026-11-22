@@ -7,15 +7,15 @@
  * the prover: verification is independent of the derivation that made it.
  */
 
-import type { Formula, ProofCertificate } from '../logics/axiomatic/ast.js';
-import { not } from '../logics/axiomatic/ast.js';
-import { CertificateGenerator, CertificateVerifier, verifyCertificate } from '../logics/axiomatic/certificates.js';
-import { createModelFinder } from '../logics/axiomatic/models.js';
-import { createSLDResolver } from '../logics/axiomatic/sld.js';
-import { decodeNarsese, encodeNarsese, serializeTerm, deserializeTerm } from '../kernel/terms/codec/narsese.js';
-import { TermOp } from '../kernel/terms/term.js';
-import { parseAtom, parseProgram } from './parse.js';
-import { proved, refuted, unknown, type CommandResult, type Verdict } from './verdict.js';
+import type { Formula, ProofCertificate } from '../logics/axiomatic/ast';
+import { not } from '../logics/axiomatic/ast';
+import { CertificateGenerator, CertificateVerifier, verifyCertificate } from '../logics/axiomatic/certificates';
+import { createModelFinder } from '../logics/axiomatic/models';
+import { createSLDResolver } from '../logics/axiomatic/sld';
+import { decodeNarsese, encodeNarsese, serializeTerm, deserializeTerm } from '../kernel/terms/codec/narsese';
+import { TermOp } from '../kernel/terms/term';
+import { parseAtom, parseProgram } from './parse';
+import { proved, refuted, unknown, type CommandResult, type Verdict } from './verdict';
 
 /** Prove `goal` from `program` by SLD resolution; return a re-checkable certificate. */
 export const prove = (program: string, goal: string, options: { maxDepth?: number; maxSolutions?: number } = {}): CommandResult => {
@@ -110,7 +110,7 @@ export const formatVerdict = (verdict: Verdict): string => {
 };
 
 /** Render a term for Prolog/TPTP. */
-const renderArg = (arg: import('../kernel/terms/term.js').Term): string => {
+const renderArg = (arg: import('../kernel/terms/term').Term): string => {
   if (arg.op === TermOp.VARIABLE) return arg.name;
   if (arg.op === TermOp.CONSTANT) return (arg as { value: string }).value;
   return '?';

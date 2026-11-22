@@ -4,8 +4,8 @@ import { envStrOr } from '@senars/util/config';
 import { thaw } from '@senars/util/object';
 import { writeJsonFile } from '@senars/util/fs';
 import { cmd } from '@senars/cli';
-import { coerce, flagsOf, setPath, tokenize } from './args.js';
-import type { BotRuntime } from './context.js';
+import { coerce, flagsOf, setPath, tokenize } from './args';
+import type { BotRuntime } from './context';
 
 const DEFAULT_CONFIG_PATH = 'senars.config.json';
 
@@ -54,7 +54,7 @@ export const configCommandsFor = (rt: BotRuntime) => [
     if (!flagsOf(args).has('--yes')) {
       return 'Destructive. Re-run as .config-reset --yes to confirm';
     }
-    const { DEFAULT_APP_CONFIG } = await import('../../config/index.js');
+    const { DEFAULT_APP_CONFIG } = await import('../../config/index');
     rt.appConfig = thaw(DEFAULT_APP_CONFIG);
     return 'Config reset to defaults (persist with .config-save; restart bot to apply)';
   }),

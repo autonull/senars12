@@ -3,7 +3,7 @@
  * the single implementation of percent, rule, and progress-bar rendering.
  */
 
-import { clamp } from './numeric.js';
+import { clamp } from './numeric';
 
 /** Fraction → percentage string (`pct(0.6123)` → `'61.2%'`). */
 export const pct = (fraction: number, digits = 1): string => `${(fraction * 100).toFixed(digits)}%`;

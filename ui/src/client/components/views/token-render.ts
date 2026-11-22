@@ -1,5 +1,5 @@
 import { css, html, type TemplateResult } from 'lit';
-import { tokenizeCode } from './code-highlight.js';
+import { tokenizeCode } from './code-highlight';
 
 /** Shared token palette for `s-code` and `s-diff`; the highlight lives in the light DOM of neither. */
 export const highlightStyles = css`

@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/util/logger';
-import { assertDefined } from '@senars/util/assert.js';
-import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types.js';
+import { assertDefined } from '@senars/util/assert';
+import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types';
 
 export class ConnectionManager {
   private connections: Map<string, Connection> = new Map();

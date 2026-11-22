@@ -15,11 +15,11 @@
 
 import { BoundedRing } from '@senars/util/collections';
 import { currentIdCount, primeIdCount } from '@senars/util/id';
-import type { ConceptWriter } from '../memory/ports/index.js';
-import { deserialize, serialize, type SerializedMemory } from '../memory/state/serialization.js';
-import { rehydrateTask, serializeTaskRecord, type TaskRecord } from '../task/record.js';
-import type { Task } from '../types/index.js';
-import type { ConsistencyBoundary } from './boundary.js';
+import type { ConceptWriter } from '../memory/ports/index';
+import { deserialize, serialize, type SerializedMemory } from '../memory/state/serialization';
+import { rehydrateTask, serializeTaskRecord, type TaskRecord } from '../task/record';
+import type { Task } from '../types/index';
+import type { ConsistencyBoundary } from './boundary';
 
 /**
  * How many checkpoints a rewind can reach. The ring caps the memory a rewind

@@ -3,7 +3,7 @@
  * These are simple predicate-based facets (P4 unification).
  */
 
-import { defineFacetCatalog, createFilterFacet } from '../framework/facet.js';
+import { defineFacetCatalog, createFilterFacet } from '../framework/facet';
 
 /** Internal facet catalog for filters — uses the unified Facet system (P4). */
 const FILTER_FACET_DEFS = defineFacetCatalog({

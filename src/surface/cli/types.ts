@@ -2,7 +2,7 @@
  * CLI Types — generated CLI type definitions.
  */
 
-import type { MCPTool } from '../mcp/types.js';
+import type { MCPTool } from '../mcp/types';
 
 /** CLI configuration. */
 export interface CLIConfig {

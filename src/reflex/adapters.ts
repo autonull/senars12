@@ -1,5 +1,5 @@
 import { incrementCount } from '@senars/util/collections';
-import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
+import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex';
 
 /**
  * TODO19 F6: composable ReflexAdapter wrappers. One wrapper chain API replaces

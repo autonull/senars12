@@ -4,14 +4,14 @@
  */
 
 import { createHash } from 'crypto';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle.js';
-import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
-import { OraclePinStore } from './pins.js';
-import { mcReturns, recordMcReturnLabels, type McReturnInput } from '../lm/system-one/mc-return.js';
-import { ManifoldRLAgent, type ManifoldRLAgentOptions, type ManifoldRLDecision } from '../lm/system-one/manifold-rl-agent.js';
-import type { JudgmentDataset } from '../lm/system-one/distill.js';
-import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold, ReasoningBudget } from '../lm/system-one/types.js';
-import type { Game, GameOutcome } from '../game/Game.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig } from './oracle';
+import type { BudgetSlice, BudgetResource } from '../budget/budget';
+import { OraclePinStore } from './pins';
+import { mcReturns, recordMcReturnLabels, type McReturnInput } from '../lm/system-one/mc-return';
+import { ManifoldRLAgent, type ManifoldRLAgentOptions, type ManifoldRLDecision } from '../lm/system-one/manifold-rl-agent';
+import type { JudgmentDataset } from '../lm/system-one/distill';
+import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold, ReasoningBudget } from '../lm/system-one/types';
+import type { Game, GameOutcome } from '../game/Game';
 
 /** Input for computing MC returns. */
 export interface CreditAssignmentMcReturnInput extends OracleInput {
@@ -119,7 +119,7 @@ export class CreditAssignmentOracle implements Oracle<
   ): Promise<OracleOutput<number[] | number[] | { action: unknown; values: Map<string, number>; feasible: Map<string, boolean>; risks: Map<string, number>; pointer: EmbeddingPointer; stateId: string } | ManifoldRLDecision | number>> {
     const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
     if (effectiveBudgetSlice && this.budgetResource) {
-      const { consume } = await import('../budget/budget.js');
+      const { consume } = await import('../budget/budget');
       const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
       if (!charged) {
         const callId = crypto.randomUUID();
@@ -312,7 +312,7 @@ export function registerCreditAssignmentOracles(
     }
   }
 
-  const { oracleRegistry } = require('./oracle.js');
+  const { oracleRegistry } = require('./oracle');
   for (const oracle of oracles) {
     oracleRegistry.register(oracle);
   }

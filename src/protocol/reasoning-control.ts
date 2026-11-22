@@ -4,7 +4,7 @@
  * and perform authoring actions (retract/revise/add goal/adjust budget/provider).
  */
 import { z } from 'zod';
-import { msg } from './envelope.js';
+import { msg } from './envelope';
 
 const nonEmptyString = z.string().min(1);
 

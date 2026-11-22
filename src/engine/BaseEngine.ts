@@ -5,7 +5,7 @@ import type {
   Engine,
   EngineId,
   ToolResult,
-} from './Engine.js';
+} from './Engine';
 
 export abstract class BaseEngine implements Engine {
   abstract readonly id: EngineId;

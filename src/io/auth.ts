@@ -1,5 +1,5 @@
 import { addToSet } from '@senars/util/collections';
-import type { AuthDecision } from '@senars/types/agent.js';
+import type { AuthDecision } from '@senars/types/agent';
 
 export interface AuthManagerConfig {
   defaultMode?: 'open' | 'auth';

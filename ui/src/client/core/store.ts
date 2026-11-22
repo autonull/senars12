@@ -1,24 +1,24 @@
 import type { Lens, LensFieldDescriptor } from '@senars/core';
 import { debounce } from '@senars/util';
-import type { LensSpec } from '../../shared/lens-schema.js';
-import { isBuiltinLens, type BuiltinLens } from '../../shared/lens-schema.js';
-import { beliefLens, builtinLensModulations, compile } from '../modulation/compile.js';
-import { timeGate } from '../modulation/composition.js';
-import { evaluate } from '../modulation/evaluate.js';
-import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
-import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, LENS_DEFS, LENS_IDS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
-import { type GraphFit } from '../utils/graph-scaling.js';
-import { theme } from '../utils/theme.js';
-import { CONVERSATION_LAYOUT_IDS } from './conversation-layout.js';
-import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
-import { isRegisteredLayoutId, type LayoutScope } from './layout-ids.js';
-import { pageOf, sectionTree } from './sections.js';
-import { getSurfaces } from './surface-registry.js';
-import { viewAdapters } from './view-adapter.js';
-import type { Shape, ViewSelection } from './view-spec.js';
-import { PANEL_DEFS, panelDef, PANEL_KINDS, type PanelKind } from './panel-defs.js';
-import { workspaceRendererIds } from './workspace-renderer.js';
-import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig, type Theme, type Density, type Motion } from './config-schema.js';
+import type { LensSpec } from '../../shared/lens-schema';
+import { isBuiltinLens, type BuiltinLens } from '../../shared/lens-schema';
+import { beliefLens, builtinLensModulations, compile } from '../modulation/compile';
+import { timeGate } from '../modulation/composition';
+import { evaluate } from '../modulation/evaluate';
+import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types';
+import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, LENS_DEFS, LENS_IDS, PRIMARY_LENSES } from '../utils/lens-catalog';
+import { type GraphFit } from '../utils/graph-scaling';
+import { theme } from '../utils/theme';
+import { CONVERSATION_LAYOUT_IDS } from './conversation-layout';
+import { GRAPH_LAYERS, type GraphLayer } from './graph-layer';
+import { isRegisteredLayoutId, type LayoutScope } from './layout-ids';
+import { pageOf, sectionTree } from './sections';
+import { getSurfaces } from './surface-registry';
+import { viewAdapters } from './view-adapter';
+import type { Shape, ViewSelection } from './view-spec';
+import { PANEL_DEFS, panelDef, PANEL_KINDS, type PanelKind } from './panel-defs';
+import { workspaceRendererIds } from './workspace-renderer';
+import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig, type Theme, type Density, type Motion } from './config-schema';
 
 // Import kernel atoms and types from kernel/state.ts
 import {
@@ -94,12 +94,12 @@ import {
   rewindCycle,
   type FocusRef,
   type FocusStack,
-} from '../kernel/state.js';
+} from '../kernel/state';
 
-import { type Aspect, type TimeRef } from '../framework/coordinates.js';
+import { type Aspect, type TimeRef } from '../framework/coordinates';
 
 // Import derived from framework
-import { derived, setEqual } from '../framework/derived.js';
+import { derived, setEqual } from '../framework/derived';
 
 export type { UiConfig };
 

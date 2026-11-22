@@ -5,7 +5,7 @@
  * and low-level inspection.
  */
 import { css, html, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators';
 import {
   $activeLens,
   $cognitiveEvents,
@@ -14,15 +14,15 @@ import {
   BaseComponent,
   narsBackend,
   send,
-} from '../../kernel/index.js';
-import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { defineBundle } from '../../framework/bundle.js';
-import type { Composition } from '../../framework/composition.js';
-import { type SurfaceDescriptor } from '../../framework/surface.js';
-import { LENS_FACETS } from '../../utils/lens-catalog.js';
-import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
-import { FILTER_FACETS } from '../../core/filter-facets.js';
-import { projectWorkspaceGraph } from '../../kernel/domain.js';
+} from '../../kernel/index';
+import { defineApp, type AppDescriptor } from '../../framework/app';
+import { defineBundle } from '../../framework/bundle';
+import type { Composition } from '../../framework/composition';
+import { type SurfaceDescriptor } from '../../framework/surface';
+import { LENS_FACETS } from '../../utils/lens-catalog';
+import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs';
+import { FILTER_FACETS } from '../../core/filter-facets';
+import { projectWorkspaceGraph } from '../../kernel/domain';
 import { mintCognitiveEvent, type DerivationRecord } from '@senars/core/schemas';
 
 type LogEntry = {

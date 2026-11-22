@@ -1,5 +1,5 @@
-import type { Game, GameOutcome, Perception } from '../Game.js';
-import { renderGrid } from '../render.js';
+import type { Game, GameOutcome, Perception } from '../Game';
+import { renderGrid } from '../render';
 import { SeededRNG } from '@senars/util/random';
 
 export interface GridWorldConfig {

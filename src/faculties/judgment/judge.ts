@@ -6,8 +6,8 @@
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { JudgmentCandidate, JudgmentContext, JudgmentCalibration } from './cascade.js';
-import type { TelemetryCollector } from './telemetry.js';
+import type { JudgmentCandidate, JudgmentContext, JudgmentCalibration } from './cascade';
+import type { TelemetryCollector } from './telemetry';
 
 /** Judge training example. */
 export interface JudgeTrainingExample {

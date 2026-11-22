@@ -1,9 +1,9 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { NAR } from '../../../agent/index.js';
-import type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../../../agent/index.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { NAR } from '../../../agent/index';
+import type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../../../agent/index';
 import { entryKey, keyedBy } from '@senars/util/collections';
 import { type ZodTypeAny, z } from 'zod';
-import { createMCPResponse, stringifyMCP } from './mcp-response.js';
+import { createMCPResponse, stringifyMCP } from './mcp-response';
 
 const zodFromProperty = (p: ToolSchemaProperty): ZodTypeAny => {
   let base: ZodTypeAny;

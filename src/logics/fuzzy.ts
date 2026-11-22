@@ -5,8 +5,8 @@
  * kernel truth port interface, enabling gradual reasoning.
  */
 
-import { Frequency, Confidence, TruthValue, TruthLike } from '../kernel/types.js';
-import type { Logic } from './port.js';
+import { Frequency, Confidence, TruthValue, TruthLike } from '../kernel/types';
+import type { Logic } from './port';
 
 /** Fuzzy truth value extends standard truth with membership degree. */
 export interface FuzzyTruth extends TruthValue {

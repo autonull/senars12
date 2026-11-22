@@ -1,7 +1,7 @@
-import { createDerivedTask, toRuleInput } from '../../reason/inference-utils.js';
-import type { RuleEngine } from '../../rules/types.js';
+import { createDerivedTask, toRuleInput } from '../../reason/inference-utils';
+import type { RuleEngine } from '../../rules/types';
 import type { Task } from '../../types';
-import type { DerivationContext, DerivationStrategy } from '../types.js';
+import type { DerivationContext, DerivationStrategy } from '../types';
 
 export class DefaultDerivation implements DerivationStrategy {
   readonly metadata = {

@@ -5,10 +5,10 @@
  * for poorly calibrated judges.
  */
 
-import type { JudgmentCalibration } from './cascade.js';
-import { IsotonicCalibrator } from './judge.js';
-import type { Clock, TimestampMs } from '../../kernel/env.js';
-import type { TelemetryCollector } from './telemetry.js';
+import type { JudgmentCalibration } from './cascade';
+import { IsotonicCalibrator } from './judge';
+import type { Clock, TimestampMs } from '../../kernel/env';
+import type { TelemetryCollector } from './telemetry';
 
 /** Calibration method. */
 export type CalibrationMethod = 'temperature' | 'isotonic' | 'platt' | 'beta' | 'none';

@@ -1,9 +1,9 @@
 import type { ReasoningBudget } from '@senars/schemas';
 import { clamp } from '@senars/util/numeric';
 import { sha256HexParts } from '@senars/util/hash';
-import type { ContrastiveMemory } from './contrastive.js';
-import type { DistillationLabel, JudgmentDataset } from './distill.js';
-import { HEAD_SPECS, specToQuery } from './head-ontology.js';
+import type { ContrastiveMemory } from './contrastive';
+import type { DistillationLabel, JudgmentDataset } from './distill';
+import { HEAD_SPECS, specToQuery } from './head-ontology';
 import type {
   EmbeddingCache,
   EmbeddingPointer,
@@ -11,8 +11,8 @@ import type {
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
-} from './types.js';
-import { createSystemOneBudget } from './types.js';
+} from './types';
+import { createSystemOneBudget } from './types';
 import type { AgentTrace } from '@senars/types/cognitive';
 
 /** The graded cycle. `AgentTrace` is `util`'s record; the grader adds no fields. */

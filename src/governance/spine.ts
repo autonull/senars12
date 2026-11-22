@@ -6,12 +6,12 @@
  * central enforcement point.
  */
 
-import type { AutonomyMode, AutonomyAuthority } from '../schemas/governance.js';
+import type { AutonomyMode, AutonomyAuthority } from '../schemas/governance';
 import type { CapabilityRisk } from '../util/capability-risk';
-import type { Verdict } from '../logic/verdict.js';
-import { riskClassOf, evaluateGate, evaluateGateFromRisk, GateResult } from './risk-verdict.js';
-import { governanceArtifactRegistry, type GovernanceArtifact, type GovernanceArtifactKind } from './artifacts.js';
-import { missionOverlayRegistry, type MissionOverlay } from './artifacts.js';
+import type { Verdict } from '../logic/verdict';
+import { riskClassOf, evaluateGate, evaluateGateFromRisk, GateResult } from './risk-verdict';
+import { governanceArtifactRegistry, type GovernanceArtifact, type GovernanceArtifactKind } from './artifacts';
+import { missionOverlayRegistry, type MissionOverlay } from './artifacts';
 
 /** The governance spine — single entry point for all governance decisions. */
 export class GovernanceSpine {
@@ -137,7 +137,7 @@ export class GovernanceSpine {
     expiresInMs?: number,
     scope?: MissionOverlay['scope']
   ): Promise<MissionOverlay> {
-    const { createMissionOverlay } = await import('./artifacts.js');
+    const { createMissionOverlay } = await import('./artifacts');
     const overlay = createMissionOverlay(missionId, target, delta, provenance, expiresInMs, scope);
     this.overlayRegistry.register(overlay);
     return overlay;

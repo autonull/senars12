@@ -66,7 +66,7 @@ async function readWasmBase64(wasmPath: string): Promise<string | null> {
  */
 export async function generateWasmBundle(
   modules: WasmModuleDef[] = DEFAULT_WASM_MODULES,
-  outputPath: string = 'dist/wasm-bundle.js'
+  outputPath: string = 'dist/wasm-bundle'
 ): Promise<void> {
   console.log('Generating single-file WASM bundle...');
 
@@ -180,7 +180,7 @@ Examples:
   const outputIndex = args.indexOf('--output');
   const includeIndex = args.indexOf('--include');
 
-  const outputPath = outputIndex >= 0 ? args[outputIndex + 1] : 'dist/wasm-bundle.js';
+  const outputPath = outputIndex >= 0 ? args[outputIndex + 1] : 'dist/wasm-bundle';
   const includeIds = includeIndex >= 0 ? args[includeIndex + 1].split(',') : undefined;
 
   let modules = DEFAULT_WASM_MODULES;

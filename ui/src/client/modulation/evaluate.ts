@@ -1,7 +1,7 @@
-import type { MemoCache } from './memo.js';
-import { getMemoCache } from './memo.js';
-import { evaluateModulation } from './operators.js';
-import type { Delta, Item, Lens, Modulation, View } from './types.js';
+import type { MemoCache } from './memo';
+import { getMemoCache } from './memo';
+import { evaluateModulation } from './operators';
+import type { Delta, Item, Lens, Modulation, View } from './types';
 
 export interface EvaluateOptions {
   dirtyIds?: Set<string>;

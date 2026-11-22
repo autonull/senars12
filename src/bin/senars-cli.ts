@@ -6,13 +6,13 @@
  * Device profile imports zero LM.
  */
 
-import { createProfileRegistry, type ProfileConfig, PROFILE_KINDS, getAllDomainPacks } from '../profiles/index.js';
-import { createGenomeRegistry, type GenomeSchema } from '../genome/index.js';
-import { createGeneratedMCPServer, type GeneratedMCPServerConfig } from '../surface/mcp/generated-server.js';
+import { createProfileRegistry, type ProfileConfig, PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
+import { createGenomeRegistry, type GenomeSchema } from '../genome/index';
+import { createGeneratedMCPServer, type GeneratedMCPServerConfig } from '../surface/mcp/generated-server';
 import { z } from 'zod';
-import { readAppEnvConfig } from './lib/env-config.js';
-import { createAgentFromEnv, runAgent } from './lib/lifecycle.js';
-import { intBetween, nonNegativeInt, unitInterval } from '../config/boundary.js';
+import { readAppEnvConfig } from './lib/env-config';
+import { createAgentFromEnv, runAgent } from './lib/lifecycle';
+import { intBetween, nonNegativeInt, unitInterval } from '../config/boundary';
 
 /** CLI arguments schema. */
 const CLISchema = z.object({
@@ -398,7 +398,7 @@ async function main(): Promise<void> {
   await runAgent(agent);
 
   if (readAppEnvConfig().enableWebUI) {
-    const { startAgentUI } = await import('../../ui/src/server/index.js');
+    const { startAgentUI } = await import('../../ui/src/server/index');
     await startAgentUI(agent as never)
       .then(() => console.log('UI at http://localhost:8765'))
       .catch((err: unknown) => console.error('Web UI failed to start', err));

@@ -1,4 +1,4 @@
-import type { CalibrationVersion, EmbeddingCache } from '../types.js';
+import type { CalibrationVersion, EmbeddingCache } from '../types';
 
 export interface PerHeadConfig {
   modelDigest: string;

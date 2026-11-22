@@ -7,7 +7,7 @@ export type {
   Premise,
   TestResult,
   TestSpec,
-} from './ReasoningTestBuilder.js';
+} from './ReasoningTestBuilder';
 export {
   assertReasoning,
   createPremise,
@@ -15,4 +15,4 @@ export {
   expectDerivation,
   ReasoningTestBuilder,
   testReasoning,
-} from './ReasoningTestBuilder.js';
+} from './ReasoningTestBuilder';

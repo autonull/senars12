@@ -1,11 +1,11 @@
 import { uniqueBy } from '@senars/util/collections';
-import type { AssociativeRegistry, RecallHit } from '../../memory/associative.js';
-import { LINK_LAYER } from '../../memory/links/types.js';
-import type { MemoryView } from '../../memory/view.js';
+import type { AssociativeRegistry, RecallHit } from '../../memory/associative';
+import { LINK_LAYER } from '../../memory/links/types';
+import type { MemoryView } from '../../memory/view';
 import { getPredicate, getSubject, type Term, termKey } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
-import type { Strategy, ComponentMetadata } from '../types.js';
+import type { Strategy, ComponentMetadata } from '../types';
 
 /** Minimum belief priority for a link to be promoted to a secondary task. */
 const MIN_TASK_PRIORITY = 0.3;

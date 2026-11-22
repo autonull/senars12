@@ -10,9 +10,9 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { UUID } from './types.js';
-import type { Clock } from './env.js';
-import { createDefaultClock } from './env.js';
+import type { UUID } from './types';
+import type { Clock } from './env';
+import { createDefaultClock } from './env';
 
 /** Timestamp in milliseconds since epoch. */
 export type TimestampMs = number;

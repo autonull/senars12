@@ -3,39 +3,39 @@
 // This barrel is an aggregator, not a second declaration: every sub-barrel below
 // owns its own surface and this file only forwards it, so a symbol can be
 // published, changed or withdrawn in one place.
-export type { CoActivationEdge, ConceptGraphOptions } from './ConceptGraph.js';
-export { ConceptGraph } from './ConceptGraph.js';
-export type { ConceptTaskType } from './concept.js';
-export { Concept, taskFromBagItem } from './concept.js';
-export type { MemoryConfig, ResolvedMemoryConfig } from './config.js';
-export { Focus } from './focus.js';
-export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index.js';
-export { Archive, Forgetting } from './lifecycle/index.js';
-export { Memory } from './memory.js';
-export { MemoryIndex } from './memory-index.js';
-export type * from './ports/index.js';
+export type { CoActivationEdge, ConceptGraphOptions } from './ConceptGraph';
+export { ConceptGraph } from './ConceptGraph';
+export type { ConceptTaskType } from './concept';
+export { Concept, taskFromBagItem } from './concept';
+export type { MemoryConfig, ResolvedMemoryConfig } from './config';
+export { Focus } from './focus';
+export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index';
+export { Archive, Forgetting } from './lifecycle/index';
+export { Memory } from './memory';
+export { MemoryIndex } from './memory-index';
+export type * from './ports/index';
 export {
   evictUnderPressure,
   conceptValue,
   evictionOrder,
   type EvictionReason,
   type EvictionReport,
-} from './pressure/index.js';
-export { MemoryService } from './MemoryService.js';
-export { EpisodicMemory } from './episodic.js';
-export type { PersistableSessionManager } from './types.js';
-export { abortSession, createSession, InMemorySessionManager, JsonlSessionManager, type JsonlSessionManagerConfig } from './SessionManager.js';
-export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager.js';
-export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic.js';
-export { EPISODE_TYPES, EpisodeSchema } from './episodic.js';
-export { MockEmbeddingGenerator, type EmbeddingGenerator, createEmbeddingGenerator, isMockLM } from './embedding.js';
-export { LINK_LAYER, type KnownLinkLayer } from './links/types.js';
-export { Layer } from './links/Layer.js';
-export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative.js';
-export { EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from './episode-consolidator.js';
-export { consolidateEpisodes } from './retrieval-verified.js';
-export * from './fold-views.js';
-export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
+} from './pressure/index';
+export { MemoryService } from './MemoryService';
+export { EpisodicMemory } from './episodic';
+export type { PersistableSessionManager } from './types';
+export { abortSession, createSession, InMemorySessionManager, JsonlSessionManager, type JsonlSessionManagerConfig } from './SessionManager';
+export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager';
+export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic';
+export { EPISODE_TYPES, EpisodeSchema } from './episodic';
+export { MockEmbeddingGenerator, type EmbeddingGenerator, createEmbeddingGenerator, isMockLM } from './embedding';
+export { LINK_LAYER, type KnownLinkLayer } from './links/types';
+export { Layer } from './links/Layer';
+export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative';
+export { EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from './episode-consolidator';
+export { consolidateEpisodes } from './retrieval-verified';
+export * from './fold-views';
+export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index';
 export {
   calculateConceptStats,
   decodeMemoryState,
@@ -44,4 +44,4 @@ export {
   repair,
   serialize,
   validate,
-} from './state/index.js';
+} from './state/index';

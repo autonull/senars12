@@ -8,12 +8,12 @@
  */
 
 import { generateId } from '@senars/util';
-import { $config, $workspaceGraph, pushConfigChange } from './store.js';
-import { applyWorkspaceOp } from './workspace-graph.js';
-import type { ConfigChangeData } from './block-payload.js';
-import type { SemanticBlock, WorkspaceOp } from './workspace-graph.js';
-import type { UiConfig } from './config-schema.js';
-import { configFieldFor } from './config-catalog.js';
+import { $config, $workspaceGraph, pushConfigChange } from './store';
+import { applyWorkspaceOp } from './workspace-graph';
+import type { ConfigChangeData } from './block-payload';
+import type { SemanticBlock, WorkspaceOp } from './workspace-graph';
+import type { UiConfig } from './config-schema';
+import { configFieldFor } from './config-catalog';
 
 let previousConfig: UiConfig;
 

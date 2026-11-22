@@ -1,8 +1,8 @@
-import { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAgent } from './create-agent.js';
+import { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAgent } from './create-agent';
 
-export { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAgent } from './create-agent.js';
+export { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAgent } from './create-agent';
 
-export { Agent } from './Agent.js';
+export { Agent } from './Agent';
 export { createCortexFromLM } from '@senars/cortex';
 export type { JsonlSessionManagerConfig } from '@senars/memory';
 export {
@@ -12,22 +12,22 @@ export {
   JsonlSessionManager,
 } from '@senars/memory';
 export { dispatchToolCalls, registerAgentTools, ToolRegistry, type ToolRegistryDelegate, type ToolSpec } from '@senars/motor';
-export { emitDomainEvent, setDomainEventSink, hasDomainEventSink, type DomainEventPayload } from './event-sink.js';
-export { PolicyEngine } from './PolicyEngine.js';
-export { ApprovalService, type ApprovalManager, InMemoryApprovalManager } from './ApprovalService.js';
-export { ModelRunner, type ModelRunnerDeps } from './ModelRunner.js';
-export type { MettaPort } from './metta-port.js';
-export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder.js';
-export { BuilderError, NARBuilder } from './builder.js';
+export { emitDomainEvent, setDomainEventSink, hasDomainEventSink, type DomainEventPayload } from './event-sink';
+export { PolicyEngine } from './PolicyEngine';
+export { ApprovalService, type ApprovalManager, InMemoryApprovalManager } from './ApprovalService';
+export { ModelRunner, type ModelRunnerDeps } from './ModelRunner';
+export type { MettaPort } from './metta-port';
+export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder';
+export { BuilderError, NARBuilder } from './builder';
 export {
   type AnswerEnvelope,
   type CognitiveAgent,
   type CognitiveAgentConfig,
   type CognitiveAgentPreset,
   createCognitiveAgent,
-} from './cognitive-agent.js';
-export type { NARProfileName, NARProfileSpec } from './profiles.js';
-export { NAR_PROFILES, resolveProfile } from './profiles.js';
+} from './cognitive-agent';
+export type { NARProfileName, NARProfileSpec } from './profiles';
+export { NAR_PROFILES, resolveProfile } from './profiles';
 export {
   ADMISSION_ORDER_CALL_SITE,
   DECISION_AXES,
@@ -36,66 +36,66 @@ export {
   DECISION_POSITIONS,
   DECISION_QUERIES,
   type DecisionCallSite,
-} from '../decision/index.js';
-export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from '../nar-presets.js';
-export type { NARConfig, RLFPConfig } from '../nar.js';
-export { NAR } from '../nar.js';
-export type { NAREventMap } from '../types/events.js';
-export { NarEventBus } from '../types/events.js';
-export type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../protocol/index.js';
-export { readPersistedBoundary } from '../state/persisted.js';
-export type { ChatStreamEvent } from './chat.js';
-export { createCognitiveThread, ThreadPool, type ThreadMessage, type ThreadStatus, type BackpressureReason, type SpawnResult, type JoinResult } from './cognitive-thread.js';
-export { composeStrategy, describeStrategyExpression } from '../reason/strategy-algebra.js';
-export { ParameterLedger, OutcomeLinker } from '../config/parameter-ledger.js';
-export { createDriveMetaGoalPolicy, DriveManager, DRIVE_META_GOAL_TABLE } from '../drives/index.js';
-export { validateInterpretation, type PerceivedInterpretation } from '../nl/formalizer.js';
-export { IncomingFromClient, type IncomingFromClient as IncomingFromClientType } from '../protocol/unions.js';
-export { createLogStoreEventLog, LogStoreEventLog, createLogStore } from '../log/index.js';
-export { mintCognitiveEvent, isDurableEvent, recalledEventTypes } from '../schemas/index.js';
-export { withinWorkspace } from '../motor/workspace.js';
+} from '../decision/index';
+export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from '../nar-presets';
+export type { NARConfig, RLFPConfig } from '../nar';
+export { NAR } from '../nar';
+export type { NAREventMap } from '../types/events';
+export { NarEventBus } from '../types/events';
+export type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../protocol/index';
+export { readPersistedBoundary } from '../state/persisted';
+export type { ChatStreamEvent } from './chat';
+export { createCognitiveThread, ThreadPool, type ThreadMessage, type ThreadStatus, type BackpressureReason, type SpawnResult, type JoinResult } from './cognitive-thread';
+export { composeStrategy, describeStrategyExpression } from '../reason/strategy-algebra';
+export { ParameterLedger, OutcomeLinker } from '../config/parameter-ledger';
+export { createDriveMetaGoalPolicy, DriveManager, DRIVE_META_GOAL_TABLE } from '../drives/index';
+export { validateInterpretation, type PerceivedInterpretation } from '../nl/formalizer';
+export { IncomingFromClient, type IncomingFromClient as IncomingFromClientType } from '../protocol/unions';
+export { createLogStoreEventLog, LogStoreEventLog, createLogStore } from '../log/index';
+export { mintCognitiveEvent, isDurableEvent, recalledEventTypes } from '../schemas/index';
+export { withinWorkspace } from '../motor/workspace';
 export {
   AUTONOMY_MODES,
   AUTONOMY_POLICIES,
   DEFAULT_AUTONOMY_CONFIG,
   resolveAutonomyConfig,
   type AutonomyConfigInput,
-} from '../autonomy/config.js';
+} from '../autonomy/config';
 export { createLogger } from '@senars/util/logger';
-export { BaseComponent } from './Lifecycle.js';
+export { BaseComponent } from './Lifecycle';
 export { CommandRegistry } from '@senars/commands';
-export { validateParameters, DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
-export { ok, err, isOk, isErr, map, mapErr, flatMap, unwrapOrThrow, attempt, attemptAsync, type Result, type Ok, type Err } from '../util/result.js';
-export { SenarsError, ConfigurationError, OperationError, ValidationError, type ErrorCode } from '../errors/index.js';
-export { ProposalBag } from '../meta/index.js';
-export { resolveBagSlot, bagSlotErrors } from '../bag/index.js';
-export { TASK_BAG_KINDS, TASK_TYPES, TOLERANT_PUNCTUATIONS, taskTypeForPunctuation, TASK_PUNCTUATION, TASK_PUNCTUATIONS, TaskTypeSchema, FormalizationCandidateSchema, FormalizationBatchSchema, ProposalSchema, PROPOSAL_KINDS } from '../schemas/index.js';
-export { DETECTED_INTENTS, DetectedIntentSchema } from '../schemas/index.js';
-export { ChatMessage, NarConceptNode, GraphNodeDataView } from '../protocol/index.js';
-export { CognitiveRegistry, createDefaultRegistry } from '../cognitive/index.js';
-export { verifyRecord } from '../verification/index.js';
+export { validateParameters, DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters';
+export { ok, err, isOk, isErr, map, mapErr, flatMap, unwrapOrThrow, attempt, attemptAsync, type Result, type Ok, type Err } from '../util/result';
+export { SenarsError, ConfigurationError, OperationError, ValidationError, type ErrorCode } from '../errors/index';
+export { ProposalBag } from '../meta/index';
+export { resolveBagSlot, bagSlotErrors } from '../bag/index';
+export { TASK_BAG_KINDS, TASK_TYPES, TOLERANT_PUNCTUATIONS, taskTypeForPunctuation, TASK_PUNCTUATION, TASK_PUNCTUATIONS, TaskTypeSchema, FormalizationCandidateSchema, FormalizationBatchSchema, ProposalSchema, PROPOSAL_KINDS } from '../schemas/index';
+export { DETECTED_INTENTS, DetectedIntentSchema } from '../schemas/index';
+export { ChatMessage, NarConceptNode, GraphNodeDataView } from '../protocol/index';
+export { CognitiveRegistry, createDefaultRegistry } from '../cognitive/index';
+export { verifyRecord } from '../verification/index';
 export {
   VERIFIER_TRUTH_TABLE,
   resolveTruthFn,
-} from '../rules/index.js';
-export { NAREngine } from '../engine/index.js';
-export { CompositeSampling } from '../strategies/sampling/CompositeSampling.js';
-export { CognitiveController } from '../cognitive/index.js';
-export { Memory, EpisodicMemory, EpisodeSchema } from '../memory/index.js';
-export { PriorityBag } from '../bag/index.js';
-export { isEventType, validateCognitiveEvent } from '../schemas/cognitive-events.js';
-export { validateDerivationRecord } from '../schemas/derivation-records.js';
-export { StreamReasoner } from '../stream/index.js';
-export { LMProposalProducer, CycleTrace, findInCycleProposals, findStageOverlaps, CYCLE_STAGES, ProposalLifecycle } from '../proposal/index.js';
-export type { CycleStageEvent, StageOverlap, ProposalQueueLimits } from '../proposal/index.js';
-export { canonicalJson, configDigest } from '../strategies/index.js';
-export { CompositeStrategy, CompositeLMRuleSelector, CompositeAttention, TermLinkStrategy } from '../strategies/index.js';
-export { LINK_LAYER, type KnownLinkLayer } from '../memory/index.js';
-export { Layer } from '../memory/index.js';
-export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory, EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from '../memory/index.js';
-export { BrierHarness, isResumable, loadSession, startArcadeTickSpan, saveSession } from '../eval/index.js';
-export { SeededRNG } from '../util/random.js';
-export { createTimestamp, type Timestamp } from '../types/primitives.js';
+} from '../rules/index';
+export { NAREngine } from '../engine/index';
+export { CompositeSampling } from '../strategies/sampling/CompositeSampling';
+export { CognitiveController } from '../cognitive/index';
+export { Memory, EpisodicMemory, EpisodeSchema } from '../memory/index';
+export { PriorityBag } from '../bag/index';
+export { isEventType, validateCognitiveEvent } from '../schemas/cognitive-events';
+export { validateDerivationRecord } from '../schemas/derivation-records';
+export { StreamReasoner } from '../stream/index';
+export { LMProposalProducer, CycleTrace, findInCycleProposals, findStageOverlaps, CYCLE_STAGES, ProposalLifecycle } from '../proposal/index';
+export type { CycleStageEvent, StageOverlap, ProposalQueueLimits } from '../proposal/index';
+export { canonicalJson, configDigest } from '../strategies/index';
+export { CompositeStrategy, CompositeLMRuleSelector, CompositeAttention, TermLinkStrategy } from '../strategies/index';
+export { LINK_LAYER, type KnownLinkLayer } from '../memory/index';
+export { Layer } from '../memory/index';
+export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory, EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from '../memory/index';
+export { BrierHarness, isResumable, loadSession, startArcadeTickSpan, saveSession } from '../eval/index';
+export { SeededRNG } from '../util/random';
+export { createTimestamp, type Timestamp } from '../types/primitives';
 export {
   sanitizePreopens,
   containsPath,
@@ -103,16 +103,16 @@ export {
   createNodeVMSandbox,
   SandboxTimeoutError,
   assertWasmPathContained,
-} from '../capability/index.js';
-export { askSafely, DECISION_ASK_TIMEOUT_MS } from '../ports/decision.js';
-export { createTetrisGame, TetrisGame, createSelfMetaGame } from '../game/index.js';
-export { SOURCE_QUALITY_CONFIDENCE } from '../schemas/index.js';
-export { SchedulerAdapter, SchemaInductor, AIKRProcessor } from '../learning/index.js';
-export { TaskManager, type Budget } from '../task/index.js';
-export { createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask } from '../types/core.js';
-export { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from '../tools/index.js';
-export { RuleProcessor, ProofStreamRing, rankDerivations } from '../rules/index.js';
-export { DEFAULT_CONFIG } from '../types/core.js';
+} from '../capability/index';
+export { askSafely, DECISION_ASK_TIMEOUT_MS } from '../ports/decision';
+export { createTetrisGame, TetrisGame, createSelfMetaGame } from '../game/index';
+export { SOURCE_QUALITY_CONFIDENCE } from '../schemas/index';
+export { SchedulerAdapter, SchemaInductor, AIKRProcessor } from '../learning/index';
+export { TaskManager, type Budget } from '../task/index';
+export { createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask } from '../types/core';
+export { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from '../tools/index';
+export { RuleProcessor, ProofStreamRing, rankDerivations } from '../rules/index';
+export { DEFAULT_CONFIG } from '../types/core';
 export {
   atom,
   atomicSymbols,
@@ -162,14 +162,14 @@ export {
   type AtomicTerm,
   type CompoundTerm,
   type Term,
-} from '../terms/index.js';
-export { type TermSymbol } from '../types/core.js';
-export { isTruthEqual, Truth } from '../terms/impls/Truth.js';
-export { deserializeStamp, observeStampId, Stamp, serializeStamp, type SerializedStamp } from '../terms/impls/Stamp.js';
-export { NARExecution } from '../nar-execution.js';
-export { PROPOSAL_SCHEMA_VERSION, RULE_TABLE_SCHEMA_VERSION, BUILTIN_RULE_ARTIFACT_VERSION } from '../schemas/index.js';
-export { createMockLMService } from '../lm/lm-service.js';
-export { narEventToCognitive, MAPPED_NAR_EVENTS } from '../events/index.js';
-export { EmbeddingCache, createEmbeddingCache } from '../lm/system-one/index.js';
-export { RESOURCE_CONTRACTS, RESOURCE_IDS } from '../resources/index.js';
-export { DEFAULT_MEMORY_CONFIG } from '../memory/config.js';
+} from '../terms/index';
+export { type TermSymbol } from '../types/core';
+export { isTruthEqual, Truth } from '../terms/impls/Truth';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp, type SerializedStamp } from '../terms/impls/Stamp';
+export { NARExecution } from '../nar-execution';
+export { PROPOSAL_SCHEMA_VERSION, RULE_TABLE_SCHEMA_VERSION, BUILTIN_RULE_ARTIFACT_VERSION } from '../schemas/index';
+export { createMockLMService } from '../lm/lm-service';
+export { narEventToCognitive, MAPPED_NAR_EVENTS } from '../events/index';
+export { EmbeddingCache, createEmbeddingCache } from '../lm/system-one/index';
+export { RESOURCE_CONTRACTS, RESOURCE_IDS } from '../resources/index';
+export { DEFAULT_MEMORY_CONFIG } from '../memory/config';

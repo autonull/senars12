@@ -10,15 +10,15 @@
  * Nothing else in the system constructs or selects a strategy.
  */
 
-import { emitDomainEvent } from '../../agent/event-sink.js';
+import { emitDomainEvent } from '../../agent/event-sink';
 
 import { ConfigurationError } from '../../types';
 import { ambientRng } from '@senars/util/random';
 import { getOrInsert, keyedBy } from '@senars/util/collections';
 import { KeyedRegistry } from '@senars/util/keyed-collection';
 import { LruCache } from '@senars/util/lru-cache';
-import type { RandomSource } from '../../types/primitives.js';
-import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
+import type { RandomSource } from '../../types/primitives';
+import { recordStrategyMemoSize } from '../../metrics/prometheus';
 import {
   configDigest,
   strategySpecErrors,
@@ -29,12 +29,12 @@ import {
   type StrategyRegistration,
   type StrategySpec,
 } from '../../strategies/registration';
-import type { StrategyImpl, StrategyType } from '../../strategies/types.js';
-import type { StrategyRegistry } from '../../strategies/registration.js';
-import { DEFAULT_REGISTRATIONS } from './registrations.js';
-import { composedName, composeSpec } from './composition.js';
-import type { CognitiveParameters, StrategySlotParams } from '../../config/cognitive-parameters.js';
-import { STRATEGY_SLOTS } from '../../config/cognitive-parameters.js';
+import type { StrategyImpl, StrategyType } from '../../strategies/types';
+import type { StrategyRegistry } from '../../strategies/registration';
+import { DEFAULT_REGISTRATIONS } from './registrations';
+import { composedName, composeSpec } from './composition';
+import type { CognitiveParameters, StrategySlotParams } from '../../config/cognitive-parameters';
+import { STRATEGY_SLOTS } from '../../config/cognitive-parameters';
 
 /** The registration catalogue for one slot: keyed by name, duplicate refused. */
 type Slot = KeyedRegistry<StrategyRegistration>;

@@ -4,15 +4,15 @@ import {
   type ConversationLayoutId,
   type ConversationPositions,
   conversationPositions,
-} from '../../src/client/core/conversation-layout.js';
+} from '../../src/client/core/conversation-layout';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type SemanticLink,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
-import { layoutRegistry } from '../../src/client/utils/layout-registry.js';
+} from '../../src/client/core/workspace-graph';
+import { layoutRegistry } from '../../src/client/utils/layout-registry';
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

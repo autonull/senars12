@@ -7,9 +7,9 @@
  * Execution and approval logic remain tool-specific.
  */
 
-import { createRegistry, type Registry } from './registry.js';
+import { createRegistry, type Registry } from './registry';
 import type { ToolCall } from '@senars/util';
-import { eventBus } from './events.js';
+import { eventBus } from './events';
 
 /** A JSON-schema-shaped parameter descriptor; nested objects are allowed. */
 type ToolParamSchema = {

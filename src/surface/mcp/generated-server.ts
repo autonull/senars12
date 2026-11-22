@@ -29,9 +29,9 @@ import type {
   GetPromptParams,
   MCPPromptResult,
   JSONSchemaProperty,
-} from './types.js';
-import { GenomeRegistry, createGenomeRegistry, type GenomeSchema } from '../../genome/index.js';
-import { createProfileRegistry, type ProfileConfig, PROFILE_KINDS } from '../../profiles/index.js';
+} from './types';
+import { GenomeRegistry, createGenomeRegistry, type GenomeSchema } from '../../genome/index';
+import { createProfileRegistry, type ProfileConfig, PROFILE_KINDS } from '../../profiles/index';
 
 /** Generated MCP server config. */
 export interface GeneratedMCPServerConfig extends MCPServerConfig {

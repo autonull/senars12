@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { resourceCostSchema, scoreDistributionSchema } from '../../decision/types.js';
-import { createRemoteManifold } from './remote-manifold.js';
-import type { BackendId, EmbeddingCache, JudgmentManifold, JudgmentProposition } from './types.js';
+import { resourceCostSchema, scoreDistributionSchema } from '../../decision/types';
+import { createRemoteManifold } from './remote-manifold';
+import type { BackendId, EmbeddingCache, JudgmentManifold, JudgmentProposition } from './types';
 
 /**
  * D4/X (§0.4): remote manifold client for `provider: 'http'`. POSTs

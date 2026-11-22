@@ -23,7 +23,7 @@ import {
   unaryOf,
   walkTerms,
 } from '../../terms';
-import type { RuleFn, RuleInput } from '../types.js';
+import type { RuleFn, RuleInput } from '../types';
 
 /** What a two-premise body concludes from: each premise's roles, then the inputs. */
 export type PairDerive = (

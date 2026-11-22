@@ -3,8 +3,8 @@
  * is this, what words are in it, and how do I show the first `n` of it — had one
  * answer each across the repo rather than one each here.
  */
-import { safeRatio } from './numeric.js';
-import { NARSESE_ATOM_CHARS } from './alphabet.js';
+import { safeRatio } from './numeric';
+import { NARSESE_ATOM_CHARS } from './alphabet';
 
 /** The one event shape that carries chat text; a stream is otherwise passed through. */
 export type TextDeltaCarrier = { readonly kind: string; readonly text?: string };

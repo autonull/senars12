@@ -2,27 +2,27 @@ import { assertDefined } from '@senars/util/assert';
 import { clamp01 } from '@senars/util/numeric';
 import { makeId } from '@senars/util/id';
 import { type BoundRange, cognitiveBound } from '@senars/util/config';
-import type { ParameterLedger } from '../../config/parameter-ledger.js';
+import type { ParameterLedger } from '../../config/parameter-ledger';
 import {
   createParameterTable,
   type ParameterScope,
   ParameterScopeError,
   type ParameterSpec,
   type ParameterTable,
-} from '../../config/parameter-table.js';
-import type { FocusStepReport } from '../../focus/Focus.js';
-import type { FocusBag } from '../../focus/FocusBag.js';
-import type { GameFocus } from '../../focus/GameFocus.js';
-import { schedulerReward } from '../../focus/scheduler-reward.js';
-import type { ProposalRouterPort } from '../../governance/proposal-router-port.js';
-import { NoopProposalRouter } from '../../governance/proposal-router-port.js';
-import type { GateRegistry } from '../../kernel/index.js';
-import type { SelfRewardGate } from '../../kernel/KernelRewardGate.js';
-import type { LearnerRegistry } from '../../learning/domain-learners.js';
-import type { ProposalBag } from '../../meta/proposal-bag.js';
-import type { ContradictionEvent } from '../../types/events.js';
-import type { SelfMetaGame } from '../Game.js';
-import { MetaGame, type MetaGameConfig } from './MetaGame.js';
+} from '../../config/parameter-table';
+import type { FocusStepReport } from '../../focus/Focus';
+import type { FocusBag } from '../../focus/FocusBag';
+import type { GameFocus } from '../../focus/GameFocus';
+import { schedulerReward } from '../../focus/scheduler-reward';
+import type { ProposalRouterPort } from '../../governance/proposal-router-port';
+import { NoopProposalRouter } from '../../governance/proposal-router-port';
+import type { GateRegistry } from '../../kernel/index';
+import type { SelfRewardGate } from '../../kernel/KernelRewardGate';
+import type { LearnerRegistry } from '../../learning/domain-learners';
+import type { ProposalBag } from '../../meta/proposal-bag';
+import type { ContradictionEvent } from '../../types/events';
+import type { SelfMetaGame } from '../Game';
+import { MetaGame, type MetaGameConfig } from './MetaGame';
 
 export interface KnobConfig {
   name: string;

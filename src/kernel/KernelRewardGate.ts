@@ -1,19 +1,19 @@
 import type {
   PolicyViolationEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import type {
   GateOutcome,
   RewardGateInput,
   RewardGateOutput,
-} from '@senars/schemas/gate-io.js';
+} from '@senars/schemas/gate-io';
 import type {
   RewardDomain,
   SelfImprovementProposal,
-} from '@senars/schemas/governance.js';
-import { proposalRisk, SelfImprovementProposalSchema } from '@senars/schemas/governance.js';
+} from '@senars/schemas/governance';
+import { proposalRisk, SelfImprovementProposalSchema } from '@senars/schemas/governance';
 import { makeId } from '@senars/util/id';
 import { SenarsError } from '@senars/errors';
-import { KernelGate, projectOutcome } from './gate-base.js';
+import { KernelGate, projectOutcome } from './gate-base';
 
 /** The targets a reward signal may mutate — trust and scheduling, never a belief's
  *  frequency or confidence. The firewall message reads this list, so a configured

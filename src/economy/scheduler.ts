@@ -21,11 +21,11 @@ import {
   TASK_BAG_KINDS,
   ECONOMY_EVENTS,
   defaultSchedulerConfig,
-} from './types.js';
-import type { Truth } from '../kernel/truth.js';
-import { calculateTaskUtility, calculateTotalUtility } from './utility.js';
-import { Successor } from './types.js';
-import type { Env, RNG } from '../kernel/env.js';
+} from './types';
+import type { Truth } from '../kernel/truth';
+import { calculateTaskUtility, calculateTotalUtility } from './utility';
+import { Successor } from './types';
+import type { Env, RNG } from '../kernel/env';
 
 /** Scheduler result. */
 export interface SchedulerResult {

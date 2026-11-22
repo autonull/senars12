@@ -2,12 +2,12 @@
  * Belief-oriented LM rule definitions.
  */
 import { hasVariable } from '../../terms';
-import { hasConflictingBeliefs, hasLowConfidence } from '../rule-selectors/confidence.js';
+import { hasConflictingBeliefs, hasLowConfidence } from '../rule-selectors/confidence';
 import {
   hasStructuralSimilarityNoOverlap,
   isUnderconnected,
-} from '../rule-selectors/connectivity.js';
-import type { LMRuleDefinition } from './definition.js';
+} from '../rule-selectors/connectivity';
+import type { LMRuleDefinition } from './definition';
 import {
   abductionFallback,
   causalFallback,
@@ -16,7 +16,7 @@ import {
   noSymbolicEquivalent,
   similarityFallback,
   templateTranslation,
-} from './fallbacks.js';
+} from './fallbacks';
 import {
   AnalogySchema,
   BeliefRevisionSchema,
@@ -29,7 +29,7 @@ import {
   TranslationSchema,
   UncertaintySchema,
   VariableGroundingSchema,
-} from './schemas.js';
+} from './schemas';
 
 export const beliefRules: LMRuleDefinition[] = [
   {

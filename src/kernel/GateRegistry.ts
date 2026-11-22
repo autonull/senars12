@@ -6,13 +6,13 @@ import type {
   PolicyViolationEvent,
   ReasoningBudget,
 } from '@senars/schemas';
-import type { GateLogKey } from './event-ring.js';
-import type { IActionGate, IBudgetGate, IPerceptionGate, IRewardGate } from './interfaces.js';
-import { KernelActionGate, type KernelActionGateConfig } from './KernelActionGate.js';
-import { KernelBudgetGate, type KernelBudgetGateConfig } from './KernelBudgetGate.js';
-import { KernelPerceptionGate, type KernelPerceptionGateConfig } from './KernelPerceptionGate.js';
-import { KernelRewardGate, type KernelRewardGateConfig } from './KernelRewardGate.js';
-import type { SourceReputation } from './source-reputation.js';
+import type { GateLogKey } from './event-ring';
+import type { IActionGate, IBudgetGate, IPerceptionGate, IRewardGate } from './interfaces';
+import { KernelActionGate, type KernelActionGateConfig } from './KernelActionGate';
+import { KernelBudgetGate, type KernelBudgetGateConfig } from './KernelBudgetGate';
+import { KernelPerceptionGate, type KernelPerceptionGateConfig } from './KernelPerceptionGate';
+import { KernelRewardGate, type KernelRewardGateConfig } from './KernelRewardGate';
+import type { SourceReputation } from './source-reputation';
 
 /** One persisted gate event and the ring it came from — the C4.3 replay input. */
 export interface GateLogEntry {

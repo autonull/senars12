@@ -6,8 +6,8 @@
  * from one source instead of each hardcoding a feature flag.
  */
 
-import { $activeRenderer, atom, mountTestApi } from './store.js';
-import { defineCatalog } from '../framework/catalog.js';
+import { $activeRenderer, atom, mountTestApi } from './store';
+import { defineCatalog } from '../framework/catalog';
 
 /**
  * The one definition per capability — the id is the catalog key, so the

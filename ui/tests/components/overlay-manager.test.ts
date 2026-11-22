@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Announcer } from '../../src/client/core/announcer.js';
-import { OverlayManager } from '../../src/client/core/overlay-manager.js';
+import { Announcer } from '../../src/client/core/announcer';
+import { OverlayManager } from '../../src/client/core/overlay-manager';
 
 const makeOverlay = (withButton = true): HTMLElement => {
   const el = document.createElement('div');

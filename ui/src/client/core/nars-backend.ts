@@ -26,12 +26,12 @@ import type {
   ReasoningBackend,
   ReasoningControl,
   SubmitInput,
-} from './reasoning-backend.js';
-import { awaitControl } from './control-channel.js';
-import { $graphEdges, $graphNodes } from './store.js';
-import { send } from './ws-client.js';
+} from './reasoning-backend';
+import { awaitControl } from './control-channel';
+import { $graphEdges, $graphNodes } from './store';
+import { send } from './ws-client';
 import { VERIFIER_TRUTH_TABLE } from '@senars/core/verify-derivation';
-import type { Ref, SemanticLinkKind } from './workspace-graph.js';
+import type { Ref, SemanticLinkKind } from './workspace-graph';
 
 /** The uncertainty vocabulary NAL truth values are labelled with. */
 export const NAL_VOCABULARY = 'nal';

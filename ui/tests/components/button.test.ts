@@ -13,7 +13,7 @@ describe('s-button', () => {
   });
 
   it('renders with secondary variant by default', async () => {
-    await import('../../src/client/components/primitives/button.js');
+    await import('../../src/client/components/primitives/button');
     container.innerHTML = '<s-button>Click me</s-button>';
     const button = container.querySelector('s-button');
     expect(button).toBeTruthy();
@@ -21,35 +21,35 @@ describe('s-button', () => {
   });
 
   it('renders with specified variant', async () => {
-    await import('../../src/client/components/primitives/button.js');
+    await import('../../src/client/components/primitives/button');
     container.innerHTML = '<s-button variant="secondary">Secondary</s-button>';
     const button = container.querySelector('s-button');
     expect(button?.variant).toBe('secondary');
   });
 
   it('renders with specified size', async () => {
-    await import('../../src/client/components/primitives/button.js');
+    await import('../../src/client/components/primitives/button');
     container.innerHTML = '<s-button size="lg">Large</s-button>';
     const button = container.querySelector('s-button');
     expect(button?.size).toBe('lg');
   });
 
   it('shows disabled state', async () => {
-    await import('../../src/client/components/primitives/button.js');
+    await import('../../src/client/components/primitives/button');
     container.innerHTML = '<s-button disabled>Disabled</s-button>';
     const button = container.querySelector('s-button');
     expect(button?.disabled).toBe(true);
   });
 
   it('shows loading state', async () => {
-    await import('../../src/client/components/primitives/button.js');
+    await import('../../src/client/components/primitives/button');
     container.innerHTML = '<s-button loading>Loading</s-button>';
     const button = container.querySelector('s-button');
     expect(button?.hasAttribute('loading')).toBe(true);
   });
 
   it('dispatches click event', async () => {
-    await import('../../src/client/components/primitives/button.js');
+    await import('../../src/client/components/primitives/button');
     const clickHandler = vi.fn();
     container.innerHTML = '<s-button>Click me</s-button>';
     const button = container.querySelector('s-button');

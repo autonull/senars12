@@ -9,7 +9,7 @@
  */
 import { clamp } from '@senars/util/numeric';
 import { raceDeadline } from '@senars/util/async';
-import type { Task } from '../types/core.js';
+import type { Task } from '../types/core';
 
 /**
  * Structural derivation surfaces (leaf-typed, import-cycle hygiene): the

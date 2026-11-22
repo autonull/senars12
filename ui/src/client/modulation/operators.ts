@@ -1,4 +1,4 @@
-import type { Channel, ChannelValue, Delta, Item, Modulation, View } from './types.js';
+import type { Channel, ChannelValue, Delta, Item, Modulation, View } from './types';
 
 export function evaluateModulation(mod: Modulation, item: Item, view: View): Delta {
   const delta: Delta = new Map();

@@ -1,13 +1,13 @@
 import type { Episode } from '@senars/types/episodic-memory';
 import { collectUpTo, getOrInsert, groupBy, mapToRecord, selectByPriority, unique } from '@senars/util/collections';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
-import { type AikrBagOptions, AikrShell } from '../../learning/aikr-processor.js';
-import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
+import { type AikrBagOptions, AikrShell } from '../../learning/aikr-processor';
+import type { EpisodicMemory } from '../../memory/EpisodicMemory';
 import type { Task } from '../../types';
-import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence.js';
-import type { ContrastiveMemory } from './contrastive.js';
-import { cosineF32 } from './contrastive.js';
-import type { EmbeddingCache } from './types.js';
+import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence';
+import type { ContrastiveMemory } from './contrastive';
+import { cosineF32 } from './contrastive';
+import type { EmbeddingCache } from './types';
 
 /** Read-only belief view a miner needs — keeps System One independent of the NAR facade. */
 export interface BeliefSource {

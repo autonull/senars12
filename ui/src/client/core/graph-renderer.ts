@@ -9,8 +9,8 @@ import {
   $view,
   $viewport,
   evaluateLens,
-} from './index.js';
-import type { WorkspaceOp } from './workspace-graph.js';
+} from './index';
+import type { WorkspaceOp } from './workspace-graph';
 
 export interface RendererApi {
   syncGraph(): void;

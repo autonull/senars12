@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { GraphNodeData } from '@senars/core';
-import { GRAPH_VIEW_SPEC } from '../../src/client/components/views/graph-view-spec.js';
-import { graphTable } from '../../src/client/components/views/graph-table.js';
-import { $graphNodes } from '../../src/client/core/store.js';
+import { GRAPH_VIEW_SPEC } from '../../src/client/components/views/graph-view-spec';
+import { graphTable } from '../../src/client/components/views/graph-table';
+import { $graphNodes } from '../../src/client/core/store';
 
 const node = (id: string, extras: Partial<GraphNodeData> = {}): GraphNodeData => ({
   id,

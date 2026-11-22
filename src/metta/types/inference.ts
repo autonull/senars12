@@ -1,5 +1,5 @@
-import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
-import { AtomKind } from '../types/ast.js';
+import type { ExpressionAtom, MeTTaAtom } from '../types/ast';
+import { AtomKind } from '../types/ast';
 import {
   isTypeVar,
   type Subst,
@@ -11,7 +11,7 @@ import {
   typecon,
   typefun,
   typevar,
-} from './type.js';
+} from './type';
 
 let nextTypeId = 0;
 export const freshType = (): TypeVar => typevar(nextTypeId++);

@@ -5,7 +5,7 @@
  * DOM.
  */
 
-import type { Command } from './commands.js';
+import type { Command } from './commands';
 
 const haystack = (command: Command): string =>
   `${command.title} ${command.group} ${command.keywords ?? ''}`.toLowerCase();

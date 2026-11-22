@@ -7,7 +7,7 @@
  * — so the containment and fold rules are unit-tested directly.
  */
 
-import type { Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
+import type { Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph';
 
 /** One node of the section tree: a page root, a nested section, or a leaf. */
 export interface SectionNode {

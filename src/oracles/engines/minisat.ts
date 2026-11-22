@@ -6,8 +6,8 @@ import { spawn } from 'child_process';
 import { createHash, randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { OraclePinStore } from '../pins.js';
+import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
+import { OraclePinStore } from '../pins';
 
 /** Input for MiniSat SAT solving. */
 export interface MiniSatInput extends OracleInput {

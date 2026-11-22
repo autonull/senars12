@@ -5,9 +5,9 @@
  * not casts. They preserve truth structure and carry certificates.
  */
 
-import { Term, VariableTerm, TermOp, termInterner } from '../kernel/terms/intern.js';
-import { Truth, type TruthValue } from '../kernel/truth.js';
-import { Formula, Atom, Connective, isAtom, isCompound, implies, iff, and } from './axiomatic/ast.js';
+import { Term, VariableTerm, TermOp, termInterner } from '../kernel/terms/intern';
+import { Truth, type TruthValue } from '../kernel/truth';
+import { Formula, Atom, Connective, isAtom, isCompound, implies, iff, and } from './axiomatic/ast';
 
 /** Projection direction. */
 export type ProjectionDirection = 'NAL_TO_AXIOMATIC' | 'AXIOMATIC_TO_NAL' | 'NAL_TO_FUZZY' | 'FUZZY_TO_NAL';
@@ -80,7 +80,7 @@ export class ProjectionEngine {
       direction: 'NAL_TO_AXIOMATIC',
       condition: (source) => source.term.op === TermOp.INHERITANCE,
       project: (source) => {
-        const term = source.term as import('../kernel/terms/intern.js').CompoundTerm;
+        const term = source.term as import('../kernel/terms/intern').CompoundTerm;
         const subj = term.args[0]!;
         const pred = term.args[1]!;
 
@@ -104,7 +104,7 @@ export class ProjectionEngine {
       direction: 'NAL_TO_AXIOMATIC',
       condition: (source) => source.term.op === TermOp.SIMILARITY,
       project: (source) => {
-        const term = source.term as import('../kernel/terms/intern.js').CompoundTerm;
+        const term = source.term as import('../kernel/terms/intern').CompoundTerm;
         const subj = term.args[0]!;
         const pred = term.args[1]!;
 
@@ -128,7 +128,7 @@ export class ProjectionEngine {
       direction: 'NAL_TO_AXIOMATIC',
       condition: (source) => source.term.op === TermOp.CONJUNCTION,
       project: (source) => {
-        const term = source.term as import('../kernel/terms/intern.js').CompoundTerm;
+        const term = source.term as import('../kernel/terms/intern').CompoundTerm;
         const formulas = term.args.map(arg => this.termToAtom(arg));
 
         let formula: Formula = formulas[0]!;
@@ -232,13 +232,13 @@ export class ProjectionEngine {
   /** Convert NAL term to axiomatic atom. */
   private termToAtom(term: Term): Atom {
     if (term.op === TermOp.CONSTANT) {
-      return { predicate: (term as import('../kernel/terms/intern.js').ConstantTerm).value, args: [], negated: false };
+      return { predicate: (term as import('../kernel/terms/intern').ConstantTerm).value, args: [], negated: false };
     }
     if (term.op === TermOp.VARIABLE) {
       return { predicate: (term as VariableTerm).name, args: [], negated: false };
     }
     // Compound term - use predicate name
-    const ct = term as import('../kernel/terms/intern.js').CompoundTerm;
+    const ct = term as import('../kernel/terms/intern').CompoundTerm;
     return { predicate: ct.op, args: ct.args, negated: false };
   }
 

@@ -6,8 +6,8 @@
  * untrusted, so payloads are normalized here instead of cast at each consumer.
  */
 
-import type { BlockKind } from './block-descriptors.js';
-import type { SeriesDataset } from './view-spec.js';
+import type { BlockKind } from './block-descriptors';
+import type { SeriesDataset } from './view-spec';
 
 export interface TableData {
   headers: string[];

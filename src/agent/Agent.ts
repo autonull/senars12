@@ -6,34 +6,34 @@ import { incrementCount, mapToRecord } from '@senars/util/collections';
 import { Signal } from '@senars/events/signal';
 import type { EventUnsubscribe } from '@senars/events';
 import type { EpisodicMemory } from '@senars/types/episodic-memory';
-import type { TraceGrader } from '@senars/types/cognitive.js';
-import type { LMTask } from '@senars/types/llm.js';
-import { ApprovalService } from './ApprovalService.js';
-import { type CycleHost, runCycle, runCycleStream } from './phases.js';
-import type { MacroPhase } from './pipeline.js';
+import type { TraceGrader } from '@senars/types/cognitive';
+import type { LMTask } from '@senars/types/llm';
+import { ApprovalService } from './ApprovalService';
+import { type CycleHost, runCycle, runCycleStream } from './phases';
+import type { MacroPhase } from './pipeline';
 import type {
   AgentOptions,
   CorrelationScopeStore,
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
-} from './types.js';
-import type { ChatOptions, ChatStreamEvent } from './chat.js';
-import type { LLMCortex } from '../cortex/LLMCortex.js';
-import type { CognitiveStimulus, Derivation, Engine } from '../engine/Engine.js';
-import { invokeEngineHook, sweepEngines } from '../engine/sweep.js';
-import type { EventLog } from '../log/index.js';
-import { isDurableEvent } from '../schemas/index.js';
-import { LogStoreEventLog } from '../log/index.js';
-import { MemoryService } from '../memory/index.js';
-import { type PersistableSessionManager, RECALL_WINDOW } from '../memory/types.js';
-import { registerBuiltinTools } from '../motor/builtin-tools.js';
-import { ToolRegistry } from '../motor/ToolRegistry.js';
-import { PolicyEngine } from './PolicyEngine.js';
-import type { AgentCapabilities } from '../protocol/index.js';
-import { NAR_ORIGIN } from '../schemas/event-base.js';
-import { type CognitiveEvent, mintCognitiveEvent } from '../schemas/index.js';
-import type { Connection } from './Transport.js';
+} from './types';
+import type { ChatOptions, ChatStreamEvent } from './chat';
+import type { LLMCortex } from '../cortex/LLMCortex';
+import type { CognitiveStimulus, Derivation, Engine } from '../engine/Engine';
+import { invokeEngineHook, sweepEngines } from '../engine/sweep';
+import type { EventLog } from '../log/index';
+import { isDurableEvent } from '../schemas/index';
+import { LogStoreEventLog } from '../log/index';
+import { MemoryService } from '../memory/index';
+import { type PersistableSessionManager, RECALL_WINDOW } from '../memory/types';
+import { registerBuiltinTools } from '../motor/builtin-tools';
+import { ToolRegistry } from '../motor/ToolRegistry';
+import { PolicyEngine } from './PolicyEngine';
+import type { AgentCapabilities } from '../protocol/index';
+import { NAR_ORIGIN } from '../schemas/event-base';
+import { type CognitiveEvent, mintCognitiveEvent } from '../schemas/index';
+import type { Connection } from './Transport';
 
 export type {
   AgentOptions,
@@ -41,7 +41,7 @@ export type {
   ParsedCommand,
   ResolvedAgentOptions,
   SkillDefinition,
-} from './types.js';
+} from './types';
 
 const logger = createLogger({ scope: 'agent', level: 'warn' });
 

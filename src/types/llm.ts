@@ -1,6 +1,6 @@
 import type { LanguageModel } from 'ai';
 
-import { type CallTally, createCallTally, recordCall } from '@senars/util/tally.js';
+import { type CallTally, createCallTally, recordCall } from '@senars/util/tally';
 
 /**
  * The LM tiers, and the one list they are enumerated from — every column of the

@@ -1,12 +1,12 @@
-import { BaseComponent } from './agent/Lifecycle.js';
+import { BaseComponent } from './agent/Lifecycle';
 import type {
   CognitiveEvent,
   DerivationRecord,
   DerivationStep,
   KernelControlState,
   TaskAdmittedEvent,
-} from './schemas/index.js';
-import type { ReasoningBudget } from './schemas/index.js';
+} from './schemas/index';
+import type { ReasoningBudget } from './schemas/index';
 import {
   ambientRng,
   type BeliefTruth,
@@ -17,9 +17,9 @@ import {
   installIdSource,
   primeIdCount,
   selectTopN,
-} from './util/index.js';
-import { BoundedRing } from './util/collections.js';
-import { createLogger } from './util/logger.js';
+} from './util/index';
+import { BoundedRing } from './util/collections';
+import { createLogger } from './util/logger';
 import type { EventBus } from '@senars/util/events';
 import {
   AutonomyHeartbeat,
@@ -27,15 +27,15 @@ import {
   createAutonomyHeartbeat,
   resolveAutonomyConfig,
   type AutonomyTickReport,
-} from './autonomy/index.js';
-import { resolveBagSlot } from './bag/registration.js';
+} from './autonomy/index';
+import { resolveBagSlot } from './bag/registration';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
-import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
-import type { ParameterLedger } from './config/parameter-ledger.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters';
+import type { ParameterLedger } from './config/parameter-ledger';
 import { createBootstrapTasks, DriveManager } from './drives';
-import { type NARConfig, resolveRng, rngBoundaryPort, validateNarConfig } from './facade/config.js';
-import { type GameAttachOptions, GameManager } from './facade/games.js';
+import { type NARConfig, resolveRng, rngBoundaryPort, validateNarConfig } from './facade/config';
+import { type GameAttachOptions, GameManager } from './facade/games';
 import {
   askNaturalLanguage,
   askWithDerivation,
@@ -45,64 +45,64 @@ import {
   initializeLMRules,
   initializeTools,
   injectBootstrapGoals,
-} from './facade/index.js';
-import { createOptionalSubsystems } from './facade/optional-subsystems.js';
-import { LogStoreStatePersister } from './log/StatePersister.js';
-import type { LogStore } from './log/store.js';
-import { KernelLedger } from './kernel/KernelLedger.js';
-import { createKernelRewind, type KernelRewind, type RewindReport } from './state/checkpoint.js';
-import type { SystemOneRuntime } from './facade/system-one.js';
-import type { FocusBag } from './focus/FocusBag.js';
-import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
-import type { ConversationGame } from './game/impls/ConversationGame.js';
-import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
-import type { SelfMetaGameEvidence } from './governance/pipeline.js';
-import { GovernanceResolver } from './governance/pipeline.js';
-import { ControlBudgets } from './kernel/control-budgets.js';
-import { driveCycles } from './kernel/cycle-driver.js';
-import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
-import { createDefaultReasoningBudget, type KernelBudgetGate } from './kernel/KernelBudgetGate.js';
+} from './facade/index';
+import { createOptionalSubsystems } from './facade/optional-subsystems';
+import { LogStoreStatePersister } from './log/StatePersister';
+import type { LogStore } from './log/store';
+import { KernelLedger } from './kernel/KernelLedger';
+import { createKernelRewind, type KernelRewind, type RewindReport } from './state/checkpoint';
+import type { SystemOneRuntime } from './facade/system-one';
+import type { FocusBag } from './focus/FocusBag';
+import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus';
+import type { ConversationGame } from './game/impls/ConversationGame';
+import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame';
+import type { SelfMetaGameEvidence } from './governance/pipeline';
+import { GovernanceResolver } from './governance/pipeline';
+import { ControlBudgets } from './kernel/control-budgets';
+import { driveCycles } from './kernel/cycle-driver';
+import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry';
+import { createDefaultReasoningBudget, type KernelBudgetGate } from './kernel/KernelBudgetGate';
 
-import { SchemaInductor } from './learning/schema-induction.js';
+import { SchemaInductor } from './learning/schema-induction';
 import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
-import { resolveEmbeddingGenerator } from './lm/embedding-runtime.js';
-import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import type { MiningBag } from './lm/system-one/hard-negatives.js';
-import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
-import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
-import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
-import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
+import { resolveEmbeddingGenerator } from './lm/embedding-runtime';
+import type { EmbeddingCache } from './lm/system-one/embedding-cache';
+import type { MiningBag } from './lm/system-one/hard-negatives';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter';
+import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry';
+import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader';
+import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types';
 import type { Concept } from './memory';
 import { Memory } from './memory';
-import type { EmbeddingGenerator } from './memory/embedding.js';
-import type { EpisodeConsolidator } from './memory/episode-consolidator.js';
-import type { ProofMettaProposer } from './meta/index.js';
+import type { EmbeddingGenerator } from './memory/embedding';
+import type { EpisodeConsolidator } from './memory/episode-consolidator';
+import type { ProofMettaProposer } from './meta/index';
 import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
-import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
-import { LMProposalProducer } from './proposal/lm-rule-producer.js';
+import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle';
+import { LMProposalProducer } from './proposal/lm-rule-producer';
 import { type Answer, QueryAPI, ReasoningTrace } from './query';
-import type { Reflex } from './reflex/Reflex.js';
-import { ExplanationGenerator, type ConflictExplanation, type Explanation } from './nl/explanation.js';
+import type { Reflex } from './reflex/Reflex';
+import { ExplanationGenerator, type ConflictExplanation, type Explanation } from './nl/explanation';
 import {
   createFormalizer,
   type Formalizer,
   type PerceivedAdmission,
   type PerceivedInterpretation,
   validateInterpretation,
-} from './nl/formalizer.js';
-import type { NLContext } from './nl/understanding.js';
+} from './nl/formalizer';
+import type { NLContext } from './nl/understanding';
 import type { RLFPLearner } from './rlfp';
 import { loadBuiltinTable, RuleProcessor, type RuleTableStore } from './rules';
-import { ProofStreamRing } from './rules/impls/recorder.js';
+import { ProofStreamRing } from './rules/impls/recorder';
 import { ReasoningAboutReasoning } from './self';
-import { StreamReasoner } from './stream/reasoner.js';
-import { wireSystemOne } from './system-one-wiring.js';
+import { StreamReasoner } from './stream/reasoner';
+import { wireSystemOne } from './system-one-wiring';
 import { TaskManager } from './task';
-import { rehydrateTask } from './task/record.js';
+import { rehydrateTask } from './task/record';
 import type { Term } from './terms';
 import {
   containsSubterm,
@@ -115,7 +115,7 @@ import {
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
 import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskType } from './types';
-import type { RandomSource } from './types/primitives.js';
+import type { RandomSource } from './types/primitives';
 
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
 const DERIVATION_RING_CAP = 256;
@@ -129,8 +129,8 @@ export type {
   SystemOneConfig,
   SystemOneFileConfig,
   SystemOneRuntimeConfig,
-} from './facade/config.js';
-export { NarEventBus } from './types/events.js';
+} from './facade/config';
+export { NarEventBus } from './types/events';
 
 export class NAR extends BaseComponent {
   readonly id = 'nar';
@@ -149,7 +149,7 @@ export class NAR extends BaseComponent {
   #episodeConsolidator?: EpisodeConsolidator;
   /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag — created only when config opts in. */
   #miningBag?: MiningBag;
-  #sourceReputation?: import('./kernel/source-reputation.js').SourceReputation;
+  #sourceReputation?: import('./kernel/source-reputation').SourceReputation;
   /** Phase E: ProofMettaProposer for learning MeTTa rules from proof stream. */
   #proofMettaProposer?: ProofMettaProposer;
   /** Phase E: GovernanceResolver for self-improvement proposals (schema promotion, etc.). */
@@ -744,7 +744,7 @@ export class NAR extends BaseComponent {
   }
 
   /** Lazily-owned SchemaInductor (Phase C); undefined without an LM service. */
-  getSchemaInductor(): import('./learning/schema-induction.js').SchemaInductor | undefined {
+  getSchemaInductor(): import('./learning/schema-induction').SchemaInductor | undefined {
     if (!this.#schemaInductor && this._lmService) {
       this.#schemaInductor = new SchemaInductor(this.memory, this._lmService, {
         rng: this.rng,
@@ -770,12 +770,12 @@ export class NAR extends BaseComponent {
   }
 
   /** Phase E (REFACTOR.todo1): attach the source-reputation track record (trust ceiling). */
-  setSourceReputation(reputation: import('./kernel/source-reputation.js').SourceReputation): void {
+  setSourceReputation(reputation: import('./kernel/source-reputation').SourceReputation): void {
     this.#sourceReputation = reputation;
     this.gates.setReputation(reputation);
   }
 
-  getSourceReputation(): import('./kernel/source-reputation.js').SourceReputation | undefined {
+  getSourceReputation(): import('./kernel/source-reputation').SourceReputation | undefined {
     return this.#sourceReputation;
   }
 
@@ -818,13 +818,13 @@ export class NAR extends BaseComponent {
 
   /** Phase E: Get JudgmentPipeline for comprehensive manifold evaluation (ADR-008). */
   getSystemOneJudgmentPipeline():
-    | import('./lm/system-one/judgment-pipeline.js').JudgmentPipeline
+    | import('./lm/system-one/judgment-pipeline').JudgmentPipeline
     | undefined {
     return this.systemOne.judgmentPipeline;
   }
 
   /** Get the unified decision facade (TODO23): decide/choose with provenance. */
-  getSystemOneDecider(): import('./lm/system-one/decide.js').Decider | undefined {
+  getSystemOneDecider(): import('./lm/system-one/decide').Decider | undefined {
     return this.systemOne.decider;
   }
 
@@ -841,13 +841,13 @@ export class NAR extends BaseComponent {
   /** CLM contrastive exemplar memory (zero-shot scoring; undefined when disabled). */
   getSystemOneContrastive(
     correlationId = 'default'
-  ): import('./lm/system-one/contrastive.js').ContrastiveMemory | undefined {
+  ): import('./lm/system-one/contrastive').ContrastiveMemory | undefined {
     return this.systemOne.enabled ? this.systemOne.getContrastive(correlationId) : undefined;
   }
 
   /** Refresh CLM contrastive exemplars from live state (hard negatives + calibration). */
   refreshSystemOneContrastive(
-    episodic?: import('./memory/EpisodicMemory.js').EpisodicMemory
+    episodic?: import('./memory/EpisodicMemory').EpisodicMemory
   ): Promise<void> {
     return this.systemOne.refreshContrastive(this, episodic);
   }

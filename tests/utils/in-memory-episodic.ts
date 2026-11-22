@@ -1,4 +1,4 @@
-import type { Episode, EpisodicMemory, EpisodeType } from '../../util/src/types/episodic-memory.js';
+import type { Episode, EpisodicMemory, EpisodeType } from '../../util/src/types/episodic-memory';
 
 /** Test double: in-memory conforming EpisodicMemory (no fs). */
 export class InMemoryEpisodicMemory implements EpisodicMemory {

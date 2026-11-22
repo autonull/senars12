@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Capability } from '../../src/client/core/capabilities.js';
+import type { Capability } from '../../src/client/core/capabilities';
 import {
   availableComposerModes,
   COMPOSER_MODE_IDS,
   composerModes,
   decomposeForMode,
   isComposerMode,
-} from '../../src/client/core/composer-modes.js';
+} from '../../src/client/core/composer-modes';
 
 const caps = (...ids: Capability[]): Set<Capability> => new Set(ids);
 

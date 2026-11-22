@@ -12,17 +12,17 @@
  */
 
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, $activeRenderer, $graphFit, $graphLayer, setActiveRenderer } from '../../kernel/index.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { compositionFor, getCompositions, registerComposition, type Composition } from '../../framework/composition.js';
-import { layoutOf } from '../../framework/layout.js';
-import { registerLabPresets, LAB_PRESETS } from './presets.js';
-import { parseSpec, specToSearch, randomSpec, type Spec, WIDGETS, LAYOUTS, MODES, SHAPES, LENSES, LAYERS, FIT_OPTIONS } from './compose.js';
-import { applyGlobals, compositionFromUrl, compositionToSearch } from '../shared/config-sync.js';
-import '../shared/app-chrome.js';
-import '../shared/composer-controls.js';
-import '../../components/composition-view.js';
+import { customElement, state } from 'lit/decorators';
+import { $activeLens, $activeRenderer, $graphFit, $graphLayer, setActiveRenderer } from '../../kernel/index';
+import { BaseComponent } from '../../core/base-component';
+import { compositionFor, getCompositions, registerComposition, type Composition } from '../../framework/composition';
+import { layoutOf } from '../../framework/layout';
+import { registerLabPresets, LAB_PRESETS } from './presets';
+import { parseSpec, specToSearch, randomSpec, type Spec, WIDGETS, LAYOUTS, MODES, SHAPES, LENSES, LAYERS, FIT_OPTIONS } from './compose';
+import { applyGlobals, compositionFromUrl, compositionToSearch } from '../shared/config-sync';
+import '../shared/app-chrome';
+import '../shared/composer-controls';
+import '../../components/composition-view';
 
 @customElement('lab-surface')
 export class LabSurface extends BaseComponent {

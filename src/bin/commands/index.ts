@@ -7,16 +7,16 @@
  */
 
 import type { CLICommand } from '@senars/io';
-import { configCommandsFor } from './config.js';
-import { connectionCommandsFor } from './connection.js';
-import type { BotRuntime } from './context.js';
-import { diagnosticCommandsFor } from './diagnostics.js';
-import { dialogueCommandsFor } from './dialogue.js';
-import { lmCommandsFor } from './lm.js';
-import { memoryCommandsFor } from './memory.js';
-import { profileCommandsFor } from './profile.js';
-import { runtimeCommandsFor } from './runtime.js';
-import { systemOneCommandsFor } from './systemone.js';
+import { configCommandsFor } from './config';
+import { connectionCommandsFor } from './connection';
+import type { BotRuntime } from './context';
+import { diagnosticCommandsFor } from './diagnostics';
+import { dialogueCommandsFor } from './dialogue';
+import { lmCommandsFor } from './lm';
+import { memoryCommandsFor } from './memory';
+import { profileCommandsFor } from './profile';
+import { runtimeCommandsFor } from './runtime';
+import { systemOneCommandsFor } from './systemone';
 
 export type {
   BotRuntime,
@@ -24,10 +24,10 @@ export type {
   GroundednessState,
   SystemOneBag,
   TraceState,
-} from './context.js';
-export { systemOneOf } from './context.js';
-export { runSessionRetrospective } from './dialogue.js';
-export { gpuSummary } from './lm.js';
+} from './context';
+export { systemOneOf } from './context';
+export { runSessionRetrospective } from './dialogue';
+export { gpuSummary } from './lm';
 
 /** Every local-connection command, grouped by subsystem. */
 export const buildBotCommands = (rt: BotRuntime): CLICommand[] => [

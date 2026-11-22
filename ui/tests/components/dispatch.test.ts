@@ -4,7 +4,7 @@ import {
   dispatchCommand,
   paletteCommands,
   registerCommand,
-} from '../../src/client/core/commands.js';
+} from '../../src/client/core/commands';
 
 describe('dispatchCommand', () => {
   it('runs a registered command and reports success', () => {

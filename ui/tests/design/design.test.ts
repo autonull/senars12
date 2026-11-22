@@ -7,9 +7,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { THEME_NAMES, TOKENS } from '../../src/client/styles/tokens.generated.js';
-import { isLegible, NODE_SIZE, nodeSize, ZOOM, zoomFloor } from '../../src/client/utils/graph-scaling.js';
-import { VISUAL_CELLS } from '../visual/matrix.js';
+import { THEME_NAMES, TOKENS } from '../../src/client/styles/tokens.generated';
+import { isLegible, NODE_SIZE, nodeSize, ZOOM, zoomFloor } from '../../src/client/utils/graph-scaling';
+import { VISUAL_CELLS } from '../visual/matrix';
 
 const value = (token: string): number => Number.parseFloat(TOKENS.dark[token]);
 

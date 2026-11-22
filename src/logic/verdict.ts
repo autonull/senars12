@@ -6,7 +6,7 @@
  * because an incompleteness result is a fact, not a failure to launder.
  */
 
-import type { ProofCertificate, Model } from '../logics/axiomatic/ast.js';
+import type { ProofCertificate, Model } from '../logics/axiomatic/ast';
 
 /** The three-valued logic verdict. Incompleteness is typed, never laundered. */
 export type Verdict =

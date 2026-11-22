@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '@senars/schemas/task';
 import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
-import { variant } from './envelope.js';
+import { variant } from './envelope';
 
 /** Optional UI lens attributes attached to any graph node. */
 export const LensData = z.object({ score: z.number(), color: z.string(), size: z.number() });

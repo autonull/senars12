@@ -8,12 +8,12 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { activeCommands, dispatchCommand } from '../core/commands.js';
-import { eventBus } from '../core/events.js';
-import { graphLayerDef, GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
-import { $lmProvider, type LmProviderState, providerLabel } from '../core/lm-provider.js';
+import { customElement, state } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { activeCommands, dispatchCommand } from '../core/commands';
+import { eventBus } from '../core/events';
+import { graphLayerDef, GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer';
+import { $lmProvider, type LmProviderState, providerLabel } from '../core/lm-provider';
 import {
   $activeRenderer,
   $controlMode,
@@ -23,17 +23,17 @@ import {
   $telemetry,
   hasTemporalData,
   setGraphLayer,
-} from '../core/store.js';
-import type { ViewSpec } from '../core/view-spec.js';
-import { capabilityGate } from '../core/capabilities.js';
-import { rendererHasControl, workspaceRenderer, workspaceRenderers } from '../core/workspace-renderer.js';
+} from '../core/store';
+import type { ViewSpec } from '../core/view-spec';
+import { capabilityGate } from '../core/capabilities';
+import { rendererHasControl, workspaceRenderer, workspaceRenderers } from '../core/workspace-renderer';
 import {
   DEFAULT_TELEMETRY_METRICS,
   TELEMETRY_RANGES,
   telemetrySeries,
   telemetrySnapshot,
   type TelemetryRange,
-} from '../utils/telemetry-view.js';
+} from '../utils/telemetry-view';
 
 /**
  * Open a registered overlay by id. The palette filters hidden overlays out of

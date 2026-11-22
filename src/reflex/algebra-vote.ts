@@ -8,8 +8,8 @@
  * callers is a file whose ownership reads wrong.
  */
 import { collectUpTo } from '@senars/util/collections';
-import type { NegotiationInput, ProposerContribution } from './Negotiator.js';
-import type { ActionProposal } from './Reflex.js';
+import type { NegotiationInput, ProposerContribution } from './Negotiator';
+import type { ActionProposal } from './Reflex';
 
 /** `(expr) => boolean | null` — null when the engine is absent or faulted. */
 export type MettaEvaluator = (expression: string) => boolean | null;

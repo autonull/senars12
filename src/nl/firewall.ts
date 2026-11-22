@@ -8,8 +8,8 @@ import {
   type Term,
   termDepth,
   visitTerms,
-} from '../terms/index.js';
-import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
+} from '../terms/index';
+import { normalizeNarsese, parseNarseseLenient } from './normalize';
 
 /** The one `Verdict`, in the firewall's vocabulary. */
 export type FirewallVerdict = Verdict<'allowed'>;

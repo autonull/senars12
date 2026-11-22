@@ -19,8 +19,8 @@ import {
   resolveAllocation,
   sliceBudget,
   snapshotBudget,
-} from '../budget/budget.js';
-import { emitDomainEvent } from './event-sink.js';
+} from '../budget/budget';
+import { emitDomainEvent } from './event-sink';
 
 /** Why a send was admitted or refused — and the pairing is exact: `allowed ⇔ reason !== refusal`. */
 export type BackpressureReason = 'budget-exhausted' | 'mailbox-full' | 'ok';

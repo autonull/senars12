@@ -3,11 +3,11 @@
  */
 
 import { safeRatio } from '@senars/util/numeric';
-import type { SelfHost } from '../../../self/host.js';
-import type { CorrectionResult, IdentifiedIssues } from '../../types.js';
-import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
-import { analyzeTaskPatterns } from './performance.js';
-import { detectInefficientChains } from './reasoning-patterns.js';
+import type { SelfHost } from '../../../self/host';
+import type { CorrectionResult, IdentifiedIssues } from '../../types';
+import type { MetacognitiveMonitor } from '../MetacognitiveMonitor';
+import { analyzeTaskPatterns } from './performance';
+import { detectInefficientChains } from './reasoning-patterns';
 
 export const identifyIssues = async (
   nar: SelfHost | null,

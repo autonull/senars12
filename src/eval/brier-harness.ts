@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
-import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
+import { createIsotonicCalibrator } from '../lm/system-one/calibration';
+import { identityECE, meanBrier } from '../lm/system-one/metrics';
 import { ensureDir } from '@senars/util/fs';
 import { incrementCount, unique } from '@senars/util/collections';
 import { mean, sumBy } from '@senars/util/numeric';

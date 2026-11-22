@@ -9,10 +9,10 @@
 
 import { rankBy, sortBy } from '@senars/util/collections';
 import { systemClock, type Clock } from '@senars/util/clock';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
-import { episodePriority } from '../memory/episode-consolidator.js';
-import type { Concept, Memory, Episode } from '../memory/index.js';
-import { cosine } from '@senars/util/similarity.js';
+import type { EpisodicMemory } from '../memory/EpisodicMemory';
+import { episodePriority } from '../memory/episode-consolidator';
+import type { Concept, Memory, Episode } from '../memory/index';
+import { cosine } from '@senars/util/similarity';
 
 export interface MemoryQueryFilter {
   /** Substring/symbol filter over concept terms. */

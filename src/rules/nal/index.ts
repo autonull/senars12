@@ -1,12 +1,12 @@
 /**
  * NALRules — consolidated map of core NAL inference rules.
  */
-import type { RuleFn } from '../types.js';
-import * as comparison from './comparison.js';
-import * as core from './core.js';
-import * as higherOrder from './higher-order.js';
-import * as logic from './logic.js';
-import * as propositional from './propositional.js';
+import type { RuleFn } from '../types';
+import * as comparison from './comparison';
+import * as core from './core';
+import * as higherOrder from './higher-order';
+import * as logic from './logic';
+import * as propositional from './propositional';
 
 export const NALRules = {
   ...core,

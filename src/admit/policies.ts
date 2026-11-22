@@ -5,10 +5,10 @@
  * A/B trial and auto-rollback are implemented here.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
-import type { GateResult } from './lifecycle.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
+import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire';
+import type { GateResult } from './lifecycle';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 
 /** Policy scope. */
 export const POLICY_SCOPES = [

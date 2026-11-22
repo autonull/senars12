@@ -1,7 +1,7 @@
 import { serializeTruth } from '@senars/types/truth';
 import { takeFirst } from '@senars/util/collections';
 import type { TermTruth } from '@senars/util';
-import type { TranslationCacheEntry } from '../cache.js';
+import type { TranslationCacheEntry } from '../cache';
 
 const NARSESE_GRAMMAR = `Narsese syntax:
   (A --> B) inheritance (most common)

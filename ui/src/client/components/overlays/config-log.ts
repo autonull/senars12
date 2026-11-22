@@ -6,12 +6,12 @@
  */
 
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { $configChanges } from '../../core/index.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { viewSource } from '../../core/view-sources.js';
-import type { ViewSpec } from '../../core/view-spec.js';
+import { customElement } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { $configChanges } from '../../core/index';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { viewSource } from '../../core/view-sources';
+import type { ViewSpec } from '../../core/view-spec';
 
 @customElement('s-config-log')
 export class ConfigLogView extends SurfaceComponent {

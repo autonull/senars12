@@ -7,8 +7,8 @@
  * others needs to be checked against.
  */
 
-import { BeliefTruthSchema } from '../util/truth-schema.js';
-import { clamp01 } from '../util/numeric.js';
+import { BeliefTruthSchema } from '../util/truth-schema';
+import { clamp01 } from '../util/numeric';
 import { z } from 'zod';
 
 /**

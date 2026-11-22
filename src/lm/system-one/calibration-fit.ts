@@ -5,15 +5,15 @@ import { toFiniteNumber } from '@senars/util/numeric';
 import { writeJsonFile } from '@senars/util/fs';
 import { sha256HexParts } from '@senars/util/hash';
 import { cachePath } from '@senars/util/config';
-import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
-import type { JudgmentDataset } from './distill.js';
-import { identityECE, meanBrier, meanBrierOf } from './metrics.js';
-import type { CalibrationVersion, ModelDigest } from './types.js';
-import { DigestMismatchError } from './wasi-runtime.js';
+import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration';
+import type { JudgmentDataset } from './distill';
+import { identityECE, meanBrier, meanBrierOf } from './metrics';
+import type { CalibrationVersion, ModelDigest } from './types';
+import { DigestMismatchError } from './wasi-runtime';
 
 // ─── Lock schema (jevcal pattern: fitted thresholds, digest-pinned) ──────────
 
-export { identityECE, meanBrier, meanBrierOf } from './metrics.js';
+export { identityECE, meanBrier, meanBrierOf } from './metrics';
 
 export interface CalibrationLockEntry {
   headId: string;

@@ -28,9 +28,9 @@ import {
   type BudgetLimits,
   type BudgetResource,
   freshBudget,
-} from '../budget/index.js';
-import type { BudgetScopeId, ReasoningBudget } from '../schemas/reasoning-budget.js';
-import { BUDGET_SCOPE_IDS } from '../schemas/reasoning-budget.js';
+} from '../budget/index';
+import type { BudgetScopeId, ReasoningBudget } from '../schemas/reasoning-budget';
+import { BUDGET_SCOPE_IDS } from '../schemas/reasoning-budget';
 
 /** The operation a budget scope performs — one of the declared scope keys. */
 export type BudgetOperation = 'derivation' | 'premise-selection' | 'candidate-derivation' | 'proposal-application' | 'control-work' | 'decision-derivation';
@@ -41,7 +41,7 @@ export type BudgetDimension = BudgetResource;
 export type BudgetLimitKey = keyof BudgetLimits;
 
 /** The five bounds §5.7 names. The order is the plan's. */
-export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '../schemas/reasoning-budget.js';
+export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '../schemas/reasoning-budget';
 
 export interface BudgetScopeSpec {
   readonly operation: BudgetOperation;

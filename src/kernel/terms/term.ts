@@ -5,11 +5,11 @@
  * immutable, and form a DAG with maximal sharing.
  */
 
-import type { TruthValue, Stamp } from '../types.js';
-import type { UUID, TimestampMs } from '../types.js';
-import { TermOp } from './term-ops.js';
+import type { TruthValue, Stamp } from '../types';
+import type { UUID, TimestampMs } from '../types';
+import { TermOp } from './term-ops';
 
-export { TermOp } from './term-ops.js';
+export { TermOp } from './term-ops';
 
 /** Base term interface. */
 export interface TermBase {

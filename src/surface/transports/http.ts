@@ -2,7 +2,7 @@
  * HTTP Transport — HTTP transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types.js';
+import type { Transport, TransportConfig, TransportMessage } from './types';
 
 /** HTTP transport config. */
 export interface HTTPTransportConfig extends TransportConfig {

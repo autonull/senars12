@@ -3,8 +3,8 @@
 import { execFile } from 'node:child_process';
 import { finiteOr } from '@senars/util/numeric';
 import { attempted, cmd } from '@senars/cli';
-import { tokenize } from './args.js';
-import type { BotRuntime } from './context.js';
+import { tokenize } from './args';
+import type { BotRuntime } from './context';
 
 const ARCADE_TIMEOUT_MS = 300_000;
 const ARCADE_MAX_BUFFER = 1 << 20;

@@ -3,20 +3,20 @@
  * one-hour unattended soak, replayable and recoverable — evolution included.
  */
 
-import type { HabitatConfig, HabitatRegistry } from './habitat.js';
-import type { ArenaAgent, ArenaMatch } from './arena.js';
-import type { LaneConfig, SymmetricArmConfig, CostQualitySurface, CostQualityPoint } from './arena-lanes.js';
-import type { WorldPackConfig } from './world-packs.js';
-import { createHabitatRegistry } from './habitat.js';
-import { createArenaAgent } from './arena.js';
-import { createLaneArenaRunner, runNalAbAsLane } from './arena-lanes.js';
-import { createWorldEvaluator } from './world-packs.js';
-import type { Term } from '../kernel/terms/term.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
-import type { Repertoire } from '../admit/repertoire.js';
-import { createRepertoire } from '../admit/repertoire.js';
-import type { EvaluationFold } from './scorecard.js';
+import type { HabitatConfig, HabitatRegistry } from './habitat';
+import type { ArenaAgent, ArenaMatch } from './arena';
+import type { LaneConfig, SymmetricArmConfig, CostQualitySurface, CostQualityPoint } from './arena-lanes';
+import type { WorldPackConfig } from './world-packs';
+import { createHabitatRegistry } from './habitat';
+import { createArenaAgent } from './arena';
+import { createLaneArenaRunner, runNalAbAsLane } from './arena-lanes';
+import { createWorldEvaluator } from './world-packs';
+import type { Term } from '../kernel/terms/term';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import type { Repertoire } from '../admit/repertoire';
+import { createRepertoire } from '../admit/repertoire';
+import type { EvaluationFold } from './scorecard';
 
 /** Soak configuration. */
 export interface SoakConfig {
@@ -171,7 +171,7 @@ export class SoakRunner {
     try {
       // Initialize lane configs if not provided
       if (this.config.laneConfigs.length === 0) {
-        const { createDefaultLaneConfigs } = await import('./arena-lanes.js');
+        const { createDefaultLaneConfigs } = await import('./arena-lanes');
         this.config.laneConfigs = createDefaultLaneConfigs();
       }
 

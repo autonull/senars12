@@ -8,9 +8,9 @@
  * overlays and embedded views.
  */
 
-import type { BlockKind } from './block-descriptors.js';
-import type { PayloadOf } from './block-payload.js';
-import type { ViewSpec } from './view-spec.js';
+import type { BlockKind } from './block-descriptors';
+import type { PayloadOf } from './block-payload';
+import type { ViewSpec } from './view-spec';
 import type {
   SemanticBlock as ContractSemanticBlock,
   SemanticLink as ContractSemanticLink,

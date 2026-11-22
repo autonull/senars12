@@ -16,21 +16,21 @@ import { utcDate } from '@senars/util/format';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
-import { recordCircuitBreakerState } from '../metrics/index.js';
-import { getTracer } from '../otel/index.js';
+import { recordCircuitBreakerState } from '../metrics/index';
+import { getTracer } from '../otel/index';
 import {
   CircuitBreaker,
   type CircuitBreakerSettings,
   type CircuitSnapshot,
   type TransitionReason,
-} from '@senars/util/circuit-breaker.js';
+} from '@senars/util/circuit-breaker';
 import {
   type CircuitState,
   type LMProviderName,
   type LMSettings,
   type LMSettingsInput,
   resolveLMSettings,
-} from './env-config.js';
+} from './env-config';
 
 export type { CircuitState, CircuitBreakerSettings, LMProviderName };
 

@@ -1,4 +1,4 @@
-export { AnytimeDerivation } from './AnytimeDerivation.js';
-export { DefaultDerivation } from './DefaultDerivation.js';
-export { FocusedDerivation } from './FocusedDerivation.js';
-export { SampledDerivation } from './SampledDerivation.js';
+export { AnytimeDerivation } from './AnytimeDerivation';
+export { DefaultDerivation } from './DefaultDerivation';
+export { FocusedDerivation } from './FocusedDerivation';
+export { SampledDerivation } from './SampledDerivation';

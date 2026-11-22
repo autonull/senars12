@@ -5,9 +5,9 @@
  */
 import type { MettaPort } from '@senars/agent';
 import { Effect } from 'effect';
-import { parseMeTTa } from '../parser/runtime.js';
-import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
-import { MettaCommandParser } from './MettaCommandParser.js';
+import { parseMeTTa } from '../parser/runtime';
+import { createMeTTa, type MeTTaRuntime } from '../runtime/builder';
+import { MettaCommandParser } from './MettaCommandParser';
 
 export function createMettaPort(runtime: MeTTaRuntime = createMeTTa()): MettaPort {
   const commandParser = new MettaCommandParser();

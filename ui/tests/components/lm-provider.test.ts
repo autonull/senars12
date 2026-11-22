@@ -4,10 +4,10 @@ import {
   applyLmStatus,
   providerLabel,
   providerUsable,
-} from '../../src/client/core/lm-provider.js';
-import { switchLmProvider } from '../../src/client/core/lm-transport.js';
-import { applyServerMessage } from '../../src/client/core/store-bindings.js';
-import { $webllmAvailable } from '../../src/client/core/store.js';
+} from '../../src/client/core/lm-provider';
+import { switchLmProvider } from '../../src/client/core/lm-transport';
+import { applyServerMessage } from '../../src/client/core/store-bindings';
+import { $webllmAvailable } from '../../src/client/core/store';
 
 const CATALOG = [
   { id: 'mock', kind: 'engine' },

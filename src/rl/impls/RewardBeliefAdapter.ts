@@ -1,10 +1,10 @@
 import { BoundedRing } from '@senars/util/collections';
 import { clamp01 } from '@senars/util/numeric';
-import { type Term, TermBuilder, Truth } from '../../index.js';
-import type { NAR } from '../../nar.js';
-import type { RandomSource } from '../../types/primitives.js';
-import { decodeQExpectation, QBeliefStore } from './QBeliefStore.js';
-import { rewardBeliefTerm, rewardLevel } from './reward-term.js';
+import { type Term, TermBuilder, Truth } from '../../index';
+import type { NAR } from '../../nar';
+import type { RandomSource } from '../../types/primitives';
+import { decodeQExpectation, QBeliefStore } from './QBeliefStore';
+import { rewardBeliefTerm, rewardLevel } from './reward-term';
 
 /**
  * Handles reward representation and value updates with TD learning support

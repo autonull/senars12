@@ -9,11 +9,11 @@ import { clamp, clampSigned } from '@senars/util/numeric';
 import { makeId } from '@senars/util/id';
 import { writeJsonFile } from '@senars/util/fs';
 import type { EventBus } from '@senars/util/events';
-import type { CognitiveParameters } from './config/cognitive-parameters.js';
-import type { NARConfig } from './facade/config.js';
+import type { CognitiveParameters } from './config/cognitive-parameters';
+import type { NARConfig } from './facade/config';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
-import { ExternalRewardGate } from './kernel/KernelRewardGate.js';
-import { seedTruth } from './lm/system-one/seed.js';
+import { ExternalRewardGate } from './kernel/KernelRewardGate';
+import { seedTruth } from './lm/system-one/seed';
 import type { Memory } from './memory';
 import type { RLFPLearner } from './rlfp';
 import type { TaskManager } from './task';
@@ -25,7 +25,7 @@ import {
   termParser,
   validateTaskTerm,
 } from './terms';
-import type { Truth as TruthType } from './terms/impls/Truth.js';
+import type { Truth as TruthType } from './terms/impls/Truth';
 import type { TaskType } from './types';
 import { createTaskWeight } from './types';
 

@@ -1,10 +1,10 @@
-import type { Game, GameOutcome, Perception } from '../Game.js';
+import type { Game, GameOutcome, Perception } from '../Game';
 import { SeededRNG } from '@senars/util/random';
-import type { CapabilityTier } from '../../agent/profiles.js';
-import type { CognitionAction, Reward, Sensor } from '../types.js';
-import { composeReward, DEFAULT_REWARDS } from '../rewards.js';
-import { DEFAULT_ACTIONS } from '../actions.js';
-import { DEFAULT_SENSORS } from '../sensors.js';
+import type { CapabilityTier } from '../../agent/profiles';
+import type { CognitionAction, Reward, Sensor } from '../types';
+import { composeReward, DEFAULT_REWARDS } from '../rewards';
+import { DEFAULT_ACTIONS } from '../actions';
+import { DEFAULT_SENSORS } from '../sensors';
 
 /**
  * Placement: this is the bench workhorse for reasoning quality, not an arcade

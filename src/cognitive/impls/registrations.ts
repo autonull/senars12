@@ -9,13 +9,13 @@
 
 import { z } from 'zod';
 import { createStrategy } from '../../reason/strategies/base';
-import { CompositeAttention } from '../../strategies/attention/CompositeAttention.js';
+import { CompositeAttention } from '../../strategies/attention/CompositeAttention';
 import {
   GoalRelevanceAttention,
   SimpleAttention,
   SpreadingActivation,
-} from '../../strategies/attention/index.js';
-import type { AttentionModel } from '../../strategies/types.js';
+} from '../../strategies/attention';
+import type { AttentionModel } from '../../strategies/types';
 
 /**
  * All three attention models share one constructor parameter — the prime boost
@@ -43,28 +43,28 @@ import {
   RotationSelector,
   SampledDerivation,
   WindowedRouletteStrategy,
-} from '../../strategies/index.js';
-import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
-import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector.js';
-import { type PremiseOverrides, premiseSampleShape } from '../../strategies/premise/config.js';
-import { PrologResolutionStrategy } from '../../strategies/premise/prolog-resolution.js';
+} from '../../strategies';
+import { RuleGraph } from '../../strategies/lm-graph/RuleGraph';
+import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector';
+import { type PremiseOverrides, premiseSampleShape } from '../../strategies/premise/config';
+import { PrologResolutionStrategy } from '../../strategies/premise/prolog-resolution';
 import {
   CompositeStrategy,
   createPremiseStrategy,
   DecompositionStrategy,
   PREMISE_PRIMITIVES,
-} from '../../strategies/premise/selection-strategies.js';
-import { EmbeddingLinkStrategy, TermLinkStrategy } from '../../strategies/premise/term-link.js';
+} from '../../strategies/premise/selection-strategies';
+import { EmbeddingLinkStrategy, TermLinkStrategy } from '../../strategies/premise/term-link';
 import {
   configSchema,
   configurable,
   fixed,
   type StrategyRegistration,
   stateful,
-} from '../../strategies/registration.js';
-import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
-import { defineScoredSampling } from '../../strategies/sampling/scored.js';
-import type { Strategy, StrategyType } from '../../strategies/types.js';
+} from '../../strategies/registration';
+import { CompositeSampling } from '../../strategies/sampling/CompositeSampling';
+import { defineScoredSampling } from '../../strategies/sampling/scored';
+import type { Strategy, StrategyType } from '../../strategies/types';
 
 /**
  * A `seed` in the config pins a strategy's own stream; absent one it draws from

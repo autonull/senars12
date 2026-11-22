@@ -4,19 +4,19 @@ import { clamp01 } from '@senars/util/numeric';
 import { createLogger } from '@senars/util/logger';
 import { formatTruth } from '@senars/types/truth';
 import { TermTruthSchema } from '@senars/util/truth-schema';
-import type { TermTruth } from '@senars/types/truth.js';
+import type { TermTruth } from '@senars/types/truth';
 import { type ZodSchema, z } from 'zod';
-import type { GateRegistry } from '../kernel/index.js';
+import type { GateRegistry } from '../kernel/index';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
 import { createTask, type Task } from '../types';
-import { admitTasks } from './admit.js';
-import { topBeliefTasks } from './context.js';
-import { parseEnrichmentResponse } from './enrichment.js';
+import { admitTasks } from './admit';
+import { topBeliefTasks } from './context';
+import { parseEnrichmentResponse } from './enrichment';
 
-import type { LMService } from './lm-service.js';
-import { lmTaskWeight } from './task-weights.js';
+import type { LMService } from './lm-service';
+import { lmTaskWeight } from './task-weights';
 
 /** Drop-oldest bound on the pattern history kept for later LM context. */
 const RECENT_PATTERN_LIMIT = 20;

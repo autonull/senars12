@@ -6,8 +6,8 @@ import { errMsg } from '@senars/util/error';
 import { isQuitResult, QUIT_SENTINEL } from '@senars/commands';
 import { splitWords } from '@senars/util/text';
 import { withDefaults } from '@senars/util/config';
-import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
-import { BaseConnection } from './base.js';
+import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types';
+import { BaseConnection } from './base';
 
 export interface CLICommand {
   readonly name: string;

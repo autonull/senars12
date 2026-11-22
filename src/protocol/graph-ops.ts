@@ -2,8 +2,8 @@
  * Graph operations (delta) + cognitive delta
  */
 import { z } from 'zod';
-import { msg, variant } from './envelope.js';
-import { GraphNodeDataView, Lens } from './graph-view.js';
+import { msg, variant } from './envelope';
+import { GraphNodeDataView, Lens } from './graph-view';
 
 const ENDPOINTS = { source: z.string(), target: z.string() };
 const NODE = { id: z.string(), data: GraphNodeDataView };

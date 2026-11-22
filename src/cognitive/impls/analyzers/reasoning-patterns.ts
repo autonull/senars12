@@ -3,17 +3,17 @@ import type { ModelRuleStats } from '../../../lm';
  * Reasoning pattern analysis - extracted from SelfAnalyzerService
  */
 import { takeLast } from '@senars/util/collections';
-import type { SelfHost } from '../../../self/host.js';
-import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../../types.js';
-import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
-import { EMPTY_PATTERN } from './constants.js';
+import type { SelfHost } from '../../../self/host';
+import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../../types';
+import type { MetacognitiveMonitor } from '../MetacognitiveMonitor';
+import { EMPTY_PATTERN } from './constants';
 import {
   analyzePerformancePatterns,
   analyzeTaskPatterns,
   identifySuccessfulStrategies,
-} from './performance.js';
-import { analyzeResourceUsage } from './resources.js';
-import { analyzeTermPatterns } from './term-patterns.js';
+} from './performance';
+import { analyzeResourceUsage } from './resources';
+import { analyzeTermPatterns } from './term-patterns';
 
 export const analyzeReasoningPatterns = async (
   nar: SelfHost | null,

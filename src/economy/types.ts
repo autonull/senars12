@@ -5,10 +5,10 @@
  * with one task economy and one loop.
  */
 
-import type { Term } from '../kernel/terms/term.js';
-import type { Truth } from '../kernel/truth.js';
-import type { Task, TaskType } from '../kernel/types.js';
-import type { RNG, Clock } from '../kernel/env.js';
+import type { Term } from '../kernel/terms/term';
+import type { Truth } from '../kernel/truth';
+import type { Task, TaskType } from '../kernel/types';
+import type { RNG, Clock } from '../kernel/env';
 
 /** Task bag kinds — unified from focus, goals, beliefs. */
 export const TASK_BAG_KINDS = [

@@ -56,7 +56,7 @@ export class ConnectionError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Retry', action: () => import('../core/ws-client.js').then(({ reconnect }) => reconnect()), variant: 'primary' },
+      { label: 'Retry', action: () => import('../core/ws-client').then(({ reconnect }) => reconnect()), variant: 'primary' },
       { label: 'Reload', action: () => window.location.reload(), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
@@ -76,7 +76,7 @@ export class ReconnectionError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Retry', action: () => import('../core/ws-client.js').then(({ reconnect }) => reconnect()), variant: 'primary' },
+      { label: 'Retry', action: () => import('../core/ws-client').then(({ reconnect }) => reconnect()), variant: 'primary' },
       { label: 'Reload', action: () => window.location.reload(), variant: 'secondary' },
     ];
   }
@@ -96,8 +96,8 @@ export class ConfigError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Reset to Defaults', action: () => import('../core/config-schema.js').then(({ DEFAULT_UI_CONFIG, saveConfig }) => saveConfig(DEFAULT_UI_CONFIG)), variant: 'primary' },
-      { label: 'Open Settings', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'secondary' },
+      { label: 'Reset to Defaults', action: () => import('../core/config-schema').then(({ DEFAULT_UI_CONFIG, saveConfig }) => saveConfig(DEFAULT_UI_CONFIG)), variant: 'primary' },
+      { label: 'Open Settings', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -116,7 +116,7 @@ export class ConfigValidationError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Fix in Settings', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'primary' },
+      { label: 'Fix in Settings', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'primary' },
       { label: 'Reset Field', action: () => {}, variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
@@ -137,8 +137,8 @@ export class EngineError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Restart Engine', action: () => import('../core/ws-client.js').then(({ send }) => send({ type: 'reset' })), variant: 'primary' },
-      { label: 'Clear State', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('test:reset-all')), variant: 'secondary' },
+      { label: 'Restart Engine', action: () => import('../core/ws-client').then(({ send }) => send({ type: 'reset' })), variant: 'primary' },
+      { label: 'Clear State', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('test:reset-all')), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -157,7 +157,7 @@ export class BudgetExhaustedError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Increase Budget', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'primary' },
+      { label: 'Increase Budget', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'primary' },
       { label: 'Continue Anyway', action: () => {}, variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
@@ -177,8 +177,8 @@ export class GateRejectedError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'View Details', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'telemetry' })), variant: 'primary' },
-      { label: 'Adjust Threshold', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'secondary' },
+      { label: 'View Details', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'telemetry' })), variant: 'primary' },
+      { label: 'Adjust Threshold', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'settings' })), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -198,8 +198,8 @@ export class ProjectionError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Retry Projection', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('test:step')), variant: 'primary' },
-      { label: 'Reset View', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('view:fit')), variant: 'secondary' },
+      { label: 'Retry Projection', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('test:step')), variant: 'primary' },
+      { label: 'Reset View', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('view:fit')), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -218,8 +218,8 @@ export class GraphRenderError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Reset Graph', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('view:fit')), variant: 'primary' },
-      { label: 'Switch Renderer', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'secondary' },
+      { label: 'Reset Graph', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('view:fit')), variant: 'primary' },
+      { label: 'Switch Renderer', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -238,8 +238,8 @@ export class LayoutError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Try Different Layout', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'primary' },
-      { label: 'Reset View', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('view:fit')), variant: 'secondary' },
+      { label: 'Try Different Layout', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'primary' },
+      { label: 'Reset View', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('view:fit')), variant: 'secondary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -259,7 +259,7 @@ export class CommandError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Open Palette', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'primary' },
+      { label: 'Open Palette', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'primary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -278,7 +278,7 @@ export class CommandValidationError extends UiError {
 
   getRecoveryActions(): RecoveryAction[] {
     return [
-      { label: 'Open Palette', action: () => import('../core/events.js').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'primary' },
+      { label: 'Open Palette', action: () => import('../core/events').then(({ eventBus }) => eventBus.emit('overlay:open', { id: 'palette' })), variant: 'primary' },
       { label: 'Dismiss', action: () => {}, variant: 'ghost' },
     ];
   }
@@ -400,7 +400,7 @@ export function createError(error: { name?: string; code?: string; message: stri
 
 /** Emit an app-error event for the error boundary. */
 export function emitError(error: UiError | Error): void {
-  import('../core/events.js').then(({ eventBus }) => {
+  import('../core/events').then(({ eventBus }) => {
     if (error instanceof UiError) {
       eventBus.emit('app-error', { message: error.message, detail: error.detail, error: error.toJSON() });
     } else {

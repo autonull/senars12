@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { HealthReport } from './health.js';
-import type { ScopedLogger } from './lifecycle.js';
+import type { HealthReport } from './health';
+import type { ScopedLogger } from './lifecycle';
 
 export type ConnectionState =
   | 'idle'

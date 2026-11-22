@@ -11,7 +11,7 @@
 import type { DerivationStep, TruthValue } from '@senars/schemas';
 import { formatTruth } from '@senars/types/truth';
 import { unique } from '@senars/util/collections';
-import type { BeliefInfo, ConflictInfo, GenerationInput, GenerationOutput } from './generation.js';
+import type { BeliefInfo, ConflictInfo, GenerationInput, GenerationOutput } from './generation';
 
 /** How many links of the derivation chain an explanation walks. */
 const DEFAULT_MAX_DEPTH = 16;

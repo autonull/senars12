@@ -1,4 +1,4 @@
-export { EpisodicMemory } from './EpisodicMemory.js';
+export { EpisodicMemory } from './EpisodicMemory';
 export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from '@senars/types/episodic-memory';
 export { EPISODE_TYPES } from '@senars/types/episodic-memory';
-export { EpisodeSchema } from './EpisodicMemory.js';
+export { EpisodeSchema } from './EpisodicMemory';

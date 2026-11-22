@@ -12,17 +12,17 @@
  * menu toggles; the Notebook renders; the substrate stays the authority.
  */
 
-import { linkMeta, type LinkCategory, type LinkEntry } from '../utils/link-catalog.js';
-import type { BuiltinLens } from '../../shared/lens-schema.js';
-import { tableFromColumns } from './artifacts.js';
-import { blockLabel } from './block-labels.js';
-import { neighborhood } from './neighborhood.js';
-import { atom, $neighborhoodDepth, $workspaceGraph } from './store.js';
-import { datasetIsEmpty } from './view-projection.js';
-import { viewSource } from './view-sources.js';
-import type { Shape, TableDataset, TreeDataset, TreeNode, ViewDataset, ViewSpec, ViewStates } from './view-spec.js';
-import { linksTouching, type Ref, type SemanticBlock, type WorkspaceGraph } from './workspace-graph.js';
-import { defineCatalog } from '../framework/catalog.js';
+import { linkMeta, type LinkCategory, type LinkEntry } from '../utils/link-catalog';
+import type { BuiltinLens } from '../../shared/lens-schema';
+import { tableFromColumns } from './artifacts';
+import { blockLabel } from './block-labels';
+import { neighborhood } from './neighborhood';
+import { atom, $neighborhoodDepth, $workspaceGraph } from './store';
+import { datasetIsEmpty } from './view-projection';
+import { viewSource } from './view-sources';
+import type { Shape, TableDataset, TreeDataset, TreeNode, ViewDataset, ViewSpec, ViewStates } from './view-spec';
+import { linksTouching, type Ref, type SemanticBlock, type WorkspaceGraph } from './workspace-graph';
+import { defineCatalog } from '../framework/catalog';
 
 /** The derived views a block can embed. */
 export type EmbeddedViewId = 'derivation' | 'contradiction' | 'topic';

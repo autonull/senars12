@@ -3,11 +3,11 @@
  * Extracted to break nar.ts <-> autonomy/wiring.ts cycle.
  */
 
-import type { Concept } from '../memory/concept.js';
-import type { NarEventBus } from '../types/events.js';
+import type { Concept } from '../memory/concept';
+import type { NarEventBus } from '../types/events';
 import type { TaskType, TruthType } from '../types';
 import type { Term } from '../terms';
-import type { AutonomyConfigInput } from './config.js';
+import type { AutonomyConfigInput } from './config';
 import type { Clock } from '@senars/util/clock';
 
 export interface AutonomyNAR {

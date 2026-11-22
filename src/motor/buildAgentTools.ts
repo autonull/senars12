@@ -1,7 +1,7 @@
 import { objectSpec } from '@senars/types/tools';
 import { toolAttempt, toolError, toolOk } from '@senars/types/engine';
-import type { AgentToolDeps } from '../memory/types.js';
-import type { ToolRegistry, ToolSpec } from './ToolRegistry.js';
+import type { AgentToolDeps } from '../memory/types';
+import type { ToolRegistry, ToolSpec } from './ToolRegistry';
 
 const AGENT_TOOL_SPECS = (deps: AgentToolDeps): ToolSpec[] => [
   {

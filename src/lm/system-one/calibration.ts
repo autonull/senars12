@@ -1,9 +1,9 @@
 import { BoundedMap } from '@senars/util/bounded-map';
 import { lerp, safeRatio } from '@senars/util/numeric';
 import { maxScore, sortBy, trimCapped } from '@senars/util/collections';
-import { headRubrics } from './head-ontology.js';
-import { weightedAbsoluteError } from './metrics.js';
-import type { CalibrationVersion, RubricId } from './types.js';
+import { headRubrics } from './head-ontology';
+import { weightedAbsoluteError } from './metrics';
+import type { CalibrationVersion, RubricId } from './types';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
 const CALIBRATION_POINT_CAP = 10_000;

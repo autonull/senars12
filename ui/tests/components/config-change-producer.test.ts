@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { initConfigChangeProducer } from '../../src/client/core/config-change-producer.js';
-import { $config, $configChanges, $workspaceGraph, clearConfigChanges } from '../../src/client/core/store.js';
+import { initConfigChangeProducer } from '../../src/client/core/config-change-producer';
+import { $config, $configChanges, $workspaceGraph, clearConfigChanges } from '../../src/client/core/store';
 
 describe('config-change producer', () => {
   beforeAll(() => {

@@ -6,7 +6,7 @@
  * WeakSet so per-instance semantics survive the extraction.
  */
 
-import { proposalRisk, type SelfImprovementProposal } from '@senars/schemas/governance.js';
+import { proposalRisk, type SelfImprovementProposal } from '@senars/schemas/governance';
 import { createLogger } from '@senars/util/logger';
 import { degrade, errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
@@ -15,14 +15,14 @@ import { truncate } from '@senars/util/text';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';
-import type { LMRule } from '../lm/rule/LMRule.js';
-import { LMRules } from '../lm/rule-selectors/factory.js';
-import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
-import { createSystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
-import type { ProofMettaProposer } from '../meta/index.js';
-import type { NARFacadePort } from './ports.js';
+import type { LMRule } from '../lm/rule/LMRule';
+import { LMRules } from '../lm/rule-selectors/factory';
+import { seedContrastiveMemory } from '../lm/system-one/hard-negatives';
+import { createSystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter';
+import type { ProofMettaProposer } from '../meta/index';
+import type { NARFacadePort } from './ports';
 import type { Answer } from '../query/api';
-import { selectVerifiedDerivation } from '../query/derivation.js';
+import { selectVerifiedDerivation } from '../query/derivation';
 import type { Tool } from '../tools';
 import {
   containsSubterm,
@@ -33,9 +33,9 @@ import {
   termParser,
   termsEqual,
 } from '../terms';
-import type { ToolSpec } from '@senars/types/tools.js';
-import { discoverTools } from '../tools/impls/decorator.js';
-import { createSelfTools } from '../tools/adapters/self-tools.js';
+import type { ToolSpec } from '@senars/types/tools';
+import { discoverTools } from '../tools/impls/decorator';
+import { createSelfTools } from '../tools/adapters/self-tools';
 
 const logger = createLogger({ scope: 'nar:facade' });
 

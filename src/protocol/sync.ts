@@ -2,10 +2,10 @@
  * Synchronization, viewport, telemetry, focus, cognitive events schemas
  */
 import { z } from 'zod';
-import { ConfigField } from './config.js';
-import { msg } from './envelope.js';
-import { Lens } from './graph-view.js';
-import type { CognitiveEvent } from '../schemas/cognitive-events.js';
+import { ConfigField } from './config';
+import { msg } from './envelope';
+import { Lens } from './graph-view';
+import type { CognitiveEvent } from '../schemas/cognitive-events';
 
 export const SyncRequest = msg('sync.request', { lastSeqId: z.number().nullable() });
 

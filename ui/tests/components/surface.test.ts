@@ -4,7 +4,7 @@ import {
   defineSurface,
   SurfaceComponent,
   type SurfaceState,
-} from '../../src/client/core/surface.js';
+} from '../../src/client/core/surface';
 
 const listeners = new Set<() => void>();
 const binding = {

@@ -1,6 +1,6 @@
 import { perPart, periodic } from '@senars/util';
-import type { AutonomyConfig } from './config.js';
-import type { AutonomyPorts, AutonomyTickReport, ConceptObservation } from './types.js';
+import type { AutonomyConfig } from './config';
+import type { AutonomyPorts, AutonomyTickReport, ConceptObservation } from './types';
 
 /**
  * The kernel-owned autonomy loop (CORE.19 C5.1/C5.2). One heartbeat, bounded by

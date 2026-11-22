@@ -14,9 +14,9 @@ import {
   type EmbeddingGeneratorConfig,
   type EmbeddingRuntime,
   type EmbeddingRuntimeSource,
-} from '../memory/embedding.js';
-import { LlamaCppEmbeddingGenerator } from './providers/embedded-embedding.js';
-import { detectDevice, getLMSettings } from './providers.js';
+} from '../memory/embedding';
+import { LlamaCppEmbeddingGenerator } from './providers/embedded-embedding';
+import { detectDevice, getLMSettings } from './providers';
 
 export const embeddingRuntime = (): EmbeddingRuntime => {
   const settings = getLMSettings();

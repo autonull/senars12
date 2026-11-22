@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { segmentText } from '../../src/client/core/segmentation.js';
+import { segmentText } from '../../src/client/core/segmentation';
 
 describe('output segmentation', () => {
   it('returns nothing for empty text', () => {

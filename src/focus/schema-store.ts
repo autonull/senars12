@@ -1,8 +1,8 @@
 import { joinKey, splitKey } from '@senars/util/collections';
 import { readJsonFileSync, writeJsonFileSync } from '@senars/util/fs';
-import { withSpan } from '../otel/index.js';
-import { recordSchemaPromotion } from '../telemetry/index.js';
-import type { PromotedSchema } from './episode-schemas.js';
+import { withSpan } from '../otel/index';
+import { recordSchemaPromotion } from '../telemetry/index';
+import type { PromotedSchema } from './episode-schemas';
 
 /**
  * L4: persistent schema induction (unifies N2 + G1) — one sidecar store of

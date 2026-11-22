@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
+import { customElement } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
 import {
   $activeRenderer,
   $aspect,
@@ -18,11 +18,11 @@ import {
   overlays,
   setAspect,
   setWorkspaceFocus,
-} from '../core/index.js';
-import { dispatchCommand } from '../core/commands.js';
-import { $activeLens } from '../core/index.js';
-import { ASPECTS, ASPECT_LABELS, ASPECT_ICONS, type Aspect } from '../framework/coordinates.js';
-import './overlays/index.js';
+} from '../core/index';
+import { dispatchCommand } from '../core/commands';
+import { $activeLens } from '../core/index';
+import { ASPECTS, ASPECT_LABELS, ASPECT_ICONS, type Aspect } from '../framework/coordinates';
+import './overlays/index';
 
 const isEditableTarget = (event: KeyboardEvent): boolean =>
   event.composedPath().some(
@@ -30,18 +30,18 @@ const isEditableTarget = (event: KeyboardEvent): boolean =>
       node instanceof HTMLElement &&
       (node.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName))
   );
-import '../spacegraph/spacegraph-viewport.js';
-import './graph-toolbar.js';
-import './renderers/notebook.js';
-import './workspace-host.js';
-import './bottom-bar.js';
-import './panel-dock.js';
-import './contradiction-badge.js';
-import './error-boundary.js';
-import './chat-history-panel.js';
-import './lens-designer.js';
-import './connection-banner.js';
-import './primitives/empty-state.js';
+import '../spacegraph/spacegraph-viewport';
+import './graph-toolbar';
+import './renderers/notebook';
+import './workspace-host';
+import './bottom-bar';
+import './panel-dock';
+import './contradiction-badge';
+import './error-boundary';
+import './chat-history-panel';
+import './lens-designer';
+import './connection-banner';
+import './primitives/empty-state';
 
 @customElement('app-layout')
 export class AppLayout extends BaseComponent {

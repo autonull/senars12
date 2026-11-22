@@ -1,7 +1,7 @@
-import type { RuleEngine } from '../../rules/types.js';
+import type { RuleEngine } from '../../rules/types';
 import type { Task } from '../../types';
-import type { DerivationContext } from '../types.js';
-import { DefaultDerivation } from './DefaultDerivation.js';
+import type { DerivationContext } from '../types';
+import { DefaultDerivation } from './DefaultDerivation';
 
 export class AnytimeDerivation extends DefaultDerivation {
   override readonly metadata = {

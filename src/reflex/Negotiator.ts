@@ -1,14 +1,14 @@
-import type { Focus } from '../focus/Focus.js';
-import type { Perception } from '../game/Game.js';
-import { withSpan } from '../otel/index.js';
+import type { Focus } from '../focus/Focus';
+import type { Perception } from '../game/Game';
+import { withSpan } from '../otel/index';
 import { TermBuilder } from '../terms';
-import type { ContradictionEvent, NarEventBus } from '../types/events.js';
-import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
-import type { ActionProposal, LearningEvent } from './Reflex.js';
-import { type ArbitrationStrategy, NalVetoArbitration } from './weighted-quorum.js';
+import type { ContradictionEvent, NarEventBus } from '../types/events';
+import type { NALDerivation, NegotiationDecision } from './negotiation-types';
+import type { ActionProposal, LearningEvent } from './Reflex';
+import { type ArbitrationStrategy, NalVetoArbitration } from './weighted-quorum';
 
-export type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
-export type { ArbitrationStrategy } from './weighted-quorum.js';
+export type { NALDerivation, NegotiationDecision } from './negotiation-types';
+export type { ArbitrationStrategy } from './weighted-quorum';
 
 export interface NegotiatorOptions {
   nalVetoThreshold?: number;

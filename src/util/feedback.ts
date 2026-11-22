@@ -7,4 +7,4 @@ export {
   type ToolFeedback,
   type ToolFeedbackObserver,
   toSkillFeedback,
-} from '../feedback/ToolFeedbackObserver.js';
+} from '../feedback/ToolFeedbackObserver';

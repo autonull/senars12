@@ -8,7 +8,7 @@
  * reference equality for objects — override for deep equality (e.g., Sets).
  */
 
-import { atom, type Readable } from '../kernel/state.js';
+import { atom, type Readable } from '../kernel/state';
 
 /** Default equality: `Object.is` for primitives, reference for objects. */
 export function defaultEqual<T>(a: T, b: T): boolean {

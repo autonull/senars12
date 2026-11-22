@@ -4,10 +4,10 @@ import { BoundedMap } from '@senars/util/bounded-map';
 import { addToSet, collectUpTo, containerStats, removeFromSet } from '@senars/util/collections';
 import { occupancy, retain } from '@senars/util/numeric';
 import { type Clock, systemClock } from '@senars/util/clock';
-import { LINK } from '../../constants.js';
+import { LINK } from '../../constants';
 import { type Term, termKey } from '../../terms';
-import type { RandomSource } from '../../types/primitives.js';
-import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
+import type { RandomSource } from '../../types/primitives';
+import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types';
 
 const DEFAULT_TYPE: LinkType = 'term-link';
 const DEFAULT_PRIORITY = 0.5;

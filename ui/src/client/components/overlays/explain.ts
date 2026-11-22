@@ -12,11 +12,11 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { blockDescriptor } from '../../core/block-descriptors.js';
-import { blockLabel } from '../../core/block-labels.js';
-import { collectSources } from '../../core/citations.js';
-import { eventBus } from '../../core/events.js';
+import { customElement, property, state } from 'lit/decorators';
+import { blockDescriptor } from '../../core/block-descriptors';
+import { blockLabel } from '../../core/block-labels';
+import { collectSources } from '../../core/citations';
+import { eventBus } from '../../core/events';
 import {
   explain,
   type ExplainedCitation,
@@ -25,14 +25,14 @@ import {
   type ExplainLink,
   type ExplainModel,
   type ExplainSubject,
-} from '../../core/explain.js';
-import { Capability } from '../../core/capabilities.js';
-import { $nodeHistory, $workspaceGraph } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import { DISCLOSURES, type Disclosure } from '../../core/view-spec.js';
-import { linkMeta } from '../../utils/link-catalog.js';
-import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
+} from '../../core/explain';
+import { Capability } from '../../core/capabilities';
+import { $nodeHistory, $workspaceGraph } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import { DISCLOSURES, type Disclosure } from '../../core/view-spec';
+import { linkMeta } from '../../utils/link-catalog';
+import { blockBodyStyles, renderBlockBody } from '../../utils/render-block';
 
 const LEVELS: readonly Disclosure[] = DISCLOSURES;
 

@@ -1,20 +1,20 @@
 import { parseFlags } from '@senars/utils';
-import { ConversationalTestHarness, type Scenario, type ScenarioResult } from './framework.js';
-import { describeProvider, resolveProvider, resolveTestLMService } from './providers.js';
-import { buildReport, formatHumanReadable, formatJson } from './report.js';
+import { ConversationalTestHarness, type Scenario, type ScenarioResult } from './framework';
+import { describeProvider, resolveProvider, resolveTestLMService } from './providers';
+import { buildReport, formatHumanReadable, formatJson } from './report';
 
-import basicChat from './scenarios/basic-chat.js';
-import beliefFormation from './scenarios/belief-formation.js';
-import constitution from './scenarios/constitution.js';
-import contradiction from './scenarios/contradiction.js';
-import driveModulation from './scenarios/drive-modulation.js';
-import explanationTraceability from './scenarios/explanation-traceability.js';
-import goalDecomposition from './scenarios/goal-decomposition.js';
-import multiHop from './scenarios/multi-hop.js';
-import proactiveNotification from './scenarios/proactive-notification.js';
-import reasoningAnswer from './scenarios/reasoning-answer.js';
-import rlfp from './scenarios/rlfp.js';
-import toolUse from './scenarios/tool-use.js';
+import basicChat from './scenarios/basic-chat';
+import beliefFormation from './scenarios/belief-formation';
+import constitution from './scenarios/constitution';
+import contradiction from './scenarios/contradiction';
+import driveModulation from './scenarios/drive-modulation';
+import explanationTraceability from './scenarios/explanation-traceability';
+import goalDecomposition from './scenarios/goal-decomposition';
+import multiHop from './scenarios/multi-hop';
+import proactiveNotification from './scenarios/proactive-notification';
+import reasoningAnswer from './scenarios/reasoning-answer';
+import rlfp from './scenarios/rlfp';
+import toolUse from './scenarios/tool-use';
 
 const ALL_SCENARIOS: Scenario[] = [
   basicChat,

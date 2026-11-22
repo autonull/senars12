@@ -4,10 +4,10 @@
  * Generates and verifies proof certificates that can be independently checked.
  */
 
-import { Term, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern.js';
-import { Formula, Atom, ProofCertificate, ProofStep, Clause, Literal, Model, isAtom } from './ast.js';
-import type { Clock } from '../../kernel/env.js';
-import { createDefaultClock } from '../../kernel/env.js';
+import { Term, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern';
+import { Formula, Atom, ProofCertificate, ProofStep, Clause, Literal, Model, isAtom } from './ast';
+import type { Clock } from '../../kernel/env';
+import { createDefaultClock } from '../../kernel/env';
 
 /** Certificate format version. */
 export const CERTIFICATE_VERSION = '1.0';

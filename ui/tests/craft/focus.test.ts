@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated.js';
+import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated';
 
 const FOCUS_TOKENS = [
   'colors.semantic.border-focus',

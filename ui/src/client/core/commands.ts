@@ -4,10 +4,10 @@
  * The command registry is now backed by the Intent catalog. New code should import
  * `dispatch` from `./intent-registry.js` instead of `dispatchCommand`.
  */
-import { recordCommandUse } from './command-history.js';
-import { validateCommandArgs } from './command-schemas.js';
-import { getIntentCatalog, dispatch, type IntentDescriptor } from './intent-registry.js';
-import { upsertIntent, type IntentPayload } from '../framework/intent.js';
+import { recordCommandUse } from './command-history';
+import { validateCommandArgs } from './command-schemas';
+import { getIntentCatalog, dispatch, type IntentDescriptor } from './intent-registry';
+import { upsertIntent, type IntentPayload } from '../framework/intent';
 
 /** Command args are always an object. */
 export type CommandArgs = Record<string, unknown>;
@@ -96,7 +96,7 @@ export const registerCommand = (descriptor: Command): void => {
 };
 
 // Re-export the unified dispatch for new code
-export { dispatch } from './intent-registry.js';
+export { dispatch } from './intent-registry';
 
 // Re-export IntentDescriptor for back-compat
-export type { IntentDescriptor } from './intent-registry.js';
+export type { IntentDescriptor } from './intent-registry';

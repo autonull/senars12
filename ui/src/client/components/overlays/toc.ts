@@ -10,18 +10,18 @@
  */
 
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { artifactViewSpec } from '../../core/artifacts.js';
-import { blockDescriptor } from '../../core/block-descriptors.js';
-import { dispatchCommand } from '../../core/commands.js';
-import { eventBus } from '../../core/events.js';
-import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { overlayManager } from '../../core/overlay-manager.js';
-import type { BlockKind } from '../../core/workspace-graph.js';
-import { TOC_KINDS_TYPE, tocEntries, type TocEntry } from '../../core/toc.js';
+import { customElement, state } from 'lit/decorators';
+import { artifactViewSpec } from '../../core/artifacts';
+import { blockDescriptor } from '../../core/block-descriptors';
+import { dispatchCommand } from '../../core/commands';
+import { eventBus } from '../../core/events';
+import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus } from '../../core/store';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { overlayManager } from '../../core/overlay-manager';
+import type { BlockKind } from '../../core/workspace-graph';
+import { TOC_KINDS_TYPE, tocEntries, type TocEntry } from '../../core/toc';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index';
 
 type Filter = 'all' | BlockKind;
 

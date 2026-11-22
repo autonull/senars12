@@ -4,7 +4,7 @@ import {
   BLOCK_KINDS,
   blockDescriptor,
   kindsWhere,
-} from '../../src/client/core/block-descriptors.js';
+} from '../../src/client/core/block-descriptors';
 
 const sorted = (kinds: readonly string[]): string[] => [...kinds].sort();
 

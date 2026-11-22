@@ -2,7 +2,7 @@
  * Budget event vocabulary — shared by budget.ts and budget-otel.ts to break cycle.
  */
 
-import type { BudgetLimits, BudgetResource, ConsumedBudget, TerminationReason } from './budget-resources.js';
+import type { BudgetLimits, BudgetResource, ConsumedBudget, TerminationReason } from './budget-resources';
 
 /** Every `budget:slice:*` payload, so a bus can be typed against this alone. */
 export interface BudgetEventMap {

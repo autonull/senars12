@@ -4,9 +4,9 @@
  * descriptor the shell mounts by placement.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { appFor, appSurfaces, defineApp } from '../../src/client/framework/app.js';
-import { defineBundle, resetBundles } from '../../src/client/framework/bundle.js';
-import { surfaceFor, type Placement } from '../../src/client/framework/surface.js';
+import { appFor, appSurfaces, defineApp } from '../../src/client/framework/app';
+import { defineBundle, resetBundles } from '../../src/client/framework/bundle';
+import { surfaceFor, type Placement } from '../../src/client/framework/surface';
 
 const surface = (id: string, placement: Placement) => ({
   id,

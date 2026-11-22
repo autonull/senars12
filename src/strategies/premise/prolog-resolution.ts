@@ -3,8 +3,8 @@
  * Horn clause backward chaining, occurs-check, depth-bounded search.
  * Registered as `premise` strategy `prolog-resolution`.
  */
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
 import type { Term } from '../../terms';
 import { applySubstitution, getArgs, unify, type Substitution } from '../../terms';
 import type { Task, TaskType } from '../../types';

@@ -4,7 +4,7 @@
  * no property access, no calls: the grammar is closed, so no input can escape it.
  */
 
-import { SenarsError } from '../errors/senars-error.js';
+import { SenarsError } from '../errors/senars-error';
 
 /** The only way {@link evaluateExpression} fails: input the closed grammar cannot read. */
 export class ExpressionError extends SenarsError {

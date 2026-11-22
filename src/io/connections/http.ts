@@ -7,10 +7,10 @@ import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { mapToRecord } from '@senars/util/collections';
 import { withDefaults } from '@senars/config';
-import type { ConnectionConfig, ConnectionDeps } from '../types.js';
-import { parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
-import { BaseConnection } from './base.js';
-import type { HealthReport } from '@senars/types/health.js';
+import type { ConnectionConfig, ConnectionDeps } from '../types';
+import { parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http';
+import { BaseConnection } from './base';
+import type { HealthReport } from '@senars/types/health';
 
 /** In-flight handler callbacks a single HTTP connection may hold before dropping the oldest. */
 const MAX_INFLIGHT_REQUESTS = 256;

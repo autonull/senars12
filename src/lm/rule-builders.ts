@@ -10,15 +10,15 @@ import type { Term } from '../terms';
 import { Truth } from '../terms';
 import type { Task, TaskType } from '../types';
 import { createTask, createTaskWeight } from '../types';
-import { LMResponseParser, LMRule } from './LMRule.js';
-import type { LMRuleConfig, LMService } from './lm-service.js';
+import { LMResponseParser, LMRule } from './LMRule';
+import type { LMRuleConfig, LMService } from './lm-service';
 import type {
   LMRuleDefinition,
   RuleActivation,
   RuleFallback,
-} from './rule-templates/definition.js';
+} from './rule-templates/definition';
 
-export type { LMRuleDefinition } from './rule-templates/definition.js';
+export type { LMRuleDefinition } from './rule-templates/definition';
 
 export interface LMRuleFactoryConfig {
   id?: string;

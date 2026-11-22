@@ -1,5 +1,5 @@
-import type { LMSettings, LMSettingsInput } from '../env-config.js';
-import { delegate, type LMProviderName } from '../provider-runtime.js';
+import type { LMSettings, LMSettingsInput } from '../env-config';
+import { delegate, type LMProviderName } from '../provider-runtime';
 
 /** Install file/config-derived settings (env still wins at read time). */
 export const configureLM = delegate('configureLM');

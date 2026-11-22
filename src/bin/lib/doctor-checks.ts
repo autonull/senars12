@@ -8,11 +8,11 @@
  * the same reads at two granularities.
  */
 
-import { probeEmbeddedLlama } from '../../lm/index.js';
+import { probeEmbeddedLlama } from '../../lm/index';
 import { envSet } from '@senars/config';
-import { errMsg } from '@senars/util/error.js';
+import { errMsg } from '@senars/util/error';
 import { loadConfig } from '@senars/config';
-import { attempted } from '../../cli/commands.js';
+import { attempted } from '../../cli/commands';
 
 /** Every credential any provider may need. One list, so a key cannot be checked in
  *  one entry point and ignored in the other. */

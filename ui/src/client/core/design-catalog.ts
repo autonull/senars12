@@ -6,7 +6,7 @@
  * derive from one source, and a new design primitive is one entry.
  */
 
-import type { Contribution } from '../framework/contribution.js';
+import type { Contribution } from '../framework/contribution';
 
 /** Design primitive kind. */
 export type DesignPrimitiveKind = 'color' | 'spacing' | 'typography' | 'border' | 'shadow' | 'motion' | 'z-index' | 'breakpoint';

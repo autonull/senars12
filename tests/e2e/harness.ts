@@ -7,7 +7,7 @@ import type { DecideResult } from '@senars/lm';
 import { createSystemOneBudget, type JudgmentQuery } from '@senars/lm';
 import { NarEventBus } from '@senars/agent';
 import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/utils';
-import { e2eNARConfig } from './fixtures.js';
+import { e2eNARConfig } from './fixtures';
 
 export interface ScenarioSpec {
   name: string;

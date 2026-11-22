@@ -4,11 +4,11 @@ import { maxScore } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
 import { systemClock, type Clock } from '@senars/util/clock';
 import type { BeliefTruth } from '@senars/util';
-import { type Bag, type BagOptions, createBag } from '../bag/index.js';
-import type { ResolvedBagSlot } from '../bag/registration.js';
+import { type Bag, type BagOptions, createBag } from '../bag/index';
+import type { ResolvedBagSlot } from '../bag/registration';
 import type { Term, Truth } from '../terms';
 import { calculateSimilarity, Stamp, TermMap, TermSet, termKey, Truth as TruthOps } from '../terms';
-import { type IndependenceStatus } from '../terms/impls/Truth.js';
+import { type IndependenceStatus } from '../terms/impls/Truth';
 import {
   type Budget,
   createBeliefTask,
@@ -18,7 +18,7 @@ import {
   type TaskType,
   type Timestamp,
 } from '../types';
-import { jaccard } from '@senars/util/similarity.js';
+import { jaccard } from '@senars/util/similarity';
 
 export type { IndependenceStatus };
 

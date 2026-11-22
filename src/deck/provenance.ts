@@ -2,8 +2,8 @@
  * Deck Provenance — artifact provenance tracking and visualization.
  */
 
-import type { Artifact } from '@senars/admit/repertoire.js';
-import type { Stamp } from '@senars/kernel/types.js';
+import type { Artifact } from '@senars/admit/repertoire';
+import type { Stamp } from '@senars/kernel/types';
 
 /** Provenance node. */
 export interface ProvenanceNode {

@@ -3,32 +3,32 @@ import type {
   AmbiguityType,
   FormalizationBatch,
   FormalizationCandidate,
-} from '@senars/schemas/formalization.js';
-import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/schemas/formalization.js';
+} from '@senars/schemas/formalization';
+import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/schemas/formalization';
 import { asBeliefTruth } from '@senars/types/truth';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { pct } from '@senars/util/format';
 import { stableKeyOf } from '@senars/util/json';
 import { withDeadline } from '@senars/util/async';
-import type { TermTruth } from '@senars/types/truth.js';
+import type { TermTruth } from '@senars/types/truth';
 import type { ZodSchema } from 'zod';
 import { getModelForTask } from '../lm';
-import type { ILMService } from '../lm/interfaces.js';
-import type { TranslationCache, TranslationCacheEntry, TranslationResult } from './cache.js';
-import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
-import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
-import { TaskBatchSchema } from './schemas.js';
-import { SingleFlight } from './singleflight.js';
+import type { ILMService } from '../lm/interfaces';
+import type { TranslationCache, TranslationCacheEntry, TranslationResult } from './cache';
+import { type FirewallOptions, SymbolicFirewall } from './firewall';
+import { buildUnderstandingPrompt } from './prompts/understanding-v1';
+import { TaskBatchSchema } from './schemas';
+import { SingleFlight } from './singleflight';
 
 /** The LM fallback paths are the last resort; a slow one must not outlast the cycle. */
 const LM_FALLBACK_TIMEOUT_MS = 30_000;
 
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
-export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
+export type { Ambiguity, Coreference, TaskBatch } from '../types/events';
 
-import { parseJsonWith } from '../lm/json.js';
-import type { TaskBatch } from '../types/events.js';
+import { parseJsonWith } from '../lm/json';
+import type { TaskBatch } from '../types/events';
 
 export interface NLContext {
   beliefs?: string[];

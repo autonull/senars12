@@ -8,11 +8,11 @@
  *
  * LogStore-backed ledgers are used for unified persistence.
  */
-import type { DerivationRecorder } from '../rules/impls/recorder.js';
-import type { GateRegistry } from './GateRegistry.js';
+import type { DerivationRecorder } from '../rules/impls/recorder';
+import type { GateRegistry } from './GateRegistry';
 import type { LogStore } from '@senars/log/store';
-import { createLogStoreGateEventLedger } from '@senars/log/GateEventLedger.js';
-import { createLogStoreDerivationLedger } from '@senars/log/DerivationLedger.js';
+import { createLogStoreGateEventLedger } from '@senars/log/GateEventLedger';
+import { createLogStoreDerivationLedger } from '@senars/log/DerivationLedger';
 
 export interface KernelLedgerOptions {
   /** LogStore for unified persistence (replaces file-based ledgers). */

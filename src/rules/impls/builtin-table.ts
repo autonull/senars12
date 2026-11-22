@@ -7,8 +7,8 @@
  * `registration → rule-table → registration`. The composition belongs with the
  * composition, which is what this file is.
  */
-import { builtinEntries, RuleTableStore, tableArtifact } from './rule-table.js';
-import { BUILTIN_DECLARATIONS, RULE_BODIES } from './registration.js';
+import { builtinEntries, RuleTableStore, tableArtifact } from './rule-table';
+import { BUILTIN_DECLARATIONS, RULE_BODIES } from './registration';
 
 /** Load the shipped table. The one place the built-ins enter the system. */
 export const loadBuiltinTable = (): RuleTableStore =>

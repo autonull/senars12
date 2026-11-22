@@ -4,9 +4,9 @@
  * Part of the deck: inspector + 3 views (timeline, provenance, pressure).
  */
 
-import type { Artifact } from '@senars/admit/repertoire.js';
-import type { HabitatState, HabitatStepResult } from '@senars/worlds/habitat.js';
-import type { Scorecard } from '@senars/worlds/pack.js';
+import type { Artifact } from '@senars/admit/repertoire';
+import type { HabitatState, HabitatStepResult } from '@senars/worlds/habitat';
+import type { Scorecard } from '@senars/worlds/pack';
 
 /** Inspector panel. */
 export interface InspectorPanel {

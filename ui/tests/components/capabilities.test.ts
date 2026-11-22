@@ -6,8 +6,8 @@ import {
   capabilityGate,
   defaultCapabilities,
   setCapability,
-} from '../../src/client/core/capabilities.js';
-import { $activeRenderer } from '../../src/client/core/store.js';
+} from '../../src/client/core/capabilities';
+import { $activeRenderer } from '../../src/client/core/store';
 
 afterEach(() => {
   $capabilities.set(defaultCapabilities());

@@ -1,4 +1,4 @@
-import { createTaskWeight, type Budget } from '../types/core.js';
+import { createTaskWeight, type Budget } from '../types/core';
 
 export type LMWeightKind = 'enrichment' | 'context' | 'revision' | 'fallback';
 

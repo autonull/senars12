@@ -16,11 +16,11 @@
  * id, tool name or model id inherits a capacity instead of writing its own.
  */
 
-import type { BoundedMapOptions } from './bounded-map.js';
-import { BoundedMap } from './bounded-map.js';
-import type { Clock } from './clock.js';
-import { systemClock } from './clock.js';
-import { getOrInsert } from './collections.js';
+import type { BoundedMapOptions } from './bounded-map';
+import { BoundedMap } from './bounded-map';
+import type { Clock } from './clock';
+import { systemClock } from './clock';
+import { getOrInsert } from './collections';
 
 /** The counters one attempt changes. Every field is derived on record. */
 export interface CallTally {

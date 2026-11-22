@@ -4,9 +4,9 @@
  */
 
 import { css, html, type TemplateResult } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { mountTestApi } from '../../core/store.js';
+import { customElement } from 'lit/decorators';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
+import { mountTestApi } from '../../core/store';
 import {
   approveCurrent,
   callTool,
@@ -15,7 +15,7 @@ import {
   rejectCurrent,
   type PendingApproval,
   type ToolSpec,
-} from '../../core/tool-registry.js';
+} from '../../core/tool-registry';
 
 @customElement('s-tool-approval')
 export class ToolApprovalView extends SurfaceComponent {

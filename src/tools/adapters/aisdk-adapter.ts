@@ -5,8 +5,8 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { Term } from '../../terms';
 import { mentionsSymbol } from '../../terms';
-import type { TruthLike } from '../../types/truth.js';
-import { asBeliefTruth } from '../../types/truth.js';
+import type { TruthLike } from '../../types/truth';
+import { asBeliefTruth } from '../../types/truth';
 
 /** Format error message. */
 function errMsg(error: unknown): string {
@@ -56,7 +56,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
     if (!constitutionEnforcement) return { violation: false };
     try {
       // Parse the statement to create a task for checking
-      const { termParser, Truth } = await import('../../terms/index.js');
+      const { termParser, Truth } = await import('../../terms/index');
       const { createTask, NEUTRAL_BUDGET } = await import('../../types');
       const parsed = termParser.parseTask(statement);
       if (parsed?.term) {

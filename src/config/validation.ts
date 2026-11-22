@@ -5,8 +5,8 @@
 import { z } from 'zod';
 import { SenarsError } from '../errors';
 import { formatIssues } from '../util/diagnostics';
-import { intBetween, nonEmpty, nonNegativeInt, positiveInt } from './boundary.js';
-import { cachePath } from './paths.js';
+import { intBetween, nonEmpty, nonNegativeInt, positiveInt } from './boundary';
+import { cachePath } from './paths';
 
 export const contextOptsSchema = z
   .object({

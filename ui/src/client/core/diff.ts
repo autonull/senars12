@@ -5,7 +5,7 @@
  * payloads, not megabyte files.
  */
 
-import type { DiffLine } from './view-spec.js';
+import type { DiffLine } from './view-spec';
 
 /** Diff two texts line-by-line into a unified add/del/context sequence. */
 export function diffLines(before: string, after: string): DiffLine[] {

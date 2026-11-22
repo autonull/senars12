@@ -10,7 +10,7 @@ import {
   $viewSelection,
   $workspaceGraph,
   emptyWorkspaceGraph,
-} from '../../src/client/core/store.js';
+} from '../../src/client/core/store';
 
 const setSelection = (refs: Iterable<string>): void =>
   $workspaceGraph.set({ ...$workspaceGraph.get(), selection: new Set(refs) });

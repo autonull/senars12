@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../../core/base-component.js';
-import { getIcon, type IconName } from '../../utils/icon-registry.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../../core/base-component';
+import { getIcon, type IconName } from '../../utils/icon-registry';
 
 @customElement('s-icon')
 export class SIcon extends BaseComponent {

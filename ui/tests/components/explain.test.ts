@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/explain.js';
-import { explain, explainEventModel, explainModel } from '../../src/client/core/explain.js';
-import { $nodeHistory, $workspaceGraph, type RevisionEntry } from '../../src/client/core/store.js';
+import '../../src/client/components/overlays/explain';
+import { explain, explainEventModel, explainModel } from '../../src/client/core/explain';
+import { $nodeHistory, $workspaceGraph, type RevisionEntry } from '../../src/client/core/store';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/core/workspace-graph';
 
 const block = (id: string, title: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
   id,

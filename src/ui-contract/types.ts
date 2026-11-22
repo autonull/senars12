@@ -4,10 +4,10 @@
  * Verified by schema:drift gate; UI packages typecheck against this.
  */
 
-import type { Term, CompoundTerm } from '../kernel/terms/term.js';
-import { TermOp } from '../kernel/terms/term.js';
-import type { TruthValue } from '../kernel/truth.js';
-import type { Stamp } from '../kernel/types.js';
+import type { Term, CompoundTerm } from '../kernel/terms/term';
+import { TermOp } from '../kernel/terms/term';
+import type { TruthValue } from '../kernel/truth';
+import type { Stamp } from '../kernel/types';
 
 /** UI contract version. */
 export const UI_CONTRACT_VERSION = '1.0.0';

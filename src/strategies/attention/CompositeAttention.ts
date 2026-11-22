@@ -1,9 +1,9 @@
 import { safeRatio, sumBy } from '@senars/util/numeric';
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
 import { ConfigurationError } from '../../types';
-import type { AttentionContext, AttentionModel } from '../types.js';
-import { createWeightedMeanComposite, type Composable } from '../composite.js';
+import type { AttentionContext, AttentionModel } from '../types';
+import { createWeightedMeanComposite, type Composable } from '../composite';
 
 export interface WeightedAttention {
   model: AttentionModel;

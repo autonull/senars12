@@ -6,13 +6,13 @@
  * Forgetting/archive → view eviction.
  */
 
-import type { Term } from '../terms/index.js';
-import { atom, getArgs, termKey, fromNarsese } from '../terms/index.js';
-import { cosineNormalized, normalize } from '../util/similarity.js';
+import type { Term } from '../terms/index';
+import { atom, getArgs, termKey, fromNarsese } from '../terms/index';
+import { cosineNormalized, normalize } from '../util/similarity';
 import type { Episode } from '@senars/types/episodic-memory';
-import type { CoActivationEdge } from './ConceptGraph.js';
-import type { RecallHit } from './associative.js';
-import type { IndexedEmbedding } from './links/EmbeddingLayer.js';
+import type { CoActivationEdge } from './ConceptGraph';
+import type { RecallHit } from './associative';
+import type { IndexedEmbedding } from './links/EmbeddingLayer';
 
 /** Parse context strings to Terms, skipping invalid ones. */
 function parseContext(context: string[]): Term[] {

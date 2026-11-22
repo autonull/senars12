@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/views/index.js';
-import { CodeView } from '../../src/client/components/views/code-view.js';
-import { tokenizeCode } from '../../src/client/components/views/code-highlight.js';
-import type { CodeDataset } from '../../src/client/core/view-spec.js';
+import '../../src/client/components/views/index';
+import { CodeView } from '../../src/client/components/views/code-view';
+import { tokenizeCode } from '../../src/client/components/views/code-highlight';
+import type { CodeDataset } from '../../src/client/core/view-spec';
 
 const code: CodeDataset = {
   kind: 'code',

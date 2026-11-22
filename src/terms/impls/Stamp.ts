@@ -1,6 +1,6 @@
 import { threadId } from 'node:worker_threads';
 import { maxScore, unique } from '@senars/util/collections';
-import { DEPTH_MAX, type Timestamp } from '../../types/primitives.js';
+import { DEPTH_MAX, type Timestamp } from '../../types/primitives';
 
 /** Deepest derivation lineage across a stamp set; 0 for an empty set. */
 const maxDepthOf = (stamps: readonly Stamp[]): number =>

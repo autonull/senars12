@@ -1,5 +1,5 @@
-export { CognitiveTreadmill, createTreadmill } from './impls/CognitiveTreadmill.js';
-export { HiddenModelOracle, createOracleFromScenario } from './impls/HiddenModelOracle.js';
+export { CognitiveTreadmill, createTreadmill } from './impls/CognitiveTreadmill';
+export { HiddenModelOracle, createOracleFromScenario } from './impls/HiddenModelOracle';
 export {
   ScenarioGenerator,
   createContradictionStormScenario,
@@ -9,7 +9,7 @@ export {
   createTransitiveScenario,
   generateMultipleScenarios,
   generateScenario,
-} from './impls/ScenarioGenerator.js';
+} from './impls/ScenarioGenerator';
 export type {
   ArchitectureGap,
   DegradationCurve,
@@ -21,4 +21,4 @@ export type {
   ScenarioProfile,
   StressMetrics,
   TreadmillConfig,
-} from './types.js';
+} from './types';

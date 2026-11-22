@@ -24,21 +24,21 @@ import type {
 } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
 import { makeId } from '@senars/util/id';
-import type { ILMService } from '../lm/interfaces.js';
+import type { ILMService } from '../lm/interfaces';
 import { parseTaskTolerant } from '../terms';
-import { defaultFirewall, SymbolicFirewall } from './firewall.js';
+import { defaultFirewall, SymbolicFirewall } from './firewall';
 import {
   type GenerationInput,
   type GenerationOutput,
   NLGenerationService,
-} from './generation.js';
-import { normalizeNarsese } from './normalize.js';
+} from './generation';
+import { normalizeNarsese } from './normalize';
 import {
   detectAmbiguityFlags,
   locateSpan,
   NLUnderstandingService,
   type NLContext,
-} from './understanding.js';
+} from './understanding';
 
 /** Where an interpretation came from — the D17 tag a proposal carries. */
 export const PERCEIVED_ORIGINS = ['user', 'llm-proposed'] as const;

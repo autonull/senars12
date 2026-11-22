@@ -1,12 +1,12 @@
 import type { GraphNodeData } from '@senars/core';
 import { debounce } from '@senars/util';
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { EDGE_TYPES } from '../../shared/constants.js';
-import { artifactViewSpec } from '../core/artifacts.js';
-import { dispatchCommand } from '../core/commands.js';
-import { type ExplainLink, explainModel } from '../core/explain.js';
-import { generateId } from '../core/index.js';
+import { customElement, state } from 'lit/decorators';
+import { EDGE_TYPES } from '../../shared/constants';
+import { artifactViewSpec } from '../core/artifacts';
+import { dispatchCommand } from '../core/commands';
+import { type ExplainLink, explainModel } from '../core/explain';
+import { generateId } from '../core/index';
 import {
   $focusTerm,
   $graphEdges,
@@ -32,10 +32,10 @@ import {
   applyWorkspaceOp,
   type SemanticBlock,
   type WorkspaceOp,
-} from '../core/index.js';
-import { fieldMeta, formatField } from '../utils/field-catalog.js';
-import { renderField } from '../utils/render-field.js';
-import { theme, truthColor } from '../utils/theme.js';
+} from '../core/index';
+import { fieldMeta, formatField } from '../utils/field-catalog';
+import { renderField } from '../utils/render-field';
+import { theme, truthColor } from '../utils/theme';
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
 

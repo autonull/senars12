@@ -4,17 +4,17 @@
  */
 
 import { css, html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { eventBus } from '../../core/events.js';
-import { $chatMessages, $streamingDelta, BaseComponent, send } from '../../core/index.js';
+import { customElement, property, state } from 'lit/decorators';
+import { eventBus } from '../../core/events';
+import { $chatMessages, $streamingDelta, BaseComponent, send } from '../../core/index';
 import type { ChatMessage } from '@senars/core';
-import { viewSource } from '../../core/view-sources.js';
-import type { Shape, ViewSpec } from '../../core/view-spec.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { viewSource } from '../../core/view-sources';
+import type { Shape, ViewSpec } from '../../core/view-spec';
+import { defineSurface, SurfaceComponent } from '../../core/surface';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index';
 
 @customElement('s-chat')
 export class ChatView extends SurfaceComponent {

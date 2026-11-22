@@ -7,7 +7,7 @@
  * so every reader goes through {@link reflexesOf} instead of walking the shape.
  */
 
-import type { GameFocus, Reflex } from '../focus/index.js';
+import type { GameFocus, Reflex } from '../focus/index';
 
 /** What `attachConversationGame` hands back (and what the game registry stores per id). */
 export interface AttachedGame {

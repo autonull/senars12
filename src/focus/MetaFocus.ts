@@ -1,9 +1,9 @@
 import { PriorityBag } from '@senars/bag';
-import { META_FOCUS_DEFAULTS } from '../constants.js';
-import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
+import { META_FOCUS_DEFAULTS } from '../constants';
+import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame';
 import { atom } from '../terms';
-import { Focus, type FocusOptions, type FocusStepReport } from './Focus.js';
-import { focusTask } from './task.js';
+import { Focus, type FocusOptions, type FocusStepReport } from './Focus';
+import { focusTask } from './task';
 
 export interface MetaFocusOptions extends FocusOptions {
   selfMetaGame: SelfMetaGameImpl;

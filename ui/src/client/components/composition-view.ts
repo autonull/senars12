@@ -9,11 +9,11 @@
  */
 
 import { css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { areaName, cellAreaNames, layoutOf } from '../framework/layout.js';
-import { surfaceFor, surfaceTag } from '../framework/surface.js';
-import type { Cell, Composition } from '../framework/composition.js';
+import { customElement, property } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
+import { areaName, cellAreaNames, layoutOf } from '../framework/layout';
+import { surfaceFor, surfaceTag } from '../framework/surface';
+import type { Cell, Composition } from '../framework/composition';
 
 /** The custom-element tag for a cell's surface id (falls back to the id as a tag). */
 export const cellTag = (surfaceId: string): string => {

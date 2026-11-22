@@ -10,9 +10,9 @@
  * - Inference rules as data (formula-ASTs)
  */
 
-import { Term } from '../kernel/terms/intern.js';
-import { TruthValue } from '../kernel/types.js';
-import { Stamp } from '../kernel/stamp.js';
+import { Term } from '../kernel/terms/intern';
+import { TruthValue } from '../kernel/types';
+import { Stamp } from '../kernel/stamp';
 
 /** Inference rule as a formula-AST (data, not code). */
 export interface RuleAST<T> {

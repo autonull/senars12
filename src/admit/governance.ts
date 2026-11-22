@@ -5,10 +5,10 @@
  * Governance writes are external, audited, and versioned.
  */
 
-import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
-import type { AdmissionEvent, AdmissionEventType } from './repertoire.js';
-import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
-import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
+import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire';
+import type { AdmissionEvent, AdmissionEventType } from './repertoire';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 
 /** Governance policy. */
 export interface GovernancePolicy {

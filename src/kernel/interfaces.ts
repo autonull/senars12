@@ -8,7 +8,7 @@ import type {
   PerceptionGateOutput,
   RewardGateInput,
   RewardGateOutput,
-} from '@senars/schemas/gate-io.js';
+} from '@senars/schemas/gate-io';
 import type {
   AutonomyModeChangedEvent,
   BudgetExhaustedEvent,
@@ -16,21 +16,21 @@ import type {
   PolicyViolationEvent,
   ShadowValidationDropEvent,
   TaskAdmittedEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/cognitive-events';
 import type {
   AutonomyAuthority,
   AutonomyMode,
-} from '@senars/schemas/governance.js';
+} from '@senars/schemas/governance';
 import type {
   FormalizationBatch,
-} from '@senars/schemas/formalization.js';
+} from '@senars/schemas/formalization';
 import type {
   ReasoningBudget,
-} from '@senars/schemas/reasoning-budget.js';
+} from '@senars/schemas/reasoning-budget';
 import type {
   SourceQuality,
-} from '@senars/schemas/truth.js';
-import type { TruthLike } from '../types/truth.js';
+} from '@senars/schemas/truth';
+import type { TruthLike } from '../types/truth';
 import type { TaskTypeName, Term } from '../terms';
 
 export interface IPerceptionGate extends GateEventLog<CognitiveEvent> {

@@ -2,12 +2,12 @@
  * Shared bin lifecycle utilities — agent startup, shutdown, env-based creation.
  */
 
-import type { Agent as CoreAgent } from '../../agent/index.js';
-import { JsonlSessionManager } from '../../memory/index.js';
-import type { NARConfig } from '../../agent/index.js';
-import type { ExtendedAgent } from '../../agent/index.js';
-import { NARBuilder } from '../../agent/index.js';
-import { threadScope } from '../../kernel/index.js';
+import type { Agent as CoreAgent } from '../../agent/index';
+import { JsonlSessionManager } from '../../memory/index';
+import type { NARConfig } from '../../agent/index';
+import type { ExtendedAgent } from '../../agent/index';
+import { NARBuilder } from '../../agent/index';
+import { threadScope } from '../../kernel/index';
 import {
   configureLM,
   createConfiguredLMRules,
@@ -15,15 +15,15 @@ import {
   createSeNARSRegistry,
   resolveEmbeddingGenerator,
   setRouting,
-} from '../../lm/index.js';
+} from '../../lm/index';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import { type PromotionResult, consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
 import { cachePath, envStr } from '@senars/config';
-import { createLogger } from '@senars/util/logger.js';
-import { setupGracefulShutdown } from '@senars/util/shutdown.js';
-import { type AppConfig, loadConfig } from '../../config/index.js';
-import { readEpisodicConfig } from './env-config.js';
-import { mettaPort } from './metta.js';
+import { createLogger } from '@senars/util/logger';
+import { setupGracefulShutdown } from '@senars/util/shutdown';
+import { type AppConfig, loadConfig } from '../../config/index';
+import { readEpisodicConfig } from './env-config';
+import { mettaPort } from './metta';
 
 export interface AgentFromEnvOptions {
   narConfig?: Partial<NARConfig>;
@@ -33,12 +33,12 @@ export interface AgentFromEnvOptions {
 
 export interface AgentFromEnvResult {
   agent: ExtendedAgent;
-  nar: import('../../agent/index.js').NAR;
+  nar: import('../../agent/index').NAR;
   sessionManager: JsonlSessionManager;
   episodicMemory: EpisodicMemory;
   lmService: ReturnType<typeof createLMService>;
-  appConfig: import('../../config/index.js').AppConfig;
-  profile: import('../../config/index.js').BotProfile;
+  appConfig: import('../../config/index').AppConfig;
+  profile: import('../../config/index').BotProfile;
   /** Retrieval-verified long-term memory consolidation pass. */
   consolidateMemory: (options?: {
     limit?: number;

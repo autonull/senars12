@@ -1,16 +1,16 @@
 import { render } from 'lit';
 import { describe, expect, it } from 'vitest';
 import type { ChatMessage } from '@senars/core';
-import { artifactViewSpec } from '../../src/client/core/artifacts.js';
-import { projectChat } from '../../src/client/core/workspace-projection.js';
-import { HTML_BODY_BUDGET } from '../../src/client/utils/graph-scaling.js';
-import { selectHtmlLabels } from '../../src/client/utils/html-labels.js';
+import { artifactViewSpec } from '../../src/client/core/artifacts';
+import { projectChat } from '../../src/client/core/workspace-projection';
+import { HTML_BODY_BUDGET } from '../../src/client/utils/graph-scaling';
+import { selectHtmlLabels } from '../../src/client/utils/html-labels';
 import {
   embedDepthExceeded,
   MAX_EMBED_DEPTH,
   renderBlockBody,
-} from '../../src/client/utils/render-block.js';
-import type { SemanticBlock } from '../../src/client/core/workspace-graph.js';
+} from '../../src/client/utils/render-block';
+import type { SemanticBlock } from '../../src/client/core/workspace-graph';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 

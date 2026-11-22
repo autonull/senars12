@@ -10,8 +10,8 @@
  * firing in one of the two cells.
  */
 import { TermBuilder, termsEqual } from '../../terms';
-import { buildRolePairRule } from '../impls/rule-builder.js';
-import type { RuleFn } from '../types.js';
+import { buildRolePairRule } from '../impls/rule-builder';
+import type { RuleFn } from '../types';
 
 /** `A--B, B<->C ⊢ A--C` — an inheritance meeting a similarity at its predicate. */
 export const analogy: RuleFn = buildRolePairRule(([s1, p1], [s2, p2]) =>

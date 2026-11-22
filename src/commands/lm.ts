@@ -1,5 +1,5 @@
-import type { CommandDefinition } from './types.js';
-import { narOf, requiring } from './utils.js';
+import type { CommandDefinition } from './types';
+import { narOf, requiring } from './utils';
 
 export const lmCommands: CommandDefinition[] = [
   {

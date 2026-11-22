@@ -1,4 +1,4 @@
-import type { Connection } from '../types/transport.js';
+import type { Connection } from '../types/transport';
 
 export interface CommandContext {
   readonly connection: Connection;

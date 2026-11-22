@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
+import { customElement, state } from 'lit/decorators';
+import { BaseComponent } from '../core/base-component';
 
 /**
  * Split panel (E3): a first-class panel kind for side-by-side or stacked
@@ -28,7 +28,7 @@ export class SplitPanel extends BaseComponent {
   }
 
   private handleClose() {
-    import('../core/store.js').then(({ togglePanel }) => togglePanel('split'));
+    import('../core/store').then(({ togglePanel }) => togglePanel('split'));
   }
 }
 

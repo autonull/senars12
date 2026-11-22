@@ -1,9 +1,9 @@
 import { type BeliefTruth } from '@senars/types/truth';
 import { BoundedRing, getOrInsert, perPart, rankBy, selectTopN, shareOf, sortBy } from '@senars/util/collections';
 import { nextInt, type RandomSource } from '@senars/util/random';
-import { LINK, PRESSURE } from '../constants.js';
-import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
-import type { AttentionModel } from '../strategies/types.js';
+import { LINK, PRESSURE } from '../constants';
+import { NullAttentionModel } from '../strategies/attention/NullAttentionModel';
+import type { AttentionModel } from '../strategies/types';
 import {
   mentionsSymbol,
   Stamp,
@@ -14,33 +14,33 @@ import {
   Truth,
   termKey,
 } from '../terms';
-import { atom } from '../terms/impls/factory.js';
+import { atom } from '../terms/impls/factory';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
-import { AssociativeRegistry, GraphMemory } from './associative.js';
-import type { ConceptGraph } from './ConceptGraph.js';
+import { AssociativeRegistry, GraphMemory } from './associative';
+import type { ConceptGraph } from './ConceptGraph';
 import {
   Concept,
   type ConceptMergeResult,
   type ConceptTaskType,
   taskFromBagItem,
   type TaskData,
-} from './concept.js';
-import { DEFAULT_MEMORY_CONFIG, type MemoryConfig, type ResolvedMemoryConfig } from './config.js';
-import { type EmbeddingGenerator, MockEmbeddingGenerator } from './embedding.js';
-import { Focus } from './focus.js';
-import type { MemoryHealth } from './health.js';
+} from './concept';
+import { DEFAULT_MEMORY_CONFIG, type MemoryConfig, type ResolvedMemoryConfig } from './config';
+import { type EmbeddingGenerator, MockEmbeddingGenerator } from './embedding';
+import { Focus } from './focus';
+import type { MemoryHealth } from './health';
 import { Archive, Forgetting } from './lifecycle';
 import { LinkManager } from './links';
-import { EmbeddingLayer } from './links/EmbeddingLayer.js';
-import { LINK_LAYER } from './links/types.js';
-import { MemoryIndex } from './memory-index.js';
-import type { MemoryPorts, LinkPort, MemoryStatistics, StorePressure } from './ports/index.js';
+import { EmbeddingLayer } from './links/EmbeddingLayer';
+import { LINK_LAYER } from './links/types';
+import { MemoryIndex } from './memory-index';
+import type { MemoryPorts, LinkPort, MemoryStatistics, StorePressure } from './ports/index';
 import type { EvictionReport } from './pressure';
 import { evictUnderPressure } from './pressure';
-import { selectSimilar } from './similarity.js';
+import { selectSimilar } from './similarity';
 import { calculateConceptStats, storePressure, tallyConcepts } from './state';
-import { filterByTerm } from './term-filter.js';
+import { filterByTerm } from './term-filter';
 
 /** Stateless, so one instance serves every memory that was not given a model. */
 const NULL_ATTENTION = new NullAttentionModel();
@@ -660,4 +660,4 @@ export {
   type SerializedMemory,
   serialize,
   validate,
-} from './state/serialization.js';
+} from './state/serialization';

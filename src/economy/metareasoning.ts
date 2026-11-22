@@ -4,9 +4,9 @@
  * Small margin thinks, large margin acts.
  */
 
-import type { EconomyTask, MetareasoningResult, MetareasoningDecision, SchedulerConfig, Successor } from './types.js';
-import type { Truth } from '../kernel/truth.js';
-import { calculateTaskUtility } from './utility.js';
+import type { EconomyTask, MetareasoningResult, MetareasoningDecision, SchedulerConfig, Successor } from './types';
+import type { Truth } from '../kernel/truth';
+import { calculateTaskUtility } from './utility';
 
 /** Metareasoning context. */
 export interface MetareasoningContext {

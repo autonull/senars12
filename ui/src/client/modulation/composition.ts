@@ -1,5 +1,5 @@
-import { channel, compose, konst, when } from './operators.js';
-import type { Item, Modulation, View } from './types.js';
+import { channel, compose, konst, when } from './operators';
+import type { Item, Modulation, View } from './types';
 
 export function timeGate(base: Modulation): Modulation {
   return compose(

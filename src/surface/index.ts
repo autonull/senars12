@@ -2,6 +2,6 @@
  * Surface — generated MCP, CLI, and transports.
  */
 
-export * from './mcp/index.js';
-export * from './cli/index.js';
-export * from './transports/index.js';
+export * from './mcp/index';
+export * from './cli/index';
+export * from './transports/index';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { layoutRegistry } from '../../src/client/utils/layout-registry.js';
-import { PRIMARY_LENSES } from '../../src/client/utils/lens-catalog.js';
-import { LINK_CATALOG } from '../../src/client/utils/link-catalog.js';
+import { layoutRegistry } from '../../src/client/utils/layout-registry';
+import { PRIMARY_LENSES } from '../../src/client/utils/lens-catalog';
+import { LINK_CATALOG } from '../../src/client/utils/link-catalog';
 
 describe('layout registry (§2.6)', () => {
   it('registers every layout the link catalog references', () => {

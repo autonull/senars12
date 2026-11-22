@@ -12,19 +12,19 @@
  * replaces hardcoded Platt constants.
  */
 
-import { Truth as TruthOps, Truth } from '../../kernel/truth.js';
-import type { Term } from '../../kernel/terms/term.js';
-import type { Task } from '../../kernel/types.js';
-import type { FacultyInput, FacultyOutput } from '../specs.js';
-import { facultyEngine } from '../engine.js';
-import { OracleOutput } from '../../oracles/oracle.js';
-import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env.js';
-import { createCalibrationManager, type CalibrationManager } from './calibration.js';
-import { createTelemetryCollector, type TelemetryCollector } from './telemetry.js';
-import type { IsotonicCalibrator } from '../../lm/system-one/calibration.js';
-import type { JudgmentDataset } from '../../lm/system-one/distill.js';
-import { createLMGenerateObjectOracle, type LMOracleService } from '../../oracles/lm.js';
-import { OraclePinStore } from '../../oracles/pins.js';
+import { Truth as TruthOps, Truth } from '../../kernel/truth';
+import type { Term } from '../../kernel/terms/term';
+import type { Task } from '../../kernel/types';
+import type { FacultyInput, FacultyOutput } from '../specs';
+import { facultyEngine } from '../engine';
+import { OracleOutput } from '../../oracles/oracle';
+import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env';
+import { createCalibrationManager, type CalibrationManager } from './calibration';
+import { createTelemetryCollector, type TelemetryCollector } from './telemetry';
+import type { IsotonicCalibrator } from '../../lm/system-one/calibration';
+import type { JudgmentDataset } from '../../lm/system-one/distill';
+import { createLMGenerateObjectOracle, type LMOracleService } from '../../oracles/lm';
+import { OraclePinStore } from '../../oracles/pins';
 
 /** Judgment stages (hard floor cascade). */
 export const JUDGMENT_STAGES = [
@@ -193,7 +193,7 @@ export class JudgmentCascade {
   private readonly telemetry?: TelemetryCollector;
 
   private lmRubricOracle: ReturnType<typeof createLMGenerateObjectOracle> | null = null;
-  private learnedJudge: ReturnType<typeof import('./judge.js').createJudge> | null = null;
+  private learnedJudge: ReturnType<typeof import('./judge').createJudge> | null = null;
   private calibrators: Map<string, IsotonicCalibrator> = new Map();
   private distillationDataset?: JudgmentDataset;
 
@@ -226,13 +226,8 @@ export class JudgmentCascade {
       }
     }
 
-    // Initialize learned judge
-    const { createJudge } = require('./judge.js');
-    this.learnedJudge = createJudge({
-      rng: () => this.clock.now() / 1000000, // Use clock for deterministic-ish randomness
-      now: () => this.clock.now(),
-      telemetry: this.telemetry,
-    });
+    // Learned judge initialized lazily on first use
+    this.learnedJudge = null;
 
     // Load calibrators if provided
     if (this.config.calibrators) {
@@ -680,8 +675,20 @@ Provide scores 0-1 for each criterion.
     return z.object(shape);
   }
 
+  /** Ensure learned judge is initialized. */
+  private async ensureLearnedJudge(): Promise<void> {
+    if (this.learnedJudge) return;
+    const { createJudge } = await import('./judge');
+    this.learnedJudge = createJudge({
+      rng: () => this.clock.now() / 1000000,
+      now: () => this.clock.now(),
+      telemetry: this.telemetry,
+    });
+  }
+
   /** Stage 5: Learned logistic judge. */
   private async learnedJudgeStage(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
+    await this.ensureLearnedJudge();
     if (!this.learnedJudge || candidates.length === 0) return candidates;
 
     this.stats.learnedJudgeCalls++;

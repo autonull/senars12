@@ -14,12 +14,12 @@ import type {
   SemanticBlock,
   SemanticLink,
   WorkspaceOp,
-} from './workspace-graph.js';
-import { Capability } from './capabilities.js';
-import type { Channel, ChannelValue } from '../modulation/types.js';
-import type { FocusRef, TimeRef } from '../framework/coordinates.js';
-import type { ViewFlags } from '../modulation/types.js';
-import type { ThemeTokens } from '../utils/theme.js';
+} from './workspace-graph';
+import { Capability } from './capabilities';
+import type { Channel, ChannelValue } from '../modulation/types';
+import type { FocusRef, TimeRef } from '../framework/coordinates';
+import type { ViewFlags } from '../modulation/types';
+import type { ThemeTokens } from '../utils/theme';
 
 /** Every interaction a renderer may implement; capabilities declare the subset. */
 export const WORKSPACE_INTERACTIONS = [
@@ -250,7 +250,7 @@ export const workspaceRendererIds = (): string[] => [...registry.keys()];
 
 export const workspaceRenderer = (id: string): WorkspaceRenderer | undefined => registry.get(id);
 
-export type { FocusRef } from '../framework/coordinates.js';
+export type { FocusRef } from '../framework/coordinates';
 
 /** Renderers that present a block kind richly — the block-kind filter and palette read this. */
 export const renderersForKind = (kind: BlockKind): WorkspaceRenderer[] =>

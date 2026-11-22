@@ -6,14 +6,14 @@
  * instance every caller has to null-check twice — once here, once at use.
  */
 
-import { MiningBag } from '../lm/system-one/hard-negatives.js';
-import { EpisodeConsolidator } from '../memory/episode-consolidator.js';
-import { ProofMettaProposer } from '../meta/index.js';
+import { MiningBag } from '../lm/system-one/hard-negatives';
+import { EpisodeConsolidator } from '../memory/episode-consolidator';
+import { ProofMettaProposer } from '../meta/index';
 // NARConfig, not NAR — importing the class here would close a type-only cycle
 // back to nar.ts, which `deps:gate` erases but the complexity ledger counts.
-import type { NARConfig } from './config.js';
+import type { NARConfig } from './config';
 import { RLFPLearner } from '../rlfp';
-import type { RandomSource } from '../types/primitives.js';
+import type { RandomSource } from '../types/primitives';
 
 export interface OptionalSubsystems {
   rlfp: RLFPLearner | undefined;

@@ -3,7 +3,7 @@
  * comparison. The last one is deliberately a walk rather than a digest — see
  * {@link deepEqual}.
  */
-import { isPlainObject } from './guards.js';
+import { isPlainObject } from './guards';
 
 /**
  * Recursively merge `override` onto `base`. Plain objects merge key-by-key;

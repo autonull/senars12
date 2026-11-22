@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated.js';
+import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated';
 
 const TYPOGRAPHY_SCALE_KEYS = [
   'typography.scale.xs',

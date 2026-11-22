@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import '../../src/client/components/overlays/telemetry.js';
-import { eventBus } from '../../src/client/core/events.js';
-import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
+import '../../src/client/components/overlays/telemetry';
+import { eventBus } from '../../src/client/core/events';
+import { overlayDescriptor } from '../../src/client/core/overlay-registry';
 
 afterEach(() => {
   document.body.innerHTML = '';

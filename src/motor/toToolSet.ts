@@ -1,5 +1,5 @@
 import { jsonSchema, type ToolSet, tool } from 'ai';
-import type { ToolRegistry } from './ToolRegistry.js';
+import type { ToolRegistry } from './ToolRegistry';
 
 export function motorToToolSet(motor: Pick<ToolRegistry, 'list' | 'execute'>): ToolSet {
   const set: ToolSet = {};

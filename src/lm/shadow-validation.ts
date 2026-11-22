@@ -5,9 +5,9 @@
  * rule's symbolic fallback stands.
  */
 
-import type { JudgmentDataset } from '../lm/system-one/distill.js';
-import { recordShadowVerdictLabel } from '../lm/system-one/label-sources.js';
-import type { SystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
+import type { JudgmentDataset } from '../lm/system-one/distill';
+import { recordShadowVerdictLabel } from '../lm/system-one/label-sources';
+import type { SystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter';
 import { type Term, type Truth, termsEqual } from '../terms';
 
 export interface BeliefLike {

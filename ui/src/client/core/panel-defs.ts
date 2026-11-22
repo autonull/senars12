@@ -15,8 +15,8 @@ import {
   type SurfaceDescriptor,
   type Placement,
   type Presentation,
-} from '../framework/surface.js';
-import { defineCatalog } from '../framework/catalog.js';
+} from '../framework/surface';
+import { defineCatalog } from '../framework/catalog';
 
 /** Panel-specific presentation options (subset of unified Presentation). */
 export interface PanelPresentation extends Presentation {

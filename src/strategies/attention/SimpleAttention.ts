@@ -1,7 +1,7 @@
 import { forget } from '@senars/util/numeric';
-import type { Concept } from '../../memory/concept.js';
-import type { MemoryView } from '../../memory/view.js';
-import type { AttentionContext, AttentionModel } from '../types.js';
+import type { Concept } from '../../memory/concept';
+import type { MemoryView } from '../../memory/view';
+import type { AttentionContext, AttentionModel } from '../types';
 
 export class SimpleAttention implements AttentionModel {
   readonly metadata = { name: 'simple', description: 'Fixed boost on prime, exponential decay' };

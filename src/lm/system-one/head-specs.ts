@@ -6,8 +6,8 @@
  */
 
 import { getOrInsert, indexBy } from '@senars/util/collections';
-import { createIsotonicCalibrator } from './calibration.js';
-import { dominantDistribution, legendFrom, uniformDistribution } from './distribution.js';
+import { createIsotonicCalibrator } from './calibration';
+import { dominantDistribution, legendFrom, uniformDistribution } from './distribution';
 import {
   ALL_HEAD_SPECS,
   HEAD_SPECS,
@@ -16,26 +16,26 @@ import {
   type HeadSpec,
   headSpecsInGroup,
   specToQuery,
-} from './head-ontology.js';
-import type { HeadFactoryOptions } from './heads/factory.js';
-import { getScorer } from './scoring.js';
+} from './head-ontology';
+import type { HeadFactoryOptions } from './heads/factory';
+import { getScorer } from './scoring';
 import type {
   ClassifyQuery,
   EvaluateQuery,
   JudgmentHead,
   JudgmentQuery,
   RubricId,
-} from './types.js';
+} from './types';
 
-export type { HeadGroup, HeadId, HeadSpec } from './head-ontology.js';
-export type { HeadFactoryOptions } from './heads/factory.js';
+export type { HeadGroup, HeadId, HeadSpec } from './head-ontology';
+export type { HeadFactoryOptions } from './heads/factory';
 export type {
   CalibrationVersion,
   ClassifyQuery,
   EmbeddingCache,
   EvaluateQuery,
   JudgmentQuery,
-} from './types.js';
+} from './types';
 
 /** Build one JudgmentHead from its spec entry (sole implementation; factory.ts delegates). */
 

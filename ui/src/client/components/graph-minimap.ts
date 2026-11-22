@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $graphEdges, $graphNodes, $viewport, BaseComponent, eventBus } from '../core/index.js';
-import { cssToken, theme } from '../utils/theme.js';
+import { customElement, state } from 'lit/decorators';
+import { $graphEdges, $graphNodes, $viewport, BaseComponent, eventBus } from '../core/index';
+import { cssToken, theme } from '../utils/theme';
 
 const MINIMAP_SIZE = 160;
 const PADDING = 10;

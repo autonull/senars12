@@ -21,12 +21,12 @@ import {
   validatorFor,
 } from '../config';
 import { z } from 'zod';
-import { RulePatternSchema } from './common.js';
-import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
-import { RuleDeclarationSchema } from './rule-table.js';
-import { TaskTypeSchema } from './task.js';
-import { BeliefTruthSchema as TruthValueSchema } from '../util/truth-schema.js';
-import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema, ProposalRejection as EventProposalRejection } from './proposal-events.js';
+import { RulePatternSchema } from './common';
+import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base';
+import { RuleDeclarationSchema } from './rule-table';
+import { TaskTypeSchema } from './task';
+import { BeliefTruthSchema as TruthValueSchema } from '../util/truth-schema';
+import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema, ProposalRejection as EventProposalRejection } from './proposal-events';
 
 /**
  * The wire version of the proposal contract. A run recorded against one version
@@ -121,7 +121,7 @@ export const PROPOSAL_REJECTIONS = [
 export type ProposalRejection = (typeof PROPOSAL_REJECTIONS)[number];
 
 /** Re-export event schemas from proposal-events to avoid circular dependency. */
-export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events.js';
-export type { ProposalAdmittedEvent, ProposalRejectedEvent } from './proposal-events.js';
+export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events';
+export type { ProposalAdmittedEvent, ProposalRejectedEvent } from './proposal-events';
 
 export const validateProposal = validatorFor(ProposalSchema, 'Proposal');

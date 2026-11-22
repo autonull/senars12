@@ -1,9 +1,9 @@
 import { rankBy } from '@senars/util/collections';
-import type { RuleEngine } from '../../rules/types.js';
+import type { RuleEngine } from '../../rules/types';
 import { sharesSymbol } from '../../terms';
 import type { Task } from '../../types';
-import type { DerivationContext } from '../types.js';
-import { DefaultDerivation } from './DefaultDerivation.js';
+import type { DerivationContext } from '../types';
+import { DefaultDerivation } from './DefaultDerivation';
 
 export class FocusedDerivation extends DefaultDerivation {
   override readonly metadata = {

@@ -1,5 +1,5 @@
 import type { StorybookConfig } from '@storybook/web-components-vite';
-import { resolveAliases } from '../vite.aliases.js';
+import { resolveAliases } from '../vite.aliases';
 
 const config: StorybookConfig = {
   stories: ['../src/client/**/*.stories.@(ts|tsx)'],

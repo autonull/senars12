@@ -1,6 +1,6 @@
-import type { ModelRule } from '../../rules/types.js';
-import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
-import { createCappedUnionComposite, type Composable } from '../composite.js';
+import type { ModelRule } from '../../rules/types';
+import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types';
+import { createCappedUnionComposite, type Composable } from '../composite';
 
 /**
  * Union of several LM-rule selectors: every selector proposes, the union is

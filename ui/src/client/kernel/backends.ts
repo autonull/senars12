@@ -1,6 +1,6 @@
-export { narsBackend, NAL_VOCABULARY } from '../core/nars-backend.js';
-export { mettaBackend, METTA_VOCABULARY } from '../core/metta-backend.js';
-export { awaitControl, settleControl } from '../core/control-channel.js';
+export { narsBackend, NAL_VOCABULARY } from '../core/nars-backend';
+export { mettaBackend, METTA_VOCABULARY } from '../core/metta-backend';
+export { awaitControl, settleControl } from '../core/control-channel';
 export type {
   BackendCaps,
   BackendEdge,
@@ -11,8 +11,8 @@ export type {
   ReasoningBackend,
   ReasoningControl,
   SubmitInput,
-} from '../core/reasoning-backend.js';
-import type { ReasoningBackend } from '../core/reasoning-backend.js';
+} from '../core/reasoning-backend';
+import type { ReasoningBackend } from '../core/reasoning-backend';
 
 /** Registry of reasoning backends. */
 const backendRegistry = new Map<string, ReasoningBackend>();

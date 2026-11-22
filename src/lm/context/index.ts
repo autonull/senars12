@@ -10,7 +10,7 @@ export {
   getContextBudget,
   type TruncationResult,
   truncateContext,
-} from './context-budget.js';
+} from './context-budget';
 export {
   assertInstructionBudget,
   assertPrompt,
@@ -18,5 +18,5 @@ export {
   assertPromptContains,
   type PromptAssertionResult,
   validatePrompt,
-} from './prompt-assertions.js';
-export * from './trace-abstractor.js';
+} from './prompt-assertions';
+export * from './trace-abstractor';

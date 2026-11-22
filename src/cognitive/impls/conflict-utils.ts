@@ -1,9 +1,9 @@
 import { getOrInsert } from '@senars/util/collections';
 import { TermMap } from '../../terms';
 import type { Task } from '../../types';
-import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence.js';
+import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence';
 
-export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence.js';
+export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence';
 
 /**
  * How many subjects contradict themselves.

@@ -8,13 +8,13 @@
  * All operations saturate at boundaries; no operation throws on valid input.
  */
 
-import type { Frequency, Confidence, TruthLike, TruthValue } from './types.js';
+import type { Frequency, Confidence, TruthLike, TruthValue } from './types';
 import { clamp, clamp01, safeDiv } from '@senars/util/numeric';
-import { softSquash } from './types.js';
+import { softSquash } from './types';
 import { weakenConfidence, confidenceToWeight, weightToConfidence } from '@senars/util/truth-algebra';
 
 // Re-export TruthValue from types
-export type { TruthValue } from './types.js';
+export type { TruthValue } from './types';
 
 // Import the utility functions we need
 const MAX_CONFIDENCE = 0.999;

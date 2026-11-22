@@ -8,9 +8,9 @@ import {
 import { stopwatch } from '@senars/util/async';
 import type { LanguageModel } from 'ai';
 import type { ZodSchema } from 'zod';
-import { createMockModel } from '../providers/mock-model.js';
-import type { LMService } from './LMService.js';
-import type { ProviderSpend } from './spend.js';
+import { createMockModel } from '../providers/mock-model';
+import type { LMService } from './LMService';
+import type { ProviderSpend } from './spend';
 
 export function createMockLMService(config: MockLMConfig = {}): LMService {
   const {

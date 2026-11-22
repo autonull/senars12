@@ -1,5 +1,5 @@
 import type { LMTask } from '@senars/types/llm';
-import type { ChatOptions as BaseChatOptions, ChatStreamEvent } from '../types/cognitive.js';
+import type { ChatOptions as BaseChatOptions, ChatStreamEvent } from '../types/cognitive';
 
 /**
  * The chat option and event vocabulary — canonical, and the only thing left
