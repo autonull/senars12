@@ -274,14 +274,14 @@ One capability at a time, parity-gated by the preservation gate. **No bulk conso
 | Gate | Implementation | Status |
 |------|----------------|--------|
 | `golden-replay` | ✅ Exists (`tests/obligations/06-seeded-replay.test.ts`) | ✅ Pass |
-| `obligations-battery` | 14 falsification tests as CI jobs (see §7) | ❌ TODO |
-| `totality+liveness` | Property tests: every loop iteration terminates or yields `unchecked` | ❌ TODO |
-| `import-boundary` | ✅ Exists (`scripts/import-boundary.ts`) | ✅ Pass |
-| `schema-drift` | `zod` schema hash in genome; CI fails on change without migration | ❌ TODO |
+| `obligations-battery` | 14 falsification tests as CI jobs (`tests/gates/obligations-battery.test.ts`) | ✅ Pass |
+| `totality+liveness` | Property tests: every loop iteration terminates or yields `unchecked` (`tests/gates/totality-liveness.test.ts`) | ✅ Pass |
+| `import-boundary` | ✅ Exists (`scripts/import-boundary.ts`, `tests/gates/import-boundary.test.ts`) | ✅ Pass |
+| `schema-drift` | `zod` schema hash in genome; CI fails on change without migration (`tests/gates/schema-drift.test.ts`) | ✅ Pass |
 | `fairness/soak` | **DEFERRED** — single 1-hour soak in Phase 5 | ⏸️ Deferred |
-| `cross-engine-agreement` | NAL vs Axiomatic vs Fuzzy on shared corpus | ❌ TODO |
-| `format-round-trip` | Narsese/JSON/TPTP/SMT-LIB codecs | ❌ TODO |
-| `capability-preservation` | ✅ Manifest + gate (`scripts/capability-manifest-core.ts`) | ✅ Pass |
+| `cross-engine-agreement` | NAL vs Axiomatic vs Fuzzy on shared corpus (`tests/gates/cross-engine-agreement.test.ts`) | ✅ Pass |
+| `format-round-trip` | Narsese/JSON/TPTP/SMT-LIB codecs (`tests/gates/format-round-trip.test.ts`) | ✅ Pass |
+| `capability-preservation` | ✅ Manifest + gate (`scripts/capability-manifest-core.ts`, `tests/gates/capability-preservation.test.ts`) | ✅ Pass |
 
 **Efficiency:** 8 gates → 8 CI jobs. No custom gate runner needed — each is a `vitest` file.
 
@@ -418,7 +418,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
 | P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) + Premise (4) + Memory indexes (7) + Batch: analyzers (8), self-mod (7), focus (10), NL (10), schema (10), transport (6) DONE — all 76 capabilities registered in manifest; preservation gate PASS |
-| P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
+| P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w | ✅ DONE |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |
 
