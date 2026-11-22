@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 // Plugin to normalize imports: remove trailing slashes
 const normalizeImportsPlugin = {
@@ -736,10 +737,10 @@ const aliases = [
 console.log('Vitest aliases loaded:', aliases.length);
 
 export default defineConfig({
-  plugins: [normalizeImportsPlugin, debugResolverPlugin, debugTransformPlugin],
+  plugins: [normalizeImportsPlugin, debugResolverPlugin, debugTransformPlugin, tsconfigPaths()],
   resolve: {
     alias: aliases,
-    tsconfigPaths: false,
+    tsconfigPaths: true,
   },
   transformMode: {
     web: ['**/*.ts'],

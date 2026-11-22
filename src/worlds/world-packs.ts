@@ -9,7 +9,7 @@
 
 import type { HabitatConfig, HabitatPack, HabitatId, HabitatKind } from './habitat';
 import { createHabitatPack } from './habitat';
-import type { EvaluationCertificate, EvaluationFold } from './scorecard';
+import type { EvaluationCertificate, EvaluationFold, FoldId } from './scorecard';
 import type { Term } from '../kernel/terms/term';
 import type { TruthValue } from '../kernel/truth';
 
@@ -92,80 +92,80 @@ export interface WeightAllocationConfig {
 export const GAME_PACKS: Record<string, () => HabitatPack> = {
   /** Arithmetic game. */
   arithmetic: () => createHabitatPack('arithmetic', [
-    createArithmeticHabitat('arithmetic-easy', 42, 100),
-    createArithmeticHabitat('arithmetic-medium', 123, 200),
-    createArithmeticHabitat('arithmetic-hard', 456, 300),
+    createArithmeticHabitat('arithmetic-easy' as HabitatId, 42, 100),
+    createArithmeticHabitat('arithmetic-medium' as HabitatId, 123, 200),
+    createArithmeticHabitat('arithmetic-hard' as HabitatId, 456, 300),
   ]),
 
   /** Bandit game. */
   bandit: () => createHabitatPack('bandit', [
-    createBanditHabitat('bandit-stationary', 42, 1000),
-    createBanditHabitat('bandit-drift', 123, 1000),
+    createBanditHabitat('bandit-stationary' as HabitatId, 42, 1000),
+    createBanditHabitat('bandit-drift' as HabitatId, 123, 1000),
   ]),
 
   /** Catch game. */
   catch: () => createHabitatPack('catch', [
-    createCatchHabitat('catch-slow', 42, 500),
-    createCatchHabitat('catch-fast', 123, 500),
+    createCatchHabitat('catch-slow' as HabitatId, 42, 500),
+    createCatchHabitat('catch-fast' as HabitatId, 123, 500),
   ]),
 
   /** Conversation game. */
   conversation: () => createHabitatPack('conversation', [
-    createConversationHabitat('conversation-basic', 42, 50),
+    createConversationHabitat('conversation-basic' as HabitatId, 42, 50),
   ]),
 
   /** Game 2048. */
   game2048: () => createHabitatPack('game2048', [
-    create2048Habitat('2048-standard', 42, 1000),
+    create2048Habitat('2048-standard' as HabitatId, 42, 1000),
   ]),
 
   /** GridWorld game. */
   gridworld: () => createHabitatPack('gridworld', [
-    createGridWorldHabitat('gridworld-3x3', 42, 100),
-    createGridWorldHabitat('gridworld-5x5', 123, 200),
-    createGridWorldHabitat('gridworld-10x10', 456, 500),
+    createGridWorldHabitat('gridworld-3x3' as HabitatId, 42, 100),
+    createGridWorldHabitat('gridworld-5x5' as HabitatId, 123, 200),
+    createGridWorldHabitat('gridworld-10x10' as HabitatId, 456, 500),
   ]),
 
   /** Reasoning game. */
   reasoning: () => createHabitatPack('reasoning', [
-    createReasoningHabitat('reasoning-simple', 42, 50),
-    createReasoningHabitat('reasoning-complex', 123, 100),
+    createReasoningHabitat('reasoning-simple' as HabitatId, 42, 50),
+    createReasoningHabitat('reasoning-complex' as HabitatId, 123, 100),
   ]),
 
   /** RPS game. */
   rps: () => createHabitatPack('rps', [
-    createRPSHabitat('rps-standard', 42, 100),
+    createRPSHabitat('rps-standard' as HabitatId, 42, 100),
   ]),
 
   /** Snake game. */
   snake: () => createHabitatPack('snake', [
-    createSnakeHabitat('snake-small', 42, 200),
-    createSnakeHabitat('snake-large', 123, 500),
+    createSnakeHabitat('snake-small' as HabitatId, 42, 200),
+    createSnakeHabitat('snake-large' as HabitatId, 123, 500),
   ]),
 
   /** Tetris game. */
   tetris: () => createHabitatPack('tetris', [
-    createTetrisHabitat('tetris-standard', 42, 500),
+    createTetrisHabitat('tetris-standard' as HabitatId, 42, 500),
   ]),
 
   /** TicTacToe game. */
   tictactoe: () => createHabitatPack('tictactoe', [
-    createTicTacToeHabitat('tictactoe-standard', 42, 50),
+    createTicTacToeHabitat('tictactoe-standard' as HabitatId, 42, 50),
   ]),
 
   /** SelfMetaGame. */
   selfmetagame: () => createHabitatPack('selfmetagame', [
-    createSelfMetaHabitat('selfmeta-basic', 42, 100),
+    createSelfMetaHabitat('selfmeta-basic' as HabitatId, 42, 100),
   ]),
 
   /** MetaGame. */
   metagame: () => createHabitatPack('metagame', [
-    createMetaHabitat('meta-basic', 42, 100),
+    createMetaHabitat('meta-basic' as HabitatId, 42, 100),
   ]),
 
   /** ReasoningMetaGame. */
   reasoningmetagame: () => createHabitatPack('reasoningmetagame', [
-    createReasoningMetaHabitat('reasoningmeta-basic', 42, 100),
+    createReasoningMetaHabitat('reasoningmeta-basic' as HabitatId, 42, 100),
   ]),
 };
 
@@ -182,7 +182,7 @@ function createArithmeticHabitat(id: HabitatId, seed: number, maxSteps: number):
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['difficulty', id.split('-')[1]], ['operations', ['+', '-', '*', '/']]]),
+      env: new Map<string, unknown>([['difficulty', id.split('-')[1]], ['operations', ['+', '-', '*', '/']]]),
       rngState: seed.toString(),
     },
     transition: 'arithmetic',
@@ -205,7 +205,7 @@ function createBanditHabitat(id: HabitatId, seed: number, maxSteps: number): Hab
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['arms', 10], ['drift', id.includes('drift')]]),
+      env: new Map<string, unknown>([['arms', 10], ['drift', id.includes('drift')]]),
       rngState: seed.toString(),
     },
     transition: 'bandit',
@@ -228,7 +228,7 @@ function createCatchHabitat(id: HabitatId, seed: number, maxSteps: number): Habi
       episode: 0,
       entities: new Map(),
       agent: { position: { x: 5, y: 0 }, inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['width', 10], ['height', 10], ['fallSpeed', id.includes('fast') ? 2 : 1]]),
+      env: new Map<string, unknown>([['width', 10], ['height', 10], ['fallSpeed', id.includes('fast') ? 2 : 1]]),
       rngState: seed.toString(),
     },
     transition: 'catch',
@@ -251,7 +251,7 @@ function createConversationHabitat(id: HabitatId, seed: number, maxSteps: number
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['topic', 'general'], ['maxTurns', 10]]),
+      env: new Map<string, unknown>([['topic', 'general'], ['maxTurns', 10]]),
       rngState: seed.toString(),
     },
     transition: 'conversation',
@@ -274,7 +274,7 @@ function create2048Habitat(id: HabitatId, seed: number, maxSteps: number): Habit
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['size', 4], ['target', 2048]]),
+      env: new Map<string, unknown>([['size', 4], ['target', 2048]]),
       rngState: seed.toString(),
     },
     transition: '2048',
@@ -298,7 +298,7 @@ function createGridWorldHabitat(id: HabitatId, seed: number, maxSteps: number): 
       episode: 0,
       entities: new Map(),
       agent: { position: { x: 0, y: 0 }, inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['size', size], ['goal', { x: size - 1, y: size - 1 }]]),
+      env: new Map<string, unknown>([['size', size], ['goal', { x: size - 1, y: size - 1 }]]),
       rngState: seed.toString(),
     },
     transition: 'gridworld',
@@ -321,7 +321,7 @@ function createReasoningHabitat(id: HabitatId, seed: number, maxSteps: number): 
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['complexity', id.includes('complex') ? 'high' : 'low']]),
+      env: new Map<string, unknown>([['complexity', id.includes('complex') ? 'high' : 'low']]),
       rngState: seed.toString(),
     },
     transition: 'reasoning',
@@ -344,7 +344,7 @@ function createRPSHabitat(id: HabitatId, seed: number, maxSteps: number): Habita
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['opponent', 'random']]),
+      env: new Map<string, unknown>([['opponent', 'random']]),
       rngState: seed.toString(),
     },
     transition: 'rps',
@@ -368,7 +368,7 @@ function createSnakeHabitat(id: HabitatId, seed: number, maxSteps: number): Habi
       episode: 0,
       entities: new Map(),
       agent: { position: { x: size / 2, y: size / 2 }, inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['size', size], ['initialLength', 3]]),
+      env: new Map<string, unknown>([['size', size], ['initialLength', 3]]),
       rngState: seed.toString(),
     },
     transition: 'snake',
@@ -391,7 +391,7 @@ function createTetrisHabitat(id: HabitatId, seed: number, maxSteps: number): Hab
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['width', 10], ['height', 20]]),
+      env: new Map<string, unknown>([['width', 10], ['height', 20]]),
       rngState: seed.toString(),
     },
     transition: 'tetris',
@@ -414,7 +414,7 @@ function createTicTacToeHabitat(id: HabitatId, seed: number, maxSteps: number): 
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['player', 'X']]),
+      env: new Map<string, unknown>([['player', 'X']]),
       rngState: seed.toString(),
     },
     transition: 'tictactoe',
@@ -437,7 +437,7 @@ function createSelfMetaHabitat(id: HabitatId, seed: number, maxSteps: number): H
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['focuses', ['reasoning', 'planning', 'memory']]]),
+      env: new Map<string, unknown>([['focuses', ['reasoning', 'planning', 'memory']]]),
       rngState: seed.toString(),
     },
     transition: 'selfmeta',
@@ -460,7 +460,7 @@ function createMetaHabitat(id: HabitatId, seed: number, maxSteps: number): Habit
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['game', 'reasoning']]),
+      env: new Map<string, unknown>([['game', 'reasoning']]),
       rngState: seed.toString(),
     },
     transition: 'metagame',
@@ -483,7 +483,7 @@ function createReasoningMetaHabitat(id: HabitatId, seed: number, maxSteps: numbe
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['baseGame', 'reasoning']]),
+      env: new Map<string, unknown>([['baseGame', 'reasoning']]),
       rngState: seed.toString(),
     },
     transition: 'reasoningmeta',
@@ -499,31 +499,31 @@ export const ATTENTION_STRATEGY_PACKS: Record<string, AttentionStrategy> = {
   focusTrees: {
     id: 'focus-trees',
     name: 'Focus Trees',
-    focusTrees: new Map([
-      ['reasoning', { id: 'reasoning', root: 'reasoning', children: new Map(), weight: 1.0 }],
-      ['planning', { id: 'planning', root: 'planning', children: new Map(), weight: 0.8 }],
-      ['memory', { id: 'memory', root: 'memory', children: new Map(), weight: 0.6 }],
-    ]),
+    focusTrees: [
+      { id: 'reasoning', root: 'reasoning', children: new Map(), weight: 1.0 },
+      { id: 'planning', root: 'planning', children: new Map(), weight: 0.8 },
+      { id: 'memory', root: 'memory', children: new Map(), weight: 0.6 },
+    ],
   },
   /** MetaFocus pack. */
   metaFocus: {
     id: 'metafocus',
     name: 'MetaFocus',
-    focusTrees: new Map(),
+    focusTrees: [],
     metaFocus: { enabled: true, budget: 100, decayRate: 0.1 },
   },
   /** Belief seeding pack. */
   beliefSeeding: {
     id: 'belief-seeding',
     name: 'Belief Seeding',
-    focusTrees: new Map(),
+    focusTrees: [],
     beliefSeeding: { seeds: [], rate: 0.1 },
   },
   /** Weight allocation pack. */
   weightAllocation: {
     id: 'weight-allocation',
     name: 'Weight Allocation',
-    focusTrees: new Map(),
+    focusTrees: [],
     weightAllocation: { weights: { belief: 1.0, skill: 0.8, rule: 0.6 }, strategy: 'adaptive' },
   },
 };
@@ -611,7 +611,7 @@ export function createWorldEvaluator(): WorldEvaluator {
     async evaluate(pack: WorldPackConfig): Promise<EvaluationFold> {
       // Simplified evaluation
       return {
-        id: `fold-${pack.id}-${Date.now()}`,
+        id: `fold-${pack.id}-${Date.now()}` as FoldId,
         targetId: pack.id,
         targetKind: 'pack',
         scorecards: [],
