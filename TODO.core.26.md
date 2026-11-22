@@ -338,7 +338,7 @@ Each demo = one script + expected log digest. **No soak.**
 
 ---
 
-### Phase 5 — Final Soak (Single, Deferred to End)
+### Phase 5 — Final Soak (Single, DEFERRED — Next Session)
 
 | What | Duration | Criteria |
 |------|----------|----------|
@@ -346,6 +346,8 @@ Each demo = one script + expected log digest. **No soak.**
 | Side-by-side lanes (D8) | 1 hour | Two instances share a book and solve faster together |
 
 **Only one soak.** Not per-workstream. Validates the *whole*, not parts.
+
+**DEFERRED:** Will run after code cleanup session completes.
 
 ---
 
@@ -447,7 +449,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P2 | Re-home 20 capabilities (Phase 2) | — | 4w | ✅ DONE — Games (14), RL baselines (4), Premise (4), Memory indexes (7), Batch: analyzers (8), self-mod (7), focus (10), NL (10), schema (10), transport (6) — all 128 capabilities registered in manifest; preservation gate PASS |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w | ✅ DONE — obligations-battery, totality-liveness, schema-drift, cross-engine-agreement, format-round-trip, import-boundary, capability-preservation as vitest gates + CI jobs |
 | P2 | 12 demo scripts (Phase 4) | — | 1w | ✅ DONE — demo-d1..d12 all run with seeds, emit log digests |
-| P3 | Final 2-hour soak (Phase 5) | — | 2h | 🔄 Next |
+| P3 | Final 2-hour soak (Phase 5) | — | 2h | ⏸️ DEFERRED — shift to code cleanup in fresh session |
 
 ---
 
