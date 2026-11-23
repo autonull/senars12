@@ -2,11 +2,9 @@ import { CIRCUIT_STATES, type CircuitState } from '@senars/types/llm';
 import {
   collectDefaultMetrics,
   Counter,
-  type CounterConfiguration,
   Gauge,
-  type GaugeConfiguration,
   Registry,
-} from 'prom-client';
+} from '@prometheus-io/client';
 
 // Create a registry for our metrics
 export const prometheusRegistry = new Registry();
@@ -15,16 +13,21 @@ export const prometheusRegistry = new Registry();
 collectDefaultMetrics({ register: prometheusRegistry, prefix: 'senars_' });
 
 /**
- * Every metric in this file, registered against the one registry. `registers` was
- * repeated on all eighteen declarations, so a metric added in a hurry could land
- * on prom-client's default registry instead and never appear in
- * {@link getMetricsAsText} — a metric that exists and reports nothing.
+ * Every metric in this file, registered against the one registry via registerMetric().
+ * This avoids the prom-client pattern of passing `registers` in the constructor.
+ * Types are `any` because @prometheus-io/client types don't support label inference.
  */
-const counter = (config: CounterConfiguration<string>): Counter =>
-  new Counter({ ...config, registers: [prometheusRegistry] });
+const counter = (config: { name: string; help: string; labelNames: string[] }): any => {
+  const c = new Counter(config as any);
+  prometheusRegistry.registerMetric(c);
+  return c;
+};
 
-const gauge = (config: GaugeConfiguration<string>): Gauge =>
-  new Gauge({ ...config, registers: [prometheusRegistry] });
+const gauge = (config: { name: string; help: string; labelNames: string[] }): any => {
+  const g = new Gauge(config as any);
+  prometheusRegistry.registerMetric(g);
+  return g;
+};
 
 // LM probe metrics
 const lmProbeTotal = counter({
@@ -134,6 +137,7 @@ export const schemaPromotionsTotal = counter({
 export const handoversTotal = counter({
   name: 'senars_handovers_total',
   help: 'Review-band handovers to the heuristic baseline (GameFocus E2)',
+  labelNames: [] as const,
 });
 
 export const bagPressure = gauge({
@@ -145,21 +149,25 @@ export const bagPressure = gauge({
 const embeddingCacheHitsTotal = counter({
   name: 'senars_embedding_cache_hits_total',
   help: 'System One embedding cache hits',
+  labelNames: [] as const,
 });
 
 const embeddingCacheMissesTotal = counter({
   name: 'senars_embedding_cache_misses_total',
   help: 'System One embedding cache misses',
+  labelNames: [] as const,
 });
 
 const embeddingCacheEvictionsTotal = counter({
   name: 'senars_embedding_cache_evictions_total',
   help: 'System One embedding cache LRU evictions',
+  labelNames: [] as const,
 });
 
 const embeddingCacheSize = gauge({
   name: 'senars_embedding_cache_size',
   help: 'Current System One embedding cache entry count',
+  labelNames: [] as const,
 });
 
 /** P2/§5s: per-event cache telemetry (no object churn in the hot path). */

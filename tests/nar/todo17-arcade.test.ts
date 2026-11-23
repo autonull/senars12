@@ -258,7 +258,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
 
   it('G5 arcade OTel spans: tick spans recorded with arm/game attributes, veto + handover events', async () => {
     const { InMemorySpanExporter, SimpleSpanProcessor } = await import(
-      '@opentelemetry/sdk-trace-node'
+      '@opentelemetry/sdk-trace'
     );
     const exporter = new InMemorySpanExporter();
     // `initOtel`, not `provider.register()`: the arcade tracer reads the

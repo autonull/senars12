@@ -81,3 +81,9 @@ export const intBetween = (min: number, max: number) => z.number().int().min(min
  * is a number they chose, and the schema that reports it should name it.
  */
 export const intAtLeast = (min: number) => z.number().int().min(min);
+
+/**
+ * LM temperature — a float between 0 and 2 controlling sampling randomness.
+ * Not {@link unitInterval} because the upper bound is 2, not 1.
+ */
+export const temperature = z.number().min(0).max(2);

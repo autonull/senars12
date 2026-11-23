@@ -3,52 +3,47 @@
  *
  * These are the reference implementations (EpsilonGreedy, UCB1, QLearning, SARSA)
  * used for parity testing and as baseline arms in the arena.
- * Moved from tests/ to src/ for arena arm registration.
+ * All algorithms extend shared base classes from `base.ts` for ~60% line reduction.
  */
 
 import { SeededRNG } from '@senars/util/random';
-import type { Game, GameOutcome } from '@senars/game/Game';
+import type { Game } from '@senars/game/Game';
 import type { GridWorldState, GridAction } from '@senars/game/impls/GridWorldGame';
 import type { EpisodeGame } from '../types';
+import {
+  BanditBase,
+  ValueFunctionBase,
+  type BanditConfig,
+  type BanditState,
+  type VFConfig,
+  type VFState,
+  type BaselineAlgorithm,
+  type BaselineArmConfig,
+  type EpsilonGreedyArmConfig,
+  type UCB1ArmConfig,
+  type QLearningArmConfig,
+  type SARSAArmConfig,
+} from './base';
 
 /** ========== BANDIT BASELINES ========== */
 
-export interface EpsilonGreedyConfig {
-  numArms: number;
+export interface EpsilonGreedyConfig extends BanditConfig {
   epsilon: number;
-  seed: number;
-  initialValue?: number;
 }
 
-export interface EpsilonGreedyState {
-  qValues: number[];
-  counts: number[];
-  totalSteps: number;
-  totalReward: number;
-  rngState: number;
-}
+export interface EpsilonGreedyState extends BanditState {}
 
-export class EpsilonGreedy {
-  private rng: SeededRNG;
-  private readonly numArms: number;
-  private readonly epsilon: number;
-  private qValues: number[];
-  private counts: number[];
-  private totalSteps = 0;
-  private totalReward = 0;
+export class EpsilonGreedy extends BanditBase<EpsilonGreedyConfig, EpsilonGreedyState> {
+  readonly epsilon: number;
 
   constructor(config: EpsilonGreedyConfig) {
-    this.rng = new SeededRNG(config.seed);
-    this.numArms = config.numArms;
+    super(config);
     this.epsilon = config.epsilon;
-    const initVal = config.initialValue ?? 0;
-    this.qValues = new Array(config.numArms).fill(initVal);
-    this.counts = new Array(config.numArms).fill(0);
   }
 
   selectAction(): number {
     if (this.rng.next() < this.epsilon) {
-      return this.rng.nextInt(this.numArms);
+      return this.rng.nextInt(this.config.numArms);
     }
     const maxQ = Math.max(...this.qValues);
     const bestArms = this.qValues.map((q, i) => (q === maxQ ? i : -1)).filter((i) => i >= 0);
@@ -63,95 +58,30 @@ export class EpsilonGreedy {
     this.totalSteps++;
     this.totalReward += reward;
   }
-
-  getQValues(): number[] {
-    return [...this.qValues];
-  }
-
-  getCounts(): number[] {
-    return [...this.counts];
-  }
-
-  getMetrics(): { avgReward: number; totalSteps: number; totalReward: number } {
-    return {
-      avgReward: this.totalSteps > 0 ? this.totalReward / this.totalSteps : 0,
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-    };
-  }
-
-  getState(): EpsilonGreedyState {
-    return {
-      qValues: [...this.qValues],
-      counts: [...this.counts],
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-      rngState: this.rng.getState(),
-    };
-  }
-
-  setState(state: EpsilonGreedyState): void {
-    this.qValues = [...state.qValues];
-    this.counts = [...state.counts];
-    this.totalSteps = state.totalSteps;
-    this.totalReward = state.totalReward;
-    this.rng.setState(state.rngState);
-  }
-
-  runEpisode(env: Game<number, number>, maxSteps: number = 1000): number {
-    let episodeReward = 0;
-    for (let i = 0; i < maxSteps; i++) {
-      const action = this.selectAction();
-      const { reward, terminal } = env.step(action);
-      this.update(action, reward);
-      episodeReward += reward;
-      if (terminal) break;
-    }
-    return episodeReward;
-  }
 }
 
-export interface UCB1Config {
-  numArms: number;
+export interface UCB1Config extends BanditConfig {
   c: number;
-  seed: number;
-  initialValue?: number;
 }
 
-export interface UCB1State {
-  qValues: number[];
-  counts: number[];
-  totalSteps: number;
-  totalReward: number;
-  rngState: number;
-}
+export interface UCB1State extends BanditState {}
 
-export class UCB1 {
-  private rng: SeededRNG;
-  private readonly numArms: number;
-  private readonly c: number;
-  private qValues: number[];
-  private counts: number[];
-  private totalSteps = 0;
-  private totalReward = 0;
+export class UCB1 extends BanditBase<UCB1Config, UCB1State> {
+  readonly c: number;
 
   constructor(config: UCB1Config) {
-    this.rng = new SeededRNG(config.seed);
-    this.numArms = config.numArms;
+    super(config);
     this.c = config.c;
-    const initVal = config.initialValue ?? 0;
-    this.qValues = new Array(config.numArms).fill(initVal);
-    this.counts = new Array(config.numArms).fill(0);
   }
 
   selectAction(): number {
-    for (let i = 0; i < this.numArms; i++) {
+    for (let i = 0; i < this.config.numArms; i++) {
       if ((this.counts[i] ?? 0) === 0) return i;
     }
     const t = this.totalSteps + 1;
     let bestAction = 0;
     let bestValue = -Infinity;
-    for (let i = 0; i < this.numArms; i++) {
+    for (let i = 0; i < this.config.numArms; i++) {
       const ucb = (this.qValues[i] ?? 0) + this.c * Math.sqrt(Math.log(t) / (this.counts[i] ?? 1));
       if (ucb > bestValue) {
         bestValue = ucb;
@@ -169,97 +99,25 @@ export class UCB1 {
     this.totalSteps++;
     this.totalReward += reward;
   }
-
-  getQValues(): number[] {
-    return [...this.qValues];
-  }
-
-  getCounts(): number[] {
-    return [...this.counts];
-  }
-
-  getMetrics(): { avgReward: number; totalSteps: number; totalReward: number } {
-    return {
-      avgReward: this.totalSteps > 0 ? this.totalReward / this.totalSteps : 0,
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-    };
-  }
-
-  getState(): UCB1State {
-    return {
-      qValues: [...this.qValues],
-      counts: [...this.counts],
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-      rngState: this.rng.getState(),
-    };
-  }
-
-  setState(state: UCB1State): void {
-    this.qValues = [...state.qValues];
-    this.counts = [...state.counts];
-    this.totalSteps = state.totalSteps;
-    this.totalReward = state.totalReward;
-    this.rng.setState(state.rngState);
-  }
-
-  runEpisode(env: Game<number, number>, maxSteps: number = 1000): number {
-    let episodeReward = 0;
-    for (let i = 0; i < maxSteps; i++) {
-      const action = this.selectAction();
-      const { reward, terminal } = env.step(action);
-      this.update(action, reward);
-      episodeReward += reward;
-      if (terminal) break;
-    }
-    return episodeReward;
-  }
 }
 
 /** ========== GRIDWORLD BASELINES ========== */
 
-export interface QLearningConfig {
-  alpha: number;
-  gamma: number;
-  epsilon: number;
-  seed: number;
-  initialQ?: number;
-}
+export interface QLearningConfig extends VFConfig {}
 
-export interface QLearningState {
-  qTable: Map<string, number[]>;
-  rngState: number;
-  totalSteps: number;
-  totalReward: number;
-}
+export interface QLearningState extends VFState {}
 
-export class QLearning {
-  private rng: SeededRNG;
-  private readonly alpha: number;
-  private readonly gamma: number;
-  private readonly epsilon: number;
-  private qTable: Map<string, number[]> = new Map();
-  private totalSteps = 0;
-  private totalReward = 0;
-
+export class QLearning extends ValueFunctionBase<QLearningConfig, QLearningState, GridWorldState, GridAction> {
   constructor(config: QLearningConfig) {
-    this.rng = new SeededRNG(config.seed);
-    this.alpha = config.alpha;
-    this.gamma = config.gamma;
-    this.epsilon = config.epsilon;
+    super(config);
   }
 
-  selectAction(state: GridWorldState): GridAction {
-    const qValues = this.getQValues(state);
-    if (this.rng.next() < this.epsilon) {
-      return this.rng.nextInt(4) as GridAction;
-    }
-    const maxQ = Math.max(...qValues);
-    const bestActions = qValues
-      .map((q, i) => (q === maxQ ? i : -1))
-      .filter((i) => i >= 0) as GridAction[];
-    return this.rng.choice(bestActions);
+  protected getStateKey(state: GridWorldState): string {
+    return `${state.row},${state.col}`;
+  }
+
+  protected getNumActions(_state: GridWorldState): number {
+    return 4;
   }
 
   update(
@@ -267,115 +125,35 @@ export class QLearning {
     action: GridAction,
     reward: number,
     nextState: GridWorldState,
+    _nextAction: GridAction | undefined,
     done: boolean
   ): void {
     const qValues = this.getQValues(state);
     const nextQValues = this.getQValues(nextState);
     const maxNextQ = done ? 0 : Math.max(...nextQValues);
-    const tdTarget = reward + this.gamma * maxNextQ;
+    const tdTarget = reward + this.config.gamma * maxNextQ;
     const tdError = tdTarget - (qValues[action] ?? 0);
-    qValues[action] = (qValues[action] ?? 0) + this.alpha * tdError;
+    qValues[action] = (qValues[action] ?? 0) + this.config.alpha * tdError;
     this.totalSteps++;
     this.totalReward += reward;
   }
+}
 
-  getQTable(): Map<string, number[]> {
-    return new Map(this.qTable);
+export interface SARSAConfig extends VFConfig {}
+
+export interface SARSAState extends VFState {}
+
+export class SARSA extends ValueFunctionBase<SARSAConfig, SARSAState, GridWorldState, GridAction> {
+  constructor(config: SARSAConfig) {
+    super(config);
   }
 
-  getMetrics(): { avgReward: number; totalSteps: number; totalReward: number } {
-    return {
-      avgReward: this.totalSteps > 0 ? this.totalReward / this.totalSteps : 0,
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-    };
-  }
-
-  getState(): QLearningState {
-    return {
-      qTable: new Map(this.qTable),
-      rngState: this.rng.getState(),
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-    };
-  }
-
-  setState(state: QLearningState): void {
-    this.qTable = new Map(state.qTable);
-    this.rng.setState(state.rngState);
-    this.totalSteps = state.totalSteps;
-    this.totalReward = state.totalReward;
-  }
-
-  runEpisode(env: EpisodeGame<GridWorldState, GridAction>, maxSteps: number = 100): number {
-    let episodeReward = 0;
-    env.reset();
-    let state = env.state();
-    for (let i = 0; i < maxSteps; i++) {
-      const action = this.selectAction(state);
-      const { reward, terminal } = env.step(action);
-      const nextState = env.state();
-      this.update(state, action, reward, nextState, terminal);
-      episodeReward += reward;
-      state = nextState;
-      if (terminal) break;
-    }
-    return episodeReward;
-  }
-
-  private getStateKey(state: GridWorldState): string {
+  protected getStateKey(state: GridWorldState): string {
     return `${state.row},${state.col}`;
   }
 
-  private getQValues(state: GridWorldState): number[] {
-    const key = this.getStateKey(state);
-    if (!this.qTable.has(key)) {
-      this.qTable.set(key, [0, 0, 0, 0]);
-    }
-    return this.qTable.get(key)!;
-  }
-}
-
-export interface SARSAConfig {
-  alpha: number;
-  gamma: number;
-  epsilon: number;
-  seed: number;
-}
-
-export interface SARSAState {
-  qTable: Map<string, number[]>;
-  rngState: number;
-  totalSteps: number;
-  totalReward: number;
-}
-
-export class SARSA {
-  private rng: SeededRNG;
-  private readonly alpha: number;
-  private readonly gamma: number;
-  private readonly epsilon: number;
-  private qTable: Map<string, number[]> = new Map();
-  private totalSteps = 0;
-  private totalReward = 0;
-
-  constructor(config: SARSAConfig) {
-    this.rng = new SeededRNG(config.seed);
-    this.alpha = config.alpha;
-    this.gamma = config.gamma;
-    this.epsilon = config.epsilon;
-  }
-
-  selectAction(state: GridWorldState): GridAction {
-    const qValues = this.getQValues(state);
-    if (this.rng.next() < this.epsilon) {
-      return this.rng.nextInt(4) as GridAction;
-    }
-    const maxQ = Math.max(...qValues);
-    const bestActions = qValues
-      .map((q, i) => (q === maxQ ? i : -1))
-      .filter((i) => i >= 0) as GridAction[];
-    return this.rng.choice(bestActions);
+  protected getNumActions(_state: GridWorldState): number {
+    return 4;
   }
 
   update(
@@ -383,88 +161,23 @@ export class SARSA {
     action: GridAction,
     reward: number,
     nextState: GridWorldState,
-    nextAction: GridAction,
+    nextAction: GridAction | undefined,
     done: boolean
   ): void {
     const qValues = this.getQValues(state);
     const nextQValues = this.getQValues(nextState);
-    const nextQ = done ? 0 : (nextQValues[nextAction] ?? 0);
-    const tdTarget = reward + this.gamma * nextQ;
+    const nextQ = done ? 0 : (nextAction !== undefined ? nextQValues[nextAction] ?? 0 : 0);
+    const tdTarget = reward + this.config.gamma * nextQ;
     const tdError = tdTarget - (qValues[action] ?? 0);
-    qValues[action] = (qValues[action] ?? 0) + this.alpha * tdError;
+    qValues[action] = (qValues[action] ?? 0) + this.config.alpha * tdError;
     this.totalSteps++;
     this.totalReward += reward;
-  }
-
-  getQTable(): Map<string, number[]> {
-    return new Map(this.qTable);
-  }
-
-  getMetrics(): { avgReward: number; totalSteps: number; totalReward: number } {
-    return {
-      avgReward: this.totalSteps > 0 ? this.totalReward / this.totalSteps : 0,
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-    };
-  }
-
-  getState(): SARSAState {
-    return {
-      qTable: new Map(this.qTable),
-      rngState: this.rng.getState(),
-      totalSteps: this.totalSteps,
-      totalReward: this.totalReward,
-    };
-  }
-
-  setState(state: SARSAState): void {
-    this.qTable = new Map(state.qTable);
-    this.rng.setState(state.rngState);
-    this.totalSteps = state.totalSteps;
-    this.totalReward = state.totalReward;
-  }
-
-  runEpisode(env: EpisodeGame<GridWorldState, GridAction>, maxSteps: number = 100): number {
-    let episodeReward = 0;
-    env.reset();
-    let state = env.state();
-    let action = this.selectAction(state);
-    for (let i = 0; i < maxSteps; i++) {
-      const { reward, terminal } = env.step(action);
-      const nextState = env.state();
-      const nextAction = this.selectAction(nextState);
-      this.update(state, action, reward, nextState, nextAction, terminal);
-      episodeReward += reward;
-      state = nextState;
-      action = nextAction;
-      if (terminal) break;
-    }
-    return episodeReward;
-  }
-
-  private getStateKey(state: GridWorldState): string {
-    return `${state.row},${state.col}`;
-  }
-
-  private getQValues(state: GridWorldState): number[] {
-    const key = this.getStateKey(state);
-    if (!this.qTable.has(key)) {
-      this.qTable.set(key, [0, 0, 0, 0]);
-    }
-    return this.qTable.get(key)!;
   }
 }
 
 /** ========== ARM CONFIG TYPES ========== */
 
-export type BaselineAlgorithm = 'epsilon-greedy' | 'ucb1' | 'q-learning' | 'sarsa';
-
-export interface BaselineArmConfig {
-  algorithm: BaselineAlgorithm;
-  config: EpsilonGreedyConfig | UCB1Config | QLearningConfig | SARSAConfig;
-  habitatType: 'bandit' | 'gridworld';
-  name: string;
-}
+export type { BaselineAlgorithm, BaselineArmConfig };
 
 /** Predefined baseline arm configurations for arena. */
 export const BASELINE_ARM_CONFIGS: Record<string, BaselineArmConfig> = {
@@ -473,25 +186,25 @@ export const BASELINE_ARM_CONFIGS: Record<string, BaselineArmConfig> = {
     config: { numArms: 3, epsilon: 0.1, seed: 123 },
     habitatType: 'bandit',
     name: 'Epsilon-Greedy (ε=0.1)',
-  },
+  } satisfies EpsilonGreedyArmConfig,
   'ucb1': {
     algorithm: 'ucb1',
     config: { numArms: 3, c: 2.0, seed: 123 },
     habitatType: 'bandit',
     name: 'UCB1 (c=2.0)',
-  },
+  } satisfies UCB1ArmConfig,
   'q-learning': {
     algorithm: 'q-learning',
     config: { alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed: 123 },
     habitatType: 'gridworld',
     name: 'Q-Learning (α=0.1, γ=0.99, ε=0.1)',
-  },
+  } satisfies QLearningArmConfig,
   'sarsa': {
     algorithm: 'sarsa',
     config: { alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed: 123 },
     habitatType: 'gridworld',
     name: 'SARSA (α=0.1, γ=0.99, ε=0.1)',
-  },
+  } satisfies SARSAArmConfig,
 };
 
 /** Create a baseline algorithm instance from config. */

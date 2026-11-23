@@ -1,7 +1,8 @@
 import { clamp01, safeRatio } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { SeededRNG } from '@senars/util/random';
-import type { Game, GameOutcome, Perception } from '../Game';
+import type { GameOutcome, Perception } from '../Game';
+import { GameBase } from '../GameBase';
 
 export interface BanditDriftConfig {
   changeInterval: number;
@@ -15,52 +16,40 @@ export interface BanditGameConfig {
   /** Optional non-stationarity: means drift every `changeInterval` steps. */
   drift?: BanditDriftConfig;
   id?: string;
+  [key: string]: unknown;
 }
 
 /**
  * Multi-armed bandit as a `Game` (DQ2: no Environment layer). Bernoulli rewards;
  * drift draws happen before reward draws to preserve the historical RNG order.
  */
-export class BanditGame implements Game<number, number> {
-  readonly id: string;
-  private readonly rng: SeededRNG;
+export class BanditGame extends GameBase<number, number> {
   private armMeans: number[];
   private readonly drift?: BanditDriftConfig;
-  private stepCount = 0;
   private readonly pulls: number[];
   private readonly rewardSum: number[];
 
   constructor(config: BanditGameConfig) {
-    this.id = config.id ?? 'bandit';
-    this.rng = new SeededRNG(config.seed);
+    super(config.id ?? 'bandit', config);
     this.armMeans = [...config.armMeans];
     this.drift = config.drift;
     this.pulls = config.armMeans.map(() => 0);
     this.rewardSum = config.armMeans.map(() => 0);
   }
 
-  observe(): Perception {
-    const features: Record<string, number> = { step: this.stepCount };
-    for (let i = 0; i < this.armMeans.length; i++) {
-      features[`arm${i}_pulls`] = this.pulls[i] ?? 0;
-      features[`arm${i}_avg`] = safeRatio(this.rewardSum[i] ?? 0, this.pulls[i] ?? 0, 0.5);
-    }
-    return { stateId: 'bandit', features, confidence: 1.0, terminal: false };
+  protected override getInitialState(): number {
+    return 0;
   }
 
-  state(): number {
-    return this.stepCount;
+  protected getStateId(_state: number): string {
+    return 'bandit';
   }
 
-  legalActions(): number[] {
-    return this.armMeans.map((_, i) => i);
-  }
-
-  step(action: number): GameOutcome {
+  override step(action: number): GameOutcome {
     if (action < 0 || action >= this.armMeans.length) {
       throw new Error(`Invalid action: ${action}`);
     }
-    this.stepCount++;
+    this.incrementStep();
     if (this.drift && this.stepCount % this.drift.changeInterval === 0) {
       this.driftMeans();
     }
@@ -70,10 +59,32 @@ export class BanditGame implements Game<number, number> {
     return { reward, terminal: false };
   }
 
-  reset(): void {
+  override isTerminal(_state: number): boolean {
+    return false;
+  }
+
+  override legalActions(_state: number): number[] {
+    return this.armMeans.map((_, i) => i);
+  }
+
+  override state(): number {
+    return this.stepCount;
+  }
+
+  override observe(): Perception {
+    const features: Record<string, number> = { step: this.stepCount };
+    for (let i = 0; i < this.armMeans.length; i++) {
+      features[`arm${i}_pulls`] = this.pulls[i] ?? 0;
+      features[`arm${i}_avg`] = safeRatio(this.rewardSum[i] ?? 0, this.pulls[i] ?? 0, 0.5);
+    }
+    return { stateId: 'bandit', features, confidence: 1.0, terminal: false };
+  }
+
+  override reset(): number {
     this.stepCount = 0;
     this.pulls.fill(0);
     this.rewardSum.fill(0);
+    return this.getInitialState();
   }
 
   getNumArms(): number {
@@ -86,10 +97,6 @@ export class BanditGame implements Game<number, number> {
 
   getOptimalArm(): number {
     return this.armMeans.indexOf(maxScore(this.armMeans, (mean) => mean));
-  }
-
-  getStepCount(): number {
-    return this.stepCount;
   }
 
   private driftMeans(): void {

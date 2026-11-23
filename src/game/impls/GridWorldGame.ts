@@ -1,6 +1,7 @@
-import type { Game, GameOutcome, Perception } from '../Game';
+import type { GameOutcome, Perception } from '../Game';
 import { renderGrid } from '../render';
 import { SeededRNG } from '@senars/util/random';
+import { GameBase, type GameConfig } from '../GameBase';
 
 export interface GridWorldConfig {
   grid: string[];
@@ -8,6 +9,7 @@ export interface GridWorldConfig {
   maxSteps?: number;
   /** Probability of executing a random action instead of the requested one. */
   slipProbability?: number;
+  [key: string]: unknown;
 }
 
 export type GridAction = 0 | 1 | 2 | 3;
@@ -31,25 +33,19 @@ const DELTAS: ReadonlyArray<{ dr: number; dc: number }> = [
 ];
 
 /** Gridworld as a plain `Game` — ASCII `grid` with `S` start, `G` goal, `#` walls. */
-export class GridWorldGame implements Game<GridWorldState, GridAction> {
-  readonly id: string;
-  private readonly rng: SeededRNG;
+export class GridWorldGame extends GameBase<GridWorldState, GridAction> {
   private readonly rows: number;
   private readonly cols: number;
   private readonly walls: Set<string>;
   private readonly startPos: { row: number; col: number };
   private readonly goalPos: { row: number; col: number };
-  private readonly maxSteps: number;
   private readonly slipProbability: number;
   private currentPos: { row: number; col: number };
-  private stepCount = 0;
   private terminal_ = false;
 
   constructor(config: GridWorldConfig & { id?: string }) {
-    this.id = config.id ?? 'gridworld';
-    this.rng = new SeededRNG(config.seed);
+    super(config.id ?? 'gridworld', config);
     this.slipProbability = config.slipProbability ?? 0;
-    this.maxSteps = config.maxSteps ?? 100;
     this.walls = new Set();
     let start: { row: number; col: number } | undefined;
     let goal: { row: number; col: number } | undefined;
@@ -69,7 +65,67 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
     this.currentPos = start;
   }
 
-  observe(): Perception {
+  protected getInitialState(): GridWorldState {
+    return {
+      ...this.startPos,
+      goalRow: this.goalPos.row,
+      goalCol: this.goalPos.col,
+      terminal: false,
+    };
+  }
+
+  protected getStateId(state: GridWorldState): string {
+    return `${state.row},${state.col}`;
+  }
+
+  override step(action: GridAction): GameOutcome {
+    this.incrementStep();
+    // Guard the RNG stream when slipProbability is 0 so determinism is preserved
+    let effectiveAction = action;
+    if (this.slipProbability > 0 && this.rng.next() < this.slipProbability)
+      effectiveAction = this.rng.nextInt(4) as GridAction;
+    const { dr, dc } = DELTAS[effectiveAction]!;
+    const next = {
+      row: this.currentPos.row + dr,
+      col: this.currentPos.col + dc,
+    };
+    // Edge clamping: out-of-bounds targets never move (same as a wall).
+    const inBounds = next.row >= 0 && next.row < this.rows && next.col >= 0 && next.col < this.cols;
+    if (inBounds && !this.walls.has(`${next.row},${next.col}`)) this.currentPos = next;
+    this.terminal_ = this.isAtGoal() || this.stepCount >= this.maxSteps;
+    return {
+      reward: this.isAtGoal() ? 1 : -0.01,
+      terminal: this.terminal_,
+      info: { stepCount: this.stepCount },
+    };
+  }
+
+  override isTerminal(state: GridWorldState): boolean {
+    return state.terminal ?? false;
+  }
+
+  private isAtGoal(): boolean {
+    return this.currentPos.row === this.goalPos.row && this.currentPos.col === this.goalPos.col;
+  }
+
+  override legalActions(state: GridWorldState): GridAction[] {
+    const moves = ([0, 1, 2, 3] as GridAction[]).filter((action) => {
+      const { dr, dc } = DELTAS[action]!;
+      return !this.walls.has(`${state.row + dr},${state.col + dc}`);
+    });
+    return moves.length > 0 ? moves : [0, 1, 2, 3];
+  }
+
+  override state(): GridWorldState {
+    return {
+      ...this.currentPos,
+      goalRow: this.goalPos.row,
+      goalCol: this.goalPos.col,
+      terminal: this.terminal_,
+    };
+  }
+
+  override observe(): Perception {
     return {
       stateId: this.getStateKey(),
       features: {
@@ -84,49 +140,11 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
     };
   }
 
-  state(): GridWorldState {
-    return {
-      ...this.currentPos,
-      goalRow: this.goalPos.row,
-      goalCol: this.goalPos.col,
-      terminal: this.terminal_,
-    };
-  }
-
-  legalActions(state: GridWorldState): GridAction[] {
-    const moves = ([0, 1, 2, 3] as GridAction[]).filter((action) => {
-      const { dr, dc } = DELTAS[action]!;
-      return !this.walls.has(`${state.row + dr},${state.col + dc}`);
-    });
-    return moves.length > 0 ? moves : [0, 1, 2, 3];
-  }
-
-  step(action: GridAction): GameOutcome {
-    this.stepCount++;
-    // Guard the RNG stream when slipProbability is 0 so determinism is preserved
-    let effectiveAction = action;
-    if (this.slipProbability > 0 && this.rng.next() < this.slipProbability)
-      effectiveAction = this.rng.nextInt(4) as GridAction;
-    const { dr, dc } = DELTAS[effectiveAction]!;
-    const next = {
-      row: this.currentPos.row + dr,
-      col: this.currentPos.col + dc,
-    };
-    // Edge clamping: out-of-bounds targets never move (same as a wall).
-    const inBounds = next.row >= 0 && next.row < this.rows && next.col >= 0 && next.col < this.cols;
-    if (inBounds && !this.walls.has(`${next.row},${next.col}`)) this.currentPos = next;
-    this.terminal_ = this.isTerminal() || this.stepCount >= this.maxSteps;
-    return {
-      reward: this.isTerminal() ? 1 : -0.01,
-      terminal: this.terminal_,
-      info: { stepCount: this.stepCount },
-    };
-  }
-
-  reset(): void {
+  override reset(): GridWorldState {
     this.currentPos = this.startPos;
     this.stepCount = 0;
     this.terminal_ = false;
+    return this.getInitialState();
   }
 
   getSlipProbability(): number {
@@ -137,16 +155,12 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
     return renderGrid(this.rows, this.cols, (r, c) =>
       r === this.currentPos.row && c === this.currentPos.col
         ? 'S'
-        : r === this.goalPos.row && c === this.goalPos.col
+        : r === this.goalPos.row && c === this.currentPos.col
           ? 'G'
           : this.walls.has(`${r},${c}`)
             ? '#'
             : '.'
     );
-  }
-
-  private isTerminal(): boolean {
-    return this.currentPos.row === this.goalPos.row && this.currentPos.col === this.goalPos.col;
   }
 
   private distanceToGoal(): number {

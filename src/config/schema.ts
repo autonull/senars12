@@ -1,21 +1,11 @@
 import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/autonomy';
 import { LM_PROVIDER_NAMES } from '../lm/env-config';
 import { LM_TASKS } from '@senars/types/llm';
-import {
-  dialogueDefaults,
-  dialogueSchema,
-  intBetween,
-  lmSettingsSchema,
-  narCoreBounds,
-  narCoreDefaults,
-  narCoreDefaultsSchema,
-  narCoreNumber,
-  nonEmpty,
-  positiveInt,
-  type SystemOneConfig,
-  systemOneDefaults,
-  systemOneSchema,
-} from './index';
+import { dialogueDefaults, dialogueSchema } from './dialogue';
+import { intBetween, nonEmpty, positiveInt } from './boundary';
+import { lmSettingsSchema } from './lm-schema';
+import { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber } from './nar-core-bounds';
+import { systemOneDefaults, systemOneSchema, type SystemOneConfig } from './system-one';
 import { z } from 'zod';
 
 // System One schema/defaults live in @senars/util/config (single definition —

@@ -1,17 +1,19 @@
 import { type Attributes, type Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context } from '@opentelemetry/api';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   BatchSpanProcessor,
   SimpleSpanProcessor,
   type SpanProcessor,
+  TracerProvider,
 } from '@opentelemetry/sdk-trace';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { registerLogEnricher, errMsg } from '../util/index';
 import { setDomainEventSink } from '../agent/event-sink';
 
-let provider: NodeTracerProvider | null = null;
+let provider: TracerProvider | null = null;
 let initialized = false;
 
 export interface OtelConfig {
@@ -45,13 +47,15 @@ export async function initOtel(config: OtelConfig = {}): Promise<void> {
       : new SimpleSpanProcessor({ exporter });
     spanProcessors.push(processor);
   }
-  provider = new NodeTracerProvider({
+  provider = new TracerProvider({
     resource: resourceFromAttributes({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
     }),
     spanProcessors,
   });
-  provider.register();
+  trace.setGlobalTracerProvider(provider);
+  // Ensure context propagation works for async operations
+  context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
 }
 
 /**

@@ -16,10 +16,10 @@
 | **W4** | **Transport Abstraction** | A1 + C3 | ★★★★☆ | M | W1 |
 | **W5** | **MemoryView + Codec Unification** | A2 + A3 + C5 | ★★★★☆ | M | W1, W2 |
 | **W6** | **Error Taxonomy + Logging** | A4 + Q1 | ★★★☆☆ | S | W1, W2 |
-| **W7** | **Config Schema Generation** | C4 + C10 | ★★★☆☆ | M | W2 |
-| **W8** | **RL Baseline Framework** | C6 | ★★★★☆ | S | W1 |
-| **W9** | **Game Base Class** | C7 | ★★★☆☆ | S | W1 |
-| **W10** | **Oracle/MCP/Config Declarative Factory** | C8 + C9 + C10 (part) | ★★★☆☆ | M | W1, W7 |
+| **W7** | **Config Schema Generation** | C4 + C10 | ★★★☆☆ | M | W2 | ✅ **Done** |
+| **W8** | **RL Baseline Framework** | C6 | ★★★★☆ | S | W1 | ✅ **Done** |
+| **W9** | **Game Base Class** | C7 | ★★★☆☆ | S | W1 | 🟡 **In Progress** (GameBase created, 2/14 games refactored) |
+| **W10** | **Oracle/MCP/Config Declarative Factory** | C8 + C9 + C10 (part) | ★★★☆☆ | M | W1, W7 | ✅ **Done** |
 
 **Deferred (Quality — post-consolidation):**
 - Q2 Builder Unification
@@ -269,7 +269,7 @@ createLogger({ scope: 'nar' }).info('message', { key: 'value' });
 
 ---
 
-### W7: Config Schema Generation (Week 3, needs W2)
+### W7: Config Schema Generation (Week 3, needs W2) — ✅ **Complete**
 **Merges:** C4 (generation) + C10 (ConfigBase unification)
 
 **Part A: ConfigBase (Week 3a)**
@@ -301,7 +301,7 @@ pnpm config:generate
 # → zod.ts (Zod schemas for runtime validation)
 ```
 
-**Deliverables:**
+**Deliverables:** ✅ **All complete**
 - All 50+ configs extend `ConfigBase` (or use `ConfigBase.schema()`)
 - Boundary primitives enforced via `config/boundary.ts` imports
 - `pnpm config:generate` in CI; outputs committed
@@ -309,7 +309,7 @@ pnpm config:generate
 
 ---
 
-### W8: RL Baseline Framework (Week 2, needs W1)
+### W8: RL Baseline Framework (Week 2, needs W1) — ✅ **Complete**
 **Scope:** 4 algorithms → 2 base classes
 
 ```typescript
@@ -337,7 +337,7 @@ export abstract class ValueFunctionBase<Config extends VFConfig, State extends V
 }
 ```
 
-**Deliverables:**
+**Deliverables:** ✅ **All complete**
 - `EpsilonGreedy`/`UCB1` extend `BanditBase` (~60% line reduction)
 - `QLearning`/`SARSA` extend `ValueFunctionBase` (~50% line reduction)
 - New bandit = 20 lines; new value-function = 30 lines
@@ -375,7 +375,7 @@ export abstract class GameBase<State, Action> implements Game<State, Action> {
 
 ---
 
-### W10: Declarative Factories (Week 3, needs W1, W7)
+### W10: Declarative Factories (Week 3, needs W1, W7) — ✅ **Complete**
 **Merges:** C8 (Oracle), C9 (MCP), part of C10 (Config)
 
 **Part A: Oracle Spec Table**
@@ -403,7 +403,7 @@ export class MCPRegistry {
 
 **Part C: Config Factory** (from W7 ConfigBase)
 
-**Deliverables:**
+**Deliverables:** ✅ **All complete**
 - 18 oracle configs generated from spec table
 - 27+ MCP tools/resources as declarative specs
 - Auto-generated OpenAPI, docs, validation
@@ -411,7 +411,7 @@ export class MCPRegistry {
 
 ---
 
-### W11: Prometheus Client Migration (Week 4, needs W1)
+### W11: Prometheus Client Migration (Week 4, needs W1) — ✅ **Complete**
 **Scope:** `prom-client` (deprecated) → `@prometheus-io/client` (v0.16+)
 
 **API Changes:**
@@ -431,14 +431,14 @@ export class MCPRegistry {
 4. Test `/metrics` endpoint output format
 5. Remove `prom-client` from deps
 
-**Deliverables:**
+**Deliverables:** ✅ **All complete**
 - Zero `prom-client` imports in `src/`
 - All metrics work with new client
 - `/metrics` endpoint returns valid Prometheus format
 
 ---
 
-### W12: OpenTelemetry Trace Migration (Week 4, needs W1)
+### W12: OpenTelemetry Trace Migration (Week 4, needs W1) — ✅ **Core Migration Complete** (1 test fix needed)
 **Scope:** `@opentelemetry/sdk-trace-node` (deprecated) → `@opentelemetry/sdk-trace`
 
 **API Changes:**
@@ -460,9 +460,9 @@ const provider = new NodeTracerProvider();
 4. Test spans are exported correctly
 5. Remove `@opentelemetry/sdk-trace-node` from deps
 
-**Deliverables:**
-- Zero `@opentelemetry/sdk-trace-node` imports in `src/`
-- Tracing works with new package
+**Deliverables:** ✅ **Core Migration Complete** (1 test fix pending)
+- Zero `@opentelemetry/sdk-trace-node` imports in `src/` ✅
+- Tracing works with new package ✅ (1 test fix pending)
 
 ---
 

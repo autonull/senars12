@@ -8,3 +8,4 @@ export * from './handlers';
 export * from './tools.generated';
 export * from './resources';
 export * from './tasks';
+export * from './MCPRegistry';
