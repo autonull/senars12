@@ -6,8 +6,9 @@
  * Spec data is in ./data.ts to keep this file focused on types and logic.
  */
 
-import type { Term, Truth } from '@senars/terms';
+import type { Term } from '../kernel/terms/term';
 import type { Task } from '../kernel/types';
+import type { Truth } from '@senars/terms';
 import type { OracleOperation } from '../oracles/oracle';
 import { NameRegistry } from '../util/registry';
 import { CORE_FACULTIES } from './specs/data';

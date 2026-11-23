@@ -5,8 +5,11 @@ import type { DerivationContext, DerivationStrategy } from '../types';
 import { Strategy } from '../base';
 
 export class DefaultDerivation extends Strategy implements DerivationStrategy {
-  constructor() {
-    super('default', 'Iterate all secondaries, fire sync rules per pair, stage model-backed work');
+  constructor(
+    name = 'default',
+    description = 'Iterate all secondaries, fire sync rules per pair, stage model-backed work'
+  ) {
+    super(name, description);
   }
 
   async *derive(

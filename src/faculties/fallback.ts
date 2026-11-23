@@ -12,6 +12,16 @@ import { Truth as TruthOps, createTruth } from '../kernel/truth';
 import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms/term';
 import { createTask, type TaskType } from '../kernel/types';
 
+/** Extract Term from Term | Task. */
+const asTerm = (value: Term | Task): Term =>
+  'term' in value ? value.term : value;
+
+/** Extract Task from Term | Task, throwing if not a Task. */
+const asTask = (value: Term | Task): Task => {
+  if (!('term' in value)) throw new TypeError('Expected Task, got Term');
+  return value;
+};
+
 /** Common fallback utilities. */
 
 const lmTaskWeight = (source: string): number => {
@@ -124,7 +134,7 @@ export const inferenceFallback: FacultyFallback = async (input): Promise<Faculty
 /** Abduction Fallback - generate questions. */
 export const abductionFallback: FacultyFallback = async (input): Promise<FacultyOutput | null> => {
   const { primary, context } = input;
-  const term = primary as Term;
+  const term = asTerm(primary);
   const maxHypotheses = context?.maxResults ?? 3;
 
   const hypotheses = Array.from({ length: maxHypotheses }, (_, i) => ({
@@ -146,8 +156,8 @@ export const abductionFallback: FacultyFallback = async (input): Promise<Faculty
 /** Induction Fallback - pattern matching. */
 export const inductionFallback: FacultyFallback = async (input): Promise<FacultyOutput | null> => {
   const { primary, secondary, context } = input;
-  const pattern = primary as Term;
-  const examples = secondary as Term;
+  const pattern = asTerm(primary);
+  const examples = asTerm(secondary!);
   const minExamples = context?.metadata?.minExamples as number ?? 2;
 
   // Simple generalization: find common structure
@@ -193,8 +203,8 @@ export const inductionFallback: FacultyFallback = async (input): Promise<Faculty
 /** Analogy Fallback - structural similarity. */
 export const analogyFallback: FacultyFallback = async (input): Promise<FacultyOutput | null> => {
   const { primary, secondary, context } = input;
-  const source = primary as Term;
-  const target = secondary as Term;
+  const source = asTerm(primary);
+  const target = asTerm(secondary!);
   const maxMappings = context?.maxResults ?? 3;
 
   const mappings: any[] = [];
@@ -229,8 +239,8 @@ export const analogyFallback: FacultyFallback = async (input): Promise<FacultyOu
 /** Revision Fallback - conservative revision. */
 export const revisionFallback: FacultyFallback = async (input): Promise<FacultyOutput | null> => {
   const { primary, secondary, context } = input;
-  const belief = primary as Task;
-  const evidence = secondary as Task;
+  const belief = asTask(primary);
+  const evidence = asTask(secondary!);
 
   const strategy = context?.metadata?.revisionStrategy as string ?? 'conservative';
   let revisedTruth: Truth;
@@ -325,7 +335,7 @@ export const evaluationFallback: FacultyFallback = async (input): Promise<Facult
 /** Communication Fallback - template-based. */
 export const communicationFallback: FacultyFallback = async (input): Promise<FacultyOutput | null> => {
   const { primary, context } = input;
-  const term = primary as Term;
+  const term = asTerm(primary);
   const direction = context?.metadata?.direction as string ?? 'to-natural';
 
   let translation = '';

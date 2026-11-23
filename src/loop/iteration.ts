@@ -11,6 +11,7 @@ import type { LoopAppraisal } from './appraise';
 import type { LoopRecorder } from './record';
 import type { SelfModelManager } from './self-model';
 import type { Successor } from '../economy/index';
+import type { Truth as TermsTruth } from '@senars/terms';
 import { defaultLoopConfig } from './types';
 
 /** Runs a single loop iteration. */
@@ -139,7 +140,7 @@ async function executeActions(
         const input = {
           faculty: invoker.spec.name,
           primary: task.term,
-          context: { truth: task.truth },
+          context: { truth: task.truth as TermsTruth },
           budget: 10,
           priority: task.weight,
         } satisfies import('../faculties/specs').FacultyInput;

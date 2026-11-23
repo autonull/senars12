@@ -5,8 +5,12 @@ import type { AttentionContext, AttentionModel } from '../types';
 import { ConfigurableStrategy } from '../base';
 
 export class SimpleAttention extends ConfigurableStrategy<{ boost: number }> implements AttentionModel {
-  constructor(boost = 0.3) {
-    super('simple', 'Fixed boost on prime, exponential decay', { boost });
+  constructor(
+    boost = 0.3,
+    name = 'simple',
+    description = 'Fixed boost on prime, exponential decay'
+  ) {
+    super(name, description, { boost });
   }
 
   prime(_concept: Concept, _ctx: AttentionContext): number {

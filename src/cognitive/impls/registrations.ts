@@ -188,7 +188,7 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
     fixed({
       name: 'novelty',
       description: 'Prefer least-recently-touched concepts',
-      factory: () => NoveltySampling,
+      factory: () => new NoveltySampling(),
     }),
   ],
   [

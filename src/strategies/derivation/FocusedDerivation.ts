@@ -7,12 +7,7 @@ import { DefaultDerivation } from './DefaultDerivation';
 
 export class FocusedDerivation extends DefaultDerivation {
   constructor() {
-    super();
-    this.metadata = {
-      name: 'focused',
-      description: 'Prioritize high-relevance secondaries',
-      version: this.metadata.version,
-    };
+    super('focused', 'Prioritize high-relevance secondaries');
   }
 
   override async *derive(

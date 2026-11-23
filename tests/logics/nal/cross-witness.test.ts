@@ -51,7 +51,7 @@ function makeBinaryPremises(op: string, t1: TruthValue, t2: TruthValue, stamp: S
         { term: termInterner.inheritance(S1, P1), truth: t1, stamp, role: 'major' },
         { term: termInterner.inheritance(S1, P2), truth: t2, stamp, role: 'minor' },
       ];
-    case 'revision':
+    case 'revision': {
       // S1-->P, S2-->P (same subject and predicate) => merged
       // Use same term for both premises
       const term = termInterner.inheritance(S1, P);
@@ -59,6 +59,7 @@ function makeBinaryPremises(op: string, t1: TruthValue, t2: TruthValue, stamp: S
         { term, truth: t1, stamp, role: 'major' },
         { term, truth: t2, stamp, role: 'minor' },
       ];
+    }
     case 'analogy':
       // S1-->P1, S2-->P2 => (S1*S2)<->(P1*P2)
       return [

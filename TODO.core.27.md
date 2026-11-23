@@ -11,8 +11,8 @@
 | ID | Consolidated Workstream | Merges | Impact | Effort | Dependencies |
 |----|-------------------------|--------|--------|--------|--------------|
 | **W1** | **Registry Unification** | F1 + C11 | ★★★★★ | M | — |
-| **W2** | **Boundary Primitives Enforcement** | F2 | ★★★★★ | S | — |
-| **W3** | **Strategy System Unification** | F3 + C1 + C2 | ★★★★★ | M | W1 |
+| **W2** | **Boundary Primitives Enforcement** | F2 | ★★★★★ | S | — | ✅ **Done** |
+| **W3** | **Strategy System Unification** | F3 + C1 + C2 | ★★★★★ | M | W1 | 🟡 **In Progress** |
 | **W4** | **Transport Abstraction** | A1 + C3 | ★★★★☆ | M | W1 |
 | **W5** | **MemoryView + Codec Unification** | A2 + A3 + C5 | ★★★★☆ | M | W1, W2 |
 | **W6** | **Error Taxonomy + Logging** | A4 + Q1 | ★★★☆☆ | S | W1, W2 |
@@ -120,7 +120,7 @@ export const intAtLeast = (min) => z.number().int().min(min);
 
 **Enforcement:** `schema:grammar` gate scans for inline primitives → fails with migration hint.
 
-**Deliverables:**
+**Deliverables:** ✅ **All complete**
 - Zero inline `z.string().min(1)`, `z.number().min(0).max(1)`, `z.uuid()`, etc.
 - All schemas import from `config/boundary.ts`
 - `pnpm schema:grammar` passes
@@ -128,14 +128,15 @@ export const intAtLeast = (min) => z.number().int().min(min);
 
 ---
 
-### W3: Strategy System Unification (Week 2, needs W1)
+### W3: Strategy System Unification (Week 2, needs W1) — 🟡 **In Progress**
 **Merges:** F3 (base class) + C1 (algebra runtime) + C2 (hot-reload)
 
-**Part A: Strategy Base (Week 2a)**
+**Part A: Strategy Base (Week 2a)** — 🟡 **Partially Complete**
 - All 25+ strategies extend `Strategy` or `ConfigurableStrategy<Config>` from `strategies/base.ts`
 - Consistent `metadata: { name, description, version? }`
-- ✅ Sampling, Attention, LM-Selectors already done
-- Remaining: Derivation (4), Premise (5)
+- ✅ Sampling (6), Attention (4), LM-Selectors (5) — **15/25 done**
+- 🟡 Derivation (2/4): `DefaultDerivation`, `FocusedDerivation` updated
+- ⏳ Premise (5): Not started
 
 **Part B: Strategy Algebra Runtime (Week 2b)**
 ```typescript
@@ -609,7 +610,7 @@ const provider = new NodeTracerProvider();
 | Workstream | Owner | Start | Week 1 Deliverable |
 |------------|-------|-------|-------------------|
 | **W1** Registry Unification | — | Day 1 | All 45+ registries on `util/registry.ts` bases |
-| **W2** Boundary Primitives | — | Day 1 | `schema:grammar` passes (zero inline primitives) |
+| **W2** Boundary Primitives | — | Day 1 | ✅ `schema:grammar` passes (zero inline primitives) |
 
 **Week 2 Parallel Starts (after W1/W2):**
 - W3 Strategy System (needs W1)

@@ -4,12 +4,7 @@ import { SimpleAttention } from './SimpleAttention';
 
 export class SpreadingActivation extends SimpleAttention {
   constructor(boost = 0.3) {
-    super(boost);
-    this.metadata = {
-      name: 'spreading',
-      description: 'Prime propagates through term links',
-      version: this.metadata.version,
-    };
+    super(boost, 'spreading', 'Prime propagates through term links');
   }
 
   /**

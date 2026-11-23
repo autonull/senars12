@@ -7,12 +7,7 @@ import { SimpleAttention } from './SimpleAttention';
 
 export class GoalRelevanceAttention extends SimpleAttention {
   constructor(boost = 0.3) {
-    super(boost);
-    this.metadata = {
-      name: 'goal-relevance',
-      description: 'Boost proportional to goal term overlap',
-      version: this.metadata.version,
-    };
+    super(boost, 'goal-relevance', 'Boost proportional to goal term overlap');
   }
 
   override prime(concept: Concept, ctx: AttentionContext): number {

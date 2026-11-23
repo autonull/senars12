@@ -11,16 +11,24 @@ import { z } from 'zod';
 import type { Term } from '../../kernel/terms/term';
 import type { Truth, TruthValue } from '../../kernel/truth';
 import type { Task, TimestampMs } from '../../kernel/types';
+import {
+  uuid,
+  nonNegativeInt,
+  positiveInt,
+  unitInterval,
+  intBetween,
+  nonEmpty,
+} from '../../config/boundary';
 
 // ============================================================================
 // Base schemas
 // ============================================================================
 
 /** Unique identifier (UUID). */
-export const IterIdSchema = z.string().uuid();
+export const IterIdSchema = uuid;
 
 /** Timestamp (milliseconds since epoch). */
-export const IterTimestampSchema = z.number().int().nonnegative();
+export const IterTimestampSchema = nonNegativeInt;
 
 /** Term reference (serialized). */
 export const IterTermRefSchema = z.object({
@@ -33,9 +41,9 @@ export const IterTermRefSchema = z.object({
 /** Truth value reference (matches generated schema format). */
 export const IterTruthRefSchema = z.object({
   /** Frequency component [0,1]. */
-  frequency: z.number().min(0).max(1),
+  frequency: unitInterval,
   /** Confidence component [0,1]. */
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval,
 });
 
 /** Task reference (serialized). */
@@ -132,7 +140,7 @@ export const TrendSchema = z.enum(['improving', 'stable', 'declining']);
 export const SelectionEvidenceSchema = z.object({
   source: z.enum(['faculty', 'oracle', 'memory', 'rule']),
   description: z.string(),
-  strength: z.number().min(0).max(1),
+  strength: unitInterval,
 });
 
 /** Selection candidate. */
@@ -140,12 +148,12 @@ export const SelectionCandidateSchema = z.object({
   id: IterIdSchema,
   action: IterTaskRefSchema,
   utility: z.number(),
-  voi: z.number().min(0).max(1),
-  confidence: z.number().min(0).max(1),
+  voi: unitInterval,
+  confidence: unitInterval,
   sourceFaculty: z.string(),
   evidence: z.array(SelectionEvidenceSchema),
-  cost: z.number().nonnegative(),
-  risk: z.number().min(0).max(1),
+  cost: nonNegativeInt,
+  risk: unitInterval,
   priority: z.number(),
 });
 
@@ -153,13 +161,13 @@ export const SelectionCandidateSchema = z.object({
 export const ScoredCandidateSchema = z.object({
   candidate: SelectionCandidateSchema,
   score: z.number(),
-  rank: z.number().int().nonnegative(),
+  rank: nonNegativeInt,
 });
 
 /** Selection metadata. */
 export const SelectionMetadataSchema = z.object({
-  candidatesConsidered: z.number().int().nonnegative(),
-  durationMs: z.number().int().nonnegative(),
+  candidatesConsidered: nonNegativeInt,
+  durationMs: nonNegativeInt,
   explored: z.boolean(),
   explorationParam: z.number(),
 });
@@ -174,7 +182,7 @@ export const SelectionResultSchema = z.object({
 
 /** Selection record for history. */
 export const SelectionRecordSchema = z.object({
-  iteration: z.number().int().nonnegative(),
+  iteration: nonNegativeInt,
   candidateId: IterIdSchema,
   strategy: SelectionStrategySchema,
   outcome: z.object({
@@ -190,10 +198,10 @@ export const SelectionContextSchema = z.object({
   candidates: z.array(SelectionCandidateSchema),
   beliefs: z.array(IterTaskRefSchema),
   goals: z.array(IterTaskRefSchema),
-  budget: z.number().nonnegative(),
-  urgency: z.number().min(0).max(1),
-  riskTolerance: z.number().min(0).max(1),
-  iteration: z.number().int().nonnegative(),
+  budget: nonNegativeInt,
+  urgency: unitInterval,
+  riskTolerance: unitInterval,
+  iteration: nonNegativeInt,
   history: z.array(SelectionRecordSchema),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
@@ -226,7 +234,7 @@ export const ActionResultSchema = z.object({
   success: z.boolean(),
   output: z.unknown().optional(),
   effects: z.array(EffectResultSchema),
-  durationMs: z.number().int().nonnegative(),
+  durationMs: nonNegativeInt,
   error: z.string().optional(),
 });
 
@@ -241,8 +249,8 @@ export type ActionResult = z.infer<typeof ActionResultSchema>;
 export const JudgmentResultSchema = z.object({
   judgmentId: z.string(),
   task: IterTaskRefSchema,
-  score: z.number().min(0).max(1),
-  confidence: z.number().min(0).max(1),
+  score: unitInterval,
+  confidence: unitInterval,
   details: z.record(z.string(), z.unknown()),
 });
 
@@ -268,7 +276,7 @@ export const ContractCheckResultSchema = z.object({
 /** Loop contract (definition). */
 export const LoopContractSchema = z.object({
   id: IterIdSchema,
-  name: z.string(),
+  name: nonEmpty,
   type: IterContractTypeSchema,
   severity: IterContractSeveritySchema,
   description: z.string(),
@@ -278,7 +286,7 @@ export const LoopContractSchema = z.object({
 
 /** Contract context. */
 export const ContractContextSchema = z.object({
-  iteration: z.number().int().nonnegative(),
+  iteration: nonNegativeInt,
   currentTask: IterTaskRefSchema.optional(),
   focusBag: z.array(IterTaskRefSchema),
   beliefs: z.array(IterTaskRefSchema),
@@ -286,20 +294,20 @@ export const ContractContextSchema = z.object({
   previousResults: z.array(z.object({
     task: IterTaskRefSchema,
     success: z.boolean(),
-    durationMs: z.number().int().nonnegative(),
+    durationMs: nonNegativeInt,
     contracts: z.array(ContractCheckResultSchema),
   })),
   resources: z.object({
-    tokensUsed: z.number().nonnegative(),
-    tokensRemaining: z.number().nonnegative(),
-    wallTimeMs: z.number().nonnegative(),
-    cpuTimeMs: z.number().nonnegative(),
+    tokensUsed: nonNegativeInt,
+    tokensRemaining: nonNegativeInt,
+    wallTimeMs: nonNegativeInt,
+    cpuTimeMs: nonNegativeInt,
   }),
   oracleCalls: z.array(z.object({
     operation: z.string(),
     success: z.boolean(),
-    durationMs: z.number().int().nonnegative(),
-    tokensUsed: z.number().nonnegative(),
+    durationMs: nonNegativeInt,
+    tokensUsed: nonNegativeInt,
   })),
   clock: z.unknown(),
 });
@@ -316,25 +324,25 @@ export type IterContractSeverity = z.infer<typeof IterContractSeveritySchema>;
 
 /** Resource usage. */
 export const ResourceUsageSchema = z.object({
-  cpu: z.number().min(0).max(1),
-  memory: z.number().nonnegative(),
-  tokensUsed: z.number().nonnegative(),
-  tokensRemaining: z.number().nonnegative(),
-  wallTimeMs: z.number().nonnegative(),
+  cpu: unitInterval,
+  memory: nonNegativeInt,
+  tokensUsed: nonNegativeInt,
+  tokensRemaining: nonNegativeInt,
+  wallTimeMs: nonNegativeInt,
 });
 
 /** Oracle health. */
 export const OracleHealthSchema = z.object({
   operation: z.string(),
   available: z.boolean(),
-  errorRate: z.number().min(0).max(1),
-  avgLatencyMs: z.number().nonnegative(),
+  errorRate: unitInterval,
+  avgLatencyMs: nonNegativeInt,
 });
 
 /** Gate state. */
 export const GateStateSchema = z.object({
   name: z.string(),
-  consecutiveFailures: z.number().int().nonnegative(),
+  consecutiveFailures: nonNegativeInt,
   lastError: z.string().optional(),
 });
 
@@ -344,7 +352,7 @@ export const RepairActionSchema = z.object({
   target: z.string(),
   params: z.record(z.string(), z.unknown()),
   priority: z.number(),
-  estimatedRecoveryMs: z.number().nonnegative(),
+  estimatedRecoveryMs: nonNegativeInt,
   safe: z.boolean(),
 });
 
@@ -355,7 +363,7 @@ export const AnomalySchema = z.object({
   description: z.string(),
   detectedAt: IterTimestampSchema,
   context: z.object({
-    iteration: z.number().int().nonnegative(),
+    iteration: nonNegativeInt,
     recentTasks: z.array(IterTaskRefSchema),
     beliefs: z.array(IterTaskRefSchema),
     goals: z.array(IterTaskRefSchema),
@@ -369,7 +377,7 @@ export const AnomalySchema = z.object({
 
 /** Repair context. */
 export const RepairContextSchema = z.object({
-  iteration: z.number().int().nonnegative(),
+  iteration: nonNegativeInt,
   recentTasks: z.array(IterTaskRefSchema),
   beliefs: z.array(IterTaskRefSchema),
   goals: z.array(IterTaskRefSchema),
@@ -384,7 +392,7 @@ export const RepairResultSchema = z.object({
   anomalyId: IterIdSchema,
   actions: z.array(RepairActionSchema),
   success: z.boolean(),
-  durationMs: z.number().int().nonnegative(),
+  durationMs: nonNegativeInt,
   error: z.string().optional(),
   postContext: RepairContextSchema.optional(),
 });
@@ -394,8 +402,8 @@ export const RepairPolicySchema = z.object({
   anomalyType: AnomalyTypeSchema,
   minSeverity: AnomalySeveritySchema,
   actions: z.array(RepairActionSchema),
-  maxRetries: z.number().int().nonnegative(),
-  cooldownMs: z.number().nonnegative(),
+  maxRetries: nonNegativeInt,
+  cooldownMs: nonNegativeInt,
 });
 
 export type ResourceUsage = z.infer<typeof ResourceUsageSchema>;
@@ -419,14 +427,14 @@ export const AppraisalEvidenceSchema = z.object({
   source: EvidenceSourceSchema,
   description: z.string(),
   value: z.number(),
-  weight: z.number().min(0).max(1),
+  weight: unitInterval,
 });
 
 /** Dimension appraisal. */
 export const DimensionAppraisalSchema = z.object({
   dimension: AppraisalDimensionSchema,
-  score: z.number().min(0).max(1),
-  confidence: z.number().min(0).max(1),
+  score: unitInterval,
+  confidence: unitInterval,
   evidence: z.array(AppraisalEvidenceSchema),
   trend: TrendSchema,
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -434,24 +442,24 @@ export const DimensionAppraisalSchema = z.object({
 
 /** Appraisal metrics. */
 export const AppraisalMetricsSchema = z.object({
-  tokensPerIteration: z.number().nonnegative(),
-  timePerIteration: z.number().nonnegative(),
-  oracleCallsPerIteration: z.number().nonnegative(),
-  oracleSuccessRate: z.number().min(0).max(1),
-  contractViolationRate: z.number().min(0).max(1),
+  tokensPerIteration: nonNegativeInt,
+  timePerIteration: nonNegativeInt,
+  oracleCallsPerIteration: nonNegativeInt,
+  oracleSuccessRate: unitInterval,
+  contractViolationRate: unitInterval,
   beliefGrowthRate: z.number(),
-  goalAchievementRate: z.number().min(0).max(1),
-  contradictionRate: z.number().min(0).max(1),
-  uniqueTasksRatio: z.number().min(0).max(1),
-  fallbackUsageRate: z.number().min(0).max(1),
+  goalAchievementRate: unitInterval,
+  contradictionRate: unitInterval,
+  uniqueTasksRatio: unitInterval,
+  fallbackUsageRate: unitInterval,
 });
 
 /** Full appraisal result. */
 export const LoopAppraisalSchema = z.object({
-  overallScore: z.number().min(0).max(1),
+  overallScore: unitInterval,
   dimensions: z.array(DimensionAppraisalSchema),
   timestamp: IterTimestampSchema,
-  iteration: z.number().int().nonnegative(),
+  iteration: nonNegativeInt,
   summary: z.string(),
   recommendations: z.array(z.string()),
   metrics: AppraisalMetricsSchema.optional(),
@@ -459,9 +467,9 @@ export const LoopAppraisalSchema = z.object({
 
 /** Appraisal configuration. */
 export const AppraisalConfigSchema = z.object({
-  weights: z.record(AppraisalDimensionSchema, z.number().min(0).max(1)),
-  minEvidence: z.number().int().nonnegative(),
-  historyWindow: z.number().int().positive(),
+  weights: z.record(AppraisalDimensionSchema, unitInterval),
+  minEvidence: nonNegativeInt,
+  historyWindow: positiveInt,
   detailed: z.boolean(),
 });
 
