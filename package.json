@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@12.3.4",
   "bin": {
-    "senars": "./dist/bin/senars-cli.js",
+    "senars": "./dist/bin/senars.js",
     "senars-mcp": "./dist/bin/mcp-server.js",
     "senars-legacy": "./dist/bin/bot.js",
     "senars-edge": "./dist/bin/edge-worker.js",
@@ -133,7 +133,7 @@
     "bot:http": "ENABLE_HTTP=true pnpm run bot",
     "bot:mcp": "ENABLE_MCP=true pnpm run bot",
     "multi-agent": "pnpm run bot -- --multiagent",
-    "senars": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars-cli.ts",
+    "senars": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars.ts",
     "senars:legacy": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars.ts",
     "senars:edge": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/edge-worker.ts",
     "senars:wasm-bundle": "tsx --tsconfig tsconfig.root.json src/bin/wasm-bundle.ts",

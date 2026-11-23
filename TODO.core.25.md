@@ -303,10 +303,10 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 ### W8 — One binary, every surface
 - [x] Schema-genome pipeline: one zod declaration → TS type, log codec, MCP tool, elicitation form, fuzzer, doc table; regenerates the capability manifest. Totality types make a new event without a consumer a compile error. Implemented in `src/genome/index.ts`.
 - [x] Generated MCP surface (SDK, dual era, stateless; handles are log references; long checks return task handles; forms from schemas). Replace mock + legacy server (parity-gated). Implemented in `src/surface/mcp/generated-server.ts`.
-- [x] `senars` with profiles as data: `logic`, `coprocessor`, `agent`, `device` (+ domain packs). Device profile imports zero LM. Implemented in `src/profiles/index.ts` and `src/bin/senars-cli.ts`.
+- [x] `senars` with profiles as data: `logic`, `coprocessor`, `agent`, `device` (+ domain packs). Device profile imports zero LM. Implemented in `src/profiles/index.ts` and `src/bin/senars.ts`.
 - [x] **Keep `io/` WebSocket/session/auth/health** as streaming transport; **keep `plugins/`** as the runtime form of packs; **keep `motor/`** as operator/tool dispatch; **keep retrieval/action tools** (rag-query, web-search) as oracles/tools. (Already in place)
 - [x] **Port NL/dialogue:** formalizer → `perceive.formalize` faculty (implemented in `src/faculties/specs.ts`, `src/oracles/formalization.ts`); dialogue management → a pack (implemented in `src/dialogue/`, `src/profiles/index.ts`).
-- [x] Distribution: npx, browser bundle + **playground REPL** (implemented in `src/bin/senars-cli.ts`); **edge worker** (implemented in `src/bin/edge-worker.ts`); **single-file WASM bundle with vendored `.wasm`** (implemented in `src/bin/wasm-bundle.ts`, `dist/wasm-bundle.js`). **No containers, no required external binaries, no Python.**
+- [x] Distribution: npx, browser bundle + **playground REPL** (implemented in `src/bin/senars.ts`); **edge worker** (implemented in `src/bin/edge-worker.ts`); **single-file WASM bundle with vendored `.wasm`** (implemented in `src/bin/wasm-bundle.ts`, `dist/wasm-bundle.js`). **No containers, no required external binaries, no Python.**
 
 **Accept:** D11 — one certificate verified on browser, CLI, kernel, peer; obligation 13 incl. MCP Inspector; a newcomer gets a derivation in seconds with no install.
 **Preserves:** transport, plugins, motor, tools, NL/dialogue; **consolidates:** duplicate MCP servers only after parity.
