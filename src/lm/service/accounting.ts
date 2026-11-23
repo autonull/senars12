@@ -64,7 +64,7 @@ export type CallSpec<T> = CallEnvelope<T> & { run: (ctx: CallContext) => Promise
 export type CacheHit<T> = { hit: false } | { hit: true; value: T };
 
 /** Provider + settings resolved for a gated call. */
-export interface Gate {
+export interface AccountingGate {
   provider: LMProviderName | undefined;
   settings: LMSettings;
 }
@@ -112,7 +112,7 @@ export class CallAccounting {
   }
 
   /** Fail fast when the active provider's circuit breaker is open. */
-  gate(task: LMTask, provider: LMProviderName | undefined): Gate {
+  gate(task: LMTask, provider: LMProviderName | undefined): AccountingGate {
     const settings = this.runtime.getLMSettings();
     if (provider && !this.runtime.canUseProvider(provider, settings)) {
       throw new LMUnavailableError(
@@ -125,7 +125,7 @@ export class CallAccounting {
   }
 
   /** Charge the provider's spend ledger; throws LMUnavailableError past the cap. */
-  bill(task: LMTask, gate: Gate, usage?: TokenUsage): void {
+  bill(task: LMTask, gate: AccountingGate, usage?: TokenUsage): void {
     this.#ledger.record(
       gate.provider ?? 'unknown',
       task,
@@ -135,7 +135,7 @@ export class CallAccounting {
     );
   }
 
-  lookup<T>(envelope: CallEnvelope<T>, gate: Gate): CacheHit<T> {
+  lookup<T>(envelope: CallEnvelope<T>, gate: AccountingGate): CacheHit<T> {
     const raw = this.#cache.get(envelope.cacheKey);
     if (raw === undefined) return { hit: false };
     this.#recordCall(true, Date.now(), envelope.prompt.length + raw.length, gate);
@@ -152,7 +152,7 @@ export class CallAccounting {
   async settle<T>(
     envelope: CallEnvelope<T>,
     durationMs: number,
-    gate: Gate,
+    gate: AccountingGate,
     outcome: CallOutcome<T>
   ): Promise<void> {
     if (outcome.ok) {
@@ -180,7 +180,7 @@ export class CallAccounting {
   }
 
   /** Gate, cache, and settle one awaited call end to end. */
-  async execute<T>(spec: CallSpec<T>, gate: Gate): Promise<T> {
+  async execute<T>(spec: CallSpec<T>, gate: AccountingGate): Promise<T> {
     const cached = this.lookup(spec, gate);
     if (cached.hit) return cached.value;
 
@@ -201,7 +201,7 @@ export class CallAccounting {
     }
   }
 
-  #recordCall(success: boolean, durationMs: number, tokens: number, gate: Gate): void {
+  #recordCall(success: boolean, durationMs: number, tokens: number, gate: AccountingGate): void {
     recordLMCall(this.#stats, success, durationMs, tokens);
     this.runtime.recordProviderCall(gate.provider ?? getLmProvider(), success, gate.settings);
     const id = this.runtime.lastDecision?.modelId;
@@ -221,7 +221,7 @@ export class CallAccounting {
     if (n >= 2) this.runtime.demoteModel(id, `repeated transport failures (${n})`);
   }
 
-  #logRouting(task: LMTask, durationMs: number, success: boolean, gate: Gate): void {
+  #logRouting(task: LMTask, durationMs: number, success: boolean, gate: AccountingGate): void {
     const { provider } = gate;
     const decision = this.runtime.lastDecision;
     trace.getActiveSpan()?.setAttributes({

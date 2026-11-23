@@ -10,19 +10,21 @@
 
 import type { Frequency, Confidence, TruthLike, TruthValue } from './types';
 import { clamp, clamp01, safeDiv } from '@senars/util/numeric';
-import { softSquash } from './types';
-import { weakenConfidence, confidenceToWeight, weightToConfidence } from '@senars/util/truth-algebra';
+import { weakenConfidence } from '@senars/util/truth-algebra';
 import { SenarsError } from '../errors/senars-error';
+import {
+  MAX_CONFIDENCE,
+  WEAKENING_FACTOR,
+  CONFIRM_GAIN,
+  CONTRADICT_DECAY,
+  OUTCOME_GAIN,
+  softSquash,
+  confidenceToWeight,
+  weightToConfidence,
+} from './truth-constants';
 
 // Re-export TruthValue from types
 export type { TruthValue } from './types';
-
-// Import the utility functions we need
-const MAX_CONFIDENCE = 0.999;
-const WEAKENING_FACTOR = 10;
-const CONFIRM_GAIN = 1.1;
-const CONTRADICT_DECAY = 0.9;
-const OUTCOME_GAIN = 0.1;
 
 /** Truth value type. */
 export type Truth = {

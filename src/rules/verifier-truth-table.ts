@@ -7,40 +7,29 @@
  * and declares any further drift.
  *
  * IMPORTANT: These implementations are EXACT COPIES of the engine's Truth methods
- * (from src/terms/impls/Truth.ts) to ensure the only drift is the declared one:
- * revision:frequency (saturated revision branch).
+ * to ensure the only drift is the declared one: revision:frequency
+ * (saturated revision branch).
+ *
+ * Shared constants are imported from kernel/truth-constants to eliminate
+ * constant duplication while keeping implementations independent.
  */
 
 import type { Truth } from '../terms';
 import { Truth as EngineTruth } from '../terms';
 import { clamp, clamp01, safeDiv } from '@senars/util/numeric';
+import {
+  MAX_CONFIDENCE,
+  WEAKENING_FACTOR,
+  CONFIRM_GAIN,
+  CONTRADICT_DECAY,
+  OUTCOME_GAIN,
+  softSquash,
+  confidenceToWeight,
+  weightToConfidence,
+  normalizeTruth,
+} from '../kernel/truth-constants';
 
 type TruthFn = (t1: Truth, t2?: Truth, ...args: unknown[]) => Truth | null | number;
-
-// Constants copied from kernel Truth (src/kernel/truth.ts)
-const WEAKENING_FACTOR = 10;
-const MAX_CONFIDENCE = 0.999;
-const CONFIRM_GAIN = 1.1;
-const CONTRADICT_DECAY = 0.9;
-const OUTCOME_GAIN = 0.1;
-
-// Matches kernel/types.ts softSquash: c / (1 + c * factor) with default factor=10
-const softSquash = (c: number, factor = 10): number => c / (1 + c * factor);
-
-// Weight conversion (copied from Truth.ts)
-const c2w = (c: number): number => {
-  if (c >= 1) return Number.MAX_VALUE;
-  return c / (1 - c);
-};
-const w2c = (w: number): number => {
-  if (!Number.isFinite(w) || w >= Number.MAX_VALUE) return 1;
-  return w / (1 + w);
-};
-
-const normalizeTruth = (f: number, c: number): Truth => ({
-  f: clamp(isNaN(f) ? 0.5 : f, 0, 1) as Truth['f'],
-  c: clamp(isNaN(c) ? 0.9 : c, 0, MAX_CONFIDENCE) as Truth['c'],
-});
 
 /** Binary truth functions as recorded by the verifier (exact copies from engine). */
 export const BINARY_TRUTH: Readonly<Record<string, (f1: number, f2: number, c1: number, c2: number) => [number, number]>> = {
@@ -117,10 +106,10 @@ export const BINARY_TRUTH: Readonly<Record<string, (f1: number, f2: number, c1: 
     return [n.f, n.c];
   },
   revision: (f1, f2, c1, c2) => {
-    const w1 = c2w(c1);
-    const w2 = c2w(c2);
+    const w1 = confidenceToWeight(c1);
+    const w2 = confidenceToWeight(c2);
     const w = w1 + w2;
-    const newC = w2c(w);
+    const newC = weightToConfidence(w);
     // DECLARED DRIFT: The verifier always uses weight-based frequency,
     // even when confidence would exceed MAX_CONFIDENCE.
     // The engine switches to confidence-weighted frequency in that case.
@@ -131,10 +120,10 @@ export const BINARY_TRUTH: Readonly<Record<string, (f1: number, f2: number, c1: 
     return [n.f, n.c];
   },
   revisionWeak: (f1, f2, c1, c2) => {
-    const w1 = c2w(c1) / WEAKENING_FACTOR;
-    const w2 = c2w(c2) / WEAKENING_FACTOR;
+    const w1 = confidenceToWeight(c1) / WEAKENING_FACTOR;
+    const w2 = confidenceToWeight(c2) / WEAKENING_FACTOR;
     const w = w1 + w2;
-    const [f, c] = [(f1 * w1 + f2 * w2) / w, w2c(w)];
+    const [f, c] = [(f1 * w1 + f2 * w2) / w, weightToConfidence(w)];
     const n = normalizeTruth(f, c);
     return [n.f, n.c];
   },

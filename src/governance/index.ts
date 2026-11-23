@@ -19,7 +19,7 @@ export {
   type RiskClass,
   GATE_DECISIONS,
   type GateDecision,
-  type GateResult,
+  type RiskVerdict,
   riskClassOf,
   evaluateGate,
   evaluateGateFromRisk,

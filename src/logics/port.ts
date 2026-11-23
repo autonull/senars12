@@ -89,7 +89,7 @@ export interface Logic<T> {
   /** Logic version. */
   readonly version: string;
   /** Codec for serialization. */
-  readonly codec: Codec<T>;
+  readonly codec: LogicCodec<T>;
   /** Compute expectation (for ranking). */
   readonly expect: (t: T) => number;
   /** Compute confidence. */
@@ -102,8 +102,8 @@ export interface Logic<T> {
   readonly rules: readonly RuleAST<T>[];
 }
 
-/** Codec for serialization/deserialization. */
-export interface Codec<T> {
+/** Codec for logic serialization/deserialization (string-based). */
+export interface LogicCodec<T> {
   /** Serialize to string. */
   readonly encode: (t: T) => string;
   /** Deserialize from string. */

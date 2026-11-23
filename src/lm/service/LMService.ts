@@ -25,7 +25,7 @@ import {
   resolveActiveProvider,
   setBuiltinProgressCallback,
 } from '../providers';
-import { CallAccounting, type CallEnvelope, type Gate, textCodec } from './accounting';
+import { CallAccounting, type CallEnvelope, type AccountingGate, textCodec } from './accounting';
 import { buildCacheKey } from './cache';
 import { LMUnavailableError, temperatureLadder } from './errors';
 import { enforceLMOutputSize, LMOutputTooLargeError, maxLMOutputChars } from './sanitize';
@@ -350,7 +350,7 @@ export class LMService implements ILMService {
   }
 
   /** Resolve the active model and pass the breaker gate; fail closed. */
-  private open(task: LMTask, modelOverride?: string): { model: LanguageModel; gate: Gate } {
+  private open(task: LMTask, modelOverride?: string): { model: LanguageModel; gate: AccountingGate } {
     const model = this.getModel(task, modelOverride);
     if (!model) {
       throw new LMUnavailableError(

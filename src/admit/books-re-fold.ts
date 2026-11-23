@@ -9,16 +9,16 @@ import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from './r
 import type { Book, BookEntry, BookMetadata } from './book';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
-import { createPolicyEngine, type PolicyEngine, type PolicyEvaluation } from './policies';
-import { createProjectionEngine, type ProjectionEngine, type ProjectionRule } from './projections';
+import { createAdmissionPolicyEngine, type AdmissionPolicyEngine, type PolicyEvaluation } from './policies';
+import { createVerifierProjectionEngine, type VerifierProjectionEngine, type ProjectionRule } from './projections';
 import { createAdmissionMachinery, type AdmissionMachinery, type AdmissionProposal } from './admission-machinery';
 
 /** Re-fold configuration. */
 export interface RefoldConfig {
   /** Policy engine. */
-  policyEngine: PolicyEngine;
+  policyEngine: AdmissionPolicyEngine;
   /** Projection engine. */
-  projectionEngine: ProjectionEngine;
+  projectionEngine: VerifierProjectionEngine;
   /** Admission machinery. */
   admissionMachinery: AdmissionMachinery;
   /** Auto-create books on admission. */
@@ -315,8 +315,8 @@ export function createBookLifecycleManager(
 export function createDefaultRefoldConfig(
   workspaceRoot: string
 ): RefoldConfig {
-  const policyEngine = createPolicyEngine();
-  const projectionEngine = createProjectionEngine();
+  const policyEngine = createAdmissionPolicyEngine();
+  const projectionEngine = createVerifierProjectionEngine();
   const { ShadowWorktreeManager } = require('../tools/adapters/shadow-worktree');
   const { DefaultExternalRunner, DefaultHumanApproval, createAdmissionMachinery } = require('./admission-machinery');
   const { createDefaultClock } = require('../kernel/env');

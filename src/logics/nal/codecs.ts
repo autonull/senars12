@@ -16,8 +16,8 @@ export interface Belief {
   readonly stamp: Stamp;
 }
 
-/** Codec interface. */
-export interface Codec<T> {
+/** NAL codec interface for Belief serialization. */
+export interface NalCodec {
   readonly name: string;
   readonly encode: (belief: Belief) => string;
   readonly decode: (input: string) => Belief | null;
@@ -26,7 +26,7 @@ export interface Codec<T> {
 }
 
 /** Narsese codec (native format). */
-export const NARSESE_CODEC: Codec<Belief> = {
+export const NARSESE_CODEC: NalCodec = {
   name: 'narsese',
 
   encode(belief) {
@@ -74,7 +74,7 @@ export const NARSESE_CODEC: Codec<Belief> = {
 };
 
 /** JSON codec. */
-export const JSON_CODEC: Codec<Belief> = {
+export const JSON_CODEC: NalCodec = {
   name: 'json',
 
   encode(belief) {
@@ -127,7 +127,7 @@ export const JSON_CODEC: Codec<Belief> = {
 };
 
 /** TPTP/Prover9 codec (first-order logic format). */
-export const TPTP_CODEC: Codec<Belief> = {
+export const TPTP_CODEC: NalCodec = {
   name: 'tptp',
 
   encode(belief) {
@@ -168,7 +168,7 @@ export const TPTP_CODEC: Codec<Belief> = {
 };
 
 /** SMT-LIB codec. */
-export const SMTLIB_CODEC: Codec<Belief> = {
+export const SMTLIB_CODEC: NalCodec = {
   name: 'smtlib',
 
   encode(belief) {
@@ -210,7 +210,7 @@ export const SMTLIB_CODEC: Codec<Belief> = {
 };
 
 /** DIMACS codec (CNF format for SAT solvers). */
-export const DIMACS_CODEC: Codec<Belief> = {
+export const DIMACS_CODEC: NalCodec = {
   name: 'dimacs',
 
   encode(belief) {
@@ -533,12 +533,12 @@ export const CODECS = {
 } as const;
 
 /** Get codec by name. */
-export function getCodec(name: keyof typeof CODECS): Codec<Belief> {
+export function getCodec(name: keyof typeof CODECS): NalCodec {
   return CODECS[name];
 }
 
 /** Test round-trip property for a codec. */
-export function testRoundTrip(codec: Codec<Belief>, beliefs: readonly Belief[]): { passed: number; failed: number; errors: string[] } {
+export function testRoundTrip(codec: NalCodec, beliefs: readonly Belief[]): { passed: number; failed: number; errors: string[] } {
   let passed = 0;
   let failed = 0;
   const errors: string[] = [];

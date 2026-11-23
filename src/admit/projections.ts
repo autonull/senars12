@@ -72,8 +72,8 @@ export interface ProjectionResult {
   };
 }
 
-/** Projection engine. */
-export class ProjectionEngine {
+/** Projection engine for W4 verifier-based projections. */
+export class VerifierProjectionEngine {
   private rules: Map<string, ProjectionRule> = new Map();
   private verifierTable = VERIFIER_TRUTH_TABLE;
 
@@ -201,9 +201,9 @@ export class ProjectionEngine {
   }
 }
 
-/** Create a projection engine with default NAL rules. */
-export function createProjectionEngine(): ProjectionEngine {
-  const engine = new ProjectionEngine();
+/** Create a verifier projection engine with default NAL rules. */
+export function createVerifierProjectionEngine(): VerifierProjectionEngine {
+  const engine = new VerifierProjectionEngine();
 
   // Create sample terms for patterns
   const varA = termFactory.variable('A');

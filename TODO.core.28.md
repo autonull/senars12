@@ -3,7 +3,7 @@
 **Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete** (ENGINE_ORIGINS, TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation → schemas/task.ts; configDigest → config/digest.ts; systemOneOf → bin/commands/context.ts; cognitiveBounds → config/bound-table.ts; economy TASK_BAG_KINDS renamed to ECONOMY_TASK_BAG_KINDS)
+**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete** (ENGINE_ORIGINS, TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation → schemas/task.ts; configDigest → config/digest.ts; systemOneOf → bin/commands/context.ts; cognitiveBounds → config/bound-table.ts; economy TASK_BAG_KINDS renamed to ECONOMY_TASK_BAG_KINDS), **W2: Truth Table Consolidation complete** (shared kernel/truth-constants.ts eliminates constant duplication between engine and verifier; verifier-drift and cross-witness tests pass), **W4: Interface/Class Collisions complete** (Gate→AccountingGate, GateResult→RiskVerdict, PolicyEngine→AdmissionPolicyEngine, ProjectionEngine→VerifierProjectionEngine, Codec namespaced to LogicCodec/NalCodec)
 
 ---
 
@@ -31,14 +31,14 @@
 | ID | Workstream | Merges | Impact | Effort | Dependencies |
 |----|------------|--------|--------|--------|--------------|
 | **W1** | **Generated ↔ Manual Schema Unification** | 152 common exports | ★★★★★ | L | — | ✅ **DONE** |
-| **W2** | **Truth Table Consolidation** | verifier-truth-table ↔ verify-derivation | ★★★★★ | M | W1 |
+| **W2** | **Truth Table Consolidation** | verifier-truth-table ↔ verify-derivation | ★★★★★ | M | W1 | ✅ **DONE** |
 | **W3** | **Constant Canonicalization** | 30+ duplicated constants | ★★★★☆ | S | W1 | ✅ **DONE** |
 
 ### Phase 2: Duplicate Elimination (Weeks 2–3) — *Parallelizable*
 
 | ID | Workstream | Merges | Impact | Effort | Dependencies |
 |----|------------|--------|--------|--------|--------------|
-| **W4** | **Interface/Class Name Collisions** | 60+ duplicate type names | ★★★★☆ | M | W1 |
+| **W4** | **Interface/Class Name Collisions** | 60+ duplicate type names | ★★★★☆ | M | W1 | ✅ **DONE** |
 | **W5** | **Function/Constant Duplication** | 80+ duplicate exports | ★★★★☆ | S | W1 |
 | **W6** | **Bag/Type Redundancy** | bag/types.ts ↔ util/bag.ts | ★★★★☆ | S | W1 |
 
@@ -182,22 +182,26 @@
 
 ---
 
-### W4: Interface/Class Name Collisions (Week 2–3)
+### W4: Interface/Class Name Collisions (Week 2–3) ✅ **DONE**
 
 **Problem:** 60+ duplicate type names causing confusion and potential import errors.
 
-**High-Priority Collisions:**
+**High-Priority Collisions — RESOLVED:**
+| Name | Locations | Resolution | Status |
+|------|-----------|------------|--------|
+| `Gate` | `admit/lifecycle.ts`, `lm/service/accounting.ts` | Renamed LM one to `AccountingGate` | ✅ |
+| `GateResult` | `admit/lifecycle.ts`, `governance/risk-verdict.ts` | Renamed governance to `RiskVerdict` | ✅ |
+| `PolicyEngine` | `admit/policies.ts`, `agent/PolicyEngine.ts` | Renamed admit to `AdmissionPolicyEngine` | ✅ |
+| `ProjectionEngine` | `admit/projections.ts`, `logics/projections.ts` | Renamed admit to `VerifierProjectionEngine` | ✅ |
+| `Codec` | `codec/Codec.ts`, `logics/nal/codecs.ts`, `logics/port.ts` | Namespaced: `Codec`, `NalCodec`, `LogicCodec` | ✅ |
+
+**Remaining (lower priority):**
 | Name | Locations | Resolution |
 |------|-----------|------------|
-| `Gate` | `admit/lifecycle.ts`, `lm/service/accounting.ts` | Rename LM one to `AccountingGate` |
-| `GateResult` | `admit/lifecycle.ts`, `governance/risk-verdict.ts` | Rename governance to `RiskVerdict` |
-| `PolicyEngine` | `admit/policies.ts`, `agent/PolicyEngine.ts` | Merge or namespace |
-| `ProjectionEngine` | `admit/projections.ts`, `logics/projections.ts` | Merge into `logics` |
 | `ToolCall` | `agent/ModelRunner.ts`, `types/tools.ts` | Move to `types/tools.ts` |
 | `ChatOptions` | `agent/chat.ts`, `types/cognitive.ts` | Move to `types/cognitive.ts` |
 | `AgentOptions` | `agent/types.ts`, `types/agent.ts` | Consolidate in `types/agent.ts` |
 | `Focus` | `focus/Focus.ts`, `memory/focus.ts` | Rename memory to `MemoryFocus` |
-| `Codec` | `codec/Codec.ts`, `logics/nal/codecs.ts`, `logics/port.ts` | Namespace or merge |
 
 **Approach:** Rename less-central definition; update imports; run tests.
 
@@ -748,8 +752,8 @@ WEEK 1:
 
 WEEK 2:
 ```
-  ├─ W2: Truth Table Consolidation (needs W1)
-  ├─ W4: Interface/Class Collisions (needs W1 for type names)
+  ├─ W2: Truth Table Consolidation (needs W1) ✅ **DONE**
+  ├─ W4: Interface/Class Collisions (needs W1 for type names) ✅ **DONE**
   ├─ W5: Function Duplication (needs W1, W3)
   └─ W6: Bag/Type Redundancy (needs W1)
 

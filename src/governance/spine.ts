@@ -9,7 +9,7 @@
 import type { AutonomyMode, AutonomyAuthority } from '../schemas/governance';
 import type { CapabilityRisk } from '../util/capability-risk';
 import type { Verdict } from '../logic/verdict';
-import { riskClassOf, evaluateGate, evaluateGateFromRisk, GateResult } from './risk-verdict';
+import { riskClassOf, evaluateGate, evaluateGateFromRisk, RiskVerdict } from './risk-verdict';
 import { governanceArtifactRegistry, type GovernanceArtifact, type GovernanceArtifactKind } from './artifacts';
 import { missionOverlayRegistry, type MissionOverlay } from './artifacts';
 import { SenarsError } from '../errors/senars-error';
@@ -67,7 +67,7 @@ export class GovernanceSpine {
       verdict: Verdict;
       requiresGovernanceArtifact?: GovernanceArtifactKind;
     }
-  ): GateResult {
+  ): RiskVerdict {
     // Check if operation requires a governance artifact
     if (operation.requiresGovernanceArtifact) {
       const artifact = this.artifactRegistry.getByKind(operation.requiresGovernanceArtifact)[0];
@@ -99,7 +99,7 @@ export class GovernanceSpine {
   }
 
   /** Check if autonomy mode permits a gate decision. */
-  private permitsExecution(decision: GateResult['decision']): boolean {
+  private permitsExecution(decision: RiskVerdict['decision']): boolean {
     // observe-only and propose-only never permit execution
     if (this.autonomyMode === 'observe-only' || this.autonomyMode === 'propose-only') {
       return decision === 'allow' && false; // never execute
@@ -169,7 +169,7 @@ export const governanceSpine = new GovernanceSpine();
  */
 export const evaluateThroughSpine = (
   operation: Parameters<GovernanceSpine['evaluateOperation']>[0]
-): GateResult => governanceSpine.evaluateOperation(operation);
+): RiskVerdict => governanceSpine.evaluateOperation(operation);
 
 /**
  * Convenience function to get the current autonomy mode.

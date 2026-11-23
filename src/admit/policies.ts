@@ -173,7 +173,7 @@ export interface PolicyEvaluation {
 }
 
 /** Policy engine. */
-export class PolicyEngine {
+export class AdmissionPolicyEngine {
   private facultyPolicies: Map<string, FacultyPolicy> = new Map();
   private profilePolicies: Map<string, ProfilePolicy> = new Map();
   private oraclePolicies: Map<string, OraclePolicy> = new Map();
@@ -474,9 +474,9 @@ export class PolicyEngine {
   }
 }
 
-/** Create a policy engine. */
-export function createPolicyEngine(clock?: Clock, rng?: RNG): PolicyEngine {
-  return new PolicyEngine(clock, rng);
+/** Create an admission policy engine. */
+export function createAdmissionPolicyEngine(clock?: Clock, rng?: RNG): AdmissionPolicyEngine {
+  return new AdmissionPolicyEngine(clock, rng);
 }
 
 /** Default faculty policies. */

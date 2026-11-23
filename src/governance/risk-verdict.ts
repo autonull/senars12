@@ -20,7 +20,7 @@ export const GATE_DECISIONS = ['allow', 'allow-monitored', 'escalate', 'refuse']
 export type GateDecision = (typeof GATE_DECISIONS)[number];
 
 /** Result of the risk–verdict gate evaluation. */
-export interface GateResult {
+export interface RiskVerdict {
   readonly decision: GateDecision;
   readonly reason: string;
   readonly requiresExplanation: boolean;
@@ -71,7 +71,7 @@ const GATE_MATRIX: Readonly<Record<RiskClass, Record<Verdict['status'], GateDeci
 export const evaluateGate = (
   riskClass: RiskClass,
   verdict: Verdict
-): GateResult => {
+): RiskVerdict => {
   const decision = GATE_MATRIX[riskClass][verdict.status];
 
   switch (decision) {
@@ -111,16 +111,16 @@ export const evaluateGate = (
 export const evaluateGateFromRisk = (
   risk: CapabilityRisk,
   verdict: Verdict
-): GateResult => evaluateGate(riskClassOf(risk), verdict);
+): RiskVerdict => evaluateGate(riskClassOf(risk), verdict);
 
 /**
  * Check if an operation is permitted to execute based on gate result.
  */
-export const isPermitted = (result: GateResult): boolean =>
+export const isPermitted = (result: RiskVerdict): boolean =>
   result.decision === 'allow' || result.decision === 'allow-monitored';
 
 /**
  * Get the required explanation for a refused/escalated gate.
  */
-export const requiredExplanation = (result: GateResult): string | undefined =>
+export const requiredExplanation = (result: RiskVerdict): string | undefined =>
   result.requiresExplanation ? result.reason : undefined;
