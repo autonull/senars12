@@ -267,6 +267,14 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
     // Evict if at capacity
     if (this.#items.size >= this.capacity) {
+      // For 'priority' strategy, only admit if new item beats the lowest (strictly)
+      if (this.#evictStrategy === 'priority') {
+        let minPriority = Infinity;
+        for (const e of this.#items.values()) {
+          if (e._currentPriority < minPriority) minPriority = e._currentPriority;
+        }
+        if (item.priority < minPriority) return false;
+      }
       const evicted = this.#evict();
       if (!evicted) return false;
     }
@@ -317,7 +325,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   }
 
   all(): T[] {
-    return Array.from(this.#items.values(), (entry) => entry._item);
+    return Array.from(this.#items.values())
+      .sort((a, b) => b._currentPriority - a._currentPriority)
+      .map((entry) => entry._item);
   }
 
   values(): IterableIterator<T> {
