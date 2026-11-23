@@ -5,26 +5,22 @@
  */
 
 export * from './types';
-export * from './utility';
-export * from './metareasoning';
-export * from './successor';
-export * from './voi';
+export * from './scheduler';
+export * from './utility-voi';
+export * from './learning';
+export * from './overlays-drives';
 export * from './aging';
-export * from './overlays';
-export * from './drives';
-export * from './td-learning';
-export * from './pure';
 
 import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types';
 import type { Env } from '../kernel/env';
 import type { Clock, RNG } from '../kernel/env';
 import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging';
-import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility';
-import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './metareasoning';
-import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './successor';
-import { calculateDetailedVoI, rankByVoI, selectByVoI, type VoIContext, type VoIBreakdown } from './voi';
-import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOverlay, createCrisisOverlay, createExplorationOverlay, getBuiltinOverlays, applyOverlays, calculateEffectiveWeight, createOverlay, mergeOverlays } from './overlays';
-import { getDriveContribution, type Drive, type DriveType, DEFAULT_DRIVES } from './drives';
+import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility-voi';
+import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './learning';
+import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './learning';
+import { calculateDetailedVoI, rankByVoI, selectByVoI, type VoIContext, type VoIBreakdown } from './utility-voi';
+import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOverlay, createCrisisOverlay, createExplorationOverlay, getBuiltinOverlays, applyOverlays, calculateEffectiveWeight, createOverlay, mergeOverlays } from './overlays-drives';
+import { getDriveContribution, type Drive, type DriveType, DEFAULT_DRIVES } from './overlays-drives';
 import {
   createInitialState,
   addTask,
@@ -42,7 +38,7 @@ import {
   type SchedulerResult,
   type FairnessCheck,
   type FairnessViolation,
-} from './pure';
+} from './scheduler';
 
 /** Create initial economy state from config. */
 export function createEconomyState(config?: Partial<SchedulerConfig>): EconomyState {

@@ -1,5 +1,5 @@
 /**
- * Pure Economy Scheduler — pure functions for the task economy.
+ * Economy Scheduler — pure functions for the task economy.
  *
  * Replaces EconomyScheduler class with pure functions operating on EconomyState.
  * No mutation, no event bus, deterministic.
@@ -24,14 +24,8 @@ import {
   defaultSchedulerConfig,
 } from './types';
 import type { Truth } from '../kernel/truth';
-import { calculateTaskUtility, calculateTotalUtility } from './utility';
-import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging';
-import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOverlay, createCrisisOverlay, createExplorationOverlay, getBuiltinOverlays, applyOverlays, calculateEffectiveWeight, createOverlay, mergeOverlays } from './overlays';
-import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './metareasoning';
-import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './successor';
-import { calculateDetailedVoI, rankByVoI, selectByVoI, type VoIContext, type VoIBreakdown } from './voi';
-import { getDriveContribution, type Drive, type DriveType, DEFAULT_DRIVES } from './drives';
-import type { Clock, RNG } from '../kernel/env';
+import type { Clock, RNG, TimestampMs } from '../kernel/env';
+import { createDefaultClock } from '../kernel/env';
 
 /** Task pick record for fairness tracking. */
 interface PickRecord {
@@ -443,3 +437,21 @@ export function setSeed(state: EconomyState, seed: number, rng: RNG): EconomySta
   }
   return state;
 }
+
+/** Create initial economy state from config. */
+export function createEconomyState(config?: Partial<SchedulerConfig>): EconomyState {
+  return createInitialState(config);
+}
+
+/** Create initial economy state from Env. */
+export function createEconomyStateFromEnv(env: { rng: RNG; clock: Clock }, config?: Partial<SchedulerConfig>): EconomyState {
+  return createInitialState({
+    ...config,
+    rng: env.rng,
+    clock: env.clock,
+    seed: config?.seed,
+  });
+}
+
+/** Default economy state. */
+export const defaultEconomyState = createInitialState();

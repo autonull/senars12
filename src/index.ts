@@ -1,10 +1,10 @@
 // Core types - exported first
 /** Core NAR term + task type definitions. @public */
-
 export type {
   ComponentContext,
   ComponentState,
 } from '@senars/types/lifecycle';
+
 // Capability
 /** WASI sandbox, path containment, and timeout utilities. @public */
 export {
@@ -20,6 +20,7 @@ export {
   type WasiSandboxOptions,
   type WasmModuleOptions,
 } from './capability/index';
+
 // Game
 /** Cognitive games and arcade harness. @public */
 export {
@@ -140,6 +141,7 @@ export {
   KNOB_SET_VALUES,
   SeededRNG,
 } from './game/index';
+
 // Resources
 /** Resource contracts for bounded containers. @public */
 export {
@@ -149,6 +151,7 @@ export {
   type ResourceContract,
   type Retention,
 } from './resources/index';
+
 // Cognitive Parameters
 /** Cognitive architecture parameters, validation, and defaults. @public */
 export {
@@ -171,6 +174,7 @@ export {
   type MemoryParams,
   type StrategySlotParams,
 } from './config/cognitive-parameters';
+
 // Strategies
 /** Pluggable cognitive strategies (attention, derivation, sampling, premise, LM rule). @public */
 export {
@@ -226,6 +230,7 @@ export {
   type StrategyRegistry,
   type StrategySpec,
 } from './strategies/index';
+
 // Eval
 /** Arcade session state, Brier scoring, and harness utilities. @public */
 export {
@@ -241,6 +246,7 @@ export {
   type ArcadeTickRecord,
   type ArcadeTickSpan,
 } from './eval/index';
+
 // Memory
 /** Concept container. @public */
 /** Main memory store. @public */
@@ -252,6 +258,7 @@ export { resolveBagSlot, bagSlotErrors, type BagSlotParams, type ResolvedBagSlot
 export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from './state/persisted';
 /** Rewind checkpoints and the partial-restore report (CORE.19 C2.3). @public */
 export { CHECKPOINT_RING_CAP, REWIND_BASE_GAPS, type RewindReport } from './state/checkpoint';
+
 // Cognitive
 /** Counterfactual simulator. @public */
 export { runCounterfactual } from './cognitive/index';
@@ -265,6 +272,7 @@ export {
   RewardGateError,
   SenarsError,
 } from './errors/index';
+
 // Imagination Engine (Cognitive Treadmill)
 /** Scenario generation, hidden-model oracle, cognitive treadmill. @public */
 export {
