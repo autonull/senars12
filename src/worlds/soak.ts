@@ -17,6 +17,9 @@ import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 import type { Repertoire } from '../admit/repertoire';
 import { createRepertoire } from '../admit/repertoire';
 import type { EvaluationFold } from './scorecard';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'worlds:soak' });
 
 /** Soak configuration. */
 export interface SoakConfig {
@@ -263,7 +266,7 @@ export class SoakRunner {
   private async runSideBySideLanes(): Promise<void> {
     // Run symmetric arms comparison
     const arms = this.config.laneConfigs.map(c => `${c.id}-${c.tier}`);
-    console.info(`[Soak] Running side-by-side comparison for ${arms.length} arms`);
+    logger.info(`[Soak] Running side-by-side comparison for ${arms.length} arms`);
 
     // This would run the full symmetric arms comparison
     // For now, the evaluateSurface already covers this
@@ -272,7 +275,7 @@ export class SoakRunner {
   /** Run NAL-AB as A/B lane. */
   private async runNalAbLane(): Promise<void> {
     // This would integrate with the focus/nal-ab module
-    console.info(`[Soak] NAL-AB lane evaluation would run here`);
+    logger.info(`[Soak] NAL-AB lane evaluation would run here`);
   }
 
   /** Check if should save checkpoint. */
@@ -296,7 +299,7 @@ export class SoakRunner {
     this.checkpoints.push(checkpoint);
 
     // In a real implementation, save to disk
-    console.info(`[Soak] Checkpoint saved: ${checkpoint.id} at ${checkpoint.elapsedMs}ms`);
+    logger.info(`[Soak] Checkpoint saved: ${checkpoint.id} at ${checkpoint.elapsedMs}ms`);
   }
 
   /** Run evolution step (self-modification). */
@@ -326,7 +329,7 @@ export class SoakRunner {
     this.currentEpisode = checkpoint.episode;
     this.evolutionCycle = checkpoint.evolutionCycle;
     // Restore RNG state would require a more sophisticated RNG
-    console.info(`[Soak] Resuming from checkpoint ${checkpoint.id}`);
+    logger.info(`[Soak] Resuming from checkpoint ${checkpoint.id}`);
   }
 
   /** Get current status. */

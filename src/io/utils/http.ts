@@ -2,6 +2,8 @@ import http, { type IncomingMessage } from 'node:http';
 import { deadline, readBytesBounded } from '@senars/util/async';
 import type { WebSocketServer } from 'ws';
 import type { Logger } from '@senars/util/logger';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /**
  * Default cap on an inbound request body. A handler that trusted the peer to be
@@ -53,7 +55,7 @@ const listenWithDeadline = <T extends StartupServer>(
 ): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const disarmDeadline = deadline(timeout, () => {
-      reject(new Error(`${what} server startup timeout`));
+      reject(new SenarsError(`${what} server startup timeout`, 'TIMEOUT'));
       server.close();
     });
 

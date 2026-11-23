@@ -409,7 +409,7 @@ export class LMRule {
    * deadline existed (TODO29.a §0.8 finding 3).
    */
   private async executeLM(prompt: string, signal?: AbortSignal): Promise<string | null> {
-    if (!this.lm) throw new Error(`LM unavailable for rule ${this.id}`);
+    if (!this.lm) throw new SenarsError(`LM unavailable for rule ${this.id}`, 'OPERATION_ERROR');
     const options = {
       ...this.baseConfig.lmOptions,
       signal,

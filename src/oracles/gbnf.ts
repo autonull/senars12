@@ -9,6 +9,8 @@ import type { BudgetSlice, BudgetResource } from '../budget/budget';
 import { OraclePinStore } from './pins';
 import { actionGrammar } from '../lm/system-one/action-grammar';
 import type { LMOracleService } from './lm';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for generating GBNF grammar. */
 export interface GbnfGenerateGrammarInput extends OracleInput {
@@ -153,7 +155,7 @@ export class GbnfOracle implements Oracle<
       case 'gbnf.constrainedGenerate': {
         const args = input.args as [string, string, { task?: 'compact' | 'fast' | 'quality' | 'structured'; temperature?: number; maxTokens?: number }?];
         const [prompt, grammar, options] = args;
-        if (!this.lmService) throw new Error('LM service not configured for constrained generation');
+        if (!this.lmService) throw new SenarsError('LM service not configured for constrained generation', 'CONFIGURATION_ERROR');
 
         const { generateObject } = await import('ai');
         const { zodSchema } = await import('ai');
@@ -161,7 +163,7 @@ export class GbnfOracle implements Oracle<
 
         const task = options?.task ?? 'structured';
         const model = this.lmService.getModel(task);
-        if (!model) throw new Error(`No model available for task: ${task}`);
+        if (!model) throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
 
         // Use the grammar as a constraint - we parse it to extract allowed values
         // For GBNF, we use a schema that matches the grammar's root rule
@@ -181,12 +183,12 @@ export class GbnfOracle implements Oracle<
       case 'gbnf.getActions': {
         const args = input.args as [unknown];
         const [state] = args;
-        if (!this.actionProvider) throw new Error('Action provider not configured');
+        if (!this.actionProvider) throw new SenarsError('Action provider not configured', 'CONFIGURATION_ERROR');
         return this.actionProvider(state);
       }
 
       default:
-        throw new Error(`Unknown GBNF operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown GBNF operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

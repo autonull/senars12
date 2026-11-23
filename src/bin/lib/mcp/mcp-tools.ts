@@ -18,6 +18,7 @@ import {
   formatBeliefsForMCP,
   stringifyMCP,
 } from './mcp-response';
+import { SenarsError } from '../../../errors/senars-error';
 
 export interface NARToolsOptions {
   jobs?: JobManager;
@@ -420,10 +421,10 @@ export function registerNARTools(
           case 'nar-cycles':
             return nar.run(steps ?? 10);
           case 'question':
-            if (!content) throw new Error('run_job kind=question requires content');
+            if (!content) throw new SenarsError('run_job kind=question requires content', 'VALIDATION_ERROR', { kind });
             return nar.question(content);
           default:
-            if (!content) throw new Error('run_job kind=belief requires content');
+            if (!content) throw new SenarsError('run_job kind=belief requires content', 'VALIDATION_ERROR', { kind });
             return nar.believe(content);
         }
       };

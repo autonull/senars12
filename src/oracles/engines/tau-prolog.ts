@@ -6,6 +6,8 @@ import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
 import { OraclePinStore } from '../pins';
 import type { BudgetSlice, BudgetResource } from '../../budget/budget';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for Tau Prolog query. */
 export interface TauPrologInput extends OracleInput {
@@ -186,7 +188,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
     try {
       pl = await import('tau-prolog');
     } catch {
-      throw new Error('tau-prolog not installed. Install with: pnpm add tau-prolog');
+      throw new SenarsError('tau-prolog not installed. Install with: pnpm add tau-prolog', 'OPERATION_ERROR');
     }
 
     const startTs = Date.now();
@@ -194,7 +196,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`Tau Prolog query timeout after ${timeoutMs}ms`));
+        reject(new SenarsError(`Tau Prolog query timeout after ${timeoutMs}ms`, 'TIMEOUT'));
       }, timeoutMs);
 
       session.consult(program, {

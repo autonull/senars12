@@ -12,6 +12,7 @@ import type { Frequency, Confidence, TruthLike, TruthValue } from './types';
 import { clamp, clamp01, safeDiv } from '@senars/util/numeric';
 import { softSquash } from './types';
 import { weakenConfidence, confidenceToWeight, weightToConfidence } from '@senars/util/truth-algebra';
+import { SenarsError } from '../errors/senars-error';
 
 // Re-export TruthValue from types
 export type { TruthValue } from './types';
@@ -42,7 +43,7 @@ export const normalize = normalizeTruth;
 /** Create a truth value with validation. */
 export const createTruth = (f: number, c: number): Truth => {
   if (c > MAX_CONFIDENCE) {
-    throw new Error(`Confidence ${c} exceeds maximum ${MAX_CONFIDENCE}`);
+    throw new SenarsError(`Confidence ${c} exceeds maximum ${MAX_CONFIDENCE}`, 'VALIDATION_ERROR', { confidence: c, maxConfidence: MAX_CONFIDENCE });
   }
   return normalizeTruth(f, c);
 };
@@ -327,7 +328,7 @@ export type TruthOp =
 export function getTruthOp(name: TruthOp): (t1: Truth, t2?: Truth, ...args: unknown[]) => Truth | null | number {
   const op = Truth[name];
   if (typeof op !== 'function') {
-    throw new Error(`Unknown truth operation: ${name}`);
+    throw new SenarsError(`Unknown truth operation: ${name}`, 'VALIDATION_ERROR', { operation: name });
   }
   return op as (t1: Truth, t2?: Truth, ...args: unknown[]) => Truth | null | number;
 }

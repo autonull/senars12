@@ -26,6 +26,9 @@ import {
 } from '../../terms';
 import { operationTerm } from '../../terms/impls/operation-term';
 import type { InferenceTable, RegisteredRule } from '../types';
+import { createLogger } from '../../util/logger';
+
+const logger = createLogger({ scope: 'rules:meta-rules' });
 
 /** Semantic truth values for meta-rules (moderate confidence) */
 const META_RULE_TRUTH: TruthType = Truth.create(0.6, 0.8);
@@ -79,8 +82,7 @@ const META_DEBUG = false;
 /** Lazy payload: the terms are stringified inside the guard, not to be dropped. */
 function metaLog(msg: string, data: () => unknown): void {
   if (META_DEBUG) {
-    const payload = data();
-    console.log(`[META] ${msg}`, payload ? JSON.stringify(payload, null, 2) : '');
+    logger.info(`[META] ${msg}`, { payload: data() });
   }
 }
 

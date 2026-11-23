@@ -3,6 +3,8 @@ import { LruCache } from '@senars/util/lru-cache';
 import { type EmbeddingGenerator } from '../../memory/embedding';
 import { resolveEmbeddingGenerator } from '../embedding-runtime';
 import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** One width's recycled buffers. A slot is reusable only at its own width, so a
  *  model swap does not silently reinterpret another model's vectors. */
@@ -111,9 +113,7 @@ export class EmbeddingCache {
 
     const embedding = await this.#generator.generate(text);
     if (this.#config.dimension !== undefined && embedding.length !== this.#config.dimension) {
-      throw new Error(
-        `Embedding dimension mismatch: expected ${this.#config.dimension}, got ${embedding.length}`
-      );
+      throw new SenarsError(`Embedding dimension mismatch: expected ${this.#config.dimension}, got ${embedding.length}`, 'CONFIGURATION_ERROR');
     }
     const { pool, slot, buffer } = allocateBuffer(embedding.length);
     buffer.set(embedding);

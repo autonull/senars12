@@ -12,6 +12,8 @@ import { ManifoldRLAgent, type ManifoldRLAgentOptions, type ManifoldRLDecision }
 import type { JudgmentDataset } from '../lm/system-one/distill';
 import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold, ReasoningBudget } from '../lm/system-one/types';
 import type { Game, GameOutcome } from '../game/Game';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for computing MC returns. */
 export interface CreditAssignmentMcReturnInput extends OracleInput {
@@ -189,33 +191,33 @@ export class CreditAssignmentOracle implements Oracle<
       case 'creditAssignment.recordMcReturn': {
         const args = input.args as [McReturnInput];
         const [mcInput] = args;
-        if (!this.dataset) throw new Error('Dataset not configured for recording');
+        if (!this.dataset) throw new SenarsError('Dataset not configured for recording', 'CONFIGURATION_ERROR');
         return recordMcReturnLabels(this.dataset, mcInput);
       }
 
       case 'creditAssignment.decide': {
         const [gameState] = input.args;
-        if (!this.agent) throw new Error('RL agent not initialized');
+        if (!this.agent) throw new SenarsError('RL agent not initialized', 'OPERATION_ERROR');
         // We can't directly call decide with a serialized game state
         // This would need a game registry or factory
-        throw new Error('Decide requires live Game instance - use step or runEpisode instead');
+        throw new SenarsError('Decide requires live Game instance - use step or runEpisode instead', 'VALIDATION_ERROR');
       }
 
       case 'creditAssignment.step': {
         const [gameState] = input.args;
-        if (!this.agent) throw new Error('RL agent not initialized');
+        if (!this.agent) throw new SenarsError('RL agent not initialized', 'OPERATION_ERROR');
         // Same issue - need live Game instance
-        throw new Error('Step requires live Game instance');
+        throw new SenarsError('Step requires live Game instance', 'VALIDATION_ERROR');
       }
 
       case 'creditAssignment.runEpisode': {
         const [gameState, maxSteps] = input.args;
-        if (!this.agent) throw new Error('RL agent not initialized');
-        throw new Error('RunEpisode requires live Game instance');
+        if (!this.agent) throw new SenarsError('RL agent not initialized', 'OPERATION_ERROR');
+        throw new SenarsError('RunEpisode requires live Game instance', 'VALIDATION_ERROR');
       }
 
       default:
-        throw new Error(`Unknown credit assignment operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown credit assignment operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

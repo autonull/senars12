@@ -10,6 +10,7 @@ import { createRootStamp, createDerivedStamp, type Stamp } from '../../kernel/st
 import type { Logic, Codec, RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port';
 import { NAL_RULES_AST, type NALTerm, type NALPremise, type NALStepResult } from './rules-ast';
 import { NALInterpreter } from './interpreter';
+import { SenarsError } from '../../errors/senars-error';
 
 /** NAL term codec. */
 const NAL_CODEC: Codec<Term> = {
@@ -237,18 +238,18 @@ function evalTermRef(ref: TermRef, ctx: { premises: NALPremise[]; stamp: Stamp; 
   switch (ref.op) {
     case 'premise': {
       const premise = ctx.premises[ref.index];
-      if (!premise) throw new Error(`Premise ${ref.index} not found`);
+      if (!premise) throw new SenarsError(`Premise ${ref.index} not found`, 'OPERATION_ERROR', { premiseIndex: ref.index });
       switch (ref.field) {
         case 'term': return premise.term;
         case 'subject': {
           if (premise.term.op !== TermOp.INHERITANCE && premise.term.op !== TermOp.SIMILARITY) {
-            throw new Error('Expected inheritance or similarity term');
+            throw new SenarsError('Expected inheritance or similarity term', 'VALIDATION_ERROR');
           }
           return premise.term.args[0]!;
         }
         case 'predicate': {
           if (premise.term.op !== TermOp.INHERITANCE && premise.term.op !== TermOp.SIMILARITY) {
-            throw new Error('Expected inheritance or similarity term');
+            throw new SenarsError('Expected inheritance or similarity term', 'VALIDATION_ERROR');
           }
           return premise.term.args[1]!;
         }

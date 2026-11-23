@@ -10,6 +10,8 @@ import type { TruthValue } from '../kernel/truth';
 import type { Stamp } from '../kernel/types';
 import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Artifact kinds. */
 export const ARTIFACT_KINDS = [
@@ -190,7 +192,7 @@ export class Repertoire {
     const kindSet = this.byKind.get(kind)!;
     const maxPerKind = this.config.maxPerKind[kind] ?? 1000;
     if (kindSet.size >= maxPerKind) {
-      throw new Error(`Capacity exceeded for kind: ${kind}`);
+      throw new SenarsError(`Capacity exceeded for kind: ${kind}`, 'VALIDATION_ERROR');
     }
 
     const now = this.clock.now();
@@ -301,7 +303,7 @@ export class Repertoire {
   /** Rollback last admission event. */
   rollback(id: string, actor = 'system'): Artifact | null {
     if (!this.config.rollbackEnabled) {
-      throw new Error('Rollback disabled');
+      throw new SenarsError('Rollback disabled', 'OPERATION_ERROR');
     }
 
     const artifact = this.artifacts.get(id);

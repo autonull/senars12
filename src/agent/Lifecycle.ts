@@ -4,6 +4,8 @@ import type {
   ComponentState,
   ScopedLogger,
 } from '../types/lifecycle';
+import { SenarsError } from '../errors/senars-error';
+
 
 const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
   created: ['initialized', 'disposed'],
@@ -36,14 +38,14 @@ export abstract class BaseComponent implements BaseComponentContract {
 
   async initialize(): Promise<void> {
     if (this._state !== 'created') {
-      throw new Error(`Cannot initialize component in state: ${this._state}`);
+      throw new SenarsError(`Cannot initialize component in state: ${this._state}`, 'VALIDATION_ERROR');
     }
     this.setState('initialized');
   }
 
   async start(): Promise<void> {
     if (this._state !== 'initialized') {
-      throw new Error(`Cannot start component in state: ${this._state}`);
+      throw new SenarsError(`Cannot start component in state: ${this._state}`, 'VALIDATION_ERROR');
     }
     this.setState('started');
   }
@@ -70,9 +72,7 @@ export abstract class BaseComponent implements BaseComponentContract {
   protected setState(state: ComponentState): void {
     const validTransitions = VALID_TRANSITIONS[this._state];
     if (!validTransitions.includes(state)) {
-      throw new Error(
-        `Invalid state transition from ${this._state} to ${state}. Valid transitions: ${validTransitions.join(', ')}`
-      );
+      throw new SenarsError(`Invalid state transition from ${this._state} to ${state}. Valid transitions: ${validTransitions.join(', ')}`, 'VALIDATION_ERROR');
     }
     this._state = state;
   }

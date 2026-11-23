@@ -17,6 +17,8 @@ import { rehydrateTask, type TaskRecord } from '../../task/record';
 import { serializeStamp, type Term, termParser } from '../../terms';
 import type { Concept, TaskData } from '../concept';
 import type { ConceptWriter } from '../ports';
+import { SenarsError } from '../../errors/senars-error';
+
 
 const logger = createLogger({ scope: 'Memory.State' });
 
@@ -104,7 +106,7 @@ function serializeBag(bag: Bag<TaskData>): TaskRecord[] {
 
 export async function deserialize(data: SerializedMemory, memory: ConceptWriter): Promise<void> {
   if (data.version !== MEMORY_VERSION) {
-    throw new Error(`Unsupported memory version: ${data.version}`);
+    throw new SenarsError(`Unsupported memory version: ${data.version}`, 'OPERATION_ERROR');
   }
 
   memory.clear();
@@ -186,7 +188,7 @@ export function repair(data: Partial<SerializedMemory>): SerializedMemory | null
     }
   } catch {
     // expected: repair is best-effort; returns null on failure
-    console.warn('Failed to repair memory data');
+    logger.warn('Failed to repair memory data');
   }
 
   return null;

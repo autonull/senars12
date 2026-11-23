@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { IdRegistry } from '../util/registry';
+import { SenarsError } from '../errors/senars-error';
 
 /** Genome schema definition. */
 export interface GenomeSchema {
@@ -95,7 +96,7 @@ export class GenomeRegistry extends IdRegistry<GenomeSchema> {
   /** Generate all artifacts for a schema. */
   async generate(id: string): Promise<GeneratedArtifacts> {
     const schema = this.get(id);
-    if (!schema) throw new Error(`Schema not found: ${id}`);
+    if (!schema) throw new SenarsError(`Schema not found: ${id}`, 'OPERATION_ERROR', { schemaId: id });
 
     const artifacts = this.generateArtifacts(schema);
 
@@ -263,6 +264,7 @@ export const ${typeName}Schema = ${this.zodToString(zodSchema)};
  */
 import { ${typeName}Schema } from './${schema.id}.types';
 import type { ${typeName} } from './${schema.id}.types';
+import { SenarsError } from '@senars/errors';
 import type { LogEvent, LogCodec } from '@senars/log';
 
 export const ${typeName}LogCodec: LogCodec<${typeName}> = {
@@ -273,7 +275,11 @@ export const ${typeName}LogCodec: LogCodec<${typeName}> = {
   }),
   decode: (event: LogEvent): ${typeName} => {
     if (event.type !== '${schema.id}') {
-      throw new Error(\`Event type mismatch: expected ${schema.id}, got \${event.type}\`);
+      throw new SenarsError(
+        \`Event type mismatch: expected ${schema.id}, got \${event.type}\`,
+        'INVALID_EVENT',
+        { expected: '${schema.id}', actual: event.type }
+      );
     }
     return ${typeName}Schema.parse(event.payload);
   },

@@ -11,6 +11,8 @@ import type {
   ManifoldHealth,
   ReasoningBudget,
 } from './types';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export interface RemoteManifoldOptions {
   backendId: BackendId;
@@ -61,7 +63,7 @@ export function createRemoteManifold({
     _budget: ReasoningBudget
   ): Promise<JudgmentProposition[]> => {
     const embedding = embeddingCache.read(sharedContext);
-    if (!embedding) throw new Error(`Embedding not found for pointer ${sharedContext}`);
+    if (!embedding) throw new SenarsError(`Embedding not found for pointer ${sharedContext}`, 'VALIDATION_ERROR');
 
     try {
       const res = await boundedFetch(
@@ -73,7 +75,7 @@ export function createRemoteManifold({
         },
         { timeoutMs, fetchImpl }
       );
-      if (!res.ok) throw new Error(`${errorLabel} HTTP ${res.status}`);
+      if (!res.ok) throw new SenarsError(`${errorLabel} HTTP ${res.status}`, 'TRANSPORT_ERROR');
       const propositions = parseResponse(await res.json(), queries);
       health.ready = true;
       health.breakerOpen = false;
@@ -96,7 +98,7 @@ export function createRemoteManifold({
       // One batched remote pass; `k` judges the endpoint's internal fan-out.
       const proposition = (await judgeBatch(sharedContext, [query], budget))[0];
       void k;
-      if (!proposition) throw new Error(`${errorLabel} returned no proposition for consensus`);
+      if (!proposition) throw new SenarsError(`${errorLabel} returned no proposition for consensus`, 'OPERATION_ERROR');
       return { proposition, agreement: 1, independent: false };
     },
     health: () => ({ ...health }),

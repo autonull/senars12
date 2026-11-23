@@ -12,6 +12,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { envBool } from '@senars/util/config';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Env flag guarding the production reasoning surface. */
 export const REASONING_HTTP_ENV = 'ENABLE_REASONING_HTTP';
@@ -53,7 +55,7 @@ const readJsonBody = async (req: IncomingMessage): Promise<Record<string, unknow
   const text = Buffer.concat(chunks).toString('utf-8');
   if (!text) return {};
   const parsed: unknown = JSON.parse(text);
-  if (typeof parsed !== 'object' || parsed === null) throw new Error('body must be a JSON object');
+  if (typeof parsed !== 'object' || parsed === null) throw new SenarsError('body must be a JSON object', 'VALIDATION_ERROR');
   return parsed as Record<string, unknown>;
 };
 

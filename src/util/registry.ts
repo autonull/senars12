@@ -4,6 +4,8 @@
  * Provides a common foundation for FacultyRegistry, OracleRegistry, and other registries.
  */
 
+import { SenarsError } from '../errors/senars-error';
+
 export interface RegistryOptions<K> {
   /** Whether duplicate keys throw (default true). */
   unique?: boolean;
@@ -30,7 +32,7 @@ export abstract class BaseRegistry<K, V> {
   register(value: V): void {
     const key = this.getKey(value);
     if (this.options.unique && this.map.has(key)) {
-      throw new Error(this.options.duplicateError(key));
+      throw new SenarsError(this.options.duplicateError(key), 'VALIDATION_ERROR', { key: String(key) });
     }
     this.map.set(key, value);
   }

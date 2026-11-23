@@ -21,6 +21,7 @@ import type {
   VariableAtom,
 } from '../types/ast';
 import { AtomKind, isVariable } from '../types/ast';
+import { SenarsError } from '../../errors/senars-error';
 
 /** An atom with no children is every kind but `Expression` and `Grounded`. */
 const NO_CHILDREN: readonly MeTTaAtom[] = Object.freeze([]);
@@ -55,7 +56,7 @@ export function hashAtom(atom: MeTTaAtom): number {
       return h;
     }
     default:
-      throw new Error(`Unknown atom kind: ${(atom as MeTTaAtom).kind}`);
+      throw new SenarsError(`Unknown atom kind: ${(atom as MeTTaAtom).kind}`, 'METTA_ERROR', { kind: (atom as MeTTaAtom).kind });
   }
 }
 

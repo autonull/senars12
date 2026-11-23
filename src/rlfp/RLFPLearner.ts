@@ -266,7 +266,7 @@ export class RLFPLearner {
     const prefs = ensureArray(preferences);
     const validPrefs = prefs.filter((p) => p?.preference && p.preference !== 'SKIP');
     if (!validPrefs.length) return { success: true, count: 0 };
-    console.info(`RLFPLearner: Processing ${validPrefs.length} preference(s)...`);
+    this.logger.info('processing preferences', { count: validPrefs.length });
     let count = 0;
     let lastError: string | undefined;
     for (const pref of validPrefs) {
@@ -280,7 +280,7 @@ export class RLFPLearner {
         }
       }
     }
-    console.info(`RLFPLearner: Appended ${count} examples to ${this.outputFile}`);
+    this.logger.info('appended training examples', { count, outputFile: this.outputFile });
     return lastError ? { success: false, count, error: lastError } : { success: true, count };
   }
 

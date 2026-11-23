@@ -2,6 +2,7 @@ import type { GameOutcome, Perception } from '../Game';
 import { renderGrid } from '../render';
 import { SeededRNG } from '@senars/util/random';
 import { GameBase, type GameConfig } from '../GameBase';
+import { SenarsError } from '../../errors/senars-error';
 
 export interface GridWorldConfig {
   grid: string[];
@@ -59,7 +60,7 @@ export class GridWorldGame extends GameBase<GridWorldState, GridAction> {
         else if (cell === 'G') goal = { row: r, col: c };
       }
     }
-    if (!start || !goal) throw new Error('Grid must have S and G');
+    if (!start || !goal) throw new SenarsError('Grid must have S and G', 'CONFIGURATION_ERROR');
     this.startPos = start;
     this.goalPos = goal;
     this.currentPos = start;

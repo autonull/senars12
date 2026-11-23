@@ -40,6 +40,8 @@ import type {
   ResourceCost,
   RubricId,
 } from './types';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export interface ManifoldConfig {
   backendId: BackendId;
@@ -102,14 +104,14 @@ export class SystemOneManifold implements JudgmentManifold {
     const elapsedBatch = stopwatch(monotonicNow);
 
     if (queries.length > this.#config.maxBatchSize) {
-      throw new Error(`Batch size ${queries.length} exceeds max ${this.#config.maxBatchSize}`);
+      throw new SenarsError(`Batch size ${queries.length} exceeds max ${this.#config.maxBatchSize}`, 'CONFIGURATION_ERROR');
     }
 
     validateBatchQueries(queries);
 
     const contextEmbedding = this.#config.embeddingCache.read(sharedContext);
     if (!contextEmbedding) {
-      throw new Error(`Embedding not found for pointer ${sharedContext}`);
+      throw new SenarsError(`Embedding not found for pointer ${sharedContext}`, 'VALIDATION_ERROR');
     }
 
     this.#health.queueDepth = queries.length;
@@ -122,7 +124,7 @@ export class SystemOneManifold implements JudgmentManifold {
       const rubric = rubricOf(query);
       const head = this.#config.heads.get(rubric);
       if (!head && !this.#contrastive?.has(rubric)) {
-        throw new Error(`No head registered for query: ${query.kind} ${rubric}`);
+        throw new SenarsError(`No head registered for query: ${query.kind} ${rubric}`, 'OPERATION_ERROR');
       }
 
       const elapsedQuery = stopwatch(monotonicNow);

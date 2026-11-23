@@ -6,6 +6,7 @@ import { VARIABLE_SYMBOL, isAtomic } from '../types.ts';
 import { serializeTerm } from './serialize.ts';
 import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.ts';
 import { atomKey } from './accessors.ts';
+import { SenarsError } from '../../errors/senars-error';
 
 // Inline termKey to avoid module evaluation order issues
 const termKeyMap = new WeakMap<Term, string>();
@@ -46,17 +47,21 @@ const createAtom = (symbol: string): AtomicTerm => {
   if (cached) return cached as AtomicTerm;
 
   if (symbol.includes(':')) {
-    throw new Error(
-      `Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`
+    throw new SenarsError(
+      `Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`,
+      'PARSE_ERROR',
+      { symbol }
     );
   }
   const isVariable = VARIABLE_SYMBOL.test(symbol);
   const isQuotedAtom = symbol.startsWith('"') && symbol.endsWith('"');
   if (!isVariable && !isQuotedAtom && INVALID_ATOM_CHARS_REGEX.test(symbol)) {
     const badChar = symbol.match(INVALID_ATOM_CHARS_REGEX)?.[0];
-    throw new Error(
+    throw new SenarsError(
       `Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
-        `Use '_' instead.`
+        `Use '_' instead.`,
+      'PARSE_ERROR',
+      { symbol, badChar }
     );
   }
   return cache(
@@ -132,17 +137,17 @@ export const compoundOf = (kind: OperatorKey, args: Term[]): Term => {
 
   // Negation requires exactly 1 argument — reference throws on wrong arity
   if (kind === 'negation' && valid.length !== 1) {
-    throw new Error(`Negation requires exactly 1 argument, got ${valid.length}`);
+    throw new SenarsError(`Negation requires exactly 1 argument, got ${valid.length}`, 'PARSE_ERROR', { kind, arity: valid.length });
   }
 
   // Sequence is binary in SeNARS — reference throws on wrong arity
   if (kind === 'sequence' && valid.length !== 2) {
-    throw new Error(`Sequence requires exactly 2 arguments, got ${valid.length}`);
+    throw new SenarsError(`Sequence requires exactly 2 arguments, got ${valid.length}`, 'PARSE_ERROR', { kind, arity: valid.length });
   }
 
   // Operation requires exactly 2 arguments — reference throws on wrong arity
   if (kind === 'operation' && valid.length !== 2) {
-    throw new Error(`Operation requires exactly 2 arguments, got ${valid.length}`);
+    throw new SenarsError(`Operation requires exactly 2 arguments, got ${valid.length}`, 'PARSE_ERROR', { kind, arity: valid.length });
   }
   // Operation requires its second argument to be a product (per Narsese grammar).
   // If caller passed a bare term, wrap it. This ensures round-trip identity.

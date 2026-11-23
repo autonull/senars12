@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { nonEmpty, positiveInt } from '@senars/config/boundary';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult, ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
+import { SenarsError } from '../../errors/senars-error';
 
 /** Tool specification for declarative registration. */
 export interface ToolSpec<Input extends z.ZodSchema<any> = z.ZodSchema<any>> {
@@ -82,7 +83,7 @@ export class MCPRegistry {
   /** Register a tool. */
   registerTool<Input extends z.ZodSchema<any>>(spec: ToolSpec<Input>): this {
     if (this.tools.has(spec.name)) {
-      throw new Error(`Tool already registered: ${spec.name}`);
+      throw new SenarsError(`Tool already registered: ${spec.name}`, 'VALIDATION_ERROR', { toolName: spec.name });
     }
     this.tools.set(spec.name, {
       spec,
@@ -94,7 +95,7 @@ export class MCPRegistry {
   /** Register a resource. */
   registerResource(spec: ResourceSpec): this {
     if (this.resources.has(spec.uriTemplate)) {
-      throw new Error(`Resource already registered: ${spec.uriTemplate}`);
+      throw new SenarsError(`Resource already registered: ${spec.uriTemplate}`, 'VALIDATION_ERROR', { uriTemplate: spec.uriTemplate });
     }
     this.resources.set(spec.uriTemplate, { spec });
     return this;
@@ -268,7 +269,7 @@ export class MCPRegistry {
   validateToolInput(name: string, input: unknown): z.infer<z.ZodSchema<any>> {
     const tool = this.tools.get(name);
     if (!tool) {
-      throw new Error(`Unknown tool: ${name}`);
+      throw new SenarsError(`Unknown tool: ${name}`, 'OPERATION_ERROR', { toolName: name });
     }
     return tool.zodSchema.parse(input);
   }

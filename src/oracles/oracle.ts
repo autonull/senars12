@@ -21,6 +21,8 @@ import { createClingoWasmOracle } from './engines/clingo-wasm';
 import { createMiniSatWasmOracle } from './engines/minisat-wasm';
 import { createTauPrologOracle } from './engines/tau-prolog';
 import { createMettaOracle } from './engines/metta';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Oracle operation categories. */
 export const ORACLE_OPERATIONS = [
@@ -300,7 +302,7 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
 
   /** Fail-closed behavior. Override for operation-specific defaults. */
   protected async failClosed(input: TInput, error: string): Promise<TOutput> {
-    throw new Error(`Oracle ${this.operation} failed: ${error}`);
+    throw new SenarsError(`Oracle ${this.operation} failed: ${error}`, 'VALIDATION_ERROR');
   }
 
   /** Emit telemetry event — forwarded to the wired log sink. */
@@ -338,7 +340,7 @@ export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
   ): Promise<OracleOutput<TOutput>> {
     const oracle = this.get(operation);
     if (!oracle) {
-      throw new Error(`No oracle registered for ${operation}`);
+      throw new SenarsError(`No oracle registered for ${operation}`, 'OPERATION_ERROR');
     }
 
     const queryDigest = createHash('sha256').update(JSON.stringify(input.args)).digest('hex').substring(0, 32);
@@ -419,7 +421,7 @@ export function serializePinKey(key: PinKey): string {
 /** Deserialize a pin key from a string. */
 export function deserializePinKey(serialized: string): PinKey {
   const parts = serialized.split(':');
-  if (parts.length < 3) throw new Error(`Invalid pin key: ${serialized}`);
+  if (parts.length < 3) throw new SenarsError(`Invalid pin key: ${serialized}`, 'VALIDATION_ERROR');
   const operation = parts[0]!;
   const queryDigest = parts[1]!;
   const provider = parts[2]!;

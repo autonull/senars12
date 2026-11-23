@@ -4,6 +4,7 @@ import { parseJsonObject } from '@senars/util/json';
 import type { CodemodResult } from './codemod';
 import { runCodemod } from './codemod';
 import { runProcess } from './proc';
+import { SenarsError } from '../../errors/senars-error';
 
 /** Aggregate vitest + typecheck + lint verdict for one worktree run. */
 export interface TestRunResult {
@@ -38,7 +39,7 @@ export class ShadowWorktreeManager {
     const { code, stderr } = await runProcess('git', ['worktree', 'add', shadowDir, 'HEAD'], {
       cwd: this.workspaceRoot,
     });
-    if (code !== 0) throw new Error(`Failed to create worktree: ${code} ${stderr}`);
+    if (code !== 0) throw new SenarsError(`Failed to create worktree: ${code} ${stderr}`, 'OPERATION_ERROR', { code, stderr });
     this.#activeWorktrees.set(id, shadowDir);
     return shadowDir;
   }

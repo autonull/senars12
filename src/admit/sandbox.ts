@@ -9,6 +9,7 @@ import type { Term } from '../kernel/terms/term';
 import type { TruthValue } from '../kernel/truth';
 import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
+import { SenarsError } from '../errors/senars-error';
 
 /** Sandbox fuel. */
 export interface Fuel {
@@ -186,7 +187,7 @@ export class Sandbox {
   /** Register function. */
   registerFunction(fn: SandboxFunction): void {
     if (this.limits.forbiddenOperators.includes(fn.name)) {
-      throw new Error(`Function ${fn.name} is forbidden`);
+      throw new SenarsError(`Function ${fn.name} is forbidden`, 'OPERATION_ERROR', { function: fn.name });
     }
     this.context.functions.set(fn.name, fn);
   }
@@ -261,7 +262,7 @@ export class Sandbox {
         return undefined;
 
       default:
-        throw new Error(`Unknown AST node type: ${(node as any).type}`);
+        throw new SenarsError(`Unknown AST node type: ${(node as any).type}`, 'PARSE_ERROR', { nodeType: (node as any).type });
     }
   }
 
@@ -269,13 +270,13 @@ export class Sandbox {
   private evalCall(node: { type: 'call'; function: string; args: SandboxAST[] }): unknown {
     const fn = this.context.functions.get(node.function);
     if (!fn) {
-      throw new Error(`Function not found: ${node.function}`);
+      throw new SenarsError(`Function not found: ${node.function}`, 'OPERATION_ERROR', { function: node.function });
     }
 
     this.checkFuel(fn.fuelCost);
     this.context.depth++;
     if (this.context.depth > this.limits.maxDepth) {
-      throw new Error('Max recursion depth exceeded');
+      throw new SenarsError('Max recursion depth exceeded', 'BUDGET_EXCEEDED', { maxDepth: this.limits.maxDepth });
     }
 
     let result: unknown;
@@ -412,7 +413,7 @@ export class Sandbox {
     } else {
       const ast = lambda as SandboxAST;
       if (ast.type !== 'lambda') {
-        throw new Error('Expected lambda AST node');
+        throw new SenarsError('Expected lambda AST node', 'PARSE_ERROR');
       }
       lambdaObj = { params: ast.params, body: ast.body };
     }
@@ -437,10 +438,10 @@ export class Sandbox {
   /** Evaluate operator. */
   private evalOperator(node: { type: 'operator'; operator: string; args: SandboxAST[] }): unknown {
     if (this.limits.forbiddenOperators.includes(node.operator)) {
-      throw new Error(`Operator forbidden: ${node.operator}`);
+      throw new SenarsError(`Operator forbidden: ${node.operator}`, 'OPERATION_ERROR', { operator: node.operator });
     }
     if (!this.limits.allowedOperators.includes(node.operator)) {
-      throw new Error(`Operator not allowed: ${node.operator}`);
+      throw new SenarsError(`Operator not allowed: ${node.operator}`, 'OPERATION_ERROR', { operator: node.operator });
     }
 
     this.checkFuel(2);
@@ -462,7 +463,7 @@ export class Sandbox {
       case 'and': return this.consumeFuel(1, 'and', args[0] && args[1]);
       case 'or': return this.consumeFuel(1, 'or', args[0] || args[1]);
       case 'not': return this.consumeFuel(1, 'not', !args[0]);
-      default: throw new Error(`Operator not implemented: ${node.operator}`);
+      default: throw new SenarsError(`Operator not implemented: ${node.operator}`, 'OPERATION_ERROR', { operator: node.operator });
     }
   }
 
@@ -527,17 +528,17 @@ export class Sandbox {
   private checkLimits(): void {
     const elapsed = this.clock.now() - this.context.startTime;
     if (elapsed > this.limits.maxTimeMs) {
-      throw new Error('Execution time limit exceeded');
+      throw new SenarsError('Execution time limit exceeded', 'TIMEOUT', { maxTimeMs: this.limits.maxTimeMs });
     }
     if (this.context.fuel.remaining <= 0) {
-      throw new Error('Fuel exhausted');
+      throw new SenarsError('Fuel exhausted', 'BUDGET_EXCEEDED', { remaining: this.context.fuel.remaining });
     }
   }
 
   /** Consume fuel. */
   private checkFuel(amount: number): void {
     if (this.context.fuel.remaining < amount) {
-      throw new Error('Fuel exhausted');
+      throw new SenarsError('Fuel exhausted', 'BUDGET_EXCEEDED', { required: amount, remaining: this.context.fuel.remaining });
     }
     this.context.fuel.remaining -= amount;
     this.context.fuel.consumed += amount;

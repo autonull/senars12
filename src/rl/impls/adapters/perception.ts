@@ -3,6 +3,7 @@ import { Truth } from '../../../index';
 import type { NAR } from '../../../nar';
 import { TermBuilder } from '../../../terms/index';
 import { rewardBeliefTerm } from '../reward-term';
+import { SenarsError } from '../../../errors/senars-error';
 
 export interface RLObservation {
   stateId: string;
@@ -43,7 +44,7 @@ export class BeliefPerceptionAdapter {
     const stateTerm = TermBuilder.atom(sanitizedStateId);
     const selfTerm = TermBuilder.atom('self');
     const stateInheritance = TermBuilder.inheritance(selfTerm, stateTerm);
-    if (!stateInheritance) throw new Error(`Invalid inheritance: ${selfTerm} --> ${stateTerm}`);
+    if (!stateInheritance) throw new SenarsError(`Invalid inheritance: ${selfTerm} --> ${stateTerm}`, 'VALIDATION_ERROR', { selfTerm, stateTerm });
     await this.nar.believe(stateInheritance, Truth.create(1.0, this.config.sensorConfidence));
 
     // Feature observations
@@ -53,7 +54,7 @@ export class BeliefPerceptionAdapter {
         const valueTerm = TermBuilder.atom(value > 0 ? 'present' : 'absent');
         const featureInheritance = TermBuilder.inheritance(featureTerm, valueTerm);
         if (!featureInheritance)
-          throw new Error(`Invalid inheritance: ${featureTerm} --> ${valueTerm}`);
+          throw new SenarsError(`Invalid inheritance: ${featureTerm} --> ${valueTerm}`, 'VALIDATION_ERROR', { featureTerm, valueTerm });
         await this.nar.believe(
           featureInheritance,
           Truth.create(1.0, this.config.featureConfidence)
@@ -74,7 +75,7 @@ export class BeliefPerceptionAdapter {
         TermBuilder.atom('state_terminal'),
         TermBuilder.atom('reached')
       );
-      if (!terminalTerm) throw new Error(`Invalid inheritance: state:terminal --> reached`);
+      if (!terminalTerm) throw new SenarsError(`Invalid inheritance: state:terminal --> reached`, 'VALIDATION_ERROR');
       await this.nar.believe(terminalTerm, Truth.create(1.0, this.config.sensorConfidence));
     }
   }
@@ -88,7 +89,7 @@ export class BeliefPerceptionAdapter {
     const stateTerm = TermBuilder.atom(sanitizedStateId);
     const selfTerm = TermBuilder.atom('self');
     const stateInheritance = TermBuilder.inheritance(selfTerm, stateTerm);
-    if (!stateInheritance) throw new Error(`Invalid inheritance: ${selfTerm} --> ${stateTerm}`);
+    if (!stateInheritance) throw new SenarsError(`Invalid inheritance: ${selfTerm} --> ${stateTerm}`, 'VALIDATION_ERROR', { selfTerm, stateTerm });
     await this.nar.believe(stateInheritance, Truth.create(1.0, noisyConfidence));
   }
 

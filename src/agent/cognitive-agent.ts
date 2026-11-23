@@ -15,6 +15,8 @@ import type { Task } from '../types/index';
 import { DEFAULT_CONFIG } from '../types/index';
 import { type CreateAgentConfig, createAgent } from './create-agent';
 import type { TermTruth } from '../types/truth';
+import { SenarsError } from '../errors/senars-error';
+
 
 const log = createLogger({ scope: 'CognitiveAgent' });
 
@@ -55,7 +57,7 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
   processor.setConfig({ recorderEnabled: true });
   const recorder = processor.getRecorder();
   if (!recorder) {
-    throw new Error('Boot POST failed: DerivationRecorder not available');
+    throw new SenarsError('Boot POST failed: DerivationRecorder not available', 'VALIDATION_ERROR');
   }
 
   const syllogism = ['(cat --> animal). %1.00;0.90%', '(animal --> organism). %1.00;0.90%'];
@@ -68,7 +70,7 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
   // Test deduction: (cat --> animal) & (animal --> organism) |- (cat --> organism)
   const questionTerm = termParser.parse('(cat --> ?what)?');
   if (!questionTerm) {
-    throw new Error('Boot POST failed: could not parse test term');
+    throw new SenarsError('Boot POST failed: could not parse test term', 'PARSE_ERROR');
   }
 
   await nar.question('(cat --> ?what)?');
@@ -76,12 +78,12 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
 
   const answer = await nar.ask(questionTerm);
   if (!answer?.answer || !answer.truth || Truth.expectation(answer.truth) <= 0.5) {
-    throw new Error('Boot POST failed: syllogism derivation did not produce expected conclusion');
+    throw new SenarsError('Boot POST failed: syllogism derivation did not produce expected conclusion', 'VALIDATION_ERROR');
   }
 
   const records = recorder.drain();
   if (records.length === 0) {
-    throw new Error('Boot POST failed: no derivation records captured');
+    throw new SenarsError('Boot POST failed: no derivation records captured', 'VALIDATION_ERROR');
   }
 
   // Proof of traceability, not shape: every record must verify, and the drain
@@ -93,14 +95,12 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
   for (const record of records) {
     const result = verifyRecord(record);
     if (!result.ok) {
-      throw new Error(
-        `Boot POST failed: derivation verification failed - ${result.errors.join('; ')}`
-      );
+      throw new SenarsError(`Boot POST failed: derivation verification failed - ${result.errors.join('; ')}`, 'VALIDATION_ERROR');
     }
     proved += result.truthVerified;
   }
   if (proved === 0) {
-    throw new Error('Boot POST failed: no step carried premise truths the verifier could prove');
+    throw new SenarsError('Boot POST failed: no step carried premise truths the verifier could prove', 'VALIDATION_ERROR');
   }
 
   log.info(`Boot POST passed: core logic verified (${proved} steps reproduced)`);
@@ -110,7 +110,7 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
   const presetParams = PRESET_PARAMS[config.preset] ?? {};
   const validation = validateParameters({ ...presetParams, ...config.cognitiveParams });
   if (!validation.valid) {
-    throw new Error(`Invalid cognitive parameters: ${validation.errors.join(', ')}`);
+    throw new SenarsError(`Invalid cognitive parameters: ${validation.errors.join(', ')}`, 'VALIDATION_ERROR');
   }
 
   const cognitiveParams = mergeParameters({ ...presetParams, ...config.cognitiveParams });
@@ -144,7 +144,7 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
   const nar = agent.getNAR();
 
   if (!nar) {
-    throw new Error('Failed to get NAR instance from agent');
+    throw new SenarsError('Failed to get NAR instance from agent', 'VALIDATION_ERROR');
   }
 
   // Agent.start() already calls nar.start() via NAREngine.doInitialize()

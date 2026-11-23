@@ -52,6 +52,9 @@ import {
   type CognitiveStateSnapshot,
   replayCognitiveState,
 } from '../log/replay-reducers';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'kernel:replay-compat' });
 
 function makeDerivedStamp(id: string): Stamp {
   return {
@@ -111,7 +114,7 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
 
   const { events: allGateEvents, invalid: gateInvalid } = loadGateEvents(gateEventsPath);
   if (gateInvalid > 0) {
-    console.warn(`[replay] ${gateInvalid} invalid gate events skipped`);
+    logger.warn(`[replay] ${gateInvalid} invalid gate events skipped`);
   }
 
   let gateEvents = allGateEvents;
@@ -123,7 +126,7 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
     if (fromIdx >= 0 && toIdx >= 0) {
       gateEvents = allGateEvents.slice(Math.max(0, fromIdx), toIdx);
     } else {
-      console.warn('[replay] ID range not found, falling back to ordinal range');
+      logger.warn('[replay] ID range not found, falling back to ordinal range');
       const from = Math.max(0, range?.from ?? 0);
       gateEvents =
         range?.to === undefined

@@ -16,6 +16,8 @@ import type { EmbeddingCache, JudgmentManifold, ReasoningBudget } from '../lm/sy
 import type { ContrastiveMemory } from '../lm/system-one/contrastive';
 import type { AgentTrace } from '@senars/types/cognitive';
 import type { EgressVerdict } from '@senars/util';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for groundedness check. */
 export interface GroundednessCheckInput extends OracleInput {
@@ -212,33 +214,33 @@ export class CascadeGatesOracle implements Oracle<
       case 'cascade.groundedness': {
         const args = input.args as [string, string];
         const [narration, correlationId] = args;
-        if (!this.groundednessGate) throw new Error('Groundedness gate not initialized');
+        if (!this.groundednessGate) throw new SenarsError('Groundedness gate not initialized', 'OPERATION_ERROR');
         return this.groundednessGate(narration, correlationId);
       }
 
       case 'cascade.traceGrade': {
         const args = input.args as [import('@senars/types/cognitive').AgentTrace];
         const [trace] = args;
-        if (!this.traceGrader) throw new Error('Trace grader not initialized');
+        if (!this.traceGrader) throw new SenarsError('Trace grader not initialized', 'OPERATION_ERROR');
         return this.traceGrader(trace);
       }
 
       case 'cascade.wakeGate': {
         const args = input.args as [string, { userInput?: boolean }?];
         const [sleepNote, hint] = args;
-        if (!this.wakeGate) throw new Error('Wake gate not initialized');
+        if (!this.wakeGate) throw new SenarsError('Wake gate not initialized', 'OPERATION_ERROR');
         return this.wakeGate(sleepNote, hint);
       }
 
       case 'cascade.resourceCharge': {
         const args = input.args as [string, import('../lm/system-one/types').ResourceCost];
         const [scopeId, cost] = args;
-        if (!this.budgetGate) throw new Error('Budget gate not configured');
+        if (!this.budgetGate) throw new SenarsError('Budget gate not configured', 'CONFIGURATION_ERROR');
         return chargeJudgment(this.budgetGate, scopeId, cost);
       }
 
       default:
-        throw new Error(`Unknown cascade gates operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown cascade gates operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

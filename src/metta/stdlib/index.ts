@@ -2,6 +2,8 @@ import { equalAtoms } from '../core/hash';
 import { defineOp, registerOp } from '../core/ops';
 import type { ExpressionAtom, MeTTaAtom, NumberAtom } from '../types/ast';
 import { expr, num, str, sym } from '../types/ast';
+import { SenarsError } from '../../errors/senars-error';
+
 
 const toNumber = (a: MeTTaAtom): number | null => (a.kind === 2 ? (a as NumberAtom).value : null);
 
@@ -214,7 +216,7 @@ const printOp = defineOp(
 const errorOp = defineOp(
   'error',
   (msg: MeTTaAtom) => {
-    throw new Error(`MeTTa error: ${msg}`);
+    throw new SenarsError(`MeTTa error: ${msg}`, 'OPERATION_ERROR');
   },
   { pure: false }
 );

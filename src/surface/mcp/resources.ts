@@ -8,6 +8,7 @@ import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index';
 import type { Artifact, ArtifactKind } from '../../admit/repertoire';
 import type { Curriculum } from '../../admit/curriculum';
 import type { MinedSchema } from '../../mining/schemas';
+import { SenarsError } from '../../errors/senars-error';
 
 /** Resource template for dynamic resources. */
 export interface MCPResourceTemplate {
@@ -37,11 +38,11 @@ export class GeneratedResourceRegistry {
   constructor() {
     this.resources = new KeyedRegistry<MCPResource>({
       keyOf: (r) => r.uri,
-      onDuplicate: (uri) => { throw new Error(`Resource '${uri}' already registered`); },
+      onDuplicate: (uri) => { throw new SenarsError(`Resource '${uri}' already registered`, 'VALIDATION_ERROR', { uri }); },
     });
     this.templates = new KeyedRegistry<TemplateRegistration>({
       keyOf: (r) => r.uriTemplate,
-      onDuplicate: (uriTemplate) => { throw new Error(`Resource template '${uriTemplate}' already registered`); },
+      onDuplicate: (uriTemplate) => { throw new SenarsError(`Resource template '${uriTemplate}' already registered`, 'VALIDATION_ERROR', { uriTemplate }); },
     });
   }
 

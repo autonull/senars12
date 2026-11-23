@@ -47,6 +47,8 @@ import type {
 import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner';
 import type { Task } from '../types';
 import { ProposalLifecycle } from './lifecycle';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Applies one staged unit of work. Structurally `RuleProcessor`. */
 export interface ModelRuleWorkApplicator {
@@ -232,7 +234,7 @@ export class LMProposalProducer implements ModelRuleWorkSink {
   /** A rule proposal as a table declaration: the payload without the envelope. */
   private declarationOf(proposal: RuleProposal): RuleDeclaration {
     const body = proposal.payload.body;
-    if (!body) throw new Error('body required for rule declaration');
+    if (!body) throw new SenarsError('body required for rule declaration', 'OPERATION_ERROR');
     return {
       ruleId: proposal.payload.ruleId,
       description: proposal.payload.name,

@@ -5,6 +5,8 @@ import irc, { type Client as IRCClient } from 'irc';
 import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types';
 import { BaseConnection } from './base';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export interface IRCConnectionConfig {
   server: string;
@@ -117,7 +119,7 @@ export class IRCConnection extends BaseConnection {
           });
 
           const disarmDeadline = deadline(CONNECT_TIMEOUT_MS, () => {
-            reject(new Error('Connection timeout'));
+            reject(new SenarsError('Connection timeout', 'TIMEOUT'));
             this.dispose();
           });
 

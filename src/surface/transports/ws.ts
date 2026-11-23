@@ -4,6 +4,8 @@
 
 import { TransportBase } from './TransportBase';
 import type { WSTransportConfig, TransportMessage } from './types';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** WebSocket transport state. */
 interface WSState {
@@ -50,7 +52,7 @@ export class WSTransport extends TransportBase {
       };
 
       this.state.ws.onerror = (error) => {
-        reject(new Error(`WebSocket error: ${error}`));
+        reject(new SenarsError(`WebSocket error: ${error}`, 'TRANSPORT_ERROR'));
       };
 
       this.state.ws.onclose = () => {
@@ -77,7 +79,7 @@ export class WSTransport extends TransportBase {
 
     return new Promise((resolve, reject) => {
       if (!this.state.ws) {
-        reject(new Error('WebSocket not connected'));
+        reject(new SenarsError('WebSocket not connected', 'TRANSPORT_ERROR'));
         return;
       }
 
@@ -92,7 +94,7 @@ export class WSTransport extends TransportBase {
       setTimeout(() => {
         if (this.state.pending.has(correlationId)) {
           this.state.pending.delete(correlationId);
-          reject(new Error('Request timeout'));
+          reject(new SenarsError('Request timeout', 'TIMEOUT'));
         }
       }, 30000);
     });
@@ -103,7 +105,7 @@ export class WSTransport extends TransportBase {
     if (pending) {
       this.state.pending.delete(message.correlationId ?? '');
       if (message.type === 'error') {
-        pending.reject(new Error(message.payload as string));
+        pending.reject(new SenarsError(message.payload as string, 'OPERATION_ERROR'));
       } else {
         pending.resolve(message);
       }

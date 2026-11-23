@@ -115,6 +115,8 @@ import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
 import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskType } from './types';
 import type { RandomSource } from './types/primitives';
+import { SenarsError } from './errors/senars-error';
+
 
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
 const DERIVATION_RING_CAP = 256;
@@ -426,7 +428,7 @@ export class NAR extends BaseComponent {
     this.processor.getRecorder().setClock(() => this.config.clock?.() ?? Date.now());
     if (this.config.persistState && !this.#ledgers) {
       if (!this.config.logStore) {
-        throw new Error('persistState requires logStore to be configured');
+        throw new SenarsError('persistState requires logStore to be configured', 'CONFIGURATION_ERROR');
       }
       // Open the logStore before using it
       await this.config.logStore.open();

@@ -34,6 +34,8 @@ import type { AgentCapabilities } from '../protocol/index';
 import { NAR_ORIGIN } from '../schemas/event-base';
 import { type CognitiveEvent, mintCognitiveEvent } from '../schemas/index';
 import type { Connection } from './Transport';
+import { SenarsError } from '../errors/senars-error';
+
 
 export type {
   AgentOptions,
@@ -89,7 +91,7 @@ export class Agent {
     } else if (opts.logStore) {
       this.log = new LogStoreEventLog(opts.logStore);
     } else {
-      throw new Error('Either log or logStore must be provided in AgentOptions');
+      throw new SenarsError('Either log or logStore must be provided in AgentOptions', 'VALIDATION_ERROR');
     }
     this.memory = new MemoryService();
     this.policy = new PolicyEngine();

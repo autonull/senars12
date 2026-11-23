@@ -4,6 +4,8 @@ import { ensureDir } from '@senars/util/fs';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { assertWasmPathContained, withSandboxTimeout } from '../../capability/wasi-sandbox';
 import { DigestMismatchError } from './wasi-runtime';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /**
  * D5/X27: WASI encoder-head bundle artifact. Compiles a trained linear head
@@ -192,7 +194,7 @@ export async function loadHeadBundle(options: {
 
   const module = await globalThis.WebAssembly.compile(wasm);
   if (WebAssembly.Module.imports(module).length > 0) {
-    throw new Error('Head bundle must be a zero-import module (deny-by-default sandbox)');
+    throw new SenarsError('Head bundle must be a zero-import module (deny-by-default sandbox)', 'VALIDATION_ERROR');
   }
   const instance = (await globalThis.WebAssembly.instantiate(module, {})) as {
     exports: { memory: WebAssembly.Memory; evalHead: (ptr: number) => number };
@@ -202,7 +204,7 @@ export async function loadHeadBundle(options: {
   return {
     async evaluate(embedding: Float32Array): Promise<number> {
       if (embedding.length !== dimension) {
-        throw new Error(`Head bundle expects ${dimension} inputs, got ${embedding.length}`);
+        throw new SenarsError(`Head bundle expects ${dimension} inputs, got ${embedding.length}`, 'OPERATION_ERROR');
       }
       new Float32Array(memory.buffer, 0, dimension).set(embedding);
       return await withSandboxTimeout(

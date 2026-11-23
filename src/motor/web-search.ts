@@ -17,6 +17,8 @@ import { errMsg } from '@senars/util/error';
 import { splitLines } from '@senars/util/text';
 import { envFirst } from '@senars/util/config';
 import { WEB_FETCH_TIMEOUT_MS } from '../agent/constants';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Hard cap on a buffered response body. */
 const MAX_BODY_BYTES = 512 * 1024;
@@ -74,7 +76,7 @@ export const tavilySearch = async (
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ query, max_results: maxResults, search_depth: 'basic' }),
   });
-  if (!res.ok) throw new Error(`tavily ${res.status}`);
+  if (!res.ok) throw new SenarsError(`tavily ${res.status}`, 'OPERATION_ERROR');
   const data = (await res.json()) as {
     results?: Array<{ title?: string; url?: string; content?: string }>;
   };
@@ -94,7 +96,7 @@ export const braveSearch = async (
   const res = await fetchBounded(url.toString(), {
     headers: { accept: 'application/json', 'x-subscription-token': apiKey },
   });
-  if (!res.ok) throw new Error(`brave ${res.status}`);
+  if (!res.ok) throw new SenarsError(`brave ${res.status}`, 'OPERATION_ERROR');
   const data = (await res.json()) as {
     web?: { results?: Array<{ title?: string; url?: string; description?: string }> };
   };
@@ -116,7 +118,7 @@ export const duckDuckGoSearch = async (
     `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
     { headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars)' } }
   );
-  if (!res.ok) throw new Error(`duckduckgo ${res.status}`);
+  if (!res.ok) throw new SenarsError(`duckduckgo ${res.status}`, 'OPERATION_ERROR');
   const html = await readBody(res);
   const linkRe = /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
   const snippetRe = /class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
@@ -198,7 +200,7 @@ export const webFetch = async (
 ): Promise<{ url: string; status: number; contentType: string; text: string }> => {
   const parsed = new URL(url);
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error(`web-fetch refuses non-http protocol: ${parsed.protocol}`);
+    throw new SenarsError(`web-fetch refuses non-http protocol: ${parsed.protocol}`, 'PARSE_ERROR');
   }
   const res = await fetchBounded(parsed, {
     headers: { accept: 'text/html,text/plain,application/json;q=0.9,*/*;q=0.5' },
@@ -208,9 +210,9 @@ export const webFetch = async (
   // the *final* URL is re-checked rather than only the requested one.
   const finalUrl = new URL(res.url);
   if (finalUrl.protocol !== 'http:' && finalUrl.protocol !== 'https:') {
-    throw new Error(`web-fetch refuses non-http redirect target: ${finalUrl.protocol}`);
+    throw new SenarsError(`web-fetch refuses non-http redirect target: ${finalUrl.protocol}`, 'TRANSPORT_ERROR');
   }
-  if (!res.ok) throw new Error(`web-fetch ${res.status} for ${url}`);
+  if (!res.ok) throw new SenarsError(`web-fetch ${res.status} for ${url}`, 'OPERATION_ERROR');
   const contentType = res.headers.get('content-type') ?? 'text/plain';
   const body = await readBody(res);
   const text = contentType.includes('html')

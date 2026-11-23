@@ -7,6 +7,11 @@
  * One substrate, one policy, one import.
  */
 
+import { SenarsError } from '../errors/senars-error';
+import { createLogger } from './logger';
+
+const logger = createLogger({ scope: 'util:bag' });
+
 /** Histogram for tracking distributions. */
 export interface Histogram {
   readonly edges: readonly number[];
@@ -209,7 +214,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
   constructor(options: BagOptions) {
     if (!options.capacity || options.capacity <= 0) {
-      throw new Error('Bag capacity must be a positive number');
+      throw new SenarsError('Bag capacity must be a positive number', 'VALIDATION_ERROR', { capacity: options.capacity });
     }
     this.id = options.id ?? `bag-${Date.now()}-${ambientRng().toString(36).slice(2, 8)}`;
     this.capacity = options.capacity;
@@ -348,10 +353,10 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     // Can't change strategy on frozen object, but we can track it
     // For now, just validate
     if (!['priority', 'fifo', 'lru', 'random'].includes(strategy)) {
-      throw new Error(`Invalid evict strategy: ${strategy}`);
+      throw new SenarsError(`Invalid evict strategy: ${strategy}`, 'VALIDATION_ERROR', { strategy });
     }
     // Strategy change would require re-sorting; log warning
-    console.warn(`Evict strategy change to ${strategy} not fully supported on live bag`);
+    logger.warn(`Evict strategy change to ${strategy} not fully supported on live bag`);
   }
 
   decay(): void {

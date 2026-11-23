@@ -785,6 +785,7 @@ export function createTermPatternsAnalyzerView(getLog: () => Episode[]): TermPat
 
 /** Registry of all fold views using KeyedRegistry. */
 import { KeyedRegistry } from '../util/keyed-collection';
+import { SenarsError } from '../errors/senars-error';
 
 /** Registry of all fold views using KeyedRegistry. */
 export class FoldViewRegistry {
@@ -793,7 +794,7 @@ export class FoldViewRegistry {
   constructor() {
     this.views = new KeyedRegistry<FoldView<any>>({
       keyOf: (v) => v.name,
-      onDuplicate: (name) => { throw new Error(`Fold view '${name}' already registered`); },
+      onDuplicate: (name) => { throw new SenarsError(`Fold view '${name}' already registered`, 'VALIDATION_ERROR', { name }); },
     });
   }
 

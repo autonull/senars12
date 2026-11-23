@@ -6,7 +6,11 @@
  */
 
 import { selectTopN } from '../util/collections';
+import { createLogger } from '../util/logger';
 import type { Term } from '../terms/index';
+import { SenarsError } from '../errors/senars-error';
+
+const logger = createLogger({ scope: 'strategies:composite' });
 
 /** Common interface for any composable unit. */
 export interface Composable<TInput, TOutput> {
@@ -35,7 +39,7 @@ export class CompositeBase<TInput, TItem, TResult> implements Composable<TInput,
     metadata: { name: string; description: string }
   ) {
     if (members.length === 0) {
-      throw new Error('Composite requires at least one member');
+      throw new SenarsError('Composite requires at least one member', 'VALIDATION_ERROR');
     }
     this.metadata = metadata;
   }
@@ -45,7 +49,10 @@ export class CompositeBase<TInput, TItem, TResult> implements Composable<TInput,
       try {
         return member.execute(input);
       } catch (error) {
-        console.warn(`Composite member ${member.metadata?.name} failed: ${error}`);
+        logger.warn('composite member failed', {
+          member: member.metadata?.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
         return [] as TItem[];
       }
     });
@@ -117,7 +124,7 @@ export function createWeightedMeanComposite<TInput>(
 ): CompositeBase<TInput, number, number> {
   const totalWeight = members.reduce((sum, m) => sum + m.weight, 0);
   if (totalWeight <= 0) {
-    throw new Error('Weighted composite requires at least one positive weight');
+    throw new SenarsError('Weighted composite requires at least one positive weight', 'VALIDATION_ERROR');
   }
   // We need to adapt the members to return number[] instead of number
   const adaptedMembers: Composable<TInput, number[]>[] = members.map((m) => ({

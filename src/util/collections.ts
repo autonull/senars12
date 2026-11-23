@@ -4,6 +4,8 @@
  */
 
 import { occupancy } from './numeric';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Fixed-size slices for batched work — the one chunking primitive. */
 export const chunk = <T>(items: readonly T[], size: number): T[][] => {
@@ -43,7 +45,7 @@ export const joinKey = (...parts: readonly string[]): string => parts.join(KEY_S
 export const splitKey = (key: string, parts: number): string[] => {
   const split = key.split(KEY_SEPARATOR);
   if (split.length !== parts) {
-    throw new Error(`key '${key}' has ${split.length} parts, expected ${parts}`);
+    throw new SenarsError(`key '${key}' has ${split.length} parts, expected ${parts}`, 'VALIDATION_ERROR');
   }
   return split;
 };

@@ -8,6 +8,8 @@
 import type { Term } from '../kernel/terms/term';
 import type { TruthValue } from '../kernel/truth';
 import type { Task, TaskType } from '../kernel/types';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Habitat identifier. */
 export type HabitatId = string & { readonly __brand: unique symbol };
@@ -163,15 +165,15 @@ export class HabitatRegistry {
   constructor() {
     this.transitions = new KeyedRegistry<FunctionRegistration<TransitionFn>>({
       keyOf: (r) => r.name,
-      onDuplicate: (name) => { throw new Error(`Transition '${name}' already registered`); },
+      onDuplicate: (name) => { throw new SenarsError(`Transition '${name}' already registered`, 'VALIDATION_ERROR'); },
     });
     this.rewards = new KeyedRegistry<FunctionRegistration<RewardFn>>({
       keyOf: (r) => r.name,
-      onDuplicate: (name) => { throw new Error(`Reward '${name}' already registered`); },
+      onDuplicate: (name) => { throw new SenarsError(`Reward '${name}' already registered`, 'VALIDATION_ERROR'); },
     });
     this.terminations = new KeyedRegistry<FunctionRegistration<TerminationFn>>({
       keyOf: (r) => r.name,
-      onDuplicate: (name) => { throw new Error(`Termination '${name}' already registered`); },
+      onDuplicate: (name) => { throw new SenarsError(`Termination '${name}' already registered`, 'VALIDATION_ERROR'); },
     });
   }
 
@@ -257,10 +259,10 @@ export function stepHabitat(
   const termination = registry.getTermination(config.termination.custom ?? 'default');
 
   if (!transition) {
-    throw new Error(`Transition function not found: ${config.transition}`);
+    throw new SenarsError(`Transition function not found: ${config.transition}`, 'CONFIGURATION_ERROR');
   }
   if (!rewardFn) {
-    throw new Error(`Reward function not found: ${config.reward}`);
+    throw new SenarsError(`Reward function not found: ${config.reward}`, 'CONFIGURATION_ERROR');
   }
 
   const nextState = transition(state, action, config);

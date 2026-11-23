@@ -28,6 +28,7 @@ import type {
   GetPromptParams,
   MCPError,
 } from './types';
+import { SenarsError } from '../../errors/senars-error';
 import { getTask, updateTask, cleanTasks } from './server';
 
 /** Create initialize handler. */
@@ -97,7 +98,7 @@ export function createReadResourceHandler(server: MCPServer) {
   return async (params: ReadResourceParams): Promise<ReadResourceResult> => {
     const resource = server.resources.get(params.uri);
     if (!resource) {
-      throw new Error(`Resource not found: ${params.uri}`);
+      throw new SenarsError(`Resource not found: ${params.uri}`, 'OPERATION_ERROR', { uri: params.uri });
     }
 
     // In a real implementation, fetch resource content
@@ -124,7 +125,7 @@ export function createGetPromptHandler(server: MCPServer) {
   return async (params: GetPromptParams): Promise<MCPPromptResult> => {
     const prompt = server.prompts.get(params.name);
     if (!prompt) {
-      throw new Error(`Prompt not found: ${params.name}`);
+      throw new SenarsError(`Prompt not found: ${params.name}`, 'OPERATION_ERROR', { name: params.name });
     }
 
     return await prompt.handler(params.arguments ?? {});
@@ -136,7 +137,7 @@ export function createTaskGetHandler(server: MCPServer) {
   return async (params: { taskId: string }): Promise<{ task: { id: string; status: string; result?: unknown; error?: string } }> => {
     const task = getTask(server, params.taskId);
     if (!task) {
-      throw new Error(`Task not found: ${params.taskId}`);
+      throw new SenarsError(`Task not found: ${params.taskId}`, 'OPERATION_ERROR', { taskId: params.taskId });
     }
 
     return {

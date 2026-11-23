@@ -15,17 +15,18 @@ import { SenarsError } from '@senars/errors';
 import type { Term } from '../types';
 import { TermFactory } from './factory';
 import { Truth } from './Truth';
+import { createLogger } from '../../util/logger';
+
+const logger = createLogger({ scope: 'terms:impls:parser-peggy' });
 
 const require = createRequire(import.meta.url);
 const peggyModule: {
   parse: (input: string, options?: unknown) => unknown;
 } = require('../peggy-generated.cjs');
-console.log('[parser-peggy] peggyModule:', typeof peggyModule, Object.keys(peggyModule));
 const peggyParse = peggyModule.parse;
-console.log('[parser-peggy] peggyParse:', typeof peggyParse);
 
 const log = {
-  error: (msg: string, err: Error) => console.error(`[narsese] ${msg}`, err),
+  error: (msg: string, err: Error) => logger.error(`[narsese] ${msg}`, err instanceof Error ? err : undefined),
 };
 
 export interface ParserResult {
@@ -100,7 +101,7 @@ export class TermParser {
 
       return result as Term;
     } catch (error: unknown) {
-      console.log('[parser-peggy] caught error:', error, typeof error);
+      logger.debug('[parser-peggy] caught error', { error: String(error) });
       throw this._wrapError(error, validInput);
     }
   }
@@ -115,7 +116,7 @@ export class TermParser {
           const result = this.parseWithTruth(stmt);
           return { term: result.term, truth: result.truth };
         } catch (error) {
-          throw new Error(`Failed to parse "${stmt}": ${errMsg(error)}`);
+          throw new SenarsError(`Failed to parse "${stmt}": ${errMsg(error)}`, 'PARSE_ERROR', { statement: stmt });
         }
       });
   }
@@ -161,10 +162,10 @@ export class TermParser {
 
   private _validateInput(input: string): string {
     if (typeof input !== 'string') {
-      throw new Error('Input must be a string');
+      throw new SenarsError('Input must be a string', 'PARSE_ERROR');
     }
     if (input.trim() === '') {
-      throw new Error('Input must be a non-empty string');
+      throw new SenarsError('Input must be a non-empty string', 'PARSE_ERROR');
     }
     return input.trim();
   }

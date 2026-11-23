@@ -6,6 +6,8 @@ import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig } from '../oracle';
 import type { BudgetSlice, BudgetResource } from '../../budget/budget';
 import { OraclePinStore } from '../pins';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for Z3 SMT solving. */
 export interface Z3WasmInput extends OracleInput {
@@ -188,7 +190,7 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
 
     return new Promise<Z3WasmResult>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`Z3 WASM query timeout after ${timeoutMs}ms`));
+        reject(new SenarsError(`Z3 WASM query timeout after ${timeoutMs}ms`, 'TIMEOUT'));
       }, timeoutMs);
 
       try {

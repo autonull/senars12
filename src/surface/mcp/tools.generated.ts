@@ -10,6 +10,7 @@ import type { MCPTool } from './types';
 import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index';
 import type { Artifact, ArtifactKind } from '../../admit/repertoire';
 import type { Curriculum } from '../../admit/curriculum';
+import { SenarsError } from '../../errors/senars-error';
 
 /** Tool registration with category. */
 interface ToolRegistration {
@@ -25,11 +26,11 @@ export class GeneratedToolRegistry {
   constructor() {
     this.tools = new KeyedRegistry<MCPTool>({
       keyOf: (t) => t.name,
-      onDuplicate: (name) => { throw new Error(`Tool '${name}' already registered`); },
+      onDuplicate: (name) => { throw new SenarsError(`Tool '${name}' already registered`, 'VALIDATION_ERROR', { name }); },
     });
     this.categories = new KeyedRegistry<ToolRegistration>({
       keyOf: (r) => `${r.category}:${r.tool.name}`,
-      onDuplicate: (key) => { throw new Error(`Tool registration '${key}' already registered`); },
+      onDuplicate: (key) => { throw new SenarsError(`Tool registration '${key}' already registered`, 'VALIDATION_ERROR', { key }); },
     });
   }
 

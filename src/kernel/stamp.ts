@@ -13,6 +13,7 @@ import { randomUUID } from 'crypto';
 import type { UUID } from './types';
 import type { Clock } from './env';
 import { createDefaultClock } from './env';
+import { SenarsError } from '../errors/senars-error';
 
 /** Timestamp in milliseconds since epoch. */
 export type TimestampMs = number;
@@ -98,7 +99,7 @@ export function createStampFromIds(
 
 /** Merge multiple stamps (for revision/confluence). */
 export function mergeStamps(stamps: readonly Stamp[], ruleId: string, clock?: Clock): Stamp {
-  if (stamps.length === 0) throw new Error('Cannot merge empty stamp set');
+  if (stamps.length === 0) throw new SenarsError('Cannot merge empty stamp set', 'VALIDATION_ERROR');
   if (stamps.length === 1) return stamps[0]!;
 
   const allParents = stamps.flatMap(s => s.parents);

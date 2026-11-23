@@ -55,14 +55,10 @@ export const decodeState = <T>(
   ) {
     const envelope = parsed as StateEnvelope;
     if (envelope.kind !== kind) {
-      throw new Error(
-        `State kind mismatch: expected "${kind}", got "${envelope.kind}" (corrupt or wrong file)`
-      );
+      throw new SenarsError(`State kind mismatch: expected "${kind}", got "${envelope.kind}" (corrupt or wrong file)`, 'VALIDATION_ERROR');
     }
     if (!acceptedVersions.includes(envelope.version)) {
-      throw new Error(
-        `Unsupported state version ${envelope.version} for "${kind}" (supported: ${acceptedVersions.join(', ')})`
-      );
+      throw new SenarsError(`Unsupported state version ${envelope.version} for "${kind}" (supported: ${acceptedVersions.join(', ')})`, 'OPERATION_ERROR');
     }
     return envelope.payload as T;
   }

@@ -4,6 +4,8 @@
  */
 
 import { type ContextBudgetOptions, estimateTokens, getContextBudget } from './context-budget';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export interface PromptAssertionResult {
   ok: boolean;
@@ -115,8 +117,6 @@ export function validatePrompt(
   const results = assertPrompt(prompt, task, requiredElements, maxInstructionTokens);
   const failures = results.filter((r) => !r.ok);
   if (failures.length > 0) {
-    throw new Error(
-      `Prompt validation failed:\n${failures.map((f) => `  - ${f.message}`).join('\n')}`
-    );
+    throw new SenarsError(`Prompt validation failed:\n${failures.map((f) => `  - ${f.message}`).join('\n')}`, 'VALIDATION_ERROR');
   }
 }

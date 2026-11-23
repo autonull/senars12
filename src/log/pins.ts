@@ -9,6 +9,9 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
 import type { UUID, TimestampMs } from '../generated/schemas';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'log:pins' });
 
 /** A pinned value for deterministic replay. */
 export interface Pin<T = unknown> {
@@ -320,7 +323,7 @@ export function createReplayPinned<T extends (...args: unknown[]) => Promise<unk
       const pinned = await store.getPin(operation, args);
       if (pinned !== null) return pinned;
       // Fallback: compute if not pinned (should not happen in correct replay)
-      console.warn(`[Pin] No pin found for ${operation} during replay, computing`);
+      logger.warn(`[Pin] No pin found for ${operation} during replay, computing`);
     }
     return store.getOrPin(operation, args, () => fn(...args));
   }) as T;

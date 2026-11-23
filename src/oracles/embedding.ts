@@ -11,6 +11,8 @@ import type { EmbeddingGenerator, EmbeddingRuntimeSource } from '../memory/embed
 import type { EmbeddingCache } from '../lm/system-one/types';
 import type { ContrastiveMemory } from '../lm/system-one/contrastive';
 import { mineHardNegatives, type MinedNegative, type MiningBagOptions } from '../lm/system-one/hard-negatives';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for embedding generation. */
 export interface EmbeddingGenerateInput extends OracleInput {
@@ -226,7 +228,7 @@ export class EmbeddingOracle implements Oracle<
       }
 
       default:
-        throw new Error(`Unknown embedding operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown embedding operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

@@ -2,6 +2,7 @@ import type { Task } from '../types/task';
 import { canonicalTerm } from './reduce';
 import { getArgs } from './impls/accessors';
 import { Truth } from './impls/Truth';
+import { SenarsError } from '../errors/senars-error';
 
 /**
  * One rewrite over a *claim* rather than a formula (TODO29.a §5.12), with the
@@ -56,7 +57,9 @@ export const canonicalTask = (task: Task): Task => {
     if (next === current) return current;
     current = { ...next, term: canonicalTerm(next.term) };
   }
-  throw new Error(
-    `canonicalTask did not reach a fixed point in ${MAX_PASSES} passes: ${task.term}`
+  throw new SenarsError(
+    `canonicalTask did not reach a fixed point in ${MAX_PASSES} passes: ${task.term}`,
+    'OPERATION_ERROR',
+    { maxPasses: MAX_PASSES, term: task.term.toString() }
   );
 };

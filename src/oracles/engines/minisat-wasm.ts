@@ -6,6 +6,8 @@ import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
 import { OraclePinStore } from '../pins';
 import type { BudgetSlice, BudgetResource } from '../../budget/budget';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for MiniSat SAT solving. */
 export interface MiniSatWasmInput extends OracleInput {
@@ -197,7 +199,7 @@ export class MiniSatWasmOracle implements Oracle<MiniSatWasmInput, MiniSatWasmRe
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`MiniSat WASM query timeout after ${timeoutMs}ms`));
+        reject(new SenarsError(`MiniSat WASM query timeout after ${timeoutMs}ms`, 'TIMEOUT'));
       }, timeoutMs);
 
       try {

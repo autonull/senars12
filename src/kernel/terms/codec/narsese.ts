@@ -13,6 +13,8 @@ import {
   getPunctuation,
   escapeConstant,
 } from './formatters';
+import { SenarsError } from '../../../errors/senars-error';
+
 
 /** Narsese codec options. */
 export interface NarseseCodecOptions {
@@ -141,7 +143,7 @@ class NarseseDecoder {
 
     this.skipWhitespace();
     if (this.pos < this.input.length) {
-      throw new Error(`Unexpected trailing characters: ${this.input.slice(this.pos)}`);
+      throw new SenarsError(`Unexpected trailing characters: ${this.input.slice(this.pos)}`, 'PARSE_ERROR');
     }
 
     return term;
@@ -176,7 +178,7 @@ class NarseseDecoder {
 
     // Word/constant
     const word = this.parseWord();
-    if (!word) throw new Error(`Expected term at position ${this.pos}`);
+    if (!word) throw new SenarsError(`Expected term at position ${this.pos}`, 'PARSE_ERROR');
 
     this.skipWhitespace();
 
@@ -273,7 +275,7 @@ class NarseseDecoder {
 
   private expect(str: string): void {
     if (!this.match(str)) {
-      throw new Error(`Expected '${str}' at position ${this.pos}`);
+      throw new SenarsError(`Expected '${str}' at position ${this.pos}`, 'PARSE_ERROR');
     }
   }
 

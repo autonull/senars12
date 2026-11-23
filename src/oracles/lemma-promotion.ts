@@ -19,6 +19,9 @@ import { createOraclePinStore } from './pins';
 import type { LogStore } from '../log/store';
 import { createLogStore } from '../log/store';
 import { createBookBuilder, createBookLibrary } from '../admit/book';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'oracles:lemma-promotion' });
 
 /** Lemma candidate from oracle pin. */
 export interface LemmaCandidate {
@@ -156,7 +159,9 @@ export class LemmaPromotionManager {
   start(): void {
     if (this.config.autoPromoteIntervalMs) {
       this.promotionTimer = setInterval(() => {
-        this.promote().catch(console.error);
+        this.promote().catch((error) =>
+          logger.error('auto-promotion failed', error instanceof Error ? error : undefined)
+        );
       }, this.config.autoPromoteIntervalMs);
     }
   }

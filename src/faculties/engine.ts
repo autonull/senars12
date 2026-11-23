@@ -11,6 +11,8 @@ import type { Oracle, OracleInput, OracleOutput, OracleRegistry } from '../oracl
 import { createOracleRegistry, createStandardOracleRegistry } from '../oracles/oracle';
 import { OraclePinStore } from '../oracles/pins';
 import type { ILMService } from '../lm/interfaces';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Faculty engine configuration. */
 export interface FacultyEngineConfig {
@@ -124,11 +126,11 @@ export class FacultyEngine {
 
     const spec = this.registry.get(facultyName);
     if (!spec) {
-      throw new Error(`Faculty ${facultyName} not registered`);
+      throw new SenarsError(`Faculty ${facultyName} not registered`, 'OPERATION_ERROR');
     }
 
     if (!spec.enabled) {
-      throw new Error(`Faculty ${facultyName} is disabled`);
+      throw new SenarsError(`Faculty ${facultyName} is disabled`, 'OPERATION_ERROR');
     }
 
     // Get oracle for this faculty to extract provider/version for pinning
@@ -227,7 +229,7 @@ export class FacultyEngine {
   ): Promise<FacultyOutput<T>> {
     const oracle = this.oracles.get(spec.oracleOperation);
     if (!oracle) {
-      throw new Error(`No oracle registered for ${spec.oracleOperation}`);
+      throw new SenarsError(`No oracle registered for ${spec.oracleOperation}`, 'OPERATION_ERROR');
     }
 
     const oracleOutput = await oracle.call(oracleInput);
@@ -312,7 +314,7 @@ export class FacultyEngine {
         };
       }
       default:
-        throw new Error(`Unsupported oracle operation: ${spec.oracleOperation}`);
+        throw new SenarsError(`Unsupported oracle operation: ${spec.oracleOperation}`, 'OPERATION_ERROR');
     }
   }
 

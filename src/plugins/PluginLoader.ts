@@ -83,7 +83,7 @@ export class PluginLoader {
         const mod = (await import(spec)) as Record<string, unknown>;
         const candidate = (mod.plugin ?? mod.default) as SenarsPlugin | undefined;
         if (!candidate?.id) {
-          throw new Error(`module "${spec}" does not export a SenarsPlugin`);
+          throw new SenarsError(`module "${spec}" does not export a SenarsPlugin`, 'OPERATION_ERROR');
         }
         plugins.push(candidate);
       } catch (e) {

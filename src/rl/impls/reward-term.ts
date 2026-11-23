@@ -1,4 +1,6 @@
 import { TermBuilder, type Term } from '../../index';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export type RewardLevel = 'high' | 'neutral' | 'low';
 
@@ -12,6 +14,6 @@ export const rewardBeliefTerm = (reward: number): Term => {
     TermBuilder.atom(`reward_${level}`),
     TermBuilder.atom('achieved')
   );
-  if (!term) throw new Error(`Invalid inheritance: reward_${level} --> achieved`);
+  if (!term) throw new SenarsError(`Invalid inheritance: reward_${level} --> achieved`, 'VALIDATION_ERROR');
   return term;
 };

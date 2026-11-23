@@ -24,6 +24,7 @@ import { createMetaGame, MetaGameState } from '../game/impls/MetaGame';
 import { createSelfMetaGame, SelfMetaGameConfig } from '../game/impls/SelfMetaGame';
 import { SeededRNG } from '@senars/util/random';
 import { flooredRatio } from '@senars/util/numeric';
+import { SenarsError } from '../errors/senars-error';
 
 /** Internal game instance stored in habitat entities. */
 interface GameEntity extends EntityState {
@@ -39,7 +40,7 @@ type GameEntityProps = Map<string, unknown> & { gameInstance: Game<any, any>; ga
 function getGameInstance(state: HabitatState, habitatId: string): Game<any, any> {
   const entity = state.entities.get(habitatId);
   if (!entity || !entity.properties) {
-    throw new Error(`Game entity not found: ${habitatId}`);
+    throw new SenarsError(`Game entity not found: ${habitatId}`, 'OPERATION_ERROR', { habitatId });
   }
   const props = entity.properties as GameEntityProps;
   return props.gameInstance;
@@ -589,7 +590,7 @@ function createGameFromConfig(config: HabitatConfig): Game<any, any> {
       const env = config.initialState.env;
       const specId = (env.get('specId') as string) ?? 'reasoning:conversation';
       const spec = (globalThis as any).REASONING_SPECS?.[specId];
-      if (!spec) throw new Error(`Reasoning spec not found: ${specId}`);
+      if (!spec) throw new SenarsError(`Reasoning spec not found: ${specId}`, 'CONFIGURATION_ERROR', { specId });
       const tasks = generateEvalTasks(spec, seed);
       return createReasoningGame(spec, seed, tasks);
     }
@@ -620,7 +621,7 @@ function createGameFromConfig(config: HabitatConfig): Game<any, any> {
       return createMetaGame({ id: config.id, observesFocuses });
     }
     default:
-      throw new Error(`Unknown game type: ${gameType}`);
+      throw new SenarsError(`Unknown game type: ${gameType}`, 'CONFIGURATION_ERROR', { gameType });
   }
 }
 

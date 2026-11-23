@@ -1,5 +1,7 @@
 import type { ActionExecutionContext, CognitionAction } from './types';
 import type { ParameterScope } from '../config/parameter-table';
+import { SenarsError } from '../errors/senars-error';
+
 
 /**
  * C3: seed actions. `cycle`/`revise`/`rest` are tier-0 reflex; manifold
@@ -32,7 +34,7 @@ export const tuneAction = (): CognitionAction => ({
     const { parameterTable, scope, args } = context;
     const [name, value] = args ?? [];
     if (!parameterTable || !scope || name === undefined || value === undefined)
-      throw new Error('tune requires parameterTable + scope');
+      throw new SenarsError('tune requires parameterTable + scope', 'VALIDATION_ERROR');
     return parameterTable.set(scope as ParameterScope, name, value);
   },
 });

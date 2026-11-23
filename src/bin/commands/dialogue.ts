@@ -9,6 +9,7 @@ import { takeLast, unique } from '@senars/util/collections';
 import { attempted, cmd } from '@senars/cli';
 import { tokenize } from './args';
 import { type BotRuntime, systemOneOf } from './context';
+import { SenarsError } from '../../errors/senars-error';
 
 const REACTIONS = ['accept', 'correct', 'reject', 'clarify', 'redirect', 'abandon'] as const;
 const REACTION_SET: ReadonlySet<string> = new Set(REACTIONS);
@@ -233,7 +234,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
         { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }
       );
       const { ingested, skipped } = await reconsolidator.reconsolidate(50).catch((e: unknown) => {
-        throw new Error(`Reconsolidation failed (fail-closed): ${errMsg(e)}`);
+        throw new SenarsError(`Reconsolidation failed (fail-closed): ${errMsg(e)}`, 'OPERATION_ERROR', { cause: errMsg(e) });
       });
       return `Reconsolidated: ingested=${ingested} already-done=${skipped}`;
     }
@@ -299,7 +300,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
       });
     for (const chain of chains) inductor.onDerivation(chain as never);
     const results = await inductor.induceNow({ budget: 8 }).catch((e: unknown) => {
-      throw new Error(`Schema induction failed: ${errMsg(e)}`);
+      throw new SenarsError(`Schema induction failed: ${errMsg(e)}`, 'OPERATION_ERROR', { cause: errMsg(e) });
     });
     if (results.length === 0) {
       return `No schemas induced from ${chains.length} chains (below confidence/steps bar).`;

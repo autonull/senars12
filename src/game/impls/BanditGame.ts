@@ -3,6 +3,8 @@ import { maxScore } from '@senars/util/collections';
 import { SeededRNG } from '@senars/util/random';
 import type { GameOutcome, Perception } from '../Game';
 import { GameBase } from '../GameBase';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export interface BanditDriftConfig {
   changeInterval: number;
@@ -47,7 +49,7 @@ export class BanditGame extends GameBase<number, number> {
 
   override step(action: number): GameOutcome {
     if (action < 0 || action >= this.armMeans.length) {
-      throw new Error(`Invalid action: ${action}`);
+      throw new SenarsError(`Invalid action: ${action}`, 'VALIDATION_ERROR');
     }
     this.incrementStep();
     if (this.drift && this.stepCount % this.drift.changeInterval === 0) {

@@ -7,6 +7,7 @@
 
 import type { HabitatConfig, HabitatState, HabitatAction, HabitatStepResult, HabitatRegistry } from './habitat';
 import type { Scorecard, EpisodeResult } from './pack';
+import { SenarsError } from '../errors/senars-error';
 
 /** Arena identifier. */
 export type ArenaId = string & { readonly __brand: unique symbol };
@@ -275,7 +276,7 @@ export class ArenaRunner {
   ): Promise<ArenaTournamentResult> {
     const tournament = this.tournaments.get(tournamentId);
     if (!tournament) {
-      throw new Error(`Tournament not found: ${tournamentId}`);
+      throw new SenarsError(`Tournament not found: ${tournamentId}`, 'OPERATION_ERROR', { tournamentId });
     }
 
     const matchScores = new Map<string, Map<string, number>>();
@@ -363,8 +364,8 @@ function stepHabitat(
   const rewardFn = registry.getReward(config.reward);
   const termination = registry.getTermination(config.termination.custom ?? 'default');
 
-  if (!transition) throw new Error(`Transition not found: ${config.transition}`);
-  if (!rewardFn) throw new Error(`Reward not found: ${config.reward}`);
+  if (!transition) throw new SenarsError(`Transition not found: ${config.transition}`, 'CONFIGURATION_ERROR', { transition: config.transition });
+  if (!rewardFn) throw new SenarsError(`Reward not found: ${config.reward}`, 'CONFIGURATION_ERROR', { reward: config.reward });
 
   const nextState = transition(state, action, config);
   nextState.step = state.step + 1;

@@ -11,6 +11,10 @@ import type { FacultyInput, FacultyOutput } from '../faculties/specs';
 import { facultyEngine } from '../faculties/engine';
 import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../faculties/judgment/cascade';
 import type { Clock } from '../kernel/env';
+import { createLogger } from '../util/logger';
+import { errMsg } from '@senars/util/error';
+
+const logger = createLogger({ scope: 'loop:repair' });
 
 /** Anomaly types. */
 export const ANOMALY_TYPES = [
@@ -423,7 +427,7 @@ export class RepairLoop {
         const detected = await detector(context);
         anomalies.push(...detected);
       } catch (error) {
-        console.warn('Anomaly detector failed:', error);
+        logger.warn('Anomaly detector failed:', { error: errMsg(error) });
       }
     }
 
@@ -460,7 +464,7 @@ export class RepairLoop {
       } catch (e) {
         success = false;
         error = e instanceof Error ? e.message : String(e);
-        console.warn(`Repair action ${action.type} failed:`, error);
+        logger.warn(`Repair action ${action.type} failed:`, { error: errMsg(error) });
         // Continue with next action
       }
     }
@@ -529,7 +533,7 @@ export class RepairLoop {
   /** Execute param fix — adjust a parameter value. */
   private async executeParamFix(action: RepairAction, _context: RepairContext): Promise<void> {
     const { parameter, newValue } = action.params as { parameter: string; newValue: unknown };
-    console.log(`Param fix: ${parameter} = ${JSON.stringify(newValue)}`);
+    logger.info(`Param fix: ${parameter} = ${JSON.stringify(newValue)}`);
     // In a real implementation, this would update a config parameter
     // For now, emit an event for the parameter change
   }
@@ -537,7 +541,7 @@ export class RepairLoop {
   /** Execute precondition subgoal — create a subgoal to establish a precondition. */
   private async executePreconditionSubgoal(action: RepairAction, context: RepairContext): Promise<void> {
     const { subgoal } = action.params as { subgoal: string };
-    console.log(`Precondition subgoal: ${subgoal}`);
+    logger.info(`Precondition subgoal: ${subgoal}`);
     // S2 mints S1 work: create a WorkItem for the subgoal
     // This would be integrated with the task economy
     await this.mintSubgoalWork(context, subgoal, 'precondition');
@@ -546,7 +550,7 @@ export class RepairLoop {
   /** Execute alternate operator — switch to a different operator/faculty. */
   private async executeAlternateOperator(action: RepairAction, context: RepairContext): Promise<void> {
     const { operator } = action.params as { operator: string };
-    console.log(`Alternate operator: ${operator}`);
+    logger.info(`Alternate operator: ${operator}`);
     // S2 mints S1 work: create a WorkItem for the alternate approach
     await this.mintSubgoalWork(context, operator, 'alternate');
   }
@@ -554,7 +558,7 @@ export class RepairLoop {
   /** Execute explained veto — veto an action with explanation. */
   private async executeExplainedVeto(action: RepairAction, context: RepairContext): Promise<void> {
     const { reason } = action.params as { reason: string };
-    console.log(`Explained veto: ${reason}`);
+    logger.info(`Explained veto: ${reason}`);
     // S2 mints S1 work: create a WorkItem to document the veto rationale
     await this.mintSubgoalWork(context, reason, 'veto');
   }
@@ -567,7 +571,7 @@ export class RepairLoop {
   ): Promise<void> {
     // This would integrate with the economy to create a WorkItem
     // For now, log the intent
-    console.log(`[S2→S1] Minting ${type} subgoal: ${description}`);
+    logger.info(`[S2→S1] Minting ${type} subgoal: ${description}`);
     // In full implementation:
     // const workItem = createWorkItem({ type: 'repair_execution', ... });
     // economy.schedule(workItem);
@@ -581,7 +585,7 @@ export class RepairLoop {
     for (const oracle of oracles) {
       if (target === 'all' || oracle.provider === target || oracle.operation === target) {
         // Oracle restart would be implemented by the oracle itself
-        console.log(`Restarting oracle: ${oracle.operation} (${oracle.provider})`);
+        logger.info(`Restarting oracle: ${oracle.operation} (${oracle.provider})`);
       }
     }
   }
@@ -589,35 +593,35 @@ export class RepairLoop {
   /** Clear cache. */
   private async clearCache(target: string, _params: Record<string, unknown>): Promise<void> {
     // Clear memo/pin stores
-    console.log(`Clearing cache: ${target}`);
+    logger.info(`Clearing cache: ${target}`);
   }
 
   /** Reset gate. */
   private async resetGate(target: string, _params: Record<string, unknown>): Promise<void> {
-    console.log(`Resetting gate: ${target}`);
+    logger.info(`Resetting gate: ${target}`);
   }
 
   /** Reduce budget. */
   private reduceBudget(params: Record<string, unknown>): void {
     const factor = params.factor as number ?? 0.5;
-    console.log(`Reducing budget by factor: ${factor}`);
+    logger.info(`Reducing budget by factor: ${factor}`);
   }
 
   /** Increase timeout. */
   private increaseTimeout(params: Record<string, unknown>): void {
     const factor = params.factor as number ?? 2;
-    console.log(`Increasing timeout by factor: ${factor}`);
+    logger.info(`Increasing timeout by factor: ${factor}`);
   }
 
   /** Fallback to symbolic faculty. */
   private async fallbackFaculty(target: string, _params: Record<string, unknown>): Promise<void> {
-    console.log(`Falling back faculty: ${target}`);
+    logger.info(`Falling back faculty: ${target}`);
   }
 
   /** Rollback state. */
   private async rollbackState(params: Record<string, unknown>): Promise<void> {
     const steps = params.steps as number ?? 5;
-    console.log(`Rolling back state by ${steps} steps`);
+    logger.info(`Rolling back state by ${steps} steps`);
   }
 
   /** Replan. */
@@ -640,7 +644,7 @@ export class RepairLoop {
   /** Alert human. */
   private alertHuman(params: Record<string, unknown>): void {
     const message = params.message as string ?? 'Alert';
-    console.error(`ALERT: ${message}`);
+    logger.error(`ALERT: ${message}`);
   }
 
   /** Clean up completed repairs. */
@@ -702,7 +706,7 @@ export class RepairLoop {
         success = true;
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
-        console.warn(`Repair ladder action ${action.type} failed:`, error);
+        logger.warn(`Repair ladder action ${action.type} failed:`, { error: errMsg(error) });
         // Continue to next escalation step
       }
     }

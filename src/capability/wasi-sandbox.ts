@@ -1,6 +1,9 @@
 import { containsPath } from '@senars/util/fs';
 import { withTimeout } from '@senars/util/async';
 import { SenarsError } from '@senars/errors';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'capability:wasi-sandbox' });
 
 export class SandboxTimeoutError extends SenarsError {
   readonly timeoutMs: number;
@@ -42,7 +45,7 @@ export { containsPath };
 
 export function assertWasmPathContained(wasmPath: string, allowedPaths: string[] = []): void {
   if (allowedPaths.length > 0 && !allowedPaths.some((root) => containsPath(root, wasmPath))) {
-    throw new Error(`wasmPath '${wasmPath}' escapes allowedPaths`);
+    throw new SenarsError(`wasmPath '${wasmPath}' escapes allowedPaths`, 'OPERATION_ERROR');
   }
 }
 
@@ -118,9 +121,7 @@ let vmDeprecationWarned = false;
 export function createNodeVMSandbox(): <T>(fn: () => Promise<T>) => Promise<T> {
   if (!vmDeprecationWarned) {
     vmDeprecationWarned = true;
-    console.warn(
-      '[senars] createNodeVMSandbox is deprecated: not a security boundary, use createWasiSandbox for untrusted code.'
-    );
+    logger.warn('[senars] createNodeVMSandbox is deprecated: not a security boundary, use createWasiSandbox for untrusted code.');
   }
   // biome-ignore lint/style/useNodejsImportProtocol: deprecated CJS helper, kept synchronous
   const vm = require('vm');

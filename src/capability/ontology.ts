@@ -9,6 +9,8 @@ import { addToSet, mapValues } from '@senars/util/collections';
 import { shortSha256Hex } from '@senars/util/hash';
 import { type CapabilityDef, CapabilitySpace } from './space';
 import type { CapabilityRisk } from '@senars/util/capability-risk';
+import { SenarsError } from '../errors/senars-error';
+
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 
@@ -84,13 +86,13 @@ export class CapabilityOntology {
   /** Register a capability in the ontology. */
   register(entry: CapabilityOntologyEntry): void {
     if (this.entries.has(entry.id)) {
-      throw new Error(`Capability '${entry.id}' already registered`);
+      throw new SenarsError(`Capability '${entry.id}' already registered`, 'VALIDATION_ERROR');
     }
 
     // Check prerequisites exist
     for (const prereq of entry.prerequisites) {
       if (!this.entries.has(prereq)) {
-        throw new Error(`Prerequisite '${prereq}' not found for capability '${entry.id}'`);
+        throw new SenarsError(`Prerequisite '${prereq}' not found for capability '${entry.id}'`, 'VALIDATION_ERROR');
       }
     }
 
@@ -100,7 +102,7 @@ export class CapabilityOntology {
         // In a full implementation, this would check against a governance ledger
         // For now, we accept any non-empty string as a valid adaptation reference
         if (!adaptationId || typeof adaptationId !== 'string') {
-          throw new Error(`Invalid adaptationId in derivationChain for capability '${entry.id}'`);
+          throw new SenarsError(`Invalid adaptationId in derivationChain for capability '${entry.id}'`, 'VALIDATION_ERROR');
         }
       }
     }
@@ -108,9 +110,7 @@ export class CapabilityOntology {
     // Validate parentId if present
     if (entry.provenance.parentId) {
       if (!this.entries.has(entry.provenance.parentId)) {
-        throw new Error(
-          `Parent capability '${entry.provenance.parentId}' not found for capability '${entry.id}'`
-        );
+        throw new SenarsError(`Parent capability '${entry.provenance.parentId}' not found for capability '${entry.id}'`, 'VALIDATION_ERROR');
       }
     }
 

@@ -4,6 +4,11 @@ import { errMsg } from '@senars/util/error';
 import { withBodyPatch } from './body-patch';
 import { endpointPath, probeJson, probeReachable } from './probe';
 import { withThinkingDisabled } from './thinking';
+import { SenarsError } from '../../errors/senars-error';
+import { createLogger } from '../../util/logger';
+
+const logger = createLogger({ scope: 'lm:providers:llamacpp' });
+
 
 /** Default llama.cpp server (llama-server) address. */
 export const LLAMACPP_HOST_DEFAULT = 'http://localhost:8080';
@@ -40,13 +45,13 @@ const resolveModelId = (origin: string): Promise<string> => {
     // that triggered it with it. `probeJson` is bounded and fails closed.
     const json = await probeJson<{ data?: Array<{ id?: string }> }>(endpointPath(origin, 'v1/models'));
     const id = json?.data?.[0]?.id;
-    if (!id) throw new Error('model probe failed: empty or unreachable model list');
+    if (!id) throw new SenarsError('model probe failed: empty or unreachable model list', 'VALIDATION_ERROR');
     return id;
   })();
   // Memoize only successes: a probe before llama-server readiness must not
   // cache the placeholder forever (D4 — permanent 400s → breaker trips).
   resolvedModel = attempt.catch((error) => {
-    console.warn(`[llamacpp] ${errMsg(error)}; retrying on next request`);
+    logger.warn(`[llamacpp] ${errMsg(error)}; retrying on next request`);
     return MODEL_PLACEHOLDER;
   });
   void resolvedModel.then(

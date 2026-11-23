@@ -9,6 +9,8 @@ import type { BudgetSlice, BudgetResource } from '../budget/budget';
 import { OraclePinStore } from './pins';
 import { loadHeadBundle, type LoadedHeadBundle, type HeadBundleArtifacts } from '../lm/system-one/wasi-head-bundle';
 import { verifyModelDigest, composeModelDigest, encoderDigest, type HeadRuntimeConfig } from '../lm/system-one/wasi-runtime';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for loading a head bundle. */
 export interface LearnedHeadLoadInput extends OracleInput {
@@ -158,7 +160,7 @@ export class LearnedHeadOracle implements Oracle<
       case 'learnedHead.evaluate': {
         const args = input.args as [Float32Array];
         const [embedding] = args;
-        if (!this.loadedHead) throw new Error('Head bundle not loaded');
+        if (!this.loadedHead) throw new SenarsError('Head bundle not loaded', 'OPERATION_ERROR');
         return this.loadedHead.evaluate(embedding);
       }
 
@@ -174,7 +176,7 @@ export class LearnedHeadOracle implements Oracle<
       }
 
       default:
-        throw new Error(`Unknown learned-head operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown learned-head operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

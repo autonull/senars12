@@ -16,6 +16,8 @@
 import { z } from 'zod';
 import { clamp } from '../util/numeric';
 import { keyedBy } from '../util/collections';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** One knob's admissible numbers: the range, the landing value, and the scan quantum. */
 export interface BoundRow {
@@ -81,7 +83,7 @@ const rowAt = (table: BoundTable, path: string): BoundRow => {
   let scope: unknown = table;
   for (const segment of path.split('.')) {
     if (typeof scope !== 'object' || scope === null || !(segment in scope))
-      throw new Error(`Unknown bound: ${path}`);
+      throw new SenarsError(`Unknown bound: ${path}`, 'VALIDATION_ERROR');
     scope = (scope as Record<string, unknown>)[segment];
   }
   if (
@@ -89,7 +91,7 @@ const rowAt = (table: BoundTable, path: string): BoundRow => {
     scope === null ||
     typeof (scope as BoundRow).default !== 'number'
   )
-    throw new Error(`Unknown bound: ${path}`);
+    throw new SenarsError(`Unknown bound: ${path}`, 'VALIDATION_ERROR');
   return scope as BoundRow;
 };
 

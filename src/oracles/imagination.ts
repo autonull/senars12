@@ -10,6 +10,11 @@ import { OraclePinStore } from './pins';
 import { createScenarioGenTools, type ScenarioGenDeps, type ScenarioResult, type ScenarioSpec } from '../tools/adapters/scenario-gen';
 import type { ILMService } from '../lm/interfaces';
 import type { EpisodicMemory } from '../memory/EpisodicMemory';
+import { SenarsError } from '../errors/senars-error';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'oracles:imagination' });
+
 
 /** Input for generating scenarios. */
 export interface ImaginationGenerateInput extends OracleInput {
@@ -165,7 +170,7 @@ export class ImaginationOracle implements Oracle<
       case 'imagination.generate': {
         const args = input.args as [string, string?, number?];
         const [seed, profile = 'auto', count = 1] = args;
-        if (!this.scenarioTools) throw new Error('Scenario tools not initialized (missing dependencies)');
+        if (!this.scenarioTools) throw new SenarsError('Scenario tools not initialized (missing dependencies)', 'VALIDATION_ERROR');
         // The tool's execute method returns a Promise
         const result = await (this.scenarioTools.generate_scenarios.execute as any)({ seed, profile, count, injectEpisodes: true });
         return result as any;
@@ -174,7 +179,7 @@ export class ImaginationOracle implements Oracle<
       case 'imagination.run': {
         const args = input.args as [ScenarioSpec];
         const [spec] = args;
-        if (!this.nar) throw new Error('NAR instance not configured');
+        if (!this.nar) throw new SenarsError('NAR instance not configured', 'CONFIGURATION_ERROR');
         const { runScenario, calculateScenarioReward, validators } = await import('../tools/adapters/scenario-execute');
         const result = await runScenario(this.nar, spec);
         const reward = calculateScenarioReward(result, spec);
@@ -215,7 +220,7 @@ export class ImaginationOracle implements Oracle<
               });
             }
           } catch (error: unknown) {
-            console.warn('Failed to inject scenario episodes', { error });
+            logger.warn('Failed to inject scenario episodes', { error });
           }
         }
         if (this.rlfpLearner) {
@@ -230,7 +235,7 @@ export class ImaginationOracle implements Oracle<
       }
 
       default:
-        throw new Error(`Unknown imagination operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown imagination operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

@@ -12,6 +12,8 @@ import type { SeNARSModelId, SeNARSRegistry } from './model-factory';
 import { type ModelReliability, pickModel } from './routing';
 import { getLMSettings, getLmProvider } from './settings';
 import type { LMTask } from '@senars/util';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /**
  * One rung per (provider, task) the model factory registers.
@@ -134,7 +136,7 @@ export function getModelForTask(
       return model;
     } catch {}
   }
-  throw new Error(`No model available for task: ${task}`);
+  throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
 }
 
 export function getQualityModel(registry: SeNARSRegistry): LanguageModel {

@@ -3,6 +3,10 @@ import { dirname, resolve } from 'node:path';
 import type { ArchitectureGap, DegradationCurve, StressMetrics } from '../imagination/types';
 import type { SelfHost } from '../self/host';
 import { ReasoningAboutReasoning } from './ReasoningAboutReasoning';
+import { createLogger } from '../util/logger';
+import { errMsg } from '@senars/util/error';
+
+const logger = createLogger({ scope: 'self:architecture-driver' });
 
 export class ArchitectureDriver {
   private readonly nar: SelfHost;
@@ -186,7 +190,7 @@ export class ArchitectureDriver {
       const { Truth } = await import('../terms/impls/Truth');
       await this.nar.goal(gap.narseseGoal, Truth.create(0.8, 0.9));
     } catch (error) {
-      console.warn('Failed to inject self-beliefs:', error);
+      logger.warn('Failed to inject self-beliefs:', { error: errMsg(error) });
     }
   }
 
@@ -198,9 +202,9 @@ export class ArchitectureDriver {
     try {
       await ensureParentDir(filePath);
       await fs.writeFile(filePath, proposalContent, 'utf-8');
-      console.log(`📝 Proposal written: ${filePath}`);
+      logger.info(`📝 Proposal written: ${filePath}`);
     } catch (error) {
-      console.warn('Failed to write proposal:', error);
+      logger.warn('Failed to write proposal:', { error: errMsg(error) });
     }
   }
 

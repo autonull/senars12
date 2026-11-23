@@ -11,6 +11,8 @@ import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 import { ShadowWorktreeManager, type TestRunResult } from '../tools/adapters/shadow-worktree';
 import { runCodemod, type CodemodResult } from '../tools/adapters/codemod';
 import { runProcess } from '../tools/adapters/proc';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Admission proposal. */
 export interface AdmissionProposal {
@@ -229,7 +231,7 @@ export class AdmissionMachinery {
   /** Submit proposal for external validation. */
   async submitForValidation(proposalId: string): Promise<{ passed: boolean; reason: string }> {
     const proposal = this.proposals.get(proposalId);
-    if (!proposal) throw new Error(`Proposal not found: ${proposalId}`);
+    if (!proposal) throw new SenarsError(`Proposal not found: ${proposalId}`, 'VALIDATION_ERROR');
 
     const result = await this.config.externalRunner.validate(proposal);
 
@@ -246,7 +248,7 @@ export class AdmissionMachinery {
   /** Request human approval. */
   async requestHumanApproval(proposalId: string): Promise<{ approved: boolean; feedback?: string }> {
     const proposal = this.proposals.get(proposalId);
-    if (!proposal) throw new Error(`Proposal not found: ${proposalId}`);
+    if (!proposal) throw new SenarsError(`Proposal not found: ${proposalId}`, 'VALIDATION_ERROR');
 
     const result = await this.config.humanApproval.request(proposal);
 
@@ -264,7 +266,7 @@ export class AdmissionMachinery {
   /** Merge approved proposal. */
   async mergeProposal(proposalId: string): Promise<{ merged: boolean; reason: string }> {
     const proposal = this.proposals.get(proposalId);
-    if (!proposal) throw new Error(`Proposal not found: ${proposalId}`);
+    if (!proposal) throw new SenarsError(`Proposal not found: ${proposalId}`, 'VALIDATION_ERROR');
 
     if (proposal.status !== 'approved') {
       return { merged: false, reason: `Proposal not approved: ${proposal.status}` };
@@ -283,7 +285,7 @@ export class AdmissionMachinery {
   /** Rollback a merged proposal. */
   async rollbackProposal(proposalId: string, reason: string): Promise<{ rolledBack: boolean; reason: string }> {
     const proposal = this.proposals.get(proposalId);
-    if (!proposal) throw new Error(`Proposal not found: ${proposalId}`);
+    if (!proposal) throw new SenarsError(`Proposal not found: ${proposalId}`, 'VALIDATION_ERROR');
 
     if (proposal.status !== 'merged') {
       return { rolledBack: false, reason: `Proposal not merged: ${proposal.status}` };

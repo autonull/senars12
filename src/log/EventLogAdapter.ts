@@ -21,6 +21,8 @@ import type {
 import { createLogEntry, hashEntry } from './events';
 import { CognitiveEventSchema } from '../generated/schemas';
 import { PushQueue } from '@senars/util/events';
+import { SenarsError } from '../errors/senars-error';
+
 
 interface Subscription {
   filter?: (event: CognitiveEvent) => boolean;
@@ -56,7 +58,7 @@ export class LogStoreEventLog implements EventLog {
   }
 
   async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
-    if (this.closed) throw new Error('Event log is closed');
+    if (this.closed) throw new SenarsError('Event log is closed', 'VALIDATION_ERROR');
 
     const fullEvent = {
       ...event,

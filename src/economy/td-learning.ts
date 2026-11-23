@@ -9,6 +9,8 @@
 import type { EconomyTask, Successor, TaskBagKind } from './types';
 import type { Term } from '../kernel/terms/term';
 import type { Truth } from '../kernel/truth';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Transition recorded in the log. */
 export interface LoggedTransition {
@@ -339,7 +341,7 @@ export function mergeSuccessorFeatures(
   weights?: number[]
 ): SuccessorFeatures {
   if (features.length === 0) {
-    throw new Error('No features to merge');
+    throw new SenarsError('No features to merge', 'OPERATION_ERROR');
   }
 
   const featureDim = features[0]!.features.length;

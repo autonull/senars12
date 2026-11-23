@@ -13,6 +13,8 @@ import type { TelemetryCollector } from './telemetry';
 import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env';
 import { createCalibrationManager } from './calibration';
 import { createTelemetryCollector } from './telemetry';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Parity status for a judgment path. */
 export interface ParityStatus {
@@ -115,7 +117,7 @@ export class JudgmentConsolidation {
     predictor: (candidate: JudgmentCandidate, context: JudgmentContext) => number
   ): Promise<ParityStatus> {
     if (testExamples.length === 0) {
-      throw new Error('No test examples provided for parity evaluation');
+      throw new SenarsError('No test examples provided for parity evaluation', 'OPERATION_ERROR');
     }
 
     let brierSum = 0;

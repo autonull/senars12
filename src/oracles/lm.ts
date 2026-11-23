@@ -13,6 +13,8 @@ import type { ZodSchema } from 'zod';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle';
 import type { BudgetSlice, BudgetResource } from '../budget/budget';
 import { OraclePinStore } from './pins';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for LM generateText. */
 export interface LMGenerateTextInput extends OracleInput {
@@ -201,7 +203,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
         const task = opts?.task ?? this.defaultTask;
         const model = this.lmService.getModel(task, opts?.model);
         if (!model) {
-          throw new Error(`No model available for task: ${task}`);
+          throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
         }
 
         const { text, usage } = await generateText({
@@ -224,7 +226,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
         const task = opts?.task ?? 'structured';
         const model = this.lmService.getModel(task, opts?.model);
         if (!model) {
-          throw new Error(`No model available for task: ${task}`);
+          throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
         }
 
         const { object, usage } = await generateObject({
@@ -247,7 +249,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
         const task = opts?.task ?? this.defaultTask;
         const model = this.lmService.getModel(task);
         if (!model) {
-          throw new Error(`No model available for task: ${task}`);
+          throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
         }
 
         const result = streamText({ model, prompt, abortSignal: opts?.signal });
@@ -255,7 +257,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
       }
 
       default:
-        throw new Error(`Unknown LM operation: ${this.operation}`);
+        throw new SenarsError(`Unknown LM operation: ${this.operation}`, 'VALIDATION_ERROR');
     }
   }
 

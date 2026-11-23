@@ -6,6 +6,8 @@ import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
 import { OraclePinStore } from '../pins';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for Clingo ASP solving. */
 export interface ClingoInput extends OracleInput {
@@ -186,7 +188,7 @@ export class ClingoOracle implements Oracle<ClingoInput, ClingoResult> {
       child.stderr.on('data', (data) => { stderr += data.toString(); });
 
       child.on('error', (err) => {
-        reject(new Error(`Clingo spawn error: ${err.message}`));
+        reject(new SenarsError(`Clingo spawn error: ${err.message}`, 'OPERATION_ERROR'));
       });
 
       child.on('close', (code) => {

@@ -7,6 +7,7 @@ import { errMsg } from '@senars/util/error';
 import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types';
 import { BaseConnection } from './base';
+import { SenarsError } from '../../errors/senars-error';
 
 export interface MCPToolResult {
   content: Array<{ type: string; text: string }>;
@@ -52,15 +53,15 @@ export class MCPConnection extends BaseConnection {
 
       if (this.transport === 'stdio') {
         const { command, args = [] } = this.options;
-        if (!command) throw new Error('MCP stdio transport requires command in config');
+        if (!command) throw new SenarsError('MCP stdio transport requires command in config', 'CONFIGURATION_ERROR');
         await this.client.connect(new StdioClientTransport({ command, args }));
       } else if (this.transport === 'in-memory') {
         const { inMemoryPair: pair } = this.options;
-        if (!pair) throw new Error('MCP in-memory transport requires inMemoryPair in config');
+        if (!pair) throw new SenarsError('MCP in-memory transport requires inMemoryPair in config', 'CONFIGURATION_ERROR');
         await this.client.connect(pair[0] as never);
       } else {
         const { url } = this.options;
-        if (!url) throw new Error('MCP sse/http transport requires url in config');
+        if (!url) throw new SenarsError('MCP sse/http transport requires url in config', 'CONFIGURATION_ERROR');
         await this.client.connect(
           this.transport === 'http'
             ? new StreamableHTTPClientTransport(new URL(url))

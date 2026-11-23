@@ -6,6 +6,8 @@ import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
 import { OraclePinStore } from '../pins';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for Z3 SMT solving. */
 export interface Z3Input extends OracleInput {
@@ -165,7 +167,7 @@ export class Z3Oracle implements Oracle<Z3Input, Z3Result> {
       child.stderr.on('data', (data) => { stderr += data.toString(); });
 
       child.on('error', (err) => {
-        reject(new Error(`Z3 spawn error: ${err.message}`));
+        reject(new SenarsError(`Z3 spawn error: ${err.message}`, 'OPERATION_ERROR'));
       });
 
       child.on('close', (code) => {

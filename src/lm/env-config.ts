@@ -3,6 +3,8 @@ import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/util/confi
 import type { CircuitBreakerSettings, CircuitState } from '@senars/util/circuit-breaker';
 import { endpointPath } from './providers/probe';
 import { type GpuSetting, gpuSettingFrom } from './runtime/llama-runtime';
+import { SenarsError } from '../errors/senars-error';
+
 
 export type { CircuitState };
 
@@ -171,10 +173,8 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
   const aliasedOllama = rawProvider === 'ollama' || profile === 'ollama';
   const normalized = aliasedOllama && rawProvider === 'ollama' ? 'openai-compatible' : rawProvider;
   if (!isResolvedProvider(normalized)) {
-    throw new Error(
-      `Invalid LM provider "${rawProvider}". Must be one of: ${PROVIDERS.join(', ')}.` +
-        (rawProvider === 'ollama' ? " ('ollama' is now LM_PROVIDER=openai-compatible)" : '')
-    );
+    throw new SenarsError(`Invalid LM provider "${rawProvider}". Must be one of: ${PROVIDERS.join(', ')}.` +
+        (rawProvider === 'ollama' ? " ('ollama' is now LM_PROVIDER=openai-compatible)" : ''), 'VALIDATION_ERROR');
   }
   const provider = normalized as LMProviderName;
   const cloudCredentialEnv = credentialEnvFor(provider);

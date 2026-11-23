@@ -9,6 +9,8 @@ import { promises as fs } from 'fs';
 import type { LogEntry, CognitiveEvent } from './events';
 import type { LogStore } from './store';
 import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Compaction policy for different event types. */
 export interface CompactionPolicy {
@@ -222,7 +224,7 @@ const segmentSize = 64 * 1024 * 1024;
   if (verify) {
     const verified = await verifyCompaction(store, targetDir, toRemove);
     if (!verified) {
-      throw new Error('Compaction verification failed');
+      throw new SenarsError('Compaction verification failed', 'VALIDATION_ERROR');
     }
   }
 

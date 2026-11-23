@@ -4,6 +4,7 @@ import { containsPath, ensureParentDir } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { SenarsError } from '../../errors/senars-error';
 
 // --- fs_read / fs_write ---
 
@@ -15,7 +16,7 @@ export interface FileSystemDeps {
 function enforceWorkspaceScope(requestedPath: string, workspaceRoot: string): string {
   const resolved = normalize(resolve(workspaceRoot, requestedPath));
   if (!containsPath(workspaceRoot, resolved)) {
-    throw new Error(`Path must be within workspace: ${workspaceRoot}`);
+    throw new SenarsError(`Path must be within workspace: ${workspaceRoot}`, 'VALIDATION_ERROR', { requestedPath, workspaceRoot });
   }
   return resolved;
 }

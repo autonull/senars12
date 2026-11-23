@@ -6,6 +6,8 @@ import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
 import { OraclePinStore } from '../pins';
 import type { BudgetSlice, BudgetResource } from '../../budget/budget';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for Clingo ASP solving. */
 export interface ClingoWasmInput extends OracleInput {
@@ -204,7 +206,7 @@ export class ClingoWasmOracle implements Oracle<ClingoWasmInput, ClingoWasmResul
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(`Clingo WASM query timeout after ${timeoutMs}ms`));
+        reject(new SenarsError(`Clingo WASM query timeout after ${timeoutMs}ms`, 'TIMEOUT'));
       }, timeoutMs);
 
       clingo.run(program, models, extraArgs)

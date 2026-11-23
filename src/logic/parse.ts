@@ -10,6 +10,8 @@
 import { termInterner } from '../kernel/terms/intern';
 import type { Atom, Clause, Literal } from '../logics/axiomatic/ast';
 import { clause, literal } from '../logics/axiomatic/ast';
+import { SenarsError } from '../errors/senars-error';
+
 
 const VARIABLE = /^[A-Z_][A-Za-z0-9_]*$/;
 
@@ -37,7 +39,7 @@ export const parseAtom = (text: string): Atom => {
   const negated = trimmed.startsWith('~') || trimmed.startsWith('-');
   const body = negated ? trimmed.slice(1).trim() : trimmed;
   const match = /^([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?$/.exec(body);
-  if (!match) throw new Error(`Invalid atom: ${text}`);
+  if (!match) throw new SenarsError(`Invalid atom: ${text}`, 'PARSE_ERROR');
   const predicate = match[1]!;
   const rawArgs = match[2]?.trim();
   const args = rawArgs
@@ -52,7 +54,7 @@ export const parseAtom = (text: string): Atom => {
 export const parseClause = (text: string): Clause => {
   const trimmed = text.trim().replace(/\.$/, '');
   const [head, body] = trimmed.split(/:-/);
-  if (!head) throw new Error(`Invalid clause: ${text}`);
+  if (!head) throw new SenarsError(`Invalid clause: ${text}`, 'PARSE_ERROR');
   const headLiteral: Literal = literal(parseAtom(head), true);
   if (body === undefined) return clause(headLiteral);
   const bodyLiterals = splitTopLevel(body, ',').map((part) => {

@@ -1,6 +1,8 @@
 import type { Verdict } from '@senars/schemas/gate-io';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate';
 import type { JudgmentProposition, ResourceCost } from './types';
+import { SenarsError } from '../../errors/senars-error';
+
 export type { ResourceCost };
 
 /** The one `Verdict`, carrying the budget gate's own refusal field name. */
@@ -17,7 +19,7 @@ export function resourceCostToLmCalls(cost: ResourceCost): number {
 /** Bench 12: every proposition must report a ResourceCost before consuming budget. */
 export function assertCostReported(p: JudgmentProposition): void {
   if (!p.cost || p.cost.tokensIn < 0 || p.cost.computeMs < 0 || p.cost.memoryMb < 0) {
-    throw new Error(`Proposition ${p.queryId} is missing a valid ResourceCost`);
+    throw new SenarsError(`Proposition ${p.queryId} is missing a valid ResourceCost`, 'VALIDATION_ERROR');
   }
 }
 

@@ -1,6 +1,7 @@
 import { createLogger } from '@senars/util/logger';
 import { assertDefined } from '@senars/util/assert';
 import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types';
+import { SenarsError } from '../errors/senars-error';
 
 export class ConnectionManager {
   private connections: Map<string, Connection> = new Map();
@@ -15,11 +16,11 @@ export class ConnectionManager {
   async addConnection(config: ConnectionConfig, deps: ConnectionDeps): Promise<Connection> {
     const factory = this.factories.get(config.type);
     if (!factory) {
-      throw new Error(`No factory registered for connection type: ${config.type}`);
+      throw new SenarsError(`No factory registered for connection type: ${config.type}`, 'CONFIGURATION_ERROR', { type: config.type });
     }
 
     if (this.connections.has(config.id)) {
-      throw new Error(`Connection with id ${config.id} already exists`);
+      throw new SenarsError(`Connection with id ${config.id} already exists`, 'VALIDATION_ERROR', { id: config.id });
     }
 
     const connection = factory.create(config, deps);

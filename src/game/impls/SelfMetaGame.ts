@@ -10,6 +10,7 @@ import {
   type ParameterSpec,
   type ParameterTable,
 } from '../../config/parameter-table';
+import { SenarsError } from '../../errors/senars-error';
 import type { FocusStepReport } from '../../focus/Focus';
 import type { FocusBag } from '../../focus/FocusBag';
 import type { GameFocus } from '../../focus/GameFocus';
@@ -234,8 +235,10 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       this.parameterTable.set(SelfMetaGameImpl.knobScope, knob, value);
     } catch (e) {
       if (e instanceof ParameterScopeError)
-        throw new Error(
-          e.message.startsWith('unknown parameter') ? `Unknown knob: ${knob}` : e.message
+        throw new SenarsError(
+          e.message.startsWith('unknown parameter') ? `Unknown knob: ${knob}` : e.message,
+          'CONFIGURATION_ERROR',
+          { knob }
         );
       throw e;
     }
@@ -247,8 +250,10 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       this.parameterTable.setMany(SelfMetaGameImpl.knobScope, Object.entries(knobs));
     } catch (e) {
       if (e instanceof ParameterScopeError)
-        throw new Error(
-          e.message.startsWith('unknown parameter') ? `Unknown knob: ${e.parameter}` : e.message
+        throw new SenarsError(
+          e.message.startsWith('unknown parameter') ? `Unknown knob: ${e.parameter}` : e.message,
+          'CONFIGURATION_ERROR',
+          { parameter: e.parameter }
         );
       throw e;
     }

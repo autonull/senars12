@@ -8,6 +8,7 @@
 import { Term, VariableTerm, TermOp, termInterner } from '../kernel/terms/intern';
 import { Truth, type TruthValue } from '../kernel/truth';
 import { Formula, Atom, Connective, isAtom, isCompound, implies, iff, and } from './axiomatic/ast';
+import { SenarsError } from '../errors/senars-error';
 
 /** Projection direction. */
 export type ProjectionDirection = 'NAL_TO_AXIOMATIC' | 'AXIOMATIC_TO_NAL' | 'NAL_TO_FUZZY' | 'FUZZY_TO_NAL';
@@ -158,7 +159,7 @@ export class ProjectionEngine {
       },
       project: (source) => {
         const formula = source.context?.formula as Formula;
-        if (!isCompound(formula)) throw new Error('Expected compound formula');
+        if (!isCompound(formula)) throw new SenarsError('Expected compound formula', 'VALIDATION_ERROR');
         const left = formula.left as Atom;
         const right = formula.right as Atom;
 
@@ -187,7 +188,7 @@ export class ProjectionEngine {
       },
       project: (source) => {
         const formula = source.context?.formula as Formula;
-        if (!isCompound(formula)) throw new Error('Expected compound formula');
+        if (!isCompound(formula)) throw new SenarsError('Expected compound formula', 'VALIDATION_ERROR');
         const left = formula.left as Atom;
         const right = formula.right as Atom;
 

@@ -19,6 +19,8 @@ import {
   readJsonlAsync,
   writeJsonl,
 } from './fs';
+import { SenarsError } from '../errors/senars-error';
+
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -472,7 +474,7 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
       // would turn a typo into silent data loss, so the write refuses instead.
       const { basePath } = this.#config;
       if (existsSync(basePath) && !statSync(basePath).isDirectory()) {
-        throw new Error(`Ledger basePath is not a directory: ${basePath}`);
+        throw new SenarsError(`Ledger basePath is not a directory: ${basePath}`, 'OPERATION_ERROR');
       }
       ensureDirSync(basePath);
     }
@@ -490,7 +492,7 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
       appendJsonlRow(targetFile, entry);
       this.#currentEntries++;
     } catch (error) {
-      throw new Error(`Ledger write failed: ${errMsg(error)}`);
+      throw new SenarsError(`Ledger write failed: ${errMsg(error)}`, 'VALIDATION_ERROR');
     }
   }
 

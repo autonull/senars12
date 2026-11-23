@@ -8,6 +8,8 @@
 import type { TruthValue, Stamp } from '../types';
 import type { UUID, TimestampMs } from '../types';
 import { TermOp } from './term-ops';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export { TermOp } from './term-ops';
 
@@ -305,7 +307,7 @@ class NarseseParser {
     if (this.match('?')) return this.factory.question(term);
     if (this.match('!')) return this.factory.goal(term);
     if (this.pos < this.input.length) {
-      throw new Error(`Unexpected character at position ${this.pos}: ${this.input[this.pos]}`);
+      throw new SenarsError(`Unexpected character at position ${this.pos}: ${this.input[this.pos]}`, 'PARSE_ERROR');
     }
     return term;
   }
@@ -346,7 +348,7 @@ class NarseseParser {
 
     // Constant/word
     const word = this.parseWord();
-    if (!word) throw new Error(`Expected term at position ${this.pos}`);
+    if (!word) throw new SenarsError(`Expected term at position ${this.pos}`, 'PARSE_ERROR');
     return this.factory.constant(word);
   }
 
@@ -417,7 +419,7 @@ class NarseseParser {
       case '||': return TermOp.CONCURRENT;
       case ';': return TermOp.SEQUENTIAL;
       case '|~': return TermOp.PARALLEL;
-      default: throw new Error(`Unknown n-ary operator: ${op}`);
+      default: throw new SenarsError(`Unknown n-ary operator: ${op}`, 'PARSE_ERROR');
     }
   }
 
@@ -457,7 +459,7 @@ class NarseseParser {
 
   private expect(str: string): void {
     if (!this.match(str)) {
-      throw new Error(`Expected '${str}' at position ${this.pos}`);
+      throw new SenarsError(`Expected '${str}' at position ${this.pos}`, 'PARSE_ERROR');
     }
   }
 

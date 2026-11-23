@@ -10,6 +10,9 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import type { UUID, TimestampMs } from '../generated/schemas';
 import type { OracleOperation } from './oracle';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'oracles:pins' });
 
 /** A pinned value for deterministic replay. */
 export interface OraclePin<T = unknown> {
@@ -397,7 +400,7 @@ export function createReplayOraclePinned<T extends (...args: unknown[]) => Promi
     if (isReplay) {
       const pinned = await store.getPin(operation, args, provider, version, context);
       if (pinned !== null) return pinned;
-      console.warn(`[OraclePin] No pin found for ${operation} during replay, computing`);
+      logger.warn(`[OraclePin] No pin found for ${operation} during replay, computing`);
     }
     return store.getOrPin(operation, args, provider, version, context, () => fn(...args));
   }) as T;

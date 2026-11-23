@@ -4,6 +4,7 @@ import { atomOf, compoundOf, isBoolAtom } from './impls/intern.ts';
 import { COMMUTATIVE_OPS, NARY_OPS } from './operators.ts';
 import type { OperatorKey, Term } from './types.ts';
 import { isAtomic } from './types.ts';
+import { SenarsError } from '../errors/senars-error';
 
 const getArgs = (term: Term): readonly Term[] => {
   if (isAtomic(term)) return [];
@@ -222,7 +223,7 @@ const canonicalizeRecursive = (term: Term): Term => {
     current = next;
   }
   if (!settled) {
-    throw new Error(`canonicalTerm did not reach a fixed point in ${MAX_PASSES} passes: ${term}`);
+    throw new SenarsError(`canonicalTerm did not reach a fixed point in ${MAX_PASSES} passes: ${term}`, 'OPERATION_ERROR', { maxPasses: MAX_PASSES, term: term.toString() });
   }
 
   // The canonical form answers for itself, so a term that has been through here

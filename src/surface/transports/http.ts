@@ -4,6 +4,7 @@
 
 import { TransportBase } from './TransportBase';
 import type { HTTPTransportConfig, TransportMessage } from './types';
+import { SenarsError } from '../../errors/senars-error';
 
 /** HTTP transport implementation. */
 export class HTTPTransport extends TransportBase {
@@ -41,7 +42,7 @@ export class HTTPTransport extends TransportBase {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new SenarsError(`HTTP ${response.status}: ${response.statusText}`, 'TRANSPORT_ERROR', { status: response.status });
       }
 
       return await response.json() as TransportMessage;

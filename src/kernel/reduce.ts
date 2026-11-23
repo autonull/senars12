@@ -7,6 +7,7 @@
  */
 
 import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm } from './terms/intern';
+import { SenarsError } from '../errors/senars-error';
 
 /** Type guard for CompoundTerm. */
 function isCompound(term: Term): term is CompoundTerm {
@@ -48,7 +49,7 @@ function getSecondArg(term: Term): Term {
 /** Get first two args of a binary compound term. */
 function getBinaryArgs(term: Term): { first: Term; second: Term } {
   const args = getArgs(term);
-  if (!args || args.length < 2) throw new Error('Expected binary operation');
+  if (!args || args.length < 2) throw new SenarsError('Expected binary operation', 'VALIDATION_ERROR');
   return { first: args[0] as Term, second: args[1] as Term };
 }
 

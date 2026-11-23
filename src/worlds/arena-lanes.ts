@@ -17,6 +17,7 @@ import {
   createBaselineAlgorithm,
   runBaselineArm,
 } from '@senars/rl/baselines';
+import { SenarsError } from '../errors/senars-error';
 
 /** Lane identifier. */
 export type ArenaLaneId = 'A' | 'B' | 'C' | 'D';
@@ -264,7 +265,7 @@ export class LaneArenaRunner {
     episodesPerSeed = 5
   ): Promise<CostQualityPoint> {
     const laneConfig = this.laneConfigs.find(c => c.id === lane && c.tier === tier);
-    if (!laneConfig) throw new Error(`Lane config not found: ${lane}-${tier}`);
+    if (!laneConfig) throw new SenarsError(`Lane config not found: ${lane}-${tier}`, 'CONFIGURATION_ERROR', { lane, tier });
 
     const allEpisodes: EpisodeResult[] = [];
     let totalLmCalls = 0;

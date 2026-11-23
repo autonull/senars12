@@ -5,6 +5,8 @@
  * heartbeat is then the single driver, and an external loop would race it.
  */
 
+import { SenarsError } from '../errors/senars-error';
+
 /** The autonomy facts the refusal reads; only these two fields matter here. */
 export interface AutonomyClock {
   enabled: boolean;
@@ -18,7 +20,7 @@ export const driveCycles = async (
   signal?: AbortSignal
 ): Promise<number> => {
   if (autonomy.enabled && autonomy.mode !== 'manual') {
-    throw new Error(`kernel is in autonomous '${autonomy.mode}' mode; the heartbeat drives cycles`);
+    throw new SenarsError(`kernel is in autonomous '${autonomy.mode}' mode; the heartbeat drives cycles`, 'OPERATION_ERROR', { mode: autonomy.mode });
   }
   let ran = 0;
   for (let i = 0; i < cycles; i++) {

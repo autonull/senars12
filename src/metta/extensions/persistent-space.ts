@@ -3,6 +3,10 @@ import type { MeTTaAtom } from '../types/ast';
 import { errMsg } from '@senars/util/error';
 import { periodic } from '@senars/util/async';
 import { writeJsonFile } from '@senars/util/fs';
+import { SenarsError } from '../../errors/senars-error';
+import { createLogger } from '../../util/logger';
+
+const logger = createLogger({ scope: 'metta:extensions:persistent-space' });
 
 export interface PersistedSpaceData {
   id: string;
@@ -44,8 +48,10 @@ export class PersistentSpace extends ArraySpace {
       this._atoms.push(...parsed.atoms);
     } catch (error) {
       await fs.rename(file, `${file}.corrupt`);
-      throw new Error(
-        `PersistentSpace '${this.id}': corrupt persisted state quarantined as ${file}.corrupt — ${errMsg(error)}`
+      throw new SenarsError(
+        `PersistentSpace '${this.id}': corrupt persisted state quarantined as ${file}.corrupt — ${errMsg(error)}`,
+        'SERIALIZATION_FAILED',
+        { spaceId: this.id, file }
       );
     }
   }
@@ -56,7 +62,7 @@ export class PersistentSpace extends ArraySpace {
       // the process nor hold the event loop open.
       this.stopSaveTimer = periodic(() => {
         this.persist().catch((error) => {
-          console.error(`[metta] PersistentSpace '${this.id}' auto-save failed:`, error);
+          logger.error(`[metta] PersistentSpace '${this.id}' auto-save failed:`, error instanceof Error ? error : undefined);
           PersistentSpace.failedSaves++;
         });
       }, this.opts.saveInterval);
@@ -68,7 +74,7 @@ export class PersistentSpace extends ArraySpace {
     this.stopSaveTimer = undefined;
     // D9: final flush — dispose must not lose up to saveInterval of writes.
     void this.persist().catch((error) => {
-      console.error(`[metta] PersistentSpace '${this.id}' final save failed:`, error);
+      logger.error(`[metta] PersistentSpace '${this.id}' final save failed:`, error instanceof Error ? error : undefined);
       PersistentSpace.failedSaves++;
     });
   }

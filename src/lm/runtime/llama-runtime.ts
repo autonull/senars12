@@ -7,6 +7,8 @@ import {
   type LlamaModel,
   resolveChatWrapper,
 } from 'node-llama-cpp';
+import { SenarsError } from '../../errors/senars-error';
+
 
 let llamaP: Promise<Llama> | undefined;
 let modelP: Promise<LlamaModel> | undefined;
@@ -89,17 +91,17 @@ export function getChatWrapper(): ChatWrapper | undefined {
 }
 
 export function getModel(): Promise<LlamaModel> {
-  if (!modelP) throw new Error('Embedded llama.cpp model not loaded. Call loadModel first.');
+  if (!modelP) throw new SenarsError('Embedded llama.cpp model not loaded. Call loadModel first.', 'OPERATION_ERROR');
   return modelP;
 }
 
 export function getContext(): Promise<LlamaContext> {
-  if (!contextP) throw new Error('Embedded llama.cpp context not loaded. Call loadModel first.');
+  if (!contextP) throw new SenarsError('Embedded llama.cpp context not loaded. Call loadModel first.', 'OPERATION_ERROR');
   return contextP;
 }
 
 export function getLlamaInstance(): Promise<Llama> {
-  if (!llamaP) throw new Error('Embedded llama.cpp runtime not initialized. Call loadModel first.');
+  if (!llamaP) throw new SenarsError('Embedded llama.cpp runtime not initialized. Call loadModel first.', 'OPERATION_ERROR');
   return llamaP;
 }
 
@@ -119,7 +121,7 @@ export async function getEmbeddingContext(): Promise<LlamaEmbeddingContext> {
 export async function createSequence(): Promise<Awaited<ReturnType<LlamaContext['getSequence']>>> {
   const context = await getContext();
   if (context.sequencesLeft === 0) {
-    throw new Error('Embedded llama.cpp context has no free sequences available.');
+    throw new SenarsError('Embedded llama.cpp context has no free sequences available.', 'OPERATION_ERROR');
   }
   return context.getSequence();
 }

@@ -24,6 +24,7 @@ import {
   type QLearningArmConfig,
   type SARSAArmConfig,
 } from './base';
+import { SenarsError } from '../../errors/senars-error';
 
 /** ========== BANDIT BASELINES ========== */
 
@@ -223,7 +224,7 @@ export function createBaselineAlgorithm(config: BaselineArmConfig):
     case 'sarsa':
       return new SARSA(config.config as SARSAConfig);
     default:
-      throw new Error(`Unknown algorithm: ${(config as any).algorithm}`);
+      throw new SenarsError(`Unknown algorithm: ${(config as any).algorithm}`, 'CONFIGURATION_ERROR', { algorithm: (config as any).algorithm });
   }
 }
 

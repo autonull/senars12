@@ -119,6 +119,7 @@ export const CatalogFormatters = {
  * Multi-catalog registry for deck — aggregates all catalogs.
  */
 import { KeyedRegistry } from '../util/keyed-collection';
+import { SenarsError } from '../errors/senars-error';
 
 /** Catalog entry for the registry. */
 interface DeckCatalogEntry {
@@ -136,7 +137,7 @@ export class DeckCatalogRegistry {
   constructor() {
     this.custom = new KeyedRegistry<DeckCatalogEntry>({
       keyOf: (e) => e.name,
-      onDuplicate: (name) => { throw new Error(`Custom catalog '${name}' already registered`); },
+      onDuplicate: (name) => { throw new SenarsError(`Custom catalog '${name}' already registered`, 'VALIDATION_ERROR', { name }); },
     });
   }
 

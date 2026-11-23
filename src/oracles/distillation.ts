@@ -14,6 +14,8 @@ import type { CalibrationLock } from '../lm/system-one/calibration-fit';
 import { fitCalibrationLock, readCalibrationLockOrNull, applyCalibrationLock, assertLockMatches, CALIBRATION_LOCK_PATH } from '../lm/system-one/calibration-fit';
 import { runBakeOff, validateHeadCandidate, buildHeadSwapProposal, buildSabotageFlag } from '../lm/system-one/distill';
 import type { SelfImprovementProposal } from '@senars/schemas';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Input for recording distillation labels. */
 export interface DistillationRecordInput extends OracleInput {
@@ -189,7 +191,7 @@ export class DistillationOracle implements Oracle<
       case 'distillation.fitCalibration': {
         const args = input.args as [DistillationFitInput['args'][0]?];
         const [options] = args;
-        if (!this.calibrators) throw new Error('Calibrators not configured');
+        if (!this.calibrators) throw new SenarsError('Calibrators not configured', 'CONFIGURATION_ERROR');
         // Cast options to FitCalibrationOptions with proper types
         const fitOptions = options as import('../lm/system-one/calibration-fit').FitCalibrationOptions | undefined;
         const result = fitCalibrationLock(this.dataset, fitOptions);
@@ -223,13 +225,13 @@ export class DistillationOracle implements Oracle<
       case 'distillation.applyLock': {
         const args = input.args as [CalibrationLock];
         const [lock] = args;
-        if (!this.calibrators) throw new Error('Calibrators not configured');
+        if (!this.calibrators) throw new SenarsError('Calibrators not configured', 'CONFIGURATION_ERROR');
         applyCalibrationLock(this.calibrators, lock);
         return lock;
       }
 
       default:
-        throw new Error(`Unknown distillation operation: ${(input as any).operation}`);
+        throw new SenarsError(`Unknown distillation operation: ${(input as any).operation}`, 'VALIDATION_ERROR');
     }
   }
 

@@ -12,6 +12,11 @@ import { GovernanceEngine } from './governance';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 import type { Repertoire } from './repertoire';
+import { SenarsError } from '../errors/senars-error';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'admit:autonomy-dial' });
+
 
 /** Autonomy level. */
 export type AutonomyLevel = 'minimal' | 'supervised' | 'semi-autonomous' | 'autonomous' | 'full';
@@ -313,7 +318,7 @@ export class AutonomyDial {
       });
 
       // Emit event (would integrate with telemetry)
-      console.info(`[AutonomyDial] Level changed: ${oldLevel} -> ${qualifiedLevel}`);
+      logger.info(`[AutonomyDial] Level changed: ${oldLevel} -> ${qualifiedLevel}`);
     }
 
     return this.config.currentLevel;
@@ -374,7 +379,7 @@ export class AutonomyDial {
       timestamp: this.clock.now(),
       reason: `Decision ${decision.decidedBy}: ${decision.reason}`,
     });
-    console.info(`[AutonomyDial] Level changed by ${decision.decidedBy}: ${oldLevel} -> ${decision.grantedLevel}`);
+    logger.info(`[AutonomyDial] Level changed by ${decision.decidedBy}: ${oldLevel} -> ${decision.grantedLevel}`);
   }
 
   /** Check if agent has permission for action. */
@@ -412,7 +417,7 @@ export class AutonomyDial {
   /** Governance resolves a request. */
   async resolveRequest(requestId: string, decision: AutonomyDecision): Promise<void> {
     const request = this.requests.get(requestId);
-    if (!request) throw new Error(`Request not found: ${requestId}`);
+    if (!request) throw new SenarsError(`Request not found: ${requestId}`, 'VALIDATION_ERROR');
 
     request.status = decision.grantedLevel === request.requestedLevel ? 'approved' : 'denied';
     request.decision = decision;

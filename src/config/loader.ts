@@ -9,6 +9,9 @@ import {
 } from '@senars/util/config-migrate';
 import type { AppConfig } from './schema';
 import { appConfigSchema } from './schema';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'config:loader' });
 
 export type { AppConfig, BotConfig, BotProfile, LmConfig, NarCoreConfig } from './schema';
 
@@ -51,22 +54,18 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
     const absolutePath = resolve(process.cwd(), filePath);
     outcome = await migrateConfigFile(absolutePath, fs.readFile.bind(fs), fs.writeFile.bind(fs));
     if (outcome.applied.length > 0) {
-      console.warn(
-        `[config] migrated ${filePath}: ${outcome.applied.join(', ')} (now configVersion ${outcome.config.configVersion})`
-      );
+      logger.warn(`[config] migrated ${filePath}: ${outcome.applied.join(', ')} (now configVersion ${outcome.config.configVersion})`);
     }
     raw_config = outcome.config;
   } catch (e) {
     const err = e as NodeJS.ErrnoException;
     if (err.code !== 'ENOENT') {
-      console.warn(
-        `Failed to load config from ${filePath}: ${err.message}\nUsing default configuration`
-      );
+      logger.warn(`Failed to load config from ${filePath}: ${err.message}\nUsing default configuration`);
     }
   }
   const warning = validateConfigVersion(raw_config.configVersion);
   if (warning) {
-    console.warn(`[config] ${warning.message}`);
+    logger.warn(`[config] ${warning.message}`);
   }
   // Env overrides arrive as nested objects (SENARS_ENV_MAP targets dotted paths),
   // so this must merge rather than replace: a flat spread would drop every

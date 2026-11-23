@@ -13,6 +13,8 @@ import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import type { LogEntry, CognitiveEvent, UUID, TimestampMs } from './events';
 import { hashEntry, createLogEntry } from './events';
+import { SenarsError } from '../errors/senars-error';
+
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_LOG_DIR = join(__dirname, '..', '..', 'data', 'log');
@@ -158,7 +160,7 @@ export class LogStore {
 
   /** Append an event to the log. Returns the assigned sequence number. */
   async append(event: CognitiveEvent, options: { parents?: UUID[]; ts?: TimestampMs } = {}): Promise<number> {
-    if (this.closed) throw new Error('Log store is closed');
+    if (this.closed) throw new SenarsError('Log store is closed', 'VALIDATION_ERROR');
 
     const entryBase = createLogEntry(event, options);
     const seq = ++this.currentSeq;
@@ -170,7 +172,7 @@ export class LogStore {
     const buffer = Buffer.from(line, 'utf-8');
 
     const segment = this.segments[this.currentSegment];
-    if (!segment) throw new Error('No current segment');
+    if (!segment) throw new SenarsError('No current segment', 'VALIDATION_ERROR');
     await segment.fd.write(buffer, 0, buffer.length);
     segment.size += buffer.length;
     segment.entryCount++;
@@ -199,7 +201,7 @@ export class LogStore {
   /** Rotate to a new segment. */
   private async rotateSegment(): Promise<void> {
     const oldSegment = this.segments[this.currentSegment];
-    if (!oldSegment) throw new Error('No current segment to rotate');
+    if (!oldSegment) throw new SenarsError('No current segment to rotate', 'VALIDATION_ERROR');
     await oldSegment.fd.datasync();
     await oldSegment.fd.close();
     // Reopen the rotated segment in read mode so it remains readable

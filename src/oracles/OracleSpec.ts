@@ -7,6 +7,8 @@
 
 import { z } from 'zod';
 import { nonEmpty, positiveInt, nonNegativeInt, intBetween, unitInterval, temperature } from '../config/boundary';
+import { SenarsError } from '../errors/senars-error';
+
 
 export type OracleProvider =
   | 'openai'
@@ -567,7 +569,7 @@ export function createOracleConfig(
 ): OracleSpec & { config: Record<string, unknown> } {
   const spec = ORACLE_SPECS[specKey];
   if (!spec) {
-    throw new Error(`Unknown oracle spec: ${specKey}`);
+    throw new SenarsError(`Unknown oracle spec: ${specKey}`, 'VALIDATION_ERROR');
   }
   return {
     ...spec,
@@ -589,7 +591,7 @@ export function getSpecsByProvider(provider: OracleProvider): OracleSpec[] {
 export function validateOracleConfig(specKey: string, config: unknown): void {
   const spec = ORACLE_SPECS[specKey];
   if (!spec) {
-    throw new Error(`Unknown oracle spec: ${specKey}`);
+    throw new SenarsError(`Unknown oracle spec: ${specKey}`, 'VALIDATION_ERROR');
   }
   spec.inputSchema.parse(config);
 }

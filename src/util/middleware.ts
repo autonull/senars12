@@ -5,6 +5,8 @@
  * same double-`next()` guard instead of one of them having a permissive copy.
  */
 
+import { SenarsError } from '../errors/senars-error';
+
 export type Middleware<C> = (ctx: C, next: () => Promise<void>) => Promise<void>;
 
 /**
@@ -14,7 +16,7 @@ export type Middleware<C> = (ctx: C, next: () => Promise<void>) => Promise<void>
 export async function dispatch<C>(chain: readonly Middleware<C>[], ctx: C): Promise<void> {
   let index = -1;
   const next = async (i: number): Promise<void> => {
-    if (i <= index) throw new Error('next() called multiple times');
+    if (i <= index) throw new SenarsError('next() called multiple times', 'OPERATION_ERROR');
     index = i;
     await chain[i]?.(ctx, () => next(i + 1));
   };

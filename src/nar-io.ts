@@ -28,6 +28,7 @@ import {
 import type { Truth as TruthType } from './terms/impls/Truth';
 import type { TaskType } from './types';
 import { createTaskWeight } from './types';
+import { SenarsError } from './errors/senars-error';
 
 /** The admitted task the gate hands back — what every caller stores. */
 type TaskAdmittedPayload = TaskAdmittedEvent['payload'];
@@ -240,7 +241,7 @@ export class NARIO {
 
   async import(data: SerializedNARState): Promise<void> {
     if (!data.concepts || !Array.isArray(data.concepts)) {
-      throw new Error('Invalid import data');
+      throw new SenarsError('Invalid import data', 'VALIDATION_ERROR');
     }
 
     for (const concept of data.concepts) {

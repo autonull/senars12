@@ -9,6 +9,9 @@ import type { Truth } from '../kernel/truth';
 import type { Task } from '../kernel/types';
 import type { Clock } from '../kernel/env';
 import { IdRegistry } from '../util/registry';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'loop:contract' });
 
 /** Contract types. */
 export const CONTRACT_TYPES = [
@@ -723,7 +726,7 @@ export class ContractMonitor {
         try {
           await handler(violation, context);
         } catch (error) {
-          console.error('Contract violation handler failed:', error);
+          logger.error('Contract violation handler failed:', error instanceof Error ? error : undefined);
         }
       }
     }
@@ -742,7 +745,7 @@ export async function defaultViolationHandler(
   result: ContractCheckResult,
   context: ContractContext
 ): Promise<void> {
-  console.warn(`Contract violation: ${result.contractId} - ${result.message}`);
+  logger.warn(`Contract violation: ${result.contractId} - ${result.message}`);
 
   // Trigger repair loop for critical violations
   if (result.severity === 'critical') {

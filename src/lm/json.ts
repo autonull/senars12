@@ -7,6 +7,8 @@
 import { extractJsonObject, parseJsonObject } from '@senars/util/json';
 import type { ZodType } from 'zod';
 import { z } from 'zod';
+import { SenarsError } from '../errors/senars-error';
+
 
 export { extractJsonObject, parseJsonObject };
 
@@ -21,7 +23,7 @@ export function parseJsonWith<T>(text: string, schema: ZodType<T>): T | null {
 /** As {@link parseJsonWith} but throws, for callers that retry on failure. */
 export function parseJsonOrThrow<T>(text: string, schema: ZodType<T>): T {
   const slice = extractJsonObject(text);
-  if (slice === null) throw new Error('No JSON object in LM response');
+  if (slice === null) throw new SenarsError('No JSON object in LM response', 'OPERATION_ERROR');
   return schema.parse(JSON.parse(slice));
 }
 

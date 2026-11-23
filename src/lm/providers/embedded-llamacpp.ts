@@ -34,6 +34,11 @@ import {
 import { grammarScope } from './llamacpp';
 import { getLMSettings } from './settings';
 import type { LMTask } from '@senars/util';
+import { SenarsError } from '../../errors/senars-error';
+import { createLogger } from '../../util/logger';
+
+const logger = createLogger({ scope: 'lm:providers:embedded-llamacpp' });
+
 
 function extractSystemPrompt(prompt: LanguageModelV3CallOptions['prompt']): string | undefined {
   if (!prompt || prompt.length === 0) return undefined;
@@ -125,7 +130,7 @@ export async function ensureRuntimeLoaded(): Promise<void> {
   const settings = getLMSettings();
   const modelPath = settings.llamacppModelPath ?? envStr('LM_LLAMACPP_MODEL');
   if (!modelPath) {
-    throw new Error('LM_LLAMACPP_MODEL not set. Run `pnpm exec tsx scripts/fetch-model.ts` first.');
+    throw new SenarsError('LM_LLAMACPP_MODEL not set. Run `pnpm exec tsx scripts/fetch-model.ts` first.', 'OPERATION_ERROR');
   }
   const { loadModel } = await import('../runtime/llama-runtime');
   await loadModel({
@@ -230,14 +235,11 @@ export function createEmbeddedLlamaCppLanguageModel(task: LMTask): LanguageModel
         typeof i === 'string'
           ? `str(${i.length})`
           : `${i.type}:${'segmentType' in i ? i.segmentType : ''}(${('text' in i ? i.text : '').length})`;
-      console.error(
-        '[embedded-llamacpp] grammar:',
-        grammar ? 'active' : 'none',
-        '| stopReason:',
-        result.stopReason,
-        '| segments:',
-        result.response.map(seg).join(' | ')
-      );
+      logger.info('[embedded-llamacpp] grammar', {
+        grammar: grammar ? 'active' : 'none',
+        stopReason: result.stopReason,
+        segments: result.response.map(seg).join(' | '),
+      });
     }
     const text = (
       grammar ? result.responseText || rawChunks : visibleText(result.response) || rawChunks

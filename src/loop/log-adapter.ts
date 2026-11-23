@@ -10,6 +10,9 @@ import type { LogEntry } from '../log/events';
 import type { CognitiveEvent } from '../generated/schemas';
 import type { LoopEvent, LoopEventType } from './types';
 import type { Env } from '../kernel/env';
+import { createLogger } from '../util/logger';
+
+const logger = createLogger({ scope: 'loop:log-adapter' });
 
 /** Map loop event types to cognitive event types. */
 const LOOP_TO_COGNITIVE_EVENT: Record<LoopEventType, CognitiveEvent['type']> = {
@@ -193,7 +196,11 @@ export function wireLoopToLog(
   for (const type of eventTypes) {
     unsubscribers.push(
       loop.onEvent(type, (event) => {
-        adapter.handleEvent(event).catch(console.error);
+        adapter
+          .handleEvent(event)
+          .catch((error) =>
+            logger.error('loop log adapter failed', error instanceof Error ? error : undefined)
+          );
       })
     );
   }

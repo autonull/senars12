@@ -8,6 +8,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle';
 import { OraclePinStore } from '../pins';
+import { SenarsError } from '../../errors/senars-error';
+
 
 /** Input for MiniSat SAT solving. */
 export interface MiniSatInput extends OracleInput {
@@ -167,7 +169,7 @@ export class MiniSatOracle implements Oracle<MiniSatInput, MiniSatResult> {
         child.stderr.on('data', (data) => { stderr += data.toString(); });
 
         child.on('error', (err) => {
-          reject(new Error(`MiniSat spawn error: ${err.message}`));
+          reject(new SenarsError(`MiniSat spawn error: ${err.message}`, 'OPERATION_ERROR'));
         });
 
         child.on('close', async (code) => {

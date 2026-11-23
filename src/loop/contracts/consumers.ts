@@ -18,6 +18,8 @@ import type {
 } from './schemas';
 import type { Term } from '../../kernel/terms/term';
 import type { Truth } from '../../kernel/truth';
+import { SenarsError } from '../../errors/senars-error';
+
 
 // ============================================================================
 // Candidate consumers
@@ -383,7 +385,7 @@ export function getContractType(contract: AnyContract): ContractType {
   if ('success' in contract && 'surprise' in contract) return 'Outcome';
   if ('type' in contract && 'content' in contract && 'strength' in contract) return 'Lesson';
   if ('type' in contract && 'estimatedCost' in contract) return 'WorkItem';
-  throw new Error('Unknown contract type');
+  throw new SenarsError('Unknown contract type', 'VALIDATION_ERROR');
 }
 
 /** Serialize contract for log storage. */

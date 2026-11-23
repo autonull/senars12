@@ -8,6 +8,8 @@ import type { Task, TaskType } from '../kernel/types';
 import type { SelectionResult, SelectionCandidate } from './select';
 import type { Clock } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Action types. */
 export const ACTION_TYPES = [
@@ -212,7 +214,7 @@ export class ActionExecutor {
         this.activeActions.delete(action.id);
         return result;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
+        lastError = error instanceof Error ? error : new SenarsError(String(error), 'OPERATION_ERROR');
         attempt++;
 
         if (attempt <= (action.retry?.maxAttempts ?? defaultRetryPolicy.maxAttempts)) {

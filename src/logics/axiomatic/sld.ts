@@ -18,6 +18,7 @@ import {
   clause,
   literal,
 } from './ast';
+import { SenarsError } from '../../errors/senars-error';
 
 /** SLD engine configuration. */
 export interface SLDConfig {
@@ -371,7 +372,7 @@ export function parseRule(rule: string): Clause | null {
     const negated = trimmed.startsWith('~');
     const pred = negated ? trimmed.slice(1) : trimmed;
     const predMatch = /^(\w+)\(([^)]*)\)$/.exec(pred);
-    if (!predMatch) throw new Error(`Invalid literal: ${trimmed}`);
+    if (!predMatch) throw new SenarsError(`Invalid literal: ${trimmed}`, 'PARSE_ERROR', { literal: trimmed });
     const p = predMatch[1]!;
     const args = predMatch[2]!;
     return {

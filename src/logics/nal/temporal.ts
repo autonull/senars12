@@ -12,6 +12,7 @@ import { Stamp } from '../../kernel/stamp';
 import type { Premise } from '../../kernel/step';
 import type { Clock } from '../../kernel/env';
 import { createDefaultClock } from '../../kernel/env';
+import { SenarsError } from '../../errors/senars-error';
 
 /** Wrap a function to check premises length matches arity. */
 function withArity<const N extends 1 | 2, R>(
@@ -20,7 +21,7 @@ function withArity<const N extends 1 | 2, R>(
 ): (premises: Premise[]) => R {
   return (premises: Premise[]) => {
     if (premises.length < arity) {
-      throw new Error(`Expected at least ${arity} premises, got ${premises.length}`);
+      throw new SenarsError(`Expected at least ${arity} premises, got ${premises.length}`, 'VALIDATION_ERROR', { expected: arity, got: premises.length });
     }
     return fn(premises as N extends 1 ? [Premise] : [Premise, Premise]);
   };
@@ -94,7 +95,7 @@ function isParallel(term: Term): boolean {
 /** Get args of a compound term safely. */
 function getCompoundArgs(term: Term): [Term, ...Term[]] {
   const args = getArgs(term);
-  if (!args || args.length === 0) throw new Error('Expected compound term with at least 1 arg');
+  if (!args || args.length === 0) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR');
   return args as [Term, ...Term[]];
 }
 
@@ -285,15 +286,15 @@ export function createTemporalTerm(op: TemporalOp, ...args: Term[]): Term {
     case TemporalOp.CONCURRENT:
       return termInterner.concurrent(...args);
     case TemporalOp.PREDICTION:
-      if (args.length < 2) throw new Error('PREDICTION requires 2 args');
+      if (args.length < 2) throw new SenarsError('PREDICTION requires 2 args', 'VALIDATION_ERROR', { required: 2, got: args.length });
       return termInterner.prediction(args[0]!, args[1]!);
     case TemporalOp.PARALLEL:
       return termInterner.parallel(...args);
     case TemporalOp.RETROSPECTION:
-      if (args.length < 2) throw new Error('RETROSPECTION requires 2 args');
+      if (args.length < 2) throw new SenarsError('RETROSPECTION requires 2 args', 'VALIDATION_ERROR', { required: 2, got: args.length });
       return createRetrospection(args[0]!, args[1]!);
     default:
-      throw new Error(`Unknown temporal operator: ${op}`);
+      throw new SenarsError(`Unknown temporal operator: ${op}`, 'VALIDATION_ERROR', { operator: op });
   }
 }
 

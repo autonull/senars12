@@ -5,6 +5,8 @@ import { envBool } from '@senars/util/config';
 import { APPROVAL_TIMEOUT_MS } from './constants';
 import type { Verdict } from '../schemas/gate-io';
 import type { CapabilityRisk } from '@senars/util/capability-risk';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** A question put to whoever holds the gate, and the one way it is answered.
  *  There is no rejection channel: a request nobody answered and a request that was
@@ -124,7 +126,7 @@ export class ApprovalService {
       const result = await withTimeout(
         approvalRequest.result,
         params.timeoutMs ?? APPROVAL_TIMEOUT_MS,
-        () => new Error('Approval timeout')
+        () => new SenarsError('Approval timeout', 'TIMEOUT')
       );
       return { approved: result.approved, feedback: result.reason };
     } catch (err: unknown) {

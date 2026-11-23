@@ -10,6 +10,7 @@ import { randomUUID, createHash } from 'crypto';
 import { z } from 'zod';
 import { uuid, timestamp, nonNegativeInt, positiveInt } from '../config';
 import { FunctionRegistry } from '../util/registry';
+import { SenarsError } from '../errors/senars-error';
 
 /** Artifact kinds that can be governance-owned. */
 export const GOVERNANCE_ARTIFACT_KINDS = [
@@ -50,7 +51,7 @@ export class GovernanceArtifactRegistry extends FunctionRegistry<string, Governa
   /** Register a new artifact (governance only). */
   override register(artifact: GovernanceArtifact): void {
     if (!artifact.immutableByAgent) {
-      throw new Error('Governance artifacts must be immutable by agent');
+      throw new SenarsError('Governance artifacts must be immutable by agent', 'POLICY_VIOLATION');
     }
     super.register(artifact);
   }
@@ -74,7 +75,7 @@ export class GovernanceArtifactRegistry extends FunctionRegistry<string, Governa
   ): GovernanceArtifact {
     const existing = this.get(artifactId);
     if (!existing) {
-      throw new Error(`Artifact ${artifactId} not found`);
+      throw new SenarsError(`Artifact ${artifactId} not found`, 'OPERATION_ERROR', { artifactId });
     }
     const updated: GovernanceArtifact = {
       ...existing,

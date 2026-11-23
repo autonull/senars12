@@ -21,6 +21,8 @@ import {
   snapshotBudget,
 } from '../budget/budget';
 import { emitDomainEvent } from './event-sink';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Why a send was admitted or refused — and the pairing is exact: `allowed ⇔ reason !== refusal`. */
 export type BackpressureReason = 'budget-exhausted' | 'mailbox-full' | 'ok';
@@ -198,7 +200,7 @@ export class CognitiveThread {
   /** Kill the thread and all children. */
   kill(reason = 'killed'): void {
     this.status = 'killed';
-    this.error = new Error(`Thread killed: ${reason}`);
+    this.error = new SenarsError(`Thread killed: ${reason}`, 'OPERATION_ERROR');
     // Merge consumption back to parent budget
     // In a real implementation, this would signal child threads to stop
   }

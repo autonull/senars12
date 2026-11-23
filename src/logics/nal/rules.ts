@@ -11,6 +11,7 @@ import { getArgs } from '../../kernel/terms/term';
 import { Stamp } from '../../kernel/stamp';
 import type { RuleCategory, RuleId, Premise, StepResult } from '../../kernel/step';
 import { StepExecutor } from '../../kernel/step';
+import { SenarsError } from '../../errors/senars-error';
 
 /** Wrap a function to check premises length matches arity. */
 function withArity<const N extends 1 | 2, R>(
@@ -19,7 +20,7 @@ function withArity<const N extends 1 | 2, R>(
 ): (premises: Premise[]) => R {
   return (premises: Premise[]) => {
     if (premises.length < arity) {
-      throw new Error(`Expected at least ${arity} premises, got ${premises.length}`);
+      throw new SenarsError(`Expected at least ${arity} premises, got ${premises.length}`, 'VALIDATION_ERROR', { expected: arity, got: premises.length });
     }
     return fn(premises as N extends 1 ? [Premise] : [Premise, Premise]);
   };
@@ -251,7 +252,7 @@ export const NAL_RULES: NALRule[] = [
     condition: withArity(1, ([p]) => isSequential(p.term)),
     buildConclusion: withArity(1, ([p]) => {
       const args = getArgs(p.term);
-      if (!args || args.length < 2) throw new Error('Expected sequential term with 2 args');
+      if (!args || args.length < 2) throw new SenarsError('Expected sequential term with 2 args', 'VALIDATION_ERROR');
       return createPrediction(args[0]!, args[1]!);
     }),
   },
@@ -268,7 +269,7 @@ export const NAL_RULES: NALRule[] = [
     condition: withArity(1, ([p]) => isPrediction(p.term)),
     buildConclusion: withArity(1, ([p]) => {
       const args = getArgs(p.term);
-      if (!args || args.length < 2) throw new Error('Expected prediction term with 2 args');
+      if (!args || args.length < 2) throw new SenarsError('Expected prediction term with 2 args', 'VALIDATION_ERROR');
       return createSequential(args[0]!, args[1]!);
     }),
   },
@@ -386,25 +387,25 @@ function isVariable(term: Term): boolean {
 
 function getSubject(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 1) throw new Error('Expected compound term with at least 1 arg');
+  if (!args || args.length < 1) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR');
   return args[0]!;
 }
 
 function getPredicate(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 2) throw new Error('Expected compound term with at least 2 args');
+  if (!args || args.length < 2) throw new SenarsError('Expected compound term with at least 2 args', 'VALIDATION_ERROR');
   return args[1]!;
 }
 
 function getAntecedent(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 1) throw new Error('Expected compound term with at least 1 arg');
+  if (!args || args.length < 1) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR');
   return args[0]!;
 }
 
 function getConsequent(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 2) throw new Error('Expected compound term with at least 2 args');
+  if (!args || args.length < 2) throw new SenarsError('Expected compound term with at least 2 args', 'VALIDATION_ERROR');
   return args[1]!;
 }
 

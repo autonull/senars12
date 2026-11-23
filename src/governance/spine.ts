@@ -12,6 +12,7 @@ import type { Verdict } from '../logic/verdict';
 import { riskClassOf, evaluateGate, evaluateGateFromRisk, GateResult } from './risk-verdict';
 import { governanceArtifactRegistry, type GovernanceArtifact, type GovernanceArtifactKind } from './artifacts';
 import { missionOverlayRegistry, type MissionOverlay } from './artifacts';
+import { SenarsError } from '../errors/senars-error';
 
 /** The governance spine — single entry point for all governance decisions. */
 export class GovernanceSpine {
@@ -39,7 +40,7 @@ export class GovernanceSpine {
    */
   setAutonomyMode(mode: AutonomyMode, authority: AutonomyAuthority, reason: string): void {
     if (authority !== 'system' && authority !== 'human' && authority !== 'external-governance') {
-      throw new Error(`Invalid authority for mode change: ${authority}`);
+      throw new SenarsError(`Invalid authority for mode change: ${authority}`, 'VALIDATION_ERROR', { authority });
     }
     const oldMode = this.autonomyMode;
     this.autonomyMode = mode;

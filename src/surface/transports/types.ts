@@ -146,6 +146,7 @@ export interface TransportMiddleware {
 
 /** Transport registry using KeyedRegistry for factories and active transports. */
 import { KeyedRegistry } from '../../util/keyed-collection';
+import { SenarsError } from '../../errors/senars-error';
 
 export class TransportRegistry {
   /** Factories keyed by transport type. */
@@ -157,7 +158,7 @@ export class TransportRegistry {
     this.factories = new KeyedRegistry<TransportFactoryRegistration>({
       keyOf: (r) => r.type,
       onDuplicate: (type, incumbent) => {
-        throw new Error(`Transport factory for type '${type}' already registered (incumbent: ${incumbent.type})`);
+        throw new SenarsError(`Transport factory for type '${type}' already registered (incumbent: ${incumbent.type})`, 'VALIDATION_ERROR', { type });
       },
     });
     this.transports = new KeyedRegistry<Transport>({

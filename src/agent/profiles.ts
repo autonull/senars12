@@ -1,4 +1,6 @@
 import type { SystemOneConfig } from '@senars/util/config';
+import { SenarsError } from '../errors/senars-error';
+
 
 /** Capability ladder tier: 0 reflex · 1 manifold · 2 cortex · 3 NAL-governed. */
 export type CapabilityTier = 0 | 1 | 2 | 3;
@@ -59,8 +61,6 @@ export type NARProfileName = keyof typeof NAR_PROFILES;
 export const resolveProfile = (name: NARProfileName | string): NARProfileSpec => {
   const spec = NAR_PROFILES[name];
   if (!spec)
-    throw new Error(
-      `unknown NAR profile "${name}" (known: ${Object.keys(NAR_PROFILES).join(', ')})`
-    );
+    throw new SenarsError(`unknown NAR profile "${name}" (known: ${Object.keys(NAR_PROFILES).join(', ')})`, 'VALIDATION_ERROR');
   return spec;
 };

@@ -9,6 +9,8 @@ import type { LMService } from './lm-service';
 import type { LMRuleFactoryConfig } from './rule-builders';
 import { createCustomRule, createRule } from './rule-builders';
 import { getRuleDef, ruleDefs } from './rule-templates/index';
+import { SenarsError } from '../errors/senars-error';
+
 
 export type { LMRuleDefinition } from './rule-templates/definition';
 export type { LMRuleFactoryConfig } from './rule-builders';
@@ -85,7 +87,7 @@ export class LMRuleFactory {
 
   build(): LMRule {
     const id = this.config.id;
-    if (!id) throw new Error('LMRuleFactory: id is required when building custom rules');
+    if (!id) throw new SenarsError('LMRuleFactory: id is required when building custom rules', 'OPERATION_ERROR');
     const def = ruleDefs.find((d) => d.id === id);
     if (def) return createRule(this.lm, def, this.config);
     return createCustomRule(id, this.lm, this.config);

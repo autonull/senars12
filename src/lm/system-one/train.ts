@@ -8,6 +8,8 @@ import { fillSeededUnitRange, holdoutSplit, mulberry32 } from '@senars/util/rand
 import { parseOrThrow } from '@senars/util/config';
 import { seededStringHash, sha256Prefixed } from '@senars/util/hash';
 import { z } from 'zod';
+import { SenarsError } from '../../errors/senars-error';
+
 
 export { pearson };
 
@@ -242,7 +244,7 @@ export function trainHead(
   const patience = options.patience ?? 50;
   const rng = mulberry32(options.seed ?? 42);
 
-  if (rows.length < 4) throw new Error(`Insufficient training rows: ${rows.length}`);
+  if (rows.length < 4) throw new SenarsError(`Insufficient training rows: ${rows.length}`, 'OPERATION_ERROR');
   const embeddingDim = rows[0]!.embedding.length;
   // Hadamard conditioning keeps the action-conditioned space at the embedding
   // dimension; the game block (shared heads) appends gameFeatureDim hashed dims.
@@ -422,9 +424,9 @@ export function bakeOffSharedHead(
   meta: HeadIdentity,
   options: SharedHeadBakeOffOptions = {}
 ): SharedHeadBakeOffResult {
-  if (rows.some((row) => !row.game)) throw new Error('Bake-off rows must carry a `game` tag');
+  if (rows.some((row) => !row.game)) throw new SenarsError('Bake-off rows must carry a `game` tag', 'VALIDATION_ERROR');
   const byGame = groupBy(rows, (row) => row.game!);
-  if (byGame.size < 2) throw new Error(`Bake-off requires ≥2 games, got ${byGame.size}`);
+  if (byGame.size < 2) throw new SenarsError(`Bake-off requires ≥2 games, got ${byGame.size}`, 'VALIDATION_ERROR');
 
   const rng = mulberry32(options.seed ?? 42);
   // One map, not a train/holdout pair: each game contributes one split, and a

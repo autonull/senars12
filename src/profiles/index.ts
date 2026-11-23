@@ -6,6 +6,7 @@
 import type { Env } from '../kernel/env';
 import { unique } from '../util/collections';
 import { FunctionRegistry } from '../util/registry';
+import { SenarsError } from '../errors/senars-error';
 
 /** Profile kinds. */
 export const PROFILE_KINDS = [
@@ -162,7 +163,7 @@ export class ProfileRegistry extends FunctionRegistry<ProfileKind | string, Prof
   /** Create Env from profile. */
   createEnv(kind: ProfileKind | string, overrides: Partial<Env> = {}): Env {
     const profile = this.get(kind);
-    if (!profile) throw new Error(`Profile not found: ${kind}`);
+    if (!profile) throw new SenarsError(`Profile not found: ${kind}`, 'CONFIGURATION_ERROR', { kind });
 
     // This would be implemented with actual Env creation
     // For now, return a partial env
@@ -194,7 +195,7 @@ export class ProfileRegistry extends FunctionRegistry<ProfileKind | string, Prof
   /** Get profile as JSON schema. */
   toJSONSchema(kind: ProfileKind | string): object {
     const profile = this.get(kind);
-    if (!profile) throw new Error(`Profile not found: ${kind}`);
+    if (!profile) throw new SenarsError(`Profile not found: ${kind}`, 'CONFIGURATION_ERROR', { kind });
 
     return {
       $schema: 'http://json-schema.org/draft-07/schema#',

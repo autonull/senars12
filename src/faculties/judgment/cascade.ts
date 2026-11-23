@@ -25,6 +25,12 @@ import type { IsotonicCalibrator } from '../../lm/system-one/calibration';
 import type { JudgmentDataset } from '../../lm/system-one/distill';
 import { createLMGenerateObjectOracle, type LMOracleService } from '../../oracles/lm';
 import { OraclePinStore } from '../../oracles/pins';
+import { SenarsError } from '../../errors/senars-error';
+import { createLogger } from '../../util/logger';
+import { errMsg } from '@senars/util/error';
+
+const logger = createLogger({ scope: 'faculties:judgment:cascade' });
+
 
 /** Judgment stages (hard floor cascade). */
 export const JUDGMENT_STAGES = [
@@ -310,7 +316,7 @@ export class JudgmentCascade {
         if (this.telemetry) {
           await this.telemetry.judgmentStage(stage, candidates.length, candidates.length, timings[stage], String(error));
         }
-        console.warn(`Judgment stage ${stage} failed:`, error);
+        logger.warn(`Judgment stage ${stage} failed:`, { error: errMsg(error) });
       }
     }
 
@@ -417,7 +423,7 @@ export class JudgmentCascade {
           candidates.push(...facultyCandidates);
         }
       } catch (error) {
-        console.warn(`Faculty ${faculty} failed during candidate generation:`, error);
+        logger.warn(`Faculty ${faculty} failed during candidate generation:`, { error: errMsg(error) });
       }
     }
 
@@ -641,7 +647,7 @@ export class JudgmentCascade {
           }
         }
       } catch (error) {
-        console.warn(`LM rubric judge failed for candidate ${candidate.id}:`, error);
+        logger.warn(`LM rubric judge failed for candidate ${candidate.id}:`, { error: errMsg(error) });
       }
     }
 
@@ -711,7 +717,7 @@ Provide scores 0-1 for each criterion.
           producer: 'learned-judge',
         });
       } catch (error) {
-        console.warn(`Learned judge failed for candidate ${candidate.id}:`, error);
+        logger.warn(`Learned judge failed for candidate ${candidate.id}:`, { error: errMsg(error) });
       }
     }
 
@@ -836,7 +842,7 @@ Provide scores 0-1 for each criterion.
     return Promise.race([
       promise,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Stage timeout after ${ms}ms`)), ms)
+        setTimeout(() => reject(new SenarsError(`Stage timeout after ${ms}ms`, 'TIMEOUT')), ms)
       ),
     ]);
   }
