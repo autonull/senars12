@@ -71,6 +71,40 @@ export interface LoopContract {
   enabled: boolean;
 }
 
+/** Create a contract with standard result boilerplate. */
+function createContract(
+  id: string,
+  name: string,
+  type: ContractType,
+  severity: ContractSeverity,
+  description: string,
+  tags: string[],
+  check: (context: ContractContext) => Promise<{ passed: boolean; actual: unknown; expected: unknown; message: string }>
+): LoopContract {
+  return {
+    id,
+    name,
+    type,
+    severity,
+    description,
+    tags,
+    enabled: true,
+    check: async (context): Promise<ContractCheckResult> => {
+      const result = await check(context);
+      return {
+        contractId: id,
+        type,
+        passed: result.passed,
+        severity,
+        message: result.message,
+        actual: result.actual,
+        expected: result.expected,
+        timestamp: context.clock.now(),
+      };
+    },
+  };
+}
+
 /** Contract checking context. */
 export interface ContractContext {
   /** Current iteration. */
@@ -308,137 +342,111 @@ export async function checkContracts(context: ContractContext): Promise<Contract
 /** Core loop contracts. */
 
 // Precondition: Budget must be positive
-export const budgetPositiveContract: LoopContract = {
-  id: 'pre.budget_positive',
-  name: 'Budget Positive',
-  type: 'precondition',
-  severity: 'error',
-  description: 'Token budget must be positive before iteration',
-  tags: ['budget', 'resource'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const budgetPositiveContract = createContract(
+  'pre.budget_positive',
+  'Budget Positive',
+  'precondition',
+  'error',
+  'Token budget must be positive before iteration',
+  ['budget', 'resource'],
+  async (context) => {
     const passed = context.resources.tokensRemaining > 0;
     return {
-      contractId: 'pre.budget_positive',
-      type: 'precondition',
       passed,
-      severity: 'error',
-      message: passed ? 'Budget is positive' : 'Token budget exhausted',
       actual: context.resources.tokensRemaining,
       expected: '> 0',
-      timestamp: context.clock.now(),
+      message: passed ? 'Budget is positive' : 'Token budget exhausted',
     };
-  },
-};
+  }
+);
 
 // Precondition: At least one goal exists
-export const hasGoalsContract: LoopContract = {
-  id: 'pre.has_goals',
-  name: 'Has Goals',
-  type: 'precondition',
-  severity: 'warning',
-  description: 'System should have at least one active goal',
-  tags: ['goals', 'motivation'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const hasGoalsContract = createContract(
+  'pre.has_goals',
+  'Has Goals',
+  'precondition',
+  'warning',
+  'System should have at least one active goal',
+  ['goals', 'motivation'],
+  async (context) => {
     const passed = context.goals.length > 0;
     return {
-      contractId: 'pre.has_goals',
-      type: 'precondition',
       passed,
-      severity: 'warning',
-      message: passed ? 'Goals exist' : 'No active goals',
       actual: context.goals.length,
       expected: '> 0',
-      timestamp: context.clock.now(),
+      message: passed ? 'Goals exist' : 'No active goals',
     };
-  },
-};
+  }
+);
 
 // Precondition: Focus bag not empty
-export const focusBagNotEmptyContract: LoopContract = {
-  id: 'pre.focus_bag_not_empty',
-  name: 'Focus Bag Not Empty',
-  type: 'precondition',
-  severity: 'warning',
-  description: 'Focus bag should have items to process',
-  tags: ['focus', 'attention'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const focusBagNotEmptyContract = createContract(
+  'pre.focus_bag_not_empty',
+  'Focus Bag Not Empty',
+  'precondition',
+  'warning',
+  'Focus bag should have items to process',
+  ['focus', 'attention'],
+  async (context) => {
     const passed = context.focusBag.length > 0;
     return {
-      contractId: 'pre.focus_bag_not_empty',
-      type: 'precondition',
       passed,
-      severity: 'warning',
-      message: passed ? 'Focus bag has items' : 'Focus bag is empty',
       actual: context.focusBag.length,
       expected: '> 0',
-      timestamp: context.clock.now(),
+      message: passed ? 'Focus bag has items' : 'Focus bag is empty',
     };
-  },
-};
+  }
+);
 
 // Postcondition: Action must be valid
-export const actionValidContract: LoopContract = {
-  id: 'post.action_valid',
-  name: 'Action Valid',
-  type: 'postcondition',
-  severity: 'error',
-  description: 'Selected action must be a valid task',
-  tags: ['action', 'validity'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const actionValidContract = createContract(
+  'post.action_valid',
+  'Action Valid',
+  'postcondition',
+  'error',
+  'Selected action must be a valid task',
+  ['action', 'validity'],
+  async (context) => {
     const passed = context.selectedAction !== undefined &&
       context.selectedAction.term !== undefined;
     return {
-      contractId: 'post.action_valid',
-      type: 'postcondition',
       passed,
-      severity: 'error',
-      message: passed ? 'Action is valid' : 'No valid action selected',
       actual: context.selectedAction?.term.toString() ?? 'none',
       expected: 'valid task',
-      timestamp: context.clock.now(),
+      message: passed ? 'Action is valid' : 'No valid action selected',
     };
-  },
-};
+  }
+);
 
 // Postcondition: Oracle calls must succeed
-export const oracleCallsSucceedContract: LoopContract = {
-  id: 'post.oracle_calls_succeed',
-  name: 'Oracle Calls Succeed',
-  type: 'postcondition',
-  severity: 'warning',
-  description: 'All oracle calls should succeed',
-  tags: ['oracle', 'reliability'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const oracleCallsSucceedContract = createContract(
+  'post.oracle_calls_succeed',
+  'Oracle Calls Succeed',
+  'postcondition',
+  'warning',
+  'All oracle calls should succeed',
+  ['oracle', 'reliability'],
+  async (context) => {
     const failed = context.oracleCalls.filter(c => !c.success).length;
     const passed = failed === 0;
     return {
-      contractId: 'post.oracle_calls_succeed',
-      type: 'postcondition',
       passed,
-      severity: 'warning',
-      message: passed ? 'All oracle calls succeeded' : `${failed} oracle calls failed`,
       actual: failed,
       expected: 0,
-      timestamp: context.clock.now(),
+      message: passed ? 'All oracle calls succeeded' : `${failed} oracle calls failed`,
     };
-  },
-};
+  }
+);
 
 // Invariant: No contradictory beliefs
-export const noContradictoryBeliefsContract: LoopContract = {
-  id: 'inv.no_contradictory_beliefs',
-  name: 'No Contradictory Beliefs',
-  type: 'invariant',
-  severity: 'error',
-  description: 'Belief base should not contain direct contradictions',
-  tags: ['beliefs', 'consistency'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const noContradictoryBeliefsContract = createContract(
+  'inv.no_contradictory_beliefs',
+  'No Contradictory Beliefs',
+  'invariant',
+  'error',
+  'Belief base should not contain direct contradictions',
+  ['beliefs', 'consistency'],
+  async (context) => {
     let contradictions = 0;
     const beliefs = context.beliefs;
 
@@ -446,7 +454,6 @@ export const noContradictoryBeliefsContract: LoopContract = {
       for (let j = i + 1; j < beliefs.length; j++) {
         const t1 = beliefs[i]!.term.toString();
         const t2 = beliefs[j]!.term.toString();
-        // Check for negation contradiction
         if (t1.startsWith('~') && t1.substring(1) === t2) {
           contradictions++;
         } else if (t2.startsWith('~') && t2.substring(1) === t1) {
@@ -457,28 +464,23 @@ export const noContradictoryBeliefsContract: LoopContract = {
 
     const passed = contradictions === 0;
     return {
-      contractId: 'inv.no_contradictory_beliefs',
-      type: 'invariant',
       passed,
-      severity: 'error',
-      message: passed ? 'No contradictions' : `${contradictions} contradictions found`,
       actual: contradictions,
       expected: 0,
-      timestamp: context.clock.now(),
+      message: passed ? 'No contradictions' : `${contradictions} contradictions found`,
     };
-  },
-};
+  }
+);
 
 // Invariant: Truth values in valid range
-export const truthValuesValidContract: LoopContract = {
-  id: 'inv.truth_values_valid',
-  name: 'Truth Values Valid',
-  type: 'invariant',
-  severity: 'critical',
-  description: 'All truth values must have frequency and confidence in [0,1]',
-  tags: ['truth', 'validity'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const truthValuesValidContract = createContract(
+  'inv.truth_values_valid',
+  'Truth Values Valid',
+  'invariant',
+  'critical',
+  'All truth values must have frequency and confidence in [0,1]',
+  ['truth', 'validity'],
+  async (context) => {
     let invalid = 0;
 
     const checkTruth = (truth: Truth) => {
@@ -495,80 +497,65 @@ export const truthValuesValidContract: LoopContract = {
 
     const passed = invalid === 0;
     return {
-      contractId: 'inv.truth_values_valid',
-      type: 'invariant',
       passed,
-      severity: 'critical',
-      message: passed ? 'All truth values valid' : `${invalid} invalid truth values`,
       actual: invalid,
       expected: 0,
-      timestamp: context.clock.now(),
+      message: passed ? 'All truth values valid' : `${invalid} invalid truth values`,
     };
-  },
-};
+  }
+);
 
 // Progress: Belief base grows or changes
-export const beliefProgressContract: LoopContract = {
-  id: 'prog.belief_progress',
-  name: 'Belief Progress',
-  type: 'progress',
-  severity: 'warning',
-  description: 'Belief base should grow or change over iterations',
-  tags: ['progress', 'learning'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const beliefProgressContract = createContract(
+  'prog.belief_progress',
+  'Belief Progress',
+  'progress',
+  'warning',
+  'Belief base should grow or change over iterations',
+  ['progress', 'learning'],
+  async (context) => {
     if (!context.previousResults || context.previousResults.length < 5) {
       return {
-        contractId: 'prog.belief_progress',
-        type: 'progress',
         passed: true,
-        severity: 'warning',
+        actual: 0,
+        expected: '>= 3',
         message: 'Insufficient history for progress check',
-        timestamp: context.clock.now(),
       };
     }
 
-    // Check if belief count has increased in last 5 iterations
     const recent = context.previousResults.slice(-5);
-    const beliefCounts = recent.map(r => r.task.term.toString().length); // Proxy
+    const beliefCounts = recent.map(r => r.task.term.toString().length);
 
     let growing = 0;
     for (let i = 1; i < beliefCounts.length; i++) {
       if (beliefCounts[i]! >= beliefCounts[i - 1]!) growing++;
     }
 
-    const passed = growing >= 3; // At least 3 non-decreasing steps
+    const passed = growing >= 3;
     return {
-      contractId: 'prog.belief_progress',
-      type: 'progress',
       passed,
-      severity: 'warning',
-      message: passed ? 'Belief base progressing' : 'Belief base stagnating',
       actual: growing,
       expected: '>= 3',
-      timestamp: context.clock.now(),
+      message: passed ? 'Belief base progressing' : 'Belief base stagnating',
     };
-  },
-};
+  }
+);
 
 // Safety: No dangerous actions
-export const noDangerousActionsContract: LoopContract = {
-  id: 'safe.no_dangerous_actions',
-  name: 'No Dangerous Actions',
-  type: 'safety',
-  severity: 'critical',
-  description: 'Selected actions must not be dangerous',
-  tags: ['safety', 'action'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const noDangerousActionsContract = createContract(
+  'safe.no_dangerous_actions',
+  'No Dangerous Actions',
+  'safety',
+  'critical',
+  'Selected actions must not be dangerous',
+  ['safety', 'action'],
+  async (context) => {
     if (!context.selectedAction) {
       return {
-        contractId: 'safe.no_dangerous_actions',
-        type: 'safety',
         passed: true,
-        severity: 'critical',
+        actual: 'none',
+        expected: 'none',
         message: 'No action to check',
-        timestamp: context.clock.now(),
       };
     }
 
@@ -578,91 +565,74 @@ export const noDangerousActionsContract: LoopContract = {
 
     const passed = !found;
     return {
-      contractId: 'safe.no_dangerous_actions',
-      type: 'safety',
       passed,
-      severity: 'critical',
-      message: passed ? 'Action is safe' : `Dangerous action detected: ${found}`,
       actual: found ?? 'none',
       expected: 'none',
-      timestamp: context.clock.now(),
+      message: passed ? 'Action is safe' : `Dangerous action detected: ${found}`,
     };
-  },
-};
+  }
+);
 
 // Safety: Resource limits respected
-export const resourceLimitsContract: LoopContract = {
-  id: 'safe.resource_limits',
-  name: 'Resource Limits',
-  type: 'safety',
-  severity: 'error',
-  description: 'Resource usage must stay within limits',
-  tags: ['safety', 'resources'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const resourceLimitsContract = createContract(
+  'safe.resource_limits',
+  'Resource Limits',
+  'safety',
+  'error',
+  'Resource usage must stay within limits',
+  ['safety', 'resources'],
+  async (context) => {
     const { resources } = context;
     const violations: string[] = [];
 
     if (resources.tokensUsed > resources.tokensRemaining * 10) {
       violations.push('Token usage excessive');
     }
-    if (resources.wallTimeMs > 300000) { // 5 minutes
+    if (resources.wallTimeMs > 300000) {
       violations.push('Wall time exceeded');
     }
 
     const passed = violations.length === 0;
     return {
-      contractId: 'safe.resource_limits',
-      type: 'safety',
       passed,
-      severity: 'error',
-      message: passed ? 'Resources within limits' : violations.join('; '),
       actual: violations,
       expected: [],
-      timestamp: context.clock.now(),
+      message: passed ? 'Resources within limits' : violations.join('; '),
     };
-  },
-};
+  }
+);
 
 // Liveness: Loop makes progress
-export const loopLivenessContract: LoopContract = {
-  id: 'live.loop_progress',
-  name: 'Loop Progress',
-  type: 'liveness',
-  severity: 'warning',
-  description: 'Loop should not stall indefinitely',
-  tags: ['liveness', 'progress'],
-  enabled: true,
-  check: async (context): Promise<ContractCheckResult> => {
+export const loopLivenessContract = createContract(
+  'live.loop_progress',
+  'Loop Progress',
+  'liveness',
+  'warning',
+  'Loop should not stall indefinitely',
+  ['liveness', 'progress'],
+  async (context) => {
     if (!context.previousResults || context.previousResults.length < 10) {
       return {
-        contractId: 'live.loop_progress',
-        type: 'liveness',
         passed: true,
-        severity: 'warning',
+        actual: 0,
+        expected: '> 2',
         message: 'Insufficient history for liveness check',
-        timestamp: context.clock.now(),
       };
     }
 
-    // Check if same task repeated too many times
     const recent = context.previousResults.slice(-10);
     const taskTerms = recent.map(r => r.task.term.toString());
     const uniqueTerms = new Set(taskTerms);
 
     const passed = uniqueTerms.size > 2;
     return {
-      contractId: 'live.loop_progress',
-      type: 'liveness',
       passed,
-      severity: 'warning',
-      message: passed ? 'Loop making progress' : 'Loop may be stalled',
       actual: uniqueTerms.size,
       expected: '> 2',
-      timestamp: context.clock.now(),
+      message: passed ? 'Loop making progress' : 'Loop may be stalled',
     };
-  },
-};
+  }
+);
 
 /** Register all core contracts. */
 export function registerCoreContracts(): void {
