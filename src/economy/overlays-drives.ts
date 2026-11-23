@@ -33,169 +33,78 @@ export const BUILTIN_OVERLAYS = {
   EXPLORATION: 'exploration',
 } as const;
 
-/** Create time pressure overlay. */
-export function createTimePressureOverlay(active = true): Overlay {
-  return {
+/** Overlay configuration for factory. */
+interface OverlayConfig {
+  id: string;
+  name: string;
+  kindWeights: Partial<Record<TaskBagKind, number>>;
+  sourceWeights: Partial<Record<TaskSource, number>>;
+  tagWeights: Record<string, number>;
+}
+
+/** Built-in overlay configurations. */
+const OVERLAY_CONFIGS: Record<typeof BUILTIN_OVERLAYS[keyof typeof BUILTIN_OVERLAYS], OverlayConfig> = {
+  [BUILTIN_OVERLAYS.TIME_PRESSURE]: {
     id: BUILTIN_OVERLAYS.TIME_PRESSURE,
     name: 'Time Pressure',
-    kindWeights: {
-      goal: 2.0,
-      skill: 1.5,
-      plan: 1.3,
-      belief: 0.5,
-      faculty: 0.7,
-      rule: 0.3,
-    },
-    sourceWeights: {
-      reflex: 1.5,
-      oracle: 1.3,
-      perception: 1.2,
-      derivation: 0.8,
-      proposal: 0.7,
-      curriculum: 0.5,
-      growth: 0.3,
-      repair: 1.0,
-    },
-    tagWeights: {
-      urgent: 2.0,
-      critical: 2.5,
-      deadline: 1.8,
-    },
-    active,
-  };
-}
-
-/** Create learning overlay. */
-export function createLearningOverlay(active = true): Overlay {
-  return {
+    kindWeights: { goal: 2.0, skill: 1.5, plan: 1.3, belief: 0.5, faculty: 0.7, rule: 0.3 },
+    sourceWeights: { reflex: 1.5, oracle: 1.3, perception: 1.2, derivation: 0.8, proposal: 0.7, curriculum: 0.5, growth: 0.3, repair: 1.0 },
+    tagWeights: { urgent: 2.0, critical: 2.5, deadline: 1.8 },
+  },
+  [BUILTIN_OVERLAYS.LEARNING]: {
     id: BUILTIN_OVERLAYS.LEARNING,
     name: 'Learning Mode',
-    kindWeights: {
-      skill: 2.0,
-      belief: 1.5,
-      goal: 1.2,
-      faculty: 1.0,
-      rule: 0.8,
-      plan: 0.7,
-    },
-    sourceWeights: {
-      curriculum: 2.0,
-      growth: 1.5,
-      derivation: 1.2,
-      oracle: 1.0,
-      perception: 1.0,
-      reflex: 0.8,
-      proposal: 0.7,
-      repair: 0.5,
-    },
-    tagWeights: {
-      learning: 2.0,
-      practice: 1.5,
-      experiment: 1.3,
-      curiosity: 1.5,
-    },
-    active,
-  };
-}
-
-/** Create maintenance overlay. */
-export function createMaintenanceOverlay(active = true): Overlay {
-  return {
+    kindWeights: { skill: 2.0, belief: 1.5, goal: 1.2, faculty: 1.0, rule: 0.8, plan: 0.7 },
+    sourceWeights: { curriculum: 2.0, growth: 1.5, derivation: 1.2, oracle: 1.0, perception: 1.0, reflex: 0.8, proposal: 0.7, repair: 0.5 },
+    tagWeights: { learning: 2.0, practice: 1.5, experiment: 1.3, curiosity: 1.5 },
+  },
+  [BUILTIN_OVERLAYS.MAINTENANCE]: {
     id: BUILTIN_OVERLAYS.MAINTENANCE,
     name: 'Maintenance Mode',
-    kindWeights: {
-      belief: 1.8,
-      rule: 1.5,
-      faculty: 1.2,
-      skill: 1.0,
-      goal: 0.8,
-      plan: 0.6,
-    },
-    sourceWeights: {
-      derivation: 1.5,
-      repair: 1.3,
-      oracle: 1.0,
-      perception: 0.8,
-      curriculum: 0.7,
-      growth: 0.5,
-      reflex: 0.5,
-      proposal: 0.4,
-    },
-    tagWeights: {
-      maintenance: 2.0,
-      cleanup: 1.5,
-      verify: 1.3,
-      consolidate: 1.2,
-    },
-    active,
-  };
-}
-
-/** Create crisis overlay. */
-export function createCrisisOverlay(active = true): Overlay {
-  return {
+    kindWeights: { belief: 1.8, rule: 1.5, faculty: 1.2, skill: 1.0, goal: 0.8, plan: 0.6 },
+    sourceWeights: { derivation: 1.5, repair: 1.3, oracle: 1.0, perception: 0.8, curriculum: 0.7, growth: 0.5, reflex: 0.5, proposal: 0.4 },
+    tagWeights: { maintenance: 2.0, cleanup: 1.5, verify: 1.3, consolidate: 1.2 },
+  },
+  [BUILTIN_OVERLAYS.CRISIS]: {
     id: BUILTIN_OVERLAYS.CRISIS,
     name: 'Crisis Mode',
-    kindWeights: {
-      goal: 3.0,
-      plan: 1.5,
-      skill: 1.0,
-      belief: 0.3,
-      faculty: 0.5,
-      rule: 0.2,
-    },
-    sourceWeights: {
-      reflex: 2.0,
-      oracle: 1.5,
-      perception: 1.3,
-      derivation: 0.5,
-      repair: 1.0,
-      proposal: 0.3,
-      curriculum: 0.1,
-      growth: 0.1,
-    },
-    tagWeights: {
-      emergency: 3.0,
-      survival: 2.5,
-      safety: 2.0,
-      critical: 2.0,
-    },
-    active,
-  };
-}
-
-/** Create exploration overlay. */
-export function createExplorationOverlay(active = true): Overlay {
-  return {
+    kindWeights: { goal: 3.0, plan: 1.5, skill: 1.0, belief: 0.3, faculty: 0.5, rule: 0.2 },
+    sourceWeights: { reflex: 2.0, oracle: 1.5, perception: 1.3, derivation: 0.5, repair: 1.0, proposal: 0.3, curriculum: 0.1, growth: 0.1 },
+    tagWeights: { emergency: 3.0, survival: 2.5, safety: 2.0, critical: 2.0 },
+  },
+  [BUILTIN_OVERLAYS.EXPLORATION]: {
     id: BUILTIN_OVERLAYS.EXPLORATION,
     name: 'Exploration Mode',
-    kindWeights: {
-      goal: 1.3,
-      skill: 1.3,
-      belief: 1.2,
-      plan: 1.1,
-      faculty: 1.0,
-      rule: 0.9,
-    },
-    sourceWeights: {
-      proposal: 1.5,
-      curriculum: 1.3,
-      growth: 1.2,
-      oracle: 1.1,
-      derivation: 1.0,
-      reflex: 1.0,
-      perception: 1.0,
-      repair: 0.8,
-    },
-    tagWeights: {
-      explore: 2.0,
-      novel: 1.5,
-      unknown: 1.3,
-      experiment: 1.2,
-    },
-    active,
-  };
+    kindWeights: { goal: 1.3, skill: 1.3, belief: 1.2, plan: 1.1, faculty: 1.0, rule: 0.9 },
+    sourceWeights: { proposal: 1.5, curriculum: 1.3, growth: 1.2, oracle: 1.1, derivation: 1.0, reflex: 1.0, perception: 1.0, repair: 0.8 },
+    tagWeights: { explore: 2.0, novel: 1.5, unknown: 1.3, experiment: 1.2 },
+  },
+};
+
+/** Create an overlay from config. */
+function createOverlayFromConfig(config: OverlayConfig, active = true): Overlay {
+  return { ...config, active };
 }
+
+/** Create time pressure overlay. */
+export const createTimePressureOverlay = (active = true): Overlay =>
+  createOverlayFromConfig(OVERLAY_CONFIGS[BUILTIN_OVERLAYS.TIME_PRESSURE], active);
+
+/** Create learning overlay. */
+export const createLearningOverlay = (active = true): Overlay =>
+  createOverlayFromConfig(OVERLAY_CONFIGS[BUILTIN_OVERLAYS.LEARNING], active);
+
+/** Create maintenance overlay. */
+export const createMaintenanceOverlay = (active = true): Overlay =>
+  createOverlayFromConfig(OVERLAY_CONFIGS[BUILTIN_OVERLAYS.MAINTENANCE], active);
+
+/** Create crisis overlay. */
+export const createCrisisOverlay = (active = true): Overlay =>
+  createOverlayFromConfig(OVERLAY_CONFIGS[BUILTIN_OVERLAYS.CRISIS], active);
+
+/** Create exploration overlay. */
+export const createExplorationOverlay = (active = true): Overlay =>
+  createOverlayFromConfig(OVERLAY_CONFIGS[BUILTIN_OVERLAYS.EXPLORATION], active);
 
 /** Get all built-in overlays. */
 export function getBuiltinOverlays(): Overlay[] {
