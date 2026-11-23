@@ -1,9 +1,9 @@
 # TODO.core.28 — Post-Consolidation Quality & Architecture Plan
 
-**Status:** 📋 **Planning** — builds on TODO.core.27 (all 12 workstreams complete)
+**Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-23 — 47 redundant util barrels removed, systemone.ts (676→19 files), dialogue.ts (316→11 files), config/nar.ts consolidated
+**Last updated:** 2026-11-23 — 47 redundant util barrels removed, systemone.ts (676→19 files), dialogue.ts (316→11 files), config/nar.ts consolidated, **W10: util/collections.ts split (899→7 modules + barrel) complete**
 
 ---
 
@@ -49,7 +49,7 @@
 | **W7** | **genome.ts (1,756 lines)** | Split into domain modules | ★★★★☆ | M | W1 |
 | **W8** | **nar.ts (1,251 lines)** | Extract sub-modules | ★★★★☆ | M | W2 |
 | **W9** | **economy/learning.ts (1,011 lines)** | Split by concern | ★★★★☆ | M | W2 |
-| **W10** | **util/collections.ts (900 lines)** | Split by domain | ★★★★☆ | S | — |
+| **W10** | **util/collections.ts (900 lines)** | Split by domain | ★★★★☆ | S | — | ✅ **DONE** |
 | **W11** | **faculties/specs/data.ts (919 lines)** | Split by faculty domain | ★★★★☆ | M | — |
 | **W12** | **memory/fold-memory.ts (1,001 lines)** | Split by view type | ★★★★☆ | M | — |
 | **W13** | **loop/repair.ts (878 lines)** | Extract repair strategies | ★★★★☆ | M | — |
@@ -294,24 +294,26 @@ src/economy/
 
 ---
 
-### W10: util/collections.ts Decomposition (Week 3)
+### W10: util/collections.ts Decomposition (Week 3) ✅ **DONE**
 
 **Problem:** 900 lines — too many utilities in one file.
 
-**Split Plan:**
+**Split Plan:** ✅ **IMPLEMENTED**
 ```
 src/util/
-  collections.ts         → ~100 lines (barrel)
+  collections.ts         → ~100 lines (barrel, re-exports from collections/)
   collections/
-    index.ts
-    ring-buffer.ts       → BoundedRing, ring buffer ops
-    set-map.ts           → Set/Map helpers (unique, flatUnique, etc.)
-    sorting.ts           → rankBy, sortBy, topN, insertByScoreDesc
-    grouping.ts          → groupBy, indexBy, keyedBy, buckets
-    capping.ts           → pushCapped, trimCapped, takeFirst/Last
-    iteration.ts         → chunk, splitKey, perPart
-    stats.ts             → containerStats, entryKey, joinKey
+    index.ts             → main barrel
+    ring-buffer.ts       → BoundedRing, ring buffer ops, capping, KeyedStore, etc.
+    set-map.ts           → Set/Map helpers (unique, flatUnique, lastByKey, getOrInsert, accumulate, etc.)
+    sorting.ts           → rankBy, sortBy, topN, insertByScoreDesc, minBy, maxBy, etc.
+    grouping.ts          → groupBy, indexBy, keyedBy, buckets, mapToRecord, etc.
+    capping.ts           → pushCapped, trimCapped, takeFirst/Last, collectUpTo, shareOf, etc.
+    iteration.ts         → chunk, splitKey, joinKey, selectTopN, selectByPriority, keyedRank
+    stats.ts             → containerStats
 ```
+
+**Verification:** All 402 test files pass (3761 tests), TypeScript compilation clean.
 
 ---
 
@@ -732,9 +734,10 @@ docs/
 WEEK 1:
   ├─ W1: Schema Unification (critical path)
   ├─ W3: Constant Canonicalization (parallel)
-  └─ W10: util/collections.ts split (parallel, independent)
+  └─ W10: util/collections.ts split (parallel, independent) ✅ **DONE**
 
 WEEK 2:
+```
   ├─ W2: Truth Table Consolidation (needs W1)
   ├─ W4: Interface/Class Collisions (needs W1 for type names)
   ├─ W5: Function Duplication (needs W1, W3)

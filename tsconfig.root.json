@@ -12,6 +12,8 @@
       "@senars/core/*": ["./src/*"],
       "@senars/util": ["./src/util/index.ts"],
       "@senars/util/index": ["./src/util/index.ts"],
+      "@senars/util/collections": ["./src/util/collections/index.ts"],
+      "@senars/util/collections/*": ["./src/util/collections/*"],
       "@senars/util/*": ["./src/util/*"],
       "@senars/utils": ["./src/util/index.ts"],
       "@senars/utils/*": ["./src/util/*"],
