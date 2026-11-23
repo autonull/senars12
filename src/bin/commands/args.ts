@@ -2,7 +2,7 @@
 
 import { getNested } from '@senars/util/object';
 import { parseEnvValue } from '@senars/util/config';
-import { parseFlags, type Flags } from '@senars/util/cli';
+import { parseFlags, type Flags, jsonMode } from '@senars/util/cli';
 import { splitWords } from '@senars/util/text';
 
 /** Split a command tail into positional tokens; an empty tail yields no tokens. */
@@ -67,18 +67,6 @@ export const onOff = (
     return `${label} disabled`;
   },
 });
-
-/**
- * Whether the caller wants a report in its machine form: `--json`, or a pipe.
- *
- * A pipe is the implicit request — `pnpm status > report.json` should not need a
- * flag — but only `runStatus` read `isTTY`. Three reports asked about the flag
- * alone and one about `parseFlags().has('--json') || !process.stdout.isTTY`, so
- * redirecting the same command produced different bytes depending on which
- * entry point answered, and a piped `doctor` printed prose into a `.json` file.
- */
-export const jsonMode = (args?: string): boolean =>
-  flagsOf(args).has('--json') || !process.stdout.isTTY;
 
 /**
  * A report as JSON, or as the text its renderer produces.

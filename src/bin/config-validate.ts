@@ -11,8 +11,7 @@
 
 import { resolveLMConfig, resolveLMSettings } from '@senars/lm';
 import { errMsg } from '@senars/util/error';
-import { parseFlags } from '@senars/util/cli';
-import { jsonMode } from '@senars/cli/commands';
+import { parseFlags, jsonMode } from '@senars/util/cli';
 import { appConfigSchema, loadConfig } from '@senars/config';
 import { runEntrypoint } from './lib/fatal-error';
 

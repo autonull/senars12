@@ -9,9 +9,6 @@ import { type Flags, parseFlags } from '@senars/util/cli';
 export type { CLICommand } from '../io/index';
 export { QUIT_SENTINEL } from '../io/index';
 
-/** Check if output should be JSON (--json flag or non-TTY). */
-export const jsonMode = (args?: string): boolean =>
-  parseFlags(splitWords(args ?? '')).has('--json') || !process.stdout.isTTY;
 import {
   formatAgentStatus,
   formatAttention,

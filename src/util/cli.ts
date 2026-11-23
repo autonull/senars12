@@ -54,3 +54,7 @@ export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Fla
     list: (flag, fallback) => (get(flag) ?? fallback.join(',')).split(',').filter(Boolean),
   };
 }
+
+/** Whether the caller wants JSON output (`--json` flag or non-TTY stdout). */
+export const jsonMode = (argv?: readonly string[]): boolean =>
+  parseFlags(argv).has('--json') || !process.stdout.isTTY;
