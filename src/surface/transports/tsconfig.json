@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.root.json",
+  "compilerOptions": {
+    "noImplicitOverride": false
+  },
+  "include": ["*.ts"]
+}

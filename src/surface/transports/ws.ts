@@ -2,19 +2,8 @@
  * WebSocket Transport — WebSocket transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types';
-
-/** WebSocket transport config. */
-export interface WSTransportConfig extends TransportConfig {
-  type: 'ws';
-  host: string;
-  port: number;
-  path?: string;
-  /** Reconnect interval (ms). */
-  reconnectInterval?: number;
-  /** Max reconnect attempts. */
-  maxReconnectAttempts?: number;
-}
+import { TransportBase } from './TransportBase';
+import type { WSTransportConfig, TransportMessage } from './types';
 
 /** WebSocket transport state. */
 interface WSState {
@@ -24,95 +13,111 @@ interface WSState {
   closed: boolean;
 }
 
-/** Create WebSocket transport. */
-export function createWSTransport(config: WSTransportConfig): Transport {
-  const state: WSState = {
-    ws: null,
-    pending: new Map(),
-    reconnectAttempts: 0,
-    closed: false,
-  };
+/** WebSocket transport implementation. */
+export class WSTransport extends TransportBase {
+  private state: WSState;
+  private messageHandler?: (message: TransportMessage) => void;
 
-  const url = `ws${config.tls ? 's' : ''}://${config.host}:${config.port}${config.path ?? ''}`;
+  constructor(config: WSTransportConfig) {
+    super('ws', config);
+    this.state = {
+      ws: null,
+      pending: new Map(),
+      reconnectAttempts: 0,
+      closed: false,
+    };
+  }
 
-  const connect = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      state.ws = new WebSocket(url);
+  protected override async doConnect(): Promise<void> {
+    const cfg = this.config as WSTransportConfig;
+    const url = `ws${cfg.tls ? 's' : ''}://${cfg.host}:${cfg.port}${cfg.path ?? ''}`;
+    
+    await new Promise<void>((resolve, reject) => {
+      this.state.ws = new WebSocket(url);
 
-      state.ws.onopen = () => {
-        state.reconnectAttempts = 0;
+      this.state.ws.onopen = () => {
+        this.state.reconnectAttempts = 0;
         resolve();
       };
 
-      state.ws.onmessage = (event) => {
+      this.state.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data) as TransportMessage;
-          const pending = state.pending.get(message.correlationId ?? '');
-          if (pending) {
-            state.pending.delete(message.correlationId ?? '');
-            if (message.type === 'error') {
-              pending.reject(new Error(message.payload as string));
-            } else {
-              pending.resolve(message);
-            }
-          }
+          this.handleReceive(message);
         } catch {
           // Ignore parse errors
         }
       };
 
-      state.ws.onerror = (error) => {
+      this.state.ws.onerror = (error) => {
         reject(new Error(`WebSocket error: ${error}`));
       };
 
-      state.ws.onclose = () => {
-        if (!state.closed && state.reconnectAttempts < (config.maxReconnectAttempts ?? 5)) {
-          state.reconnectAttempts++;
-          setTimeout(connect, config.reconnectInterval ?? 1000);
+      this.state.ws.onclose = () => {
+        if (!this.state.closed && this.state.reconnectAttempts < (cfg.maxReconnectAttempts ?? 5)) {
+          this.state.reconnectAttempts++;
+          setTimeout(() => this.doConnect().catch(() => {}), cfg.reconnectInterval ?? 1000);
         }
       };
     });
-  };
+  }
 
-  // Initial connection
-  connect().catch(() => {});
+  protected override async doDisconnect(): Promise<void> {
+    this.state.closed = true;
+    if (this.state.ws) {
+      this.state.ws.close();
+      this.state.ws = null;
+    }
+  }
 
-  return {
-    type: 'ws',
-    config,
-    async send(message: TransportMessage): Promise<TransportMessage> {
-      if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
-        await connect();
+  protected override async doSend(message: TransportMessage): Promise<TransportMessage> {
+    if (!this.state.ws || this.state.ws.readyState !== WebSocket.OPEN) {
+      await this.doConnect();
+    }
+
+    return new Promise((resolve, reject) => {
+      if (!this.state.ws) {
+        reject(new Error('WebSocket not connected'));
+        return;
       }
 
-      return new Promise((resolve, reject) => {
-        if (!state.ws) {
-          reject(new Error('WebSocket not connected'));
-          return;
+      const correlationId = message.correlationId ?? `msg-${Date.now()}`;
+      const msgWithId = { ...message, correlationId };
+
+      this.state.pending.set(correlationId, { resolve, reject });
+
+      this.state.ws!.send(JSON.stringify(msgWithId));
+
+      // Timeout
+      setTimeout(() => {
+        if (this.state.pending.has(correlationId)) {
+          this.state.pending.delete(correlationId);
+          reject(new Error('Request timeout'));
         }
+      }, 30000);
+    });
+  }
 
-        const correlationId = message.correlationId ?? `msg-${Date.now()}`;
-        const msgWithId = { ...message, correlationId };
-
-        state.pending.set(correlationId, { resolve, reject });
-
-        state.ws.send(JSON.stringify(msgWithId));
-
-        // Timeout
-        setTimeout(() => {
-          if (state.pending.has(correlationId)) {
-            state.pending.delete(correlationId);
-            reject(new Error('Request timeout'));
-          }
-        }, 30000);
-      });
-    },
-    async close(): Promise<void> {
-      state.closed = true;
-      if (state.ws) {
-        state.ws.close();
-        state.ws = null;
+  protected override onMessageInternal(message: TransportMessage): void {
+    const pending = this.state.pending.get(message.correlationId ?? '');
+    if (pending) {
+      this.state.pending.delete(message.correlationId ?? '');
+      if (message.type === 'error') {
+        pending.reject(new Error(message.payload as string));
+      } else {
+        pending.resolve(message);
       }
-    },
-  };
+    }
+    this.messageHandler?.(message);
+  }
+
+  override onMessage(handler: (message: TransportMessage) => void): () => void {
+    this.messageHandler = handler;
+    return () => { this.messageHandler = undefined; };
+  }
+}
+
+/** Create WebSocket transport. */
+export function createWSTransport(config: WSTransportConfig): TransportBase {
+  return new WSTransport(config);
 }

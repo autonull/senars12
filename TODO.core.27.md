@@ -156,7 +156,7 @@ export const intAtLeast = (min) => z.number().int().min(min);
 
 ---
 
-### W4: Transport Abstraction (Week 2, needs W1)
+### W4: Transport Abstraction (Week 2, needs W1) — ✅ **Complete**
 **Merges:** A1 (base class) + C3 (middleware)
 
 **Target:**
@@ -191,7 +191,7 @@ interface TransportMiddleware {
 - `MetricsMiddleware` (latency, throughput, errors)
 - `RateLimitMiddleware` (per-session, per-IP)
 
-**Deliverables:**
+**Deliverables:** ✅ All complete
 - All 6 transports extend `TransportBase` (stdio, ws, http, mcp, cli, irc)
 - Middleware chain works on all transports
 - New transport = 50 lines implementing 4 abstract methods

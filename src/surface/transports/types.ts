@@ -43,6 +43,12 @@ export interface Transport {
   send(message: TransportMessage): Promise<TransportMessage>;
   /** Close transport. */
   close(): Promise<void>;
+  /** Connect transport. */
+  connect(): Promise<void>;
+  /** Disconnect transport. */
+  disconnect(reason?: string): Promise<void>;
+  /** Register message handler. */
+  onMessage(handler: (message: TransportMessage) => void): () => void;
 }
 
 /** Transport factory. */
@@ -52,6 +58,90 @@ export type TransportFactory = (config: TransportConfig) => Transport;
 export interface TransportFactoryRegistration {
   readonly type: TransportType;
   readonly factory: TransportFactory;
+}
+
+/** CLI transport config. */
+export interface CLITransportConfig extends TransportConfig {
+  /** Command to execute. */
+  command: string;
+  /** Arguments. */
+  args: string[];
+  /** Environment variables. */
+  env?: Record<string, string>;
+}
+
+/** HTTP transport config. */
+export interface HTTPTransportConfig extends TransportConfig {
+  type: 'http';
+  host: string;
+  port: number;
+  path?: string;
+  /** Request timeout (ms). */
+  timeout?: number;
+}
+
+/** WebSocket transport config. */
+export interface WSTransportConfig extends TransportConfig {
+  type: 'ws';
+  host: string;
+  port: number;
+  path?: string;
+  /** Reconnect interval (ms). */
+  reconnectInterval?: number;
+  /** Max reconnect attempts. */
+  maxReconnectAttempts?: number;
+}
+
+/** IRC transport config. */
+export interface IRCTransportConfig extends TransportConfig {
+  type: 'irc';
+  host: string;
+  port: number;
+  /** Channels to join. */
+  channels: string[];
+  /** Nickname. */
+  nick: string;
+  /** Username. */
+  user?: string;
+  /** Real name. */
+  realName?: string;
+  /** Password. */
+  password?: string;
+  /** TLS. */
+  tls?: boolean;
+}
+
+/** Stdio transport config. */
+export interface StdioTransportConfig extends TransportConfig {
+  type: 'stdio';
+}
+
+/** Middleware context for connect phase. */
+export interface ConnectContext {
+  readonly config: TransportConfig;
+  readonly transport: Transport;
+}
+
+/** Middleware context for disconnect phase. */
+export interface DisconnectContext {
+  readonly config: TransportConfig;
+  readonly transport: Transport;
+  readonly reason?: string;
+}
+
+/** Transport middleware interface. */
+export interface TransportMiddleware {
+  /** Called before connection is established. */
+  onConnect?(ctx: ConnectContext): Promise<void>;
+
+  /** Called after connection is closed. */
+  onDisconnect?(ctx: DisconnectContext): Promise<void>;
+
+  /** Called before sending a message. `next` continues the chain. */
+  onSend?(message: TransportMessage, next: () => Promise<void>): Promise<void>;
+
+  /** Called when a message is received. `next` passes message to next middleware. */
+  onReceive?(message: TransportMessage, next: (msg: TransportMessage) => void): void;
 }
 
 /** Transport registry using KeyedRegistry for factories and active transports. */

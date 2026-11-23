@@ -3,6 +3,7 @@
  */
 
 export * from './types';
+export { TransportBase } from './TransportBase';
 export * from './cli';
 export * from './http';
 export * from './ws';

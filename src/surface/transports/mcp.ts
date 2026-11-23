@@ -2,28 +2,48 @@
  * MCP Transport — MCP transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types';
+import { TransportBase } from './TransportBase';
+import type { TransportMessage } from './types';
 import type { MCPTransportConfig } from '../mcp/types';
 
-/** Create MCP transport. */
-export function createMCPTransport(config: MCPTransportConfig): Transport {
-  // In a real implementation, this would use the MCP SDK
-  // This is a stub that delegates to stdio/http/ws
+/** MCP transport implementation. */
+export class MCPTransport extends TransportBase {
+  private messageHandler?: (message: TransportMessage) => void;
 
-  return {
-    type: 'mcp',
-    config,
-    async send(message: TransportMessage): Promise<TransportMessage> {
-      // Delegate to appropriate sub-transport
-      return {
-        type: 'response',
-        payload: { mcp: true, message },
-        correlationId: message.correlationId,
-        timestamp: Date.now(),
-      };
-    },
-    async close(): Promise<void> {
-      // Close MCP connection
-    },
-  };
+  constructor(config: MCPTransportConfig) {
+    super('mcp', config);
+  }
+
+  protected override async doConnect(): Promise<void> {
+    // In a real implementation, this would use the MCP SDK
+    // This is a stub that delegates to stdio/http/ws
+  }
+
+  protected override async doDisconnect(): Promise<void> {
+    // Close MCP connection
+  }
+
+  protected override async doSend(message: TransportMessage): Promise<TransportMessage> {
+    // Delegate to appropriate sub-transport
+    return {
+      type: 'response',
+      payload: { mcp: true, message },
+      correlationId: message.correlationId,
+      timestamp: Date.now(),
+    };
+  }
+
+  protected override onMessageInternal(message: TransportMessage): void {
+    this.messageHandler?.(message);
+  }
+
+  override onMessage(handler: (message: TransportMessage) => void): () => void {
+    this.messageHandler = handler;
+    return () => { this.messageHandler = undefined; };
+  }
+}
+
+/** Create MCP transport. */
+export function createMCPTransport(config: MCPTransportConfig): TransportBase {
+  return new MCPTransport(config);
 }

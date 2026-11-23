@@ -2,54 +2,66 @@
  * HTTP Transport — HTTP transport for surface.
  */
 
-import type { Transport, TransportConfig, TransportMessage } from './types';
+import { TransportBase } from './TransportBase';
+import type { HTTPTransportConfig, TransportMessage } from './types';
 
-/** HTTP transport config. */
-export interface HTTPTransportConfig extends TransportConfig {
-  type: 'http';
-  host: string;
-  port: number;
-  path?: string;
-  /** Request timeout (ms). */
-  timeout?: number;
+/** HTTP transport implementation. */
+export class HTTPTransport extends TransportBase {
+  private messageHandler?: (message: TransportMessage) => void;
+
+  constructor(config: HTTPTransportConfig) {
+    super('http', config);
+  }
+
+  protected override async doConnect(): Promise<void> {
+    // HTTP is stateless, connection is per-request
+  }
+
+  protected override async doDisconnect(): Promise<void> {
+    // HTTP is stateless, nothing to close
+  }
+
+  protected override async doSend(message: TransportMessage): Promise<TransportMessage> {
+    const cfg = this.config as HTTPTransportConfig;
+    const baseUrl = `http${cfg.tls ? 's' : ''}://${cfg.host}:${cfg.port}${cfg.path ?? ''}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), cfg.timeout ?? 30000);
+
+    try {
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...cfg.headers,
+        },
+        body: JSON.stringify(message),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json() as TransportMessage;
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
+    }
+  }
+
+  protected override onMessageInternal(message: TransportMessage): void {
+    this.messageHandler?.(message);
+  }
+
+  override onMessage(handler: (message: TransportMessage) => void): () => void {
+    this.messageHandler = handler;
+    return () => { this.messageHandler = undefined; };
+  }
 }
 
 /** Create HTTP transport. */
-export function createHTTPTransport(config: HTTPTransportConfig): Transport {
-  const baseUrl = `http${config.tls ? 's' : ''}://${config.host}:${config.port}${config.path ?? ''}`;
-
-  return {
-    type: 'http',
-    config,
-    async send(message: TransportMessage): Promise<TransportMessage> {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), config.timeout ?? 30000);
-
-      try {
-        const response = await fetch(baseUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...config.headers,
-          },
-          body: JSON.stringify(message),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return await response.json() as TransportMessage;
-      } catch (error) {
-        clearTimeout(timeout);
-        throw error;
-      }
-    },
-    async close(): Promise<void> {
-      // HTTP is stateless, nothing to close
-    },
-  };
+export function createHTTPTransport(config: HTTPTransportConfig): TransportBase {
+  return new HTTPTransport(config);
 }
