@@ -595,193 +595,218 @@ export interface AnalyzerFoldView<T> extends FoldView<T> {
   getAggregated(): T;
 }
 
+/** Factory for creating analyzer fold views with shared boilerplate. */
+function createAnalyzer<T>(
+  name: string,
+  initialData: T,
+  rebuild: (data: T, log: Episode[]) => void,
+  emptyData: T,
+  getLog: () => Episode[]
+): AnalyzerFoldView<T> {
+  let data = initialData;
+  let version = 0;
+  let lastUpdated = 0;
+  let stale = true;
+
+  const doRebuild = (): void => {
+    rebuild(data, getLog());
+    version++;
+    lastUpdated = Date.now();
+    stale = false;
+  };
+
+  return {
+    name,
+    get version() { return version; },
+    get lastUpdated() { return lastUpdated; },
+    get stale() { return stale; },
+    async refresh() { doRebuild(); },
+    evict() { data = initialData; stale = true; },
+    getData() { return data; },
+    analyzeEpisode() { return emptyData; },
+    getAggregated() { return data; },
+  };
+}
+
 /** Capabilities analyzer fold view. */
 export interface CapabilitiesAnalyzerData {
   capabilityUsage: Map<string, number>;
   coverage: number;
 }
-export interface CapabilitiesAnalyzerView extends AnalyzerFoldView<CapabilitiesAnalyzerData> {}
-export function createCapabilitiesAnalyzerView(getLog: () => Episode[]): CapabilitiesAnalyzerView {
-  let data: CapabilitiesAnalyzerData = { capabilityUsage: new Map(), coverage: 0 };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.capabilityUsage.clear();
-    let totalCapabilities = 0;
-    for (const episode of log) {
-      const caps = episode.metadata?.capabilities as string[] ?? [];
-      for (const cap of caps) {
-        data.capabilityUsage.set(cap, (data.capabilityUsage.get(cap) ?? 0) + 1);
+export const createCapabilitiesAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<CapabilitiesAnalyzerData>(
+    'CapabilitiesAnalyzer',
+    { capabilityUsage: new Map(), coverage: 0 },
+    (data, log) => {
+      data.capabilityUsage.clear();
+      let totalCapabilities = 0;
+      for (const episode of log) {
+        const caps = episode.metadata?.capabilities as string[] ?? [];
+        for (const cap of caps) {
+          data.capabilityUsage.set(cap, (data.capabilityUsage.get(cap) ?? 0) + 1);
+        }
+        totalCapabilities += caps.length;
       }
-      totalCapabilities += caps.length;
-    }
-    data.coverage = totalCapabilities > 0 ? totalCapabilities / log.length : 0;
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'CapabilitiesAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.capabilityUsage.clear(); data.coverage = 0; stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { capabilityUsage: new Map(), coverage: 0 }; }, getAggregated() { return data; } };
-}
+      data.coverage = totalCapabilities > 0 ? totalCapabilities / log.length : 0;
+    },
+    { capabilityUsage: new Map(), coverage: 0 },
+    getLog
+  );
 
 /** Constants analyzer fold view. */
 export interface ConstantsAnalyzerData {
   constantValues: Map<string, { value: unknown; count: number }>;
 }
-export interface ConstantsAnalyzerView extends AnalyzerFoldView<ConstantsAnalyzerData> {}
-export function createConstantsAnalyzerView(getLog: () => Episode[]): ConstantsAnalyzerView {
-  let data: ConstantsAnalyzerData = { constantValues: new Map() };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.constantValues.clear();
-    for (const episode of log) {
-      const constants = episode.metadata?.constants as Record<string, unknown> ?? {};
-      for (const [key, value] of Object.entries(constants)) {
-        const entry = data.constantValues.get(key) ?? { value, count: 0 };
-        entry.count++;
-        data.constantValues.set(key, entry);
+export const createConstantsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<ConstantsAnalyzerData>(
+    'ConstantsAnalyzer',
+    { constantValues: new Map() },
+    (data, log) => {
+      data.constantValues.clear();
+      for (const episode of log) {
+        const constants = episode.metadata?.constants as Record<string, unknown> ?? {};
+        for (const [key, value] of Object.entries(constants)) {
+          const entry = data.constantValues.get(key) ?? { value, count: 0 };
+          entry.count++;
+          data.constantValues.set(key, entry);
+        }
       }
-    }
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'ConstantsAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.constantValues.clear(); stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { constantValues: new Map() }; }, getAggregated() { return data; } };
-}
+    },
+    { constantValues: new Map() },
+    getLog
+  );
 
 /** Corrections analyzer fold view. */
 export interface CorrectionsAnalyzerData {
   corrections: Array<{ from: string; to: string; confidence: number }>;
 }
-export interface CorrectionsAnalyzerView extends AnalyzerFoldView<CorrectionsAnalyzerData> {}
-export function createCorrectionsAnalyzerView(getLog: () => Episode[]): CorrectionsAnalyzerView {
-  let data: CorrectionsAnalyzerData = { corrections: [] };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.corrections = [];
-    for (const episode of log) {
-      const correction = episode.metadata?.correction as { from: string; to: string; confidence: number } | undefined;
-      if (correction) data.corrections.push(correction);
-    }
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'CorrectionsAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.corrections = []; stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { corrections: [] }; }, getAggregated() { return data; } };
-}
+export const createCorrectionsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<CorrectionsAnalyzerData>(
+    'CorrectionsAnalyzer',
+    { corrections: [] },
+    (data, log) => {
+      data.corrections = [];
+      for (const episode of log) {
+        const correction = episode.metadata?.correction as { from: string; to: string; confidence: number } | undefined;
+        if (correction) data.corrections.push(correction);
+      }
+    },
+    { corrections: [] },
+    getLog
+  );
 
 /** Performance analyzer fold view. */
 export interface PerformanceAnalyzerData {
   metrics: Map<string, { mean: number; count: number }>;
 }
-export interface PerformanceAnalyzerView extends AnalyzerFoldView<PerformanceAnalyzerData> {}
-export function createPerformanceAnalyzerView(getLog: () => Episode[]): PerformanceAnalyzerView {
-  let data: PerformanceAnalyzerData = { metrics: new Map() };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.metrics.clear();
-    for (const episode of log) {
-      const metrics = episode.metadata as Record<string, number> ?? {};
-      for (const [key, value] of Object.entries(metrics)) {
-        const entry = data.metrics.get(key) ?? { mean: 0, count: 0 };
-        entry.mean = (entry.mean * entry.count + value) / (entry.count + 1);
-        entry.count++;
-        data.metrics.set(key, entry);
+export const createPerformanceAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<PerformanceAnalyzerData>(
+    'PerformanceAnalyzer',
+    { metrics: new Map() },
+    (data, log) => {
+      data.metrics.clear();
+      for (const episode of log) {
+        const metrics = episode.metadata as Record<string, number> ?? {};
+        for (const [key, value] of Object.entries(metrics)) {
+          const entry = data.metrics.get(key) ?? { mean: 0, count: 0 };
+          entry.mean = (entry.mean * entry.count + value) / (entry.count + 1);
+          entry.count++;
+          data.metrics.set(key, entry);
+        }
       }
-    }
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'PerformanceAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.metrics.clear(); stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { metrics: new Map() }; }, getAggregated() { return data; } };
-}
+    },
+    { metrics: new Map() },
+    getLog
+  );
 
 /** Quality analyzer fold view. */
 export interface QualityAnalyzerData {
   qualityScores: number[];
   meanQuality: number;
 }
-export interface QualityAnalyzerView extends AnalyzerFoldView<QualityAnalyzerData> {}
-export function createQualityAnalyzerView(getLog: () => Episode[]): QualityAnalyzerView {
-  let data: QualityAnalyzerData = { qualityScores: [], meanQuality: 0 };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.qualityScores = log.map(e => (e.metadata?.quality as number) ?? 0).filter(q => q > 0);
-    data.meanQuality = data.qualityScores.length > 0 ? data.qualityScores.reduce((a, b) => a + b, 0) / data.qualityScores.length : 0;
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'QualityAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.qualityScores = []; data.meanQuality = 0; stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { qualityScores: [], meanQuality: 0 }; }, getAggregated() { return data; } };
-}
+export const createQualityAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<QualityAnalyzerData>(
+    'QualityAnalyzer',
+    { qualityScores: [], meanQuality: 0 },
+    (data, log) => {
+      data.qualityScores = log.map(e => (e.metadata?.quality as number) ?? 0).filter(q => q > 0);
+      data.meanQuality = data.qualityScores.length > 0 ? data.qualityScores.reduce((a, b) => a + b, 0) / data.qualityScores.length : 0;
+    },
+    { qualityScores: [], meanQuality: 0 },
+    getLog
+  );
 
 /** Reasoning patterns analyzer fold view. */
 export interface ReasoningPatternsAnalyzerData {
   patterns: Map<string, number>;
 }
-export interface ReasoningPatternsAnalyzerView extends AnalyzerFoldView<ReasoningPatternsAnalyzerData> {}
-export function createReasoningPatternsAnalyzerView(getLog: () => Episode[]): ReasoningPatternsAnalyzerView {
-  let data: ReasoningPatternsAnalyzerData = { patterns: new Map() };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.patterns.clear();
-    for (const episode of log) {
-      const pattern = episode.metadata?.reasoningPattern as string | undefined;
-      if (pattern) data.patterns.set(pattern, (data.patterns.get(pattern) ?? 0) + 1);
-    }
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'ReasoningPatternsAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.patterns.clear(); stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { patterns: new Map() }; }, getAggregated() { return data; } };
-}
+export const createReasoningPatternsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<ReasoningPatternsAnalyzerData>(
+    'ReasoningPatternsAnalyzer',
+    { patterns: new Map() },
+    (data, log) => {
+      data.patterns.clear();
+      for (const episode of log) {
+        const pattern = episode.metadata?.reasoningPattern as string | undefined;
+        if (pattern) data.patterns.set(pattern, (data.patterns.get(pattern) ?? 0) + 1);
+      }
+    },
+    { patterns: new Map() },
+    getLog
+  );
 
 /** Resources analyzer fold view. */
 export interface ResourcesAnalyzerData {
   resourceUsage: Map<string, { mean: number; peak: number; count: number }>;
 }
-export interface ResourcesAnalyzerView extends AnalyzerFoldView<ResourcesAnalyzerData> {}
-export function createResourcesAnalyzerView(getLog: () => Episode[]): ResourcesAnalyzerView {
-  let data: ResourcesAnalyzerData = { resourceUsage: new Map() };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.resourceUsage.clear();
-    for (const episode of log) {
-      const resources = episode.metadata?.resources as Record<string, number> ?? {};
-      for (const [key, value] of Object.entries(resources)) {
-        const entry = data.resourceUsage.get(key) ?? { mean: 0, peak: 0, count: 0 };
-        entry.mean = (entry.mean * entry.count + value) / (entry.count + 1);
-        entry.peak = Math.max(entry.peak, value);
-        entry.count++;
-        data.resourceUsage.set(key, entry);
+export const createResourcesAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<ResourcesAnalyzerData>(
+    'ResourcesAnalyzer',
+    { resourceUsage: new Map() },
+    (data, log) => {
+      data.resourceUsage.clear();
+      for (const episode of log) {
+        const resources = episode.metadata?.resources as Record<string, number> ?? {};
+        for (const [key, value] of Object.entries(resources)) {
+          const entry = data.resourceUsage.get(key) ?? { mean: 0, peak: 0, count: 0 };
+          entry.mean = (entry.mean * entry.count + value) / (entry.count + 1);
+          entry.peak = Math.max(entry.peak, value);
+          entry.count++;
+          data.resourceUsage.set(key, entry);
+        }
       }
-    }
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'ResourcesAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.resourceUsage.clear(); stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { resourceUsage: new Map() }; }, getAggregated() { return data; } };
-}
+    },
+    { resourceUsage: new Map() },
+    getLog
+  );
 
 /** Term patterns analyzer fold view. */
 export interface TermPatternsAnalyzerData {
   termFrequency: Map<string, number>;
   coOccurrence: Map<string, Map<string, number>>;
 }
-export interface TermPatternsAnalyzerView extends AnalyzerFoldView<TermPatternsAnalyzerData> {}
-export function createTermPatternsAnalyzerView(getLog: () => Episode[]): TermPatternsAnalyzerView {
-  let data: TermPatternsAnalyzerData = { termFrequency: new Map(), coOccurrence: new Map() };
-  let version = 0; let lastUpdated = 0; let stale = true;
-  const rebuild = (): void => {
-    const log = getLog();
-    data.termFrequency.clear();
-    data.coOccurrence.clear();
-    for (const episode of log) {
-      const terms = episode.context?.map(t => t.toString()) ?? [];
-      for (const term of terms) {
-        data.termFrequency.set(term, (data.termFrequency.get(term) ?? 0) + 1);
+export const createTermPatternsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer<TermPatternsAnalyzerData>(
+    'TermPatternsAnalyzer',
+    { termFrequency: new Map(), coOccurrence: new Map() },
+    (data, log) => {
+      data.termFrequency.clear();
+      data.coOccurrence.clear();
+      for (const episode of log) {
+        const terms = episode.context?.map(t => t.toString()) ?? [];
+        for (const term of terms) {
+          data.termFrequency.set(term, (data.termFrequency.get(term) ?? 0) + 1);
+        }
+        for (let i = 0; i < terms.length - 1; i++) {
+          const co = data.coOccurrence.get(terms[i]!) ?? new Map();
+          co.set(terms[i + 1]!, (co.get(terms[i + 1]!) ?? 0) + 1);
+          data.coOccurrence.set(terms[i]!, co);
+        }
       }
-      for (let i = 0; i < terms.length - 1; i++) {
-        const co = data.coOccurrence.get(terms[i]!) ?? new Map();
-        co.set(terms[i + 1]!, (co.get(terms[i + 1]!) ?? 0) + 1);
-        data.coOccurrence.set(terms[i]!, co);
-      }
-    }
-    version++; lastUpdated = Date.now(); stale = false;
-  };
-  return { name: 'TermPatternsAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.termFrequency.clear(); data.coOccurrence.clear(); stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { termFrequency: new Map(), coOccurrence: new Map() }; }, getAggregated() { return data; } };
-}
+    },
+    { termFrequency: new Map(), coOccurrence: new Map() },
+    getLog
+  );
 
 /** Registry of all fold views using KeyedRegistry. */
 import { KeyedRegistry } from '../util/keyed-collection';
