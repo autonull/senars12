@@ -503,8 +503,9 @@ const provider = new NodeTracerProvider();
 - `tests/nar/rl/parity/*` — RL parity tests (require `VITEST_PARITY=1`).
 - `tests/demos/D1.test.ts`, `tests/kernel/terms.test.ts`, `tests/obligations/05-derivation-replay.test.ts`, `tests/logics/nal/truth.test.ts` — legacy/slow tests.
 
-**Flaky test:**
+**Flaky tests:**
 - `tests/nar/todo20-perf.test.ts` — "seeded LCG sampling overhead" times out in full suite (resource contention), passes in isolation.
+- `tests/nar/llama-runtime-dispose.test.ts` — passes in isolation, fails in full suite (resource contention / async teardown ordering).
 
 **Follow-ups (non-blocking, quality):**
 - ✅ Enrich `context` on ~40 `SenarsError` throw sites with useful payloads (ids, paths, keys, term strings, arg counts, correlation IDs, operation names)
