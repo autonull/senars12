@@ -9,6 +9,7 @@
 import { randomUUID, createHash } from 'crypto';
 import { z } from 'zod';
 import { uuid, timestamp, nonNegativeInt, positiveInt } from '../config';
+import { FunctionRegistry } from '../util/registry';
 
 /** Artifact kinds that can be governance-owned. */
 export const GOVERNANCE_ARTIFACT_KINDS = [
@@ -41,25 +42,27 @@ export const GovernanceArtifactSchema = z.object({
 export type GovernanceArtifact = z.infer<typeof GovernanceArtifactSchema>;
 
 /** Artifact registry — only governance can register/modify. */
-export class GovernanceArtifactRegistry {
-  private artifacts = new Map<string, GovernanceArtifact>();
+export class GovernanceArtifactRegistry extends FunctionRegistry<string, GovernanceArtifact> {
+  constructor() {
+    super((artifact) => artifact.artifactId);
+  }
 
   /** Register a new artifact (governance only). */
-  register(artifact: GovernanceArtifact): void {
+  override register(artifact: GovernanceArtifact): void {
     if (!artifact.immutableByAgent) {
       throw new Error('Governance artifacts must be immutable by agent');
     }
-    this.artifacts.set(artifact.artifactId, artifact);
+    super.register(artifact);
   }
 
   /** Get an artifact by ID. */
-  get(artifactId: string): GovernanceArtifact | undefined {
-    return this.artifacts.get(artifactId);
+  override get(artifactId: string): GovernanceArtifact | undefined {
+    return super.get(artifactId);
   }
 
   /** Get all artifacts of a kind. */
   getByKind(kind: GovernanceArtifactKind): GovernanceArtifact[] {
-    return Array.from(this.artifacts.values()).filter((a) => a.kind === kind);
+    return this.getAll().filter((a) => a.kind === kind);
   }
 
   /** Update an artifact (governance only — creates new version). */
@@ -69,7 +72,7 @@ export class GovernanceArtifactRegistry {
     updatedBy: GovernanceArtifact['createdBy'],
     derivationChain?: readonly string[]
   ): GovernanceArtifact {
-    const existing = this.artifacts.get(artifactId);
+    const existing = this.get(artifactId);
     if (!existing) {
       throw new Error(`Artifact ${artifactId} not found`);
     }
@@ -82,13 +85,15 @@ export class GovernanceArtifactRegistry {
       contentHash: this.hashContent(content),
       derivationChain: derivationChain ? [...existing.derivationChain ?? [], ...derivationChain] : existing.derivationChain,
     };
-    this.artifacts.set(artifactId, updated);
+    // Need to delete and re-register to update in FunctionRegistry
+    this.delete(artifactId);
+    super.register(updated);
     return updated;
   }
 
   /** List all artifacts. */
   list(): GovernanceArtifact[] {
-    return Array.from(this.artifacts.values());
+    return this.getAll();
   }
 
   private hashContent(content: unknown): string {
@@ -130,31 +135,31 @@ export const MissionOverlaySchema = z.object({
 export type MissionOverlay = z.infer<typeof MissionOverlaySchema>;
 
 /** Mission overlay registry — manages scoped, expiring weight deltas. */
-export class MissionOverlayRegistry {
-  private overlays = new Map<string, MissionOverlay>();
+export class MissionOverlayRegistry extends FunctionRegistry<string, MissionOverlay> {
+  constructor() {
+    super((overlay) => overlay.overlayId);
+  }
 
   /** Register a new mission overlay. */
-  register(overlay: MissionOverlay): void {
-    this.overlays.set(overlay.overlayId, overlay);
+  override register(overlay: MissionOverlay): void {
+    super.register(overlay);
   }
 
   /** Get an overlay by ID. */
-  get(overlayId: string): MissionOverlay | undefined {
-    return this.overlays.get(overlayId);
+  override get(overlayId: string): MissionOverlay | undefined {
+    return super.get(overlayId);
   }
 
   /** Get all active overlays for a mission. */
   getActiveForMission(missionId: string): MissionOverlay[] {
     const now = Date.now();
-    return Array.from(this.overlays.values())
-      .filter((o) => o.missionId === missionId && o.active && o.expiresAt > now);
+    return this.getAll().filter((o) => o.missionId === missionId && o.active && o.expiresAt > now);
   }
 
   /** Get all overlays affecting a target. */
   getForTarget(target: string): MissionOverlay[] {
     const now = Date.now();
-    return Array.from(this.overlays.values())
-      .filter((o) => o.target === target && o.active && o.expiresAt > now);
+    return this.getAll().filter((o) => o.target === target && o.active && o.expiresAt > now);
   }
 
   /** Get the total delta for a target (sum of active overlays). */
@@ -177,9 +182,11 @@ export class MissionOverlayRegistry {
   pruneExpired(): number {
     const now = Date.now();
     let pruned = 0;
-    for (const [id, overlay] of this.overlays.entries()) {
+    for (const overlay of this.getAll()) {
       if (overlay.expiresAt <= now && overlay.active) {
-        this.overlays.set(id, { ...overlay, active: false });
+        // Update the overlay in place by re-registering
+        this.delete(overlay.overlayId);
+        this.register({ ...overlay, active: false });
         pruned++;
       }
     }
@@ -188,15 +195,16 @@ export class MissionOverlayRegistry {
 
   /** Deactivate an overlay by ID. */
   deactivate(overlayId: string): boolean {
-    const overlay = this.overlays.get(overlayId);
+    const overlay = this.get(overlayId);
     if (!overlay) return false;
-    this.overlays.set(overlayId, { ...overlay, active: false });
+    this.delete(overlayId);
+    this.register({ ...overlay, active: false });
     return true;
   }
 
   /** List all overlays. */
   list(): MissionOverlay[] {
-    return Array.from(this.overlays.values());
+    return this.getAll();
   }
 }
 

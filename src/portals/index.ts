@@ -16,6 +16,7 @@ import { FUZZY_LOGIC } from '../logics/fuzzy';
 import { Term } from '../kernel/terms/intern';
 import { TruthValue } from '../kernel/types';
 import { Stamp } from '../kernel/stamp';
+import { FunctionRegistry } from '../util/registry';
 
 /** Portal types. */
 export const PORTAL_TYPES = ['oracle', 'logic'] as const;
@@ -78,44 +79,38 @@ export interface LogicPortal extends Portal {
 export type AnyPortal = OraclePortal | LogicPortal;
 
 /** Portal registry — manages all portals (oracles + logics). */
-export class PortalRegistry {
-  private portals = new Map<string, AnyPortal>();
+export class PortalRegistry extends FunctionRegistry<string, AnyPortal> {
   private oracles: OracleRegistry;
   private logics: LogicRegistry;
 
   constructor() {
+    super((portal) => portal.id);
     this.oracles = createOracleRegistry();
     this.logics = createLogicRegistry();
   }
 
   /** Register an oracle portal. */
   registerOracle(portal: OraclePortal): void {
-    if (this.portals.has(portal.id)) {
-      throw new Error(`Portal ${portal.id} already registered`);
-    }
-    this.portals.set(portal.id, portal);
+    this.register(portal);
     this.oracles.register(portal as any);
   }
 
   /** Register a logic portal. */
   registerLogic(portal: LogicPortal): void {
-    if (this.portals.has(portal.id)) {
-      throw new Error(`Portal ${portal.id} already registered`);
-    }
-    this.portals.set(portal.id, portal);
+    this.register(portal);
     this.logics.register(portal.logic);
   }
 
   /** Get a portal by ID. */
-  get(id: string): AnyPortal | undefined {
-    return this.portals.get(id);
+  override get(id: string): AnyPortal | undefined {
+    return super.get(id);
   }
 
   /** Get an oracle portal by operation. */
   getOracle(operation: OracleOperation): OraclePortal | undefined {
     const oracle = this.oracles.get(operation);
     if (!oracle) return undefined;
-    for (const portal of this.portals.values()) {
+    for (const portal of this.getAll()) {
       if (portal.type === 'oracle' && portal.operation === operation) {
         return portal;
       }
@@ -127,7 +122,7 @@ export class PortalRegistry {
   getLogic(id: string): LogicPortal | undefined {
     const logic = this.logics.get(id);
     if (!logic) return undefined;
-    for (const portal of this.portals.values()) {
+    for (const portal of this.getAll()) {
       if (portal.type === 'logic' && portal.id === id) {
         return portal;
       }
@@ -136,8 +131,8 @@ export class PortalRegistry {
   }
 
   /** Get all registered portals. */
-  getAll(): AnyPortal[] {
-    return Array.from(this.portals.values());
+  override getAll(): AnyPortal[] {
+    return super.getAll();
   }
 
   /** Get all oracle portals. */
@@ -151,8 +146,8 @@ export class PortalRegistry {
   }
 
   /** Check if a portal is registered. */
-  has(id: string): boolean {
-    return this.portals.has(id);
+  override has(id: string): boolean {
+    return super.has(id);
   }
 
   /** Get the underlying oracle registry. */

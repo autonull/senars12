@@ -5,6 +5,7 @@
 
 import type { Env } from '../kernel/env';
 import { unique } from '../util/collections';
+import { FunctionRegistry } from '../util/registry';
 
 /** Profile kinds. */
 export const PROFILE_KINDS = [
@@ -38,12 +39,10 @@ export interface ProfileConfig {
   envOverrides: Partial<Env>;
 }
 
-/** Profile registry. */
-export class ProfileRegistry {
-  private profiles: Map<ProfileKind, ProfileConfig> = new Map();
-  private customProfiles: Map<string, ProfileConfig> = new Map();
-
+/** Profile registry using FunctionRegistry for kind-based lookup. */
+export class ProfileRegistry extends FunctionRegistry<ProfileKind | string, ProfileConfig> {
   constructor() {
+    super((config) => config.kind);
     this.registerDefaults();
   }
 
@@ -140,27 +139,24 @@ export class ProfileRegistry {
   }
 
   /** Register a profile. */
-  register(config: ProfileConfig): void {
-    if (PROFILE_KINDS.includes(config.kind)) {
-      this.profiles.set(config.kind, config);
-    } else {
-      this.customProfiles.set(config.kind, config);
-    }
+  override register(config: ProfileConfig): void {
+    // Base class register handles the key extraction and duplicate checking
+    super.register(config);
   }
 
   /** Get a profile by kind. */
-  get(kind: ProfileKind | string): ProfileConfig | undefined {
-    return this.profiles.get(kind as ProfileKind) ?? this.customProfiles.get(kind);
+  override get(kind: ProfileKind | string): ProfileConfig | undefined {
+    return super.get(kind);
   }
 
   /** Get all profiles. */
-  getAll(): ProfileConfig[] {
-    return [...this.profiles.values(), ...this.customProfiles.values()];
+  override getAll(): ProfileConfig[] {
+    return super.getAll();
   }
 
   /** Get default profiles only. */
   getDefaults(): ProfileConfig[] {
-    return Array.from(this.profiles.values());
+    return this.getAll().filter(p => PROFILE_KINDS.includes(p.kind));
   }
 
   /** Create Env from profile. */

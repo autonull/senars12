@@ -13,6 +13,7 @@
 import { Term } from '../kernel/terms/intern';
 import { TruthValue } from '../kernel/types';
 import { Stamp } from '../kernel/stamp';
+import { FunctionRegistry } from '../util/registry';
 
 /** Inference rule as a formula-AST (data, not code). */
 export interface RuleAST<T> {
@@ -110,30 +111,29 @@ export interface Codec<T> {
 }
 
 /** Logic registry for managing multiple logics. */
-export class LogicRegistry<T = Term> {
-  private logics = new Map<string, Logic<T>>();
+export class LogicRegistry<T = Term> extends FunctionRegistry<string, Logic<T>> {
+  constructor() {
+    super((logic) => logic.id);
+  }
 
   /** Register a logic. */
-  register(logic: Logic<T>): void {
-    if (this.logics.has(logic.id)) {
-      throw new Error(`Logic ${logic.id} already registered`);
-    }
-    this.logics.set(logic.id, logic);
+  override register(logic: Logic<T>): void {
+    super.register(logic);
   }
 
   /** Get a logic by ID. */
-  get(id: string): Logic<T> | undefined {
-    return this.logics.get(id);
+  override get(id: string): Logic<T> | undefined {
+    return super.get(id);
   }
 
   /** Get all registered logics. */
-  getAll(): Logic<T>[] {
-    return Array.from(this.logics.values());
+  override getAll(): Logic<T>[] {
+    return super.getAll();
   }
 
   /** Check if a logic is registered. */
-  has(id: string): boolean {
-    return this.logics.has(id);
+  override has(id: string): boolean {
+    return super.has(id);
   }
 }
 

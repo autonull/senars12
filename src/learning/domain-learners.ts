@@ -129,20 +129,24 @@ export class PatchSelector extends DomainLearner {
   }
 }
 
-export class LearnerRegistry {
-  private readonly learners = new Map<LearnerDomain, DomainLearner>();
+import { FunctionRegistry } from '../util/registry';
 
-  register(learner: DomainLearner): void {
-    this.learners.set(learner.domain, learner);
+export class LearnerRegistry extends FunctionRegistry<LearnerDomain, DomainLearner> {
+  constructor() {
+    super((learner) => learner.domain);
+  }
+
+  override register(learner: DomainLearner): void {
+    super.register(learner);
   }
 
   dispatch(event: DomainLearningEvent): void {
-    const learner = this.learners.get(event.domain);
+    const learner = this.get(event.domain);
     if (!learner) throw new CrossDomainError('LearnerRegistry', 'registered domain', event.domain);
     learner.learn(event);
   }
 
-  get(domain: LearnerDomain): DomainLearner | undefined {
-    return this.learners.get(domain);
+  override get(domain: LearnerDomain): DomainLearner | undefined {
+    return super.get(domain);
   }
 }

@@ -8,6 +8,7 @@ import type { Term } from '../kernel/terms/term';
 import type { Truth } from '../kernel/truth';
 import type { Task } from '../kernel/types';
 import type { Clock } from '../kernel/env';
+import { IdRegistry } from '../util/registry';
 
 /** Contract types. */
 export const CONTRACT_TYPES = [
@@ -128,33 +129,29 @@ export interface IterationResult {
   durationMs: number;
 }
 
-/** Contract registry. */
-export class ContractRegistry {
-  private contracts = new Map<string, LoopContract>();
+/** Contract registry using IdRegistry for id-based lookup. */
+export class ContractRegistry extends IdRegistry<LoopContract> {
   private history: ContractCheckResult[] = [];
   private violationCounts = new Map<string, number>();
 
   /** Register a contract. */
-  register(contract: LoopContract): void {
-    if (this.contracts.has(contract.id)) {
-      throw new Error(`Contract ${contract.id} already registered`);
-    }
-    this.contracts.set(contract.id, contract);
+  override register(contract: LoopContract): void {
+    super.register(contract);
   }
 
   /** Unregister a contract. */
   unregister(id: string): boolean {
-    return this.contracts.delete(id);
+    return this.delete(id);
   }
 
   /** Get a contract. */
-  get(id: string): LoopContract | undefined {
-    return this.contracts.get(id);
+  override get(id: string): LoopContract | undefined {
+    return super.get(id);
   }
 
   /** Get all contracts. */
-  getAll(): LoopContract[] {
-    return Array.from(this.contracts.values());
+  override getAll(): LoopContract[] {
+    return super.getAll();
   }
 
   /** Get contracts by type. */
@@ -260,7 +257,7 @@ export class ContractRegistry {
     }
 
     return {
-      totalContracts: this.contracts.size,
+      totalContracts: this.size,
       enabledContracts: this.getEnabled().length,
       totalChecks: this.history.length,
       violationRate: this.history.length > 0

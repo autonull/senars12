@@ -60,6 +60,11 @@ export abstract class BaseRegistry<K, V> {
     this.map.clear();
   }
 
+  /** Delete a registration by key. */
+  delete(key: K): boolean {
+    return this.map.delete(key);
+  }
+
   /** Iterate registered values. */
   *[Symbol.iterator](): IterableIterator<V> {
     yield* this.map.values();

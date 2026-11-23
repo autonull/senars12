@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
+import { IdRegistry } from '../util/registry';
 
 /** Genome schema definition. */
 export interface GenomeSchema {
@@ -67,33 +68,33 @@ export interface GeneratedArtifacts {
   jsonSchema: object;
 }
 
-/** Genome registry. */
-export class GenomeRegistry {
-  private schemas: Map<string, GenomeSchema> = new Map();
+/** Genome registry using IdRegistry for id-based lookup. */
+export class GenomeRegistry extends IdRegistry<GenomeSchema> {
   private outputDir: string;
 
   constructor(outputDir: string = './generated') {
+    super();
     this.outputDir = outputDir;
   }
 
   /** Register a schema. */
-  register(schema: GenomeSchema): void {
-    this.schemas.set(schema.id, schema);
+  override register(schema: GenomeSchema): void {
+    super.register(schema);
   }
 
   /** Get a schema. */
-  get(id: string): GenomeSchema | undefined {
-    return this.schemas.get(id);
+  override get(id: string): GenomeSchema | undefined {
+    return super.get(id);
   }
 
   /** Get all schemas. */
-  getAll(): GenomeSchema[] {
-    return Array.from(this.schemas.values());
+  override getAll(): GenomeSchema[] {
+    return super.getAll();
   }
 
   /** Generate all artifacts for a schema. */
   async generate(id: string): Promise<GeneratedArtifacts> {
-    const schema = this.schemas.get(id);
+    const schema = this.get(id);
     if (!schema) throw new Error(`Schema not found: ${id}`);
 
     const artifacts = this.generateArtifacts(schema);
@@ -107,7 +108,7 @@ export class GenomeRegistry {
   /** Generate all artifacts for all schemas. */
   async generateAll(): Promise<Map<string, GeneratedArtifacts>> {
     const results = new Map<string, GeneratedArtifacts>();
-    for (const schema of this.schemas.values()) {
+    for (const schema of this.getAll()) {
       results.set(schema.id, await this.generate(schema.id));
     }
     return results;

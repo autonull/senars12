@@ -1,26 +1,32 @@
 import { assertDefined } from '../util/assert.ts';
 import type { CommandContext, CommandDefinition } from './types';
+import { NameRegistry } from '../util/registry';
 
-export class CommandRegistry {
-  private readonly _commands: Map<string, CommandDefinition> = new Map();
-
-  get commands(): ReadonlyMap<string, CommandDefinition> {
-    return this._commands;
+export class CommandRegistry extends NameRegistry<CommandDefinition> {
+  constructor() {
+    super({ unique: false });
   }
 
-  register(cmd: CommandDefinition): void {
-    this._commands.set(cmd.name, cmd);
+  override register(cmd: CommandDefinition): void {
+    // Register by name
+    this.map.set(cmd.name, cmd);
+    // Register aliases
     for (const alias of cmd.aliases ?? []) {
-      this._commands.set(alias, cmd);
+      this.map.set(alias, cmd);
     }
   }
 
   async execute(name: string, args: string[], context: CommandContext): Promise<string> {
-    const cmd = assertDefined(this._commands.get(name), `Unknown command: ${name}`);
+    const cmd = assertDefined(this.get(name), `Unknown command: ${name}`);
     return cmd.execute(args, context);
   }
 
-  get(name: string): CommandDefinition | undefined {
-    return this._commands.get(name);
+  override get(name: string): CommandDefinition | undefined {
+    return this.map.get(name);
+  }
+
+  /** Expose the commands map for backward compatibility. */
+  get commands(): Map<string, CommandDefinition> {
+    return this.map;
   }
 }
