@@ -14,6 +14,7 @@ import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
 import { calculateTaskUtility } from './utility-voi';
 import { SenarsError } from '../errors/senars-error';
+import { flooredRatio } from '@senars/util/numeric';
 
 // ============================================================================
 // Metareasoning
@@ -406,7 +407,7 @@ function generateSkillSuccessors(
         tasks: [
           createTask(task.id + '-executed', task.term, 'belief', { f: 0.9, c: 0.85 }, task.weight * 1.3, 'oracle'),
         ],
-        probability: 0.4 / Math.max(1, facultyNames.filter(f => f.includes('skill') || f.includes('executor')).length),
+        probability: 0.4 * flooredRatio(1, facultyNames.filter(f => f.includes('skill') || f.includes('executor')).length),
         utilityDelta: task.weight * 0.4,
         source: 'oracle',
         operation: faculty,

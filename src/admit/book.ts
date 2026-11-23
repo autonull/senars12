@@ -10,6 +10,7 @@ import type { Term } from '../kernel/terms/term';
 import type { TruthValue } from '../kernel/truth';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import { FluentBuilderMixin } from '@senars/util/fluent-builder';
 
 /** Book entry. */
 export interface BookEntry {
@@ -61,6 +62,13 @@ export interface Book {
   entries: BookEntry[];
 }
 
+/** Book builder step record. */
+export interface BookBuilderStep {
+  step: string;
+  present: boolean;
+  detail?: Record<string, unknown>;
+}
+
 /** Compute simple hash for book integrity. */
 function computeHash(content: string): string {
   let hash = 0;
@@ -72,7 +80,7 @@ function computeHash(content: string): string {
 }
 
 /** Book builder for constructing books. */
-export class BookBuilder {
+export class BookBuilder extends FluentBuilderMixin<Book, BookBuilderStep>() {
   private metadata: Partial<BookMetadata> = {};
   private entries: BookEntry[] = [];
   private artifactMap: Map<string, Artifact> = new Map();
@@ -80,6 +88,7 @@ export class BookBuilder {
   private rng: RNG;
 
   constructor(clock?: Clock, rng?: RNG) {
+    super();
     this.clock = clock ?? createDefaultClock();
     this.rng = rng ?? createDefaultRNG();
   }
@@ -87,7 +96,7 @@ export class BookBuilder {
   /** Set book metadata. */
   setMetadata(metadata: Partial<BookMetadata>): this {
     this.metadata = { ...this.metadata, ...metadata };
-    return this;
+    return this.recordStep('setMetadata', true);
   }
 
   /** Add artifact to book. */
@@ -102,7 +111,7 @@ export class BookBuilder {
       includedAt: this.clock.now(),
       tags: artifact.tags,
     });
-    return this;
+    return this.recordStep('addArtifact', true, { artifactId: artifact.id });
   }
 
   /** Add multiple artifacts. */
@@ -110,11 +119,11 @@ export class BookBuilder {
     for (const artifact of artifacts) {
       this.addArtifact(artifact);
     }
-    return this;
+    return this.recordStep('addArtifacts', true, { count: artifacts.length });
   }
 
   /** Build the book. */
-  build(): Book {
+  override build(): Book {
     const now = this.clock.now();
     const id = this.metadata.id ?? `book-${now}-${this.rng.next().toString(36).slice(2, 8)}`;
     const version = this.metadata.version ?? '1.0.0';

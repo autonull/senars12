@@ -32,8 +32,8 @@ import { circularChains } from './lib/dpdm.js';
  * `--transform` (TODO7 D3) removed edge 1; contract/impl splits removed 2 and 3/4.
  * Circular chain in `nar/src/agent/` resolved by extracting `createAgent` to separate file.
  *
- * Current baseline (Session 4): 5 cycles with `--transform` (44 raw). */
-const BASELINE = 5;
+ * Current baseline (Session 4): 4 cycles with `--transform` (44 raw). */
+const BASELINE = 4;
 
 try {
   const chains = circularChains();

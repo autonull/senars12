@@ -30,6 +30,7 @@ import {
   type DerivationStep,
   type DerivationRecord,
 } from '../generated/schemas';
+import { uuid, nonNegativeInt, timestamp, nonEmpty } from '@senars/util/config';
 
 export type {
   UUID,
@@ -63,17 +64,17 @@ export {
 /** Envelope for a log entry: event + metadata. */
 export const LogEntrySchema = z.object({
   /** Globally unique event ID. */
-  id: z.string().uuid(),
+  id: uuid,
   /** Logical timestamp (monotonic counter). */
-  seq: z.number().int().nonnegative(),
+  seq: nonNegativeInt,
   /** Wall-clock timestamp. */
-  ts: z.number().int().positive(),
+  ts: timestamp,
   /** The cognitive event payload. */
   event: CognitiveEventSchema,
   /** Causal parent event IDs (for derivation chains). */
-  parents: z.array(z.string().uuid()).default([]),
+  parents: z.array(uuid).default([]),
   /** Content hash for integrity verification. */
-  hash: z.string().min(1),
+  hash: nonEmpty,
 });
 
 export type LogEntry = z.infer<typeof LogEntrySchema>;

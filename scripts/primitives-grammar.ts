@@ -139,6 +139,10 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
     file: 'src/logics/nal/interpreter.ts',
     reason: 'unique for NAL interpreter term deduplication',
   },
+  {
+    file: 'src/surface/mcp/tools.generated.ts',
+    reason: 'generated MCP tool registry',
+  },
 ];
 
 /** One open-coded spelling and the primitive that already answers it. */

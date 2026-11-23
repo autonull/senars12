@@ -5,8 +5,7 @@
  */
 import { z } from 'zod';
 import { msg } from './envelope';
-
-const nonEmptyString = z.string().min(1);
+import { nonEmpty, unitInterval, intBetween, positiveInt } from '@senars/util/config';
 
 /**
  * The correlation the client stamps on every control request and the engine
@@ -16,7 +15,7 @@ const nonEmptyString = z.string().min(1);
 const correlation = { seqId: z.number().optional() };
 
 export const ReasoningSubmitMsg = msg('reasoning.submit', {
-  term: nonEmptyString,
+  term: nonEmpty,
   mode: z.enum(['belief', 'goal', 'question']).optional(),
   ...correlation,
 });
@@ -26,28 +25,28 @@ export const ReasoningSubmitMsg = msg('reasoning.submit', {
  * to the answer, so the proof is one round-trip rather than a 2s drain away.
  */
 export const ReasoningAskMsg = msg('reasoning.ask', {
-  term: nonEmptyString,
+  term: nonEmpty,
   /** Reasoning cycles to run after admitting the question; bounded server-side. */
-  runs: z.number().int().positive().max(200).optional(),
+  runs: intBetween(1, 200).optional(),
   ...correlation,
 });
 export const ReasoningStepMsg = msg('reasoning.step', { ...correlation });
 export const ReasoningRunMsg = msg('reasoning.run', { ...correlation });
 export const ReasoningAbortMsg = msg('reasoning.abort', { ...correlation });
-export const ReasoningRetractMsg = msg('reasoning.retract', { nodeId: nonEmptyString, ...correlation });
+export const ReasoningRetractMsg = msg('reasoning.retract', { nodeId: nonEmpty, ...correlation });
 export const ReasoningReviseMsg = msg('reasoning.revise', {
-  nodeId: nonEmptyString,
-  frequency: z.number().min(0).max(1),
-  confidence: z.number().min(0).max(1),
+  nodeId: nonEmpty,
+  frequency: unitInterval,
+  confidence: unitInterval,
   ...correlation,
 });
-export const ReasoningAddGoalMsg = msg('reasoning.add-goal', { term: nonEmptyString, ...correlation });
+export const ReasoningAddGoalMsg = msg('reasoning.add-goal', { term: nonEmpty, ...correlation });
 export const ReasoningAdjustBudgetMsg = msg('reasoning.adjust-budget', {
-  budget: z.number().positive(),
+  budget: positiveInt,
   ...correlation,
 });
 export const ReasoningAdjustProviderMsg = msg('reasoning.adjust-provider', {
-  provider: nonEmptyString,
+  provider: nonEmpty,
   ...correlation,
 });
 

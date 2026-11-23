@@ -7,12 +7,21 @@ import { MeTTaInterpreter } from '../engine/interpreter';
 import { bootstrapStdLib } from '../stdlib/index';
 import type { MeTTaAtom } from '../types/ast';
 import { DEFAULT_MEMORY_LIMIT, type MeTTaContext } from './context';
+import { FluentBuilderMixin } from '@senars/util/fluent-builder';
 
-export class MeTTaBuilder {
+/** MeTTa builder step record. */
+export interface MeTTaBuilderStep {
+  step: string;
+  present: boolean;
+  detail?: Record<string, unknown>;
+}
+
+export class MeTTaBuilder extends FluentBuilderMixin<MeTTaRuntime, MeTTaBuilderStep>() {
   private config: MeTTaConfig;
   private interpreter: MeTTaInterpreter;
 
   constructor() {
+    super();
     this.config = createConfig();
     this.interpreter = new MeTTaInterpreter();
     bootstrapStdLib();
@@ -21,15 +30,15 @@ export class MeTTaBuilder {
 
   withConfig(overrides: Partial<MeTTaConfig>): this {
     this.config = createConfig(overrides);
-    return this;
+    return this.recordStep('withConfig', true);
   }
 
   withSpace(id: string): this {
     this.interpreter.addSpace(new InMemorySpace(id));
-    return this;
+    return this.recordStep('withSpace', true, { spaceId: id });
   }
 
-  build(): MeTTaRuntime {
+  override build(): MeTTaRuntime {
     return new MeTTaRuntime(this.interpreter, this.config);
   }
 }

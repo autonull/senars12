@@ -7,8 +7,9 @@
 
 import { z } from 'zod';
 import { msg } from './envelope';
+import { nonEmpty } from '@senars/util/config';
 
 export const UiCommandMsg = msg('ui.command', {
-  command: z.string().min(1),
+  command: nonEmpty,
   args: z.record(z.string(), z.unknown()).optional(),
 });

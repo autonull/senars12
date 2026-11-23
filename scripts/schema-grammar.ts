@@ -63,26 +63,6 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
     reason: 'governance artifact schemas',
   },
   {
-    file: 'src/log/events.ts',
-    reason: 'log event schemas',
-  },
-  {
-    file: 'src/loop/contracts/schemas.ts',
-    reason: 'loop contract schemas',
-  },
-  {
-    file: 'src/protocol/reasoning-control.ts',
-    reason: 'reasoning control protocol schemas',
-  },
-  {
-    file: 'src/protocol/sync.ts',
-    reason: 'sync protocol schemas',
-  },
-  {
-    file: 'src/protocol/ui-command.ts',
-    reason: 'UI command protocol schemas',
-  },
-  {
     file: 'src/util/truth-schema.ts',
     reason: 'truth schema definitions',
   },

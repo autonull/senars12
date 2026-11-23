@@ -7,31 +7,32 @@
 import { z } from 'zod';
 import type { Term } from '../../kernel/terms/term';
 import type { Truth } from '../../kernel/truth';
+import { uuid, nonNegativeInt, unitInterval, nonEmpty } from '@senars/util/config';
 
 // ============================================================================
 // Base schemas
 // ============================================================================
 
 /** Unique identifier. */
-export const IdSchema = z.string().uuid();
+export const IdSchema = uuid;
 
 /** Timestamp (milliseconds since epoch). */
-export const TimestampSchema = z.number().int().nonnegative();
+export const TimestampSchema = nonNegativeInt;
 
 /** Term reference (serialized). */
 export const TermRefSchema = z.object({
   /** Term string representation. */
-  term: z.string(),
+  term: nonEmpty,
   /** Term hash for quick comparison. */
-  hash: z.string(),
+  hash: nonEmpty,
 });
 
 /** Truth value reference. */
 export const TruthRefSchema = z.object({
   /** Frequency component [0,1]. */
-  frequency: z.number().min(0).max(1),
+  frequency: unitInterval,
   /** Confidence component [0,1]. */
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval,
 });
 
 /** Task bag kind. */
@@ -74,7 +75,7 @@ export const CandidateSchema = z.object({
   /** Utility weight. */
   weight: z.number().nonnegative(),
   /** Activation level [0,1]. */
-  activation: z.number().min(0).max(1),
+  activation: unitInterval,
   /** Creation timestamp. */
   createdAt: TimestampSchema,
   /** Dependencies (candidate IDs). */
@@ -101,9 +102,9 @@ export const JudgmentSchema = z.object({
   /** Candidate that was judged. */
   candidateId: IdSchema,
   /** Judgment score [0,1]. */
-  score: z.number().min(0).max(1),
+  score: unitInterval,
   /** Confidence in judgment [0,1]. */
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval,
   /** Judgment details. */
   details: z.record(z.string(), z.unknown()),
   /** Faculty that produced this judgment. */
@@ -116,7 +117,7 @@ export const JudgmentSchema = z.object({
   evidence: z.array(z.object({
     source: z.string(),
     description: z.string(),
-    strength: z.number().min(0).max(1),
+    strength: unitInterval,
   })),
 });
 
@@ -134,13 +135,13 @@ export const ConsequenceReportSchema = z.object({
   /** Predicted consequences. */
   predicted: z.array(z.object({
     term: TermRefSchema,
-    probability: z.number().min(0).max(1),
+    probability: unitInterval,
     utilityDelta: z.number(),
   })),
   /** Observed consequences (after execution). */
   observed: z.array(z.object({
     term: TermRefSchema,
-    actualProbability: z.number().min(0).max(1),
+    actualProbability: unitInterval,
     utilityDelta: z.number(),
     timestamp: TimestampSchema,
   })).optional(),
@@ -170,7 +171,7 @@ export const ConflictSchema = z.object({
     'priority',
   ]),
   /** Severity [0,1]. */
-  severity: z.number().min(0).max(1),
+  severity: unitInterval,
   /** Description. */
   description: z.string(),
   /** Detected at timestamp. */
@@ -279,17 +280,17 @@ export const VerdictSchema = z.object({
   /** Verdict value. */
   value: z.enum(['proven', 'disproven', 'unchecked']),
   /** Confidence [0,1]. */
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval,
   /** Reasoning trace. */
   reasoning: z.string(),
   /** Evidence. */
   evidence: z.array(z.object({
     source: z.string(),
     description: z.string(),
-    strength: z.number().min(0).max(1),
+    strength: unitInterval,
   })),
   /** Deliberation depth (iterations). */
-  deliberationDepth: z.number().int().nonnegative(),
+  deliberationDepth: nonNegativeInt,
   /** Irreversibility level. */
   irreversibility: z.enum(['reversible', 'semi_reversible', 'irreversible']),
   /** Timestamp. */
@@ -325,7 +326,7 @@ export const OutcomeSchema = z.object({
     newTruth: TruthRefSchema.optional(),
   })),
   /** Duration (ms). */
-  durationMs: z.number().int().nonnegative(),
+  durationMs: nonNegativeInt,
   /** Timestamp. */
   timestamp: TimestampSchema,
   /** Error if failed. */
@@ -359,14 +360,14 @@ export const LessonSchema = z.object({
     pattern: z.string(),
     condition: z.record(z.string(), z.unknown()),
     prediction: z.record(z.string(), z.unknown()),
-    confidence: z.number().min(0).max(1),
+    confidence: unitInterval,
   }),
   /** Supporting outcome IDs. */
   supportingOutcomes: z.array(IdSchema),
   /** Contradicting outcome IDs. */
   contradictingOutcomes: z.array(IdSchema),
   /** Strength [0,1]. */
-  strength: z.number().min(0).max(1),
+  strength: unitInterval,
   /** Created at timestamp. */
   createdAt: TimestampSchema,
   /** Last reinforced timestamp. */
@@ -400,7 +401,7 @@ export const WorkItemSchema = z.object({
   /** Candidate/task this work item relates to. */
   candidateId: IdSchema.optional(),
   /** Priority [0,1]. */
-  priority: z.number().min(0).max(1),
+  priority: unitInterval,
   /** Estimated cost. */
   estimatedCost: z.number().nonnegative(),
   /** Actual cost (when completed). */

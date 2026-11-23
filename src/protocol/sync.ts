@@ -6,6 +6,7 @@ import { ConfigField } from './config';
 import { msg } from './envelope';
 import { Lens } from './graph-view';
 import type { CognitiveEvent } from '../schemas/cognitive-events';
+import { nonNegativeInt } from '@senars/util/config';
 
 export const SyncRequest = msg('sync.request', { lastSeqId: z.number().nullable() });
 
@@ -67,6 +68,6 @@ export const CyclePauseMsg = msg('cycle.pause', { seqId: z.number().optional() }
 export const CycleResumeMsg = msg('cycle.resume', { seqId: z.number().optional() });
 export const CycleRewindMsg = msg('cycle.rewind', {
   /** The cycle count to rewind toward; the boundary actually restored is reported back. */
-  cycles: z.number().int().nonnegative().optional(),
+  cycles: nonNegativeInt.optional(),
   seqId: z.number().optional(),
 });

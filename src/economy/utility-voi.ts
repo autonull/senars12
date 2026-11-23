@@ -12,6 +12,7 @@ import type { EconomyTask, TaskUtility, TaskVoI, Successor, Overlay, SchedulerCo
 import type { Truth } from '../kernel/truth';
 import type { Clock } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
+import { flooredRatio, sigmoid } from '@senars/util/numeric';
 
 // ============================================================================
 // Utility Calculation
@@ -399,7 +400,7 @@ function calculateOracleInformationGain(task: EconomyTask, oracleCapabilities: s
     }
   }
 
-  return Math.min(1, matches / Math.max(1, oracleCapabilities.length)) * 0.5;
+  return Math.min(1, matches * flooredRatio(1, oracleCapabilities.length)) * 0.5;
 }
 
 /** Calculate faculty information gain. */
@@ -416,7 +417,7 @@ function calculateFacultyInformationGain(task: EconomyTask, facultyCapabilities:
     }
   }
 
-  return Math.min(1, matches / Math.max(1, facultyCapabilities.length)) * 0.4;
+  return Math.min(1, matches * flooredRatio(1, facultyCapabilities.length)) * 0.4;
 }
 
 /** Calculate exploration bonus. */
@@ -643,7 +644,7 @@ export function predictAnswerability(
   logit += model.featureWeights.task_kind_skill ?? 0 * features.taskKind.skill;
 
   // Sigmoid
-  return 1 / (1 + Math.exp(-logit));
+  return sigmoid(logit);
 }
 
 /** Train answerability model from outcomes. */
