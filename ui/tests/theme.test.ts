@@ -8,6 +8,7 @@ import {
   TOKENS,
 } from '../src/client/styles/tokens.generated';
 import { cssVar, getTheme, numericToken, setTheme, theme, token, truthColor } from '../src/client/utils/theme';
+import { flattenTokens, resolveTheme, type TokenTree } from '../src/client/utils/token-utils.js';
 
 type Tree = Record<string, unknown>;
 
@@ -15,39 +16,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const readText = (rel: string): string => readFileSync(resolve(HERE, rel), 'utf-8');
 const readJson = (rel: string): Tree => JSON.parse(readText(rel));
 
-function flatten(obj: Tree, prefix = ''): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(obj).flatMap(([key, value]) => {
-      const path = prefix ? `${prefix}.${key}` : key;
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        return Object.entries(flatten(value as Tree, path));
-      }
-      return [[path, String(value)]];
-    })
-  );
-}
-
-function resolveRefs(value: string, flat: Record<string, string>): string {
-  return value.replace(/\{([^}]+)\}/g, (_, path: string) => {
-    const resolved = flat[path];
-    if (resolved === undefined) throw new Error(`Missing token: ${path}`);
-    return resolveRefs(resolved, flat);
-  });
-}
-
 function expectedTokens(): Record<string, Record<string, string>> {
   const raw = readJson('../design-tokens.json');
-  const { themes, ...base } = raw;
-  const baseFlat = flatten(base);
-  const names = [DEFAULT_THEME, ...Object.keys((themes as Tree) ?? {})];
+  const { themes, ...base } = raw as TokenTree;
+  const baseFlat = flattenTokens(base);
+  const names = [DEFAULT_THEME, ...Object.keys((themes as TokenTree) ?? {})];
   return Object.fromEntries(
     names.map((name) => {
-      const overrides = name === DEFAULT_THEME ? {} : flatten((themes as Tree)[name] as Tree);
-      const flat = { ...baseFlat, ...overrides };
-      return [
-        name,
-        Object.fromEntries(Object.entries(flat).map(([path, value]) => [path, resolveRefs(value, flat)])),
-      ];
+      const overrides = name === DEFAULT_THEME ? {} : flattenTokens((themes as TokenTree)[name] as TokenTree);
+      return [name, resolveTheme(baseFlat, overrides)];
     })
   );
 }

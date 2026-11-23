@@ -146,3 +146,7 @@ export class Graph2DRenderer implements WorkspaceRenderer {
     return this.selection;
   }
 }
+
+export const createGraph2DRenderer = (
+  options?: Graph2DRendererOptions,
+): Graph2DRenderer => new Graph2DRenderer(options);

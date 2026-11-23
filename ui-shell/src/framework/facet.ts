@@ -59,6 +59,9 @@ export interface FacetDescriptor<D extends FacetData = FacetData> extends Contri
   readonly kind: FacetKind;
   readonly gate: FacetGate;
   readonly data: D;
+  /** Alias for `data` to satisfy Contribution<F> constraint. */
+  readonly facets: D;
+  /** Index signature to satisfy CatalogEntry constraint. */
   readonly [key: string]: unknown;
 }
 
@@ -135,12 +138,12 @@ export function createLensFacet<D extends FacetData>(
   return {
     id,
     label,
-    facets: data,
     kind: 'lens' as const,
     gate: requires.length > 0 && firstCapability
       ? { type: 'capability' as const, capability: firstCapability }
       : { type: 'none' as const },
     data,
+    facets: data,
   };
 }
 
@@ -153,10 +156,10 @@ export function createLayerFacet<D extends FacetData>(
   return {
     id,
     label,
-    facets: data,
     kind: 'layer' as const,
     gate: { type: 'none' as const },
     data,
+    facets: data,
   };
 }
 
@@ -169,10 +172,10 @@ export function createModeFacet<D extends FacetData>(
   return {
     id,
     label,
-    facets: data,
     kind: 'mode' as const,
     gate: { type: 'capability' as const, capability: data.capability },
     data,
+    facets: data,
   };
 }
 
@@ -185,10 +188,10 @@ export function createFilterFacet<D extends FacetData>(
   return {
     id,
     label,
-    facets: data,
     kind: 'filter' as const,
     gate: { type: 'none' as const },
     data,
+    facets: data,
   };
 }
 

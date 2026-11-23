@@ -1,46 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
-
-interface TokenTree {
-  [key: string]: unknown;
-}
-
-type FlatTokens = Record<string, string>;
+import { flattenTokens, resolveTheme, type TokenTree, type FlatTokens } from '../src/client/utils/token-utils.js';
 
 const DEFAULT_THEME = 'dark';
 
-function resolveRefs(value: string, flat: FlatTokens, visited = new Set<string>()): string {
-  return value.replace(/\{([^}]+)\}/g, (_, path) => {
-    if (visited.has(path)) throw new Error(`Circular reference: ${path}`);
-    visited.add(path);
-    const resolved = flat[path];
-    if (resolved === undefined) throw new Error(`Missing token: ${path}`);
-    return resolved.match(/\{/) ? resolveRefs(resolved, flat, visited) : resolved;
-  });
-}
-
-function flattenTokens(obj: TokenTree, prefix = ''): FlatTokens {
-  const result: FlatTokens = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      Object.assign(result, flattenTokens(value as TokenTree, path));
-    } else {
-      result[path] = String(value);
-    }
-  }
-  return result;
-}
-
 const toCssVar = (path: string): string => `--${path.replace(/\./g, '-')}`;
-
-/** Every token path resolved to a literal value for one theme. */
-function resolveTheme(base: FlatTokens, overrides: FlatTokens): FlatTokens {
-  const flat = { ...base, ...overrides };
-  return Object.fromEntries(
-    Object.entries(flat).map(([path, value]) => [path, resolveRefs(value, flat)])
-  );
-}
 
 function cssBlock(selector: string, tokens: FlatTokens): string {
   const body = Object.entries(tokens)
