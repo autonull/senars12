@@ -213,8 +213,8 @@ export class LaneArenaRunner {
       totalOracleCalls += action.oracleCalls ?? 0;
 
       // Apply action (simplified)
-      const transition = this.registry.transitions.get(habitat.transition);
-      const rewardFn = this.registry.rewards.get(habitat.reward);
+      const transition = this.registry.getTransition(habitat.transition);
+      const rewardFn = this.registry.getReward(habitat.reward);
 
       if (transition && rewardFn) {
         const nextState = transition(state, action, habitat);

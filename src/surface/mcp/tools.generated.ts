@@ -5,39 +5,68 @@
  * DO NOT EDIT MANUALLY - changes will be overwritten.
  */
 
+import { KeyedRegistry } from '../../util/keyed-collection';
 import type { MCPTool } from './types';
 import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index';
 import type { Artifact, ArtifactKind } from '../../admit/repertoire';
 import type { Curriculum } from '../../admit/curriculum';
 
-/** Generated tool registry. */
-export interface GeneratedToolRegistry {
-  /** Tools by name. */
-  tools: Map<string, MCPTool>;
-  /** Tool categories. */
-  categories: Map<string, string[]>;
+/** Tool registration with category. */
+interface ToolRegistration {
+  readonly tool: MCPTool;
+  readonly category: string;
 }
 
-/** Create generated tool registry. */
+/** Generated tool registry using KeyedRegistry. */
+export class GeneratedToolRegistry {
+  readonly tools: KeyedRegistry<MCPTool>;
+  readonly categories: KeyedRegistry<ToolRegistration>;
+
+  constructor() {
+    this.tools = new KeyedRegistry<MCPTool>({
+      keyOf: (t) => t.name,
+      onDuplicate: (name) => { throw new Error(`Tool '${name}' already registered`); },
+    });
+    this.categories = new KeyedRegistry<ToolRegistration>({
+      keyOf: (r) => `${r.category}:${r.tool.name}`,
+      onDuplicate: (key) => { throw new Error(`Tool registration '${key}' already registered`); },
+    });
+  }
+
+  /** Register generated tool. */
+  registerGeneratedTool(tool: MCPTool, category = 'general'): void {
+    this.tools.register(tool);
+    this.categories.register({ tool, category });
+  }
+
+  /** Get tools by category. */
+  getToolsByCategory(category: string): MCPTool[] {
+    const names = this.categories.keys()
+      .filter((k) => k.startsWith(`${category}:`))
+      .map((k) => k.slice(category.length + 1));
+    return names.map((name) => this.tools.get(name)!).filter(Boolean);
+  }
+
+  /** Get all registered tool names. */
+  getToolNames(): string[] {
+    return this.tools.keys();
+  }
+
+  /** Get all registered categories. */
+  getCategories(): string[] {
+    return [...new Set(this.categories.keys().map((k) => k.split(':')[0] ?? ''))].filter(Boolean);
+  }
+
+  /** Clear all registrations. */
+  clear(): void {
+    this.tools.clear();
+    this.categories.clear();
+  }
+}
+
+/** Create generated tool registry instance. */
 export function createGeneratedToolRegistry(): GeneratedToolRegistry {
-  return {
-    tools: new Map(),
-    categories: new Map(),
-  };
-}
-
-/** Register generated tool. */
-export function registerGeneratedTool(registry: GeneratedToolRegistry, tool: MCPTool, category = 'general'): void {
-  registry.tools.set(tool.name, tool);
-  const cats = registry.categories.get(category) ?? [];
-  cats.push(tool.name);
-  registry.categories.set(category, cats);
-}
-
-/** Get tools by category. */
-export function getToolsByCategory(registry: GeneratedToolRegistry, category: string): MCPTool[] {
-  const names = registry.categories.get(category) ?? [];
-  return names.map(name => registry.tools.get(name)!).filter(Boolean);
+  return new GeneratedToolRegistry();
 }
 
 /** Core system tools (always available). */

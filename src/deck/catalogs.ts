@@ -118,40 +118,81 @@ export const CatalogFormatters = {
 /**
  * Multi-catalog registry for deck — aggregates all catalogs.
  */
-export interface DeckCatalogRegistry {
-  /** Shape catalog. */
+import { KeyedRegistry } from '../util/keyed-collection';
+
+/** Catalog entry for the registry. */
+interface DeckCatalogEntry {
+  readonly name: string;
+  readonly view: DeckCatalogView<any>;
+}
+
+/** Multi-catalog registry for deck — aggregates all catalogs. */
+export class DeckCatalogRegistry {
   shapes?: DeckCatalogView<any>;
-  /** View adapter catalog. */
   viewAdapters?: DeckCatalogView<any>;
-  /** Intent catalog. */
   intents?: DeckCatalogView<any>;
-  /** Custom catalogs by name. */
-  custom: Record<string, DeckCatalogView<any>>;
-}
+  readonly custom: KeyedRegistry<DeckCatalogEntry>;
 
-/**
- * Create a deck catalog registry.
- */
-export function createDeckCatalogRegistry(): DeckCatalogRegistry {
-  return {
-    custom: {},
-  };
-}
-
-/**
- * Register a catalog in the registry.
- */
-export function registerDeckCatalog(
-  registry: DeckCatalogRegistry,
-  name: keyof DeckCatalogRegistry | string,
-  catalog: Catalog<any>
-): void {
-  const view = createDeckCatalogView(catalog);
-  if (name === 'shapes' || name === 'viewAdapters' || name === 'intents') {
-    (registry as any)[name] = view;
-  } else {
-    registry.custom[name] = view;
+  constructor() {
+    this.custom = new KeyedRegistry<DeckCatalogEntry>({
+      keyOf: (e) => e.name,
+      onDuplicate: (name) => { throw new Error(`Custom catalog '${name}' already registered`); },
+    });
   }
+
+  /** Register a catalog in the registry. */
+  register(name: string, catalog: Catalog<any>): void {
+    const view = createDeckCatalogView(catalog);
+    if (name === 'shapes') {
+      this.shapes = view;
+    } else if (name === 'viewAdapters') {
+      this.viewAdapters = view;
+    } else if (name === 'intents') {
+      this.intents = view;
+    } else {
+      this.custom.register({ name, view });
+    }
+  }
+
+  /** Get a catalog view by name. */
+  get(name: string): DeckCatalogView<any> | undefined {
+    if (name === 'shapes') return this.shapes;
+    if (name === 'viewAdapters') return this.viewAdapters;
+    if (name === 'intents') return this.intents;
+    return this.custom.get(name)?.view;
+  }
+
+  /** Get all catalog names. */
+  getNames(): string[] {
+    const names: string[] = [];
+    if (this.shapes) names.push('shapes');
+    if (this.viewAdapters) names.push('viewAdapters');
+    if (this.intents) names.push('intents');
+    names.push(...this.custom.keys());
+    return names;
+  }
+
+  /** Get total entry count across all catalogs. */
+  getTotalEntries(): number {
+    let total = 0;
+    if (this.shapes) total += this.shapes.size;
+    if (this.viewAdapters) total += this.viewAdapters.size;
+    if (this.intents) total += this.intents.size;
+    for (const entry of this.custom.all()) {
+      total += entry.view.size;
+    }
+    return total;
+  }
+
+  /** Clear all registrations. */
+  clear(): void {
+    this.custom.clear();
+  }
+}
+
+/** Create a deck catalog registry instance. */
+export function createDeckCatalogRegistry(): DeckCatalogRegistry {
+  return new DeckCatalogRegistry();
 }
 
 /**
@@ -165,18 +206,26 @@ export function renderDeckCatalogRegistry(registry: DeckCatalogRegistry): string
   ];
 
   let totalEntries = 0;
+  let catalogCount = 0;
 
-  for (const [name, view] of Object.entries(registry)) {
-    if (view && 'size' in view) {
-      const v = view as DeckCatalogView<any>;
-      lines.push(`║ ${name.padEnd(15)} │ ${String(v.size).padStart(3)} entries ║`);
-      totalEntries += v.size;
+  const catalogs = [
+    { name: 'shapes', view: registry.shapes },
+    { name: 'viewAdapters', view: registry.viewAdapters },
+    { name: 'intents', view: registry.intents },
+    ...registry.custom.all().map((e) => ({ name: e.name, view: e.view })),
+  ];
+
+  for (const { name, view } of catalogs) {
+    if (view) {
+      lines.push(`║ ${name.padEnd(15)} │ ${String(view.size).padStart(3)} entries ║`);
+      totalEntries += view.size;
+      catalogCount++;
     }
   }
 
   lines.push(`╠══════════════════════════════════════════════════════════════╣`);
-  lines.push(`║ Total: ${String(totalEntries).padStart(3)} entries across ${String(Object.keys(registry).length).padStart(2)} catalogs          ║`);
-  lines.push(`╚══════════════════════════════════════════════════════════════╝`);
+  lines.push(`║ Total: ${String(totalEntries).padStart(3)} entries across ${String(catalogCount).padStart(2)} catalogs          ║`);
+  lines.push(`╚═══════════════════════════════════════════════════════════════╝`);
 
   return lines.join('\n');
 }

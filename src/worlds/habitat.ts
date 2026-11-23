@@ -125,14 +125,7 @@ export interface HabitatAction {
 }
 
 /** Habitat registry for transitions and rewards. */
-export interface HabitatRegistry {
-  /** Registered transition functions. */
-  transitions: Map<string, TransitionFn>;
-  /** Registered reward functions. */
-  rewards: Map<string, RewardFn>;
-  /** Registered termination functions. */
-  terminations: Map<string, TerminationFn>;
-}
+import { KeyedRegistry } from '../util/keyed-collection';
 
 /** Transition function signature. */
 export type TransitionFn = (
@@ -155,40 +148,89 @@ export type TerminationFn = (
   config: HabitatConfig
 ) => { terminated: boolean; reason?: string };
 
-/** Default habitat registry. */
+/** Function registration with metadata. */
+interface FunctionRegistration<Fn> {
+  readonly name: string;
+  readonly fn: Fn;
+}
+
+/** Habitat registry using KeyedRegistry for each function type. */
+export class HabitatRegistry {
+  readonly transitions: KeyedRegistry<FunctionRegistration<TransitionFn>>;
+  readonly rewards: KeyedRegistry<FunctionRegistration<RewardFn>>;
+  readonly terminations: KeyedRegistry<FunctionRegistration<TerminationFn>>;
+
+  constructor() {
+    this.transitions = new KeyedRegistry<FunctionRegistration<TransitionFn>>({
+      keyOf: (r) => r.name,
+      onDuplicate: (name) => { throw new Error(`Transition '${name}' already registered`); },
+    });
+    this.rewards = new KeyedRegistry<FunctionRegistration<RewardFn>>({
+      keyOf: (r) => r.name,
+      onDuplicate: (name) => { throw new Error(`Reward '${name}' already registered`); },
+    });
+    this.terminations = new KeyedRegistry<FunctionRegistration<TerminationFn>>({
+      keyOf: (r) => r.name,
+      onDuplicate: (name) => { throw new Error(`Termination '${name}' already registered`); },
+    });
+  }
+
+  /** Register a transition function. */
+  registerTransition(name: string, fn: TransitionFn): void {
+    this.transitions.register({ name, fn });
+  }
+
+  /** Register a reward function. */
+  registerReward(name: string, fn: RewardFn): void {
+    this.rewards.register({ name, fn });
+  }
+
+  /** Register a termination function. */
+  registerTermination(name: string, fn: TerminationFn): void {
+    this.terminations.register({ name, fn });
+  }
+
+  /** Get a transition function by name. */
+  getTransition(name: string): TransitionFn | undefined {
+    return this.transitions.get(name)?.fn;
+  }
+
+  /** Get a reward function by name. */
+  getReward(name: string): RewardFn | undefined {
+    return this.rewards.get(name)?.fn;
+  }
+
+  /** Get a termination function by name. */
+  getTermination(name: string): TerminationFn | undefined {
+    return this.terminations.get(name)?.fn;
+  }
+
+  /** Get all registered transition names. */
+  getTransitionNames(): string[] {
+    return this.transitions.keys();
+  }
+
+  /** Get all registered reward names. */
+  getRewardNames(): string[] {
+    return this.rewards.keys();
+  }
+
+  /** Get all registered termination names. */
+  getTerminationNames(): string[] {
+    return this.terminations.keys();
+  }
+
+  /** Clear all registrations. */
+  clear(): void {
+    this.transitions.clear();
+    this.rewards.clear();
+    this.terminations.clear();
+  }
+}
+
+/** Create a habitat registry instance. */
 export function createHabitatRegistry(): HabitatRegistry {
-  return {
-    transitions: new Map(),
-    rewards: new Map(),
-    terminations: new Map(),
-  };
-}
-
-/** Register a transition function. */
-export function registerTransition(
-  registry: HabitatRegistry,
-  name: string,
-  fn: TransitionFn
-): void {
-  registry.transitions.set(name, fn);
-}
-
-/** Register a reward function. */
-export function registerReward(
-  registry: HabitatRegistry,
-  name: string,
-  fn: RewardFn
-): void {
-  registry.rewards.set(name, fn);
-}
-
-/** Register a termination function. */
-export function registerTermination(
-  registry: HabitatRegistry,
-  name: string,
-  fn: TerminationFn
-): void {
-  registry.terminations.set(name, fn);
+  return new HabitatRegistry();
 }
 
 /** Create initial habitat state from config. */
@@ -210,9 +252,9 @@ export function stepHabitat(
   action: HabitatAction,
   registry: HabitatRegistry
 ): HabitatStepResult {
-  const transition = registry.transitions.get(config.transition);
-  const rewardFn = registry.rewards.get(config.reward);
-  const termination = registry.terminations.get(config.termination.custom ?? 'default');
+  const transition = registry.getTransition(config.transition);
+  const rewardFn = registry.getReward(config.reward);
+  const termination = registry.getTermination(config.termination.custom ?? 'default');
 
   if (!transition) {
     throw new Error(`Transition function not found: ${config.transition}`);

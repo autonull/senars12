@@ -7,7 +7,7 @@
  * - Game rewards → Habitat rewards
  */
 
-import type { HabitatRegistry, HabitatState, HabitatAction, HabitatConfig, EntityState, AgentState } from './habitat';
+import { createHabitatRegistry, type HabitatRegistry, type HabitatState, type HabitatAction, type HabitatConfig, type EntityState, type AgentState } from './habitat';
 import type { Game, GameOutcome, Perception } from '../game/Game';
 import { createArithmeticGame, ArithmeticState } from '../game/impls/ArithmeticGame';
 import { createBanditGame } from '../game/impls/BanditGame';
@@ -627,41 +627,41 @@ function createGameFromConfig(config: HabitatConfig): Game<any, any> {
 /** Register all game transitions and rewards. */
 export function registerGameTransitions(registry: HabitatRegistry): void {
   // Transitions
-  registry.transitions.set('arithmetic', arithmeticTransition);
-  registry.transitions.set('bandit', banditTransition);
-  registry.transitions.set('catch', catchTransition);
-  registry.transitions.set('2048', game2048Transition);
-  registry.transitions.set('gridworld', gridworldTransition);
-  registry.transitions.set('reasoning', reasoningTransition);
-  registry.transitions.set('rps', rpsTransition);
-  registry.transitions.set('snake', snakeTransition);
-  registry.transitions.set('tetris', tetrisTransition);
-  registry.transitions.set('tictactoe', tictactoeTransition);
-  registry.transitions.set('conversation', conversationTransition);
-  registry.transitions.set('focus', focusTransition);
-  registry.transitions.set('metagame', metagameTransition);
-  registry.transitions.set('selfmeta', selfmetagameTransition);
-  registry.transitions.set('reasoningmeta', reasoningmetagameTransition);
+  registry.registerTransition('arithmetic', arithmeticTransition);
+  registry.registerTransition('bandit', banditTransition);
+  registry.registerTransition('catch', catchTransition);
+  registry.registerTransition('2048', game2048Transition);
+  registry.registerTransition('gridworld', gridworldTransition);
+  registry.registerTransition('reasoning', reasoningTransition);
+  registry.registerTransition('rps', rpsTransition);
+  registry.registerTransition('snake', snakeTransition);
+  registry.registerTransition('tetris', tetrisTransition);
+  registry.registerTransition('tictactoe', tictactoeTransition);
+  registry.registerTransition('conversation', conversationTransition);
+  registry.registerTransition('focus', focusTransition);
+  registry.registerTransition('metagame', metagameTransition);
+  registry.registerTransition('selfmeta', selfmetagameTransition);
+  registry.registerTransition('reasoningmeta', reasoningmetagameTransition);
 
   // Rewards
-  registry.rewards.set('accuracy', arithmeticReward);
-  registry.rewards.set('regret', banditReward);
-  registry.rewards.set('caught', catchReward);
-  registry.rewards.set('score', game2048Reward);
-  registry.rewards.set('sparse', gridworldReward);
-  registry.rewards.set('validity', reasoningReward);
-  registry.rewards.set('winrate', rpsReward);
-  registry.rewards.set('length', snakeReward);
-  registry.rewards.set('lines', tetrisReward);
-  registry.rewards.set('win', tictactoeReward);
-  registry.rewards.set('coherence', conversationReward);
-  registry.rewards.set('attention-efficiency', focusReward);
-  registry.rewards.set('parameter_quality', metagameReward);
-  registry.rewards.set('coherence', selfmetagameReward);
-  registry.rewards.set('parameter_quality', reasoningmetagameReward);
+  registry.registerReward('accuracy', arithmeticReward);
+  registry.registerReward('regret', banditReward);
+  registry.registerReward('caught', catchReward);
+  registry.registerReward('score', game2048Reward);
+  registry.registerReward('sparse', gridworldReward);
+  registry.registerReward('validity', reasoningReward);
+  registry.registerReward('winrate', rpsReward);
+  registry.registerReward('length', snakeReward);
+  registry.registerReward('lines', tetrisReward);
+  registry.registerReward('win', tictactoeReward);
+  registry.registerReward('coherence', conversationReward);
+  registry.registerReward('attention-efficiency', focusReward);
+  registry.registerReward('parameter_quality', metagameReward);
+  registry.registerReward('coherence', selfmetagameReward);
+  registry.registerReward('parameter_quality', reasoningmetagameReward);
 
   // Terminations (use default)
-  registry.terminations.set('default', (state: HabitatState) => ({
+  registry.registerTermination('default', (state: HabitatState) => ({
     terminated: state.step >= 1000,
     reason: 'maxSteps',
   }));
@@ -669,11 +669,7 @@ export function registerGameTransitions(registry: HabitatRegistry): void {
 
 /** Create a habitat registry with all game transitions registered. */
 export function createGameHabitatRegistry(): HabitatRegistry {
-  const registry = {
-    transitions: new Map<string, any>(),
-    rewards: new Map<string, any>(),
-    terminations: new Map<string, any>(),
-  };
+  const registry = createHabitatRegistry();
   registerGameTransitions(registry);
   return registry;
 }

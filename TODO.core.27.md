@@ -10,7 +10,7 @@
 
 | ID | Consolidated Workstream | Merges | Impact | Effort | Dependencies |
 |----|-------------------------|--------|--------|--------|--------------|
-| **W1** | **Registry Unification** | F1 + C11 | ★★★★★ | M | — | 🟡 **In Progress** |
+| **W1** | **Registry Unification** | F1 + C11 | ★★★★★ | M | — | ✅ **Done** |
 | **W2** | **Boundary Primitives Enforcement** | F2 | ★★★★★ | S | — | ✅ **Done** |
 | **W3** | **Strategy System Unification** | F3 + C1 + C2 | ★★★★★ | M | W1 | 🟡 **In Progress** |
 | **W4** | **Transport Abstraction** | A1 + C3 | ★★★★☆ | M | W1 |
@@ -73,21 +73,21 @@ WEEK 4:
 | `ProfileRegistry` (×2) | `NameRegistry` | ✅ done (FunctionRegistry) |
 | `LearnerRegistry` | `NameRegistry` | ✅ done (FunctionRegistry) |
 | `GenomeRegistry` | `NameRegistry` | ✅ done (IdRegistry) |
-| `PortalRegistry` | `NameRegistry` | migrate |
+| `PortalRegistry` | `NameRegistry` | ✅ done (FunctionRegistry) |
 | `ContractRegistry` | `FunctionRegistry` | ✅ done (IdRegistry) |
 | `GovernanceArtifactRegistry` | `IdRegistry` | ✅ done (FunctionRegistry) |
 | `MissionOverlayRegistry` | `NameRegistry` | ✅ done (FunctionRegistry) |
-| `DeckCatalogRegistry` | `FunctionRegistry` | migrate |
-| `DeckSurfaceRegistry` | `FunctionRegistry` | migrate |
-| `HabitatRegistry` | `FunctionRegistry` | migrate |
-| `AssociativeRegistry` | `FunctionRegistry` | migrate |
-| `FoldViewRegistry` | `FunctionRegistry` | migrate |
+| `DeckCatalogRegistry` | `FunctionRegistry` | ✅ done (KeyedRegistry) |
+| `DeckSurfaceRegistry` | `FunctionRegistry` | ✅ done (computed view) |
+| `HabitatRegistry` | `FunctionRegistry` | ✅ done (KeyedRegistry) |
+| `AssociativeRegistry` | `FunctionRegistry` | migrate (special case) |
+| `FoldViewRegistry` | `FunctionRegistry` | ✅ done (KeyedRegistry) |
 | `LogicRegistry` | `FunctionRegistry` | ✅ done |
 | `CommandRegistry` | `NameRegistry` | ✅ done |
 | `DisposalRegistry` | `FunctionRegistry` | migrate (special case) |
-| `TransportRegistry` | `FunctionRegistry` | migrate |
-| `GeneratedResourceRegistry` | `FunctionRegistry` | migrate |
-| `GeneratedToolRegistry` | `FunctionRegistry` | migrate |
+| `TransportRegistry` | `FunctionRegistry` | ✅ done (KeyedRegistry) |
+| `GeneratedResourceRegistry` | `FunctionRegistry` | ✅ done (KeyedRegistry) |
+| `GeneratedToolRegistry` | `FunctionRegistry` | ✅ done (KeyedRegistry) |
 | **UI-Contract:** `ShapeRegistry` | `NameRegistry` | ✅ done (own factory) |
 | **UI-Contract:** `ArrangementRegistry` | `NameRegistry` | ✅ done (own factory) |
 | **UI-Contract:** `AspectRegistry` | `NameRegistry` | ✅ done (own factory) |

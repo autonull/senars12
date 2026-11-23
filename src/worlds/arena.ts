@@ -359,9 +359,9 @@ function stepHabitat(
   action: HabitatAction,
   registry: HabitatRegistry
 ): HabitatStepResult {
-  const transition = registry.transitions.get(config.transition);
-  const rewardFn = registry.rewards.get(config.reward);
-  const termination = registry.terminations.get(config.termination.custom ?? 'default');
+  const transition = registry.getTransition(config.transition);
+  const rewardFn = registry.getReward(config.reward);
+  const termination = registry.getTermination(config.termination.custom ?? 'default');
 
   if (!transition) throw new Error(`Transition not found: ${config.transition}`);
   if (!rewardFn) throw new Error(`Reward not found: ${config.reward}`);

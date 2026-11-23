@@ -783,77 +783,88 @@ export function createTermPatternsAnalyzerView(getLog: () => Episode[]): TermPat
   return { name: 'TermPatternsAnalyzer', get version() { return version; }, get lastUpdated() { return lastUpdated; }, get stale() { return stale; }, async refresh() { rebuild(); }, evict() { data.termFrequency.clear(); data.coOccurrence.clear(); stale = true; }, getData() { return data; }, analyzeEpisode(ep) { return { termFrequency: new Map(), coOccurrence: new Map() }; }, getAggregated() { return data; } };
 }
 
-/** Registry of all fold views. */
-export interface FoldViewRegistry {
-  causalIndex: CausalIndexView;
-  conceptGraph: ConceptGraphView;
-  associativeMemory: AssociativeMemoryView;
-  embeddingLayer: EmbeddingLayerView;
-  episodeConsolidator: EpisodeConsolidatorView;
-  capabilitiesAnalyzer: CapabilitiesAnalyzerView;
-  constantsAnalyzer: ConstantsAnalyzerView;
-  correctionsAnalyzer: CorrectionsAnalyzerView;
-  performanceAnalyzer: PerformanceAnalyzerView;
-  qualityAnalyzer: QualityAnalyzerView;
-  reasoningPatternsAnalyzer: ReasoningPatternsAnalyzerView;
-  resourcesAnalyzer: ResourcesAnalyzerView;
-  termPatternsAnalyzer: TermPatternsAnalyzerView;
+/** Registry of all fold views using KeyedRegistry. */
+import { KeyedRegistry } from '../util/keyed-collection';
+
+/** Registry of all fold views using KeyedRegistry. */
+export class FoldViewRegistry {
+  readonly views: KeyedRegistry<FoldView<any>>;
+
+  constructor() {
+    this.views = new KeyedRegistry<FoldView<any>>({
+      keyOf: (v) => v.name,
+      onDuplicate: (name) => { throw new Error(`Fold view '${name}' already registered`); },
+    });
+  }
+
+  /** Register a fold view. */
+  register(view: FoldView<any>): void {
+    this.views.register(view);
+  }
+
+  /** Get a fold view by name. */
+  get(name: string): FoldView<any> | undefined {
+    return this.views.get(name);
+  }
+
+  /** Get all registered view names. */
+  getNames(): string[] {
+    return this.views.keys();
+  }
+
+  /** Get all registered views. */
+  getAll(): FoldView<any>[] {
+    return this.views.all();
+  }
+
+  /** Refresh all views. */
+  async refreshAll(): Promise<void> {
+    await Promise.all(this.views.all().map((v) => v.refresh()));
+  }
+
+  /** Evict all views (forgetting). */
+  evictAll(): void {
+    for (const view of this.views.all()) {
+      view.evict();
+    }
+  }
+
+  /** Clear all registrations. */
+  clear(): void {
+    this.views.clear();
+  }
 }
 
-/** Create a complete fold view registry. */
+/** Create a complete fold view registry with all standard views. */
 export function createFoldViewRegistry(
   getLog: () => Episode[],
   embeddingGenerator: any
 ): FoldViewRegistry {
-  return {
-    causalIndex: createCausalIndexView(getLog),
-    conceptGraph: createConceptGraphView(getLog),
-    associativeMemory: createAssociativeMemoryView(getLog),
-    embeddingLayer: createEmbeddingLayerView(getLog, embeddingGenerator),
-    episodeConsolidator: createEpisodeConsolidatorView(getLog),
-    capabilitiesAnalyzer: createCapabilitiesAnalyzerView(getLog),
-    constantsAnalyzer: createConstantsAnalyzerView(getLog),
-    correctionsAnalyzer: createCorrectionsAnalyzerView(getLog),
-    performanceAnalyzer: createPerformanceAnalyzerView(getLog),
-    qualityAnalyzer: createQualityAnalyzerView(getLog),
-    reasoningPatternsAnalyzer: createReasoningPatternsAnalyzerView(getLog),
-    resourcesAnalyzer: createResourcesAnalyzerView(getLog),
-    termPatternsAnalyzer: createTermPatternsAnalyzerView(getLog),
-  };
+  const registry = new FoldViewRegistry();
+  
+  registry.register(createCausalIndexView(getLog));
+  registry.register(createConceptGraphView(getLog));
+  registry.register(createAssociativeMemoryView(getLog));
+  registry.register(createEmbeddingLayerView(getLog, embeddingGenerator));
+  registry.register(createEpisodeConsolidatorView(getLog));
+  registry.register(createCapabilitiesAnalyzerView(getLog));
+  registry.register(createConstantsAnalyzerView(getLog));
+  registry.register(createCorrectionsAnalyzerView(getLog));
+  registry.register(createPerformanceAnalyzerView(getLog));
+  registry.register(createQualityAnalyzerView(getLog));
+  registry.register(createReasoningPatternsAnalyzerView(getLog));
+  registry.register(createResourcesAnalyzerView(getLog));
+  registry.register(createTermPatternsAnalyzerView(getLog));
+  
+  return registry;
 }
 
 /** Refresh all views. */
 export async function refreshAllViews(registry: FoldViewRegistry): Promise<void> {
-  await Promise.all([
-    registry.causalIndex.refresh(),
-    registry.conceptGraph.refresh(),
-    registry.associativeMemory.refresh(),
-    registry.embeddingLayer.refresh(),
-    registry.episodeConsolidator.refresh(),
-    registry.capabilitiesAnalyzer.refresh(),
-    registry.constantsAnalyzer.refresh(),
-    registry.correctionsAnalyzer.refresh(),
-    registry.performanceAnalyzer.refresh(),
-    registry.qualityAnalyzer.refresh(),
-    registry.reasoningPatternsAnalyzer.refresh(),
-    registry.resourcesAnalyzer.refresh(),
-    registry.termPatternsAnalyzer.refresh(),
-  ]);
+  await registry.refreshAll();
 }
 
 /** Evict all views (forgetting). */
 export function evictAllViews(registry: FoldViewRegistry): void {
-  registry.causalIndex.evict();
-  registry.conceptGraph.evict();
-  registry.associativeMemory.evict();
-  registry.embeddingLayer.evict();
-  registry.episodeConsolidator.evict();
-  registry.capabilitiesAnalyzer.evict();
-  registry.constantsAnalyzer.evict();
-  registry.correctionsAnalyzer.evict();
-  registry.performanceAnalyzer.evict();
-  registry.qualityAnalyzer.evict();
-  registry.reasoningPatternsAnalyzer.evict();
-  registry.resourcesAnalyzer.evict();
-  registry.termPatternsAnalyzer.evict();
+  registry.evictAll();
 }

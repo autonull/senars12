@@ -2,70 +2,96 @@
  * MCP Resources — generated resources from genome schemas.
  */
 
+import { KeyedRegistry } from '../../util/keyed-collection';
 import type { MCPResource } from './types';
 import type { HabitatConfig, HabitatPack, Scorecard } from '../../worlds/index';
 import type { Artifact, ArtifactKind } from '../../admit/repertoire';
 import type { Curriculum } from '../../admit/curriculum';
 import type { MinedSchema } from '../../mining/schemas';
 
-/** Generated resource registry. */
-export interface GeneratedResourceRegistry {
-  /** Resources by URI. */
-  resources: Map<string, MCPResource>;
-  /** Resource templates. */
-  templates: Map<string, MCPResourceTemplate>;
-}
-
 /** Resource template for dynamic resources. */
 export interface MCPResourceTemplate {
   /** URI template (e.g., "artifact://{id}"). */
-  uriTemplate: string;
+  readonly uriTemplate: string;
   /** Name template. */
-  nameTemplate: string;
+  readonly nameTemplate: string;
   /** Description template. */
-  descriptionTemplate?: string;
+  readonly descriptionTemplate?: string;
   /** MIME type. */
-  mimeType: string;
+  readonly mimeType: string;
   /** Handler to resolve template. */
-  resolve: (params: Record<string, string>) => Promise<MCPResource>;
+  readonly resolve: (params: Record<string, string>) => Promise<MCPResource>;
 }
 
-/** Create generated resource registry. */
-export function createGeneratedResourceRegistry(): GeneratedResourceRegistry {
-  return {
-    resources: new Map(),
-    templates: new Map(),
-  };
+/** Template registration with metadata. */
+interface TemplateRegistration {
+  readonly uriTemplate: string;
+  readonly template: MCPResourceTemplate;
 }
 
-/** Register static resource. */
-export function registerResource(registry: GeneratedResourceRegistry, resource: MCPResource): void {
-  registry.resources.set(resource.uri, resource);
-}
+/** Generated resource registry using KeyedRegistry. */
+export class GeneratedResourceRegistry {
+  readonly resources: KeyedRegistry<MCPResource>;
+  readonly templates: KeyedRegistry<TemplateRegistration>;
 
-/** Register resource template. */
-export function registerResourceTemplate(registry: GeneratedResourceRegistry, template: MCPResourceTemplate): void {
-  registry.templates.set(template.uriTemplate, template);
-}
-
-/** Resolve resource (static or template). */
-export async function resolveResource(
-  registry: GeneratedResourceRegistry,
-  uri: string
-): Promise<MCPResource | null> {
-  // Check static resources first
-  const staticResource = registry.resources.get(uri);
-  if (staticResource) return staticResource;
-
-  // Check templates
-  for (const template of registry.templates.values()) {
-    const params = matchTemplate(template.uriTemplate, uri);
-    if (params) {
-      return await template.resolve(params);
-    }
+  constructor() {
+    this.resources = new KeyedRegistry<MCPResource>({
+      keyOf: (r) => r.uri,
+      onDuplicate: (uri) => { throw new Error(`Resource '${uri}' already registered`); },
+    });
+    this.templates = new KeyedRegistry<TemplateRegistration>({
+      keyOf: (r) => r.uriTemplate,
+      onDuplicate: (uriTemplate) => { throw new Error(`Resource template '${uriTemplate}' already registered`); },
+    });
   }
 
-  return null;
+  /** Register static resource. */
+  registerResource(resource: MCPResource): void {
+    this.resources.register(resource);
+  }
+
+  /** Register resource template. */
+  registerResourceTemplate(template: MCPResourceTemplate): void {
+    this.templates.register({ uriTemplate: template.uriTemplate, template });
+  }
+
+  /** Resolve resource (static or template). */
+  async resolveResource(uri: string): Promise<MCPResource | null> {
+    // Check static resources first
+    const staticResource = this.resources.get(uri);
+    if (staticResource) return staticResource;
+
+    // Check templates
+    for (const registration of this.templates.all()) {
+      const params = matchTemplate(registration.uriTemplate, uri);
+      if (params) {
+        return await registration.template.resolve(params);
+      }
+    }
+
+    return null;
+  }
+
+  /** Get all registered resource URIs. */
+  getResourceUris(): string[] {
+    return this.resources.keys();
+  }
+
+  /** Get all registered template URI templates. */
+  getTemplateUris(): string[] {
+    return this.templates.keys();
+  }
+
+  /** Clear all registrations. */
+  clear(): void {
+    this.resources.clear();
+    this.templates.clear();
+  }
+}
+
+/** Create generated resource registry instance. */
+export function createGeneratedResourceRegistry(): GeneratedResourceRegistry {
+  return new GeneratedResourceRegistry();
 }
 
 /** Match URI against template. */
