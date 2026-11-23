@@ -1,6 +1,7 @@
 import type { Concept } from '../../memory/concept';
 import type { MemoryView } from '../../memory/view';
 import type { AttentionContext, AttentionModel } from '../types';
+import { Strategy } from '../base';
 
 /**
  * The absence of attention, not a registered strategy.
@@ -13,11 +14,10 @@ import type { AttentionContext, AttentionModel } from '../types';
  * the caller's own rate — so a memory that was not given an attention model
  * behaves identically whether or not the caller remembered to pass one.
  */
-export class NullAttentionModel implements AttentionModel {
-  readonly metadata = {
-    name: 'null',
-    description: 'No priming and no extra decay; the substrate default',
-  };
+export class NullAttentionModel extends Strategy implements AttentionModel {
+  constructor() {
+    super('null', 'No priming and no extra decay; the substrate default');
+  }
 
   prime(_concept: Concept, _context: AttentionContext): number {
     return 0;

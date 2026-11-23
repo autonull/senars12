@@ -2,12 +2,12 @@ import { createDerivedTask, toRuleInput } from '../../reason/inference-utils';
 import type { RuleEngine } from '../../rules/types';
 import type { Task } from '../../types';
 import type { DerivationContext, DerivationStrategy } from '../types';
+import { Strategy } from '../base';
 
-export class DefaultDerivation implements DerivationStrategy {
-  readonly metadata = {
-    name: 'default',
-    description: 'Iterate all secondaries, fire sync rules per pair, stage model-backed work',
-  };
+export class DefaultDerivation extends Strategy implements DerivationStrategy {
+  constructor() {
+    super('default', 'Iterate all secondaries, fire sync rules per pair, stage model-backed work');
+  }
 
   async *derive(
     primary: Task,

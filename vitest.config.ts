@@ -709,5 +709,10 @@ export default defineConfig({
     isolate: !!process.env.VITEST_E2E,
     // Cache transformed modules on disk; reuse across reruns/cold starts.
     fsModuleCache: true,
+    // Suppress AI SDK deprecation warnings and localStorage experimental warnings
+    env: {
+      AI_SDK_LOG_WARNINGS: 'false',
+      NODE_OPTIONS: '--no-warnings',
+    },
   },
 });

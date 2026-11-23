@@ -1,5 +1,20 @@
 // Global test utilities setup
 
+// Suppress AI SDK deprecation warnings in tests
+process.env.AI_SDK_LOG_WARNINGS = 'false';
+
+// Suppress localStorage warning in jsdom/happy-dom
+if (typeof globalThis.localStorage === 'undefined') {
+  globalThis.localStorage = {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+    clear: () => {},
+    key: () => null,
+    length: 0,
+  } as Storage;
+}
+
 import { termInterner } from '../../src/kernel/terms/intern';
 // Register tsconfig paths for runtime resolution (dynamic imports, etc.)
 import 'tsconfig-paths/register';

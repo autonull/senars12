@@ -4,22 +4,23 @@ import type { MemoryView } from '../../memory/view';
 import { ConfigurationError } from '../../types';
 import type { AttentionContext, AttentionModel } from '../types';
 import { createWeightedMeanComposite, type Composable } from '../composite';
+import { ConfigurableStrategy } from '../base';
 
 export interface WeightedAttention {
   model: AttentionModel;
   weight: number;
 }
 
+export interface CompositeAttentionConfig {
+  models: WeightedAttention[];
+}
+
 /**
  * A composite attention model using the generic weighted-mean composite
  * for `prime` and `decay`, and delegating `tick` to all members.
  */
-export class CompositeAttention implements AttentionModel {
-  readonly metadata = {
-    name: 'composite',
-    description: 'Weighted mean of several attention models',
-  };
-
+export class CompositeAttention extends ConfigurableStrategy<CompositeAttentionConfig>
+  implements AttentionModel {
   private readonly primeComposite: Composable<[Concept, AttentionContext], number>;
   private readonly decayComposite: Composable<[Concept, number, number], number>;
   private readonly members: AttentionModel[];
@@ -32,6 +33,9 @@ export class CompositeAttention implements AttentionModel {
     if (!(total > 0)) {
       throw new ConfigurationError('CompositeAttention needs at least one positive weight');
     }
+
+    const config = { models };
+    super('composite', 'Weighted mean of several attention models', config);
 
     this.members = models.map((m) => m.model);
 

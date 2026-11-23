@@ -3,10 +3,14 @@ import type { AttentionContext } from '../types';
 import { SimpleAttention } from './SimpleAttention';
 
 export class SpreadingActivation extends SimpleAttention {
-  override readonly metadata = {
-    name: 'spreading',
-    description: 'Prime propagates through term links',
-  };
+  constructor(boost = 0.3) {
+    super(boost);
+    this.metadata = {
+      name: 'spreading',
+      description: 'Prime propagates through term links',
+      version: this.metadata.version,
+    };
+  }
 
   /**
    * Spreading reads the link **port**, not a private graph on `Concept`.

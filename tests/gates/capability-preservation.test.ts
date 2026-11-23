@@ -116,7 +116,6 @@ describe('Capability Preservation Gate', () => {
     const result = spawnSync('pnpm', ['run', 'capability:gate'], {
       cwd: ROOT,
       stdio: 'pipe',
-      shell: true,
     });
 
     if (result.status !== 0) {

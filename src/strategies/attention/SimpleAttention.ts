@@ -2,14 +2,15 @@ import { forget } from '@senars/util/numeric';
 import type { Concept } from '../../memory/concept';
 import type { MemoryView } from '../../memory/view';
 import type { AttentionContext, AttentionModel } from '../types';
+import { ConfigurableStrategy } from '../base';
 
-export class SimpleAttention implements AttentionModel {
-  readonly metadata = { name: 'simple', description: 'Fixed boost on prime, exponential decay' };
-
-  constructor(private readonly boost = 0.3) {}
+export class SimpleAttention extends ConfigurableStrategy<{ boost: number }> implements AttentionModel {
+  constructor(boost = 0.3) {
+    super('simple', 'Fixed boost on prime, exponential decay', { boost });
+  }
 
   prime(_concept: Concept, _ctx: AttentionContext): number {
-    return this.boost;
+    return this.config.boost;
   }
 
   decay(concept: Concept, _cycles: number, baseDecayRate: number): number {

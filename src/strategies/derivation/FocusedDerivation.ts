@@ -6,10 +6,14 @@ import type { DerivationContext } from '../types';
 import { DefaultDerivation } from './DefaultDerivation';
 
 export class FocusedDerivation extends DefaultDerivation {
-  override readonly metadata = {
-    name: 'focused',
-    description: 'Prioritize high-relevance secondaries',
-  };
+  constructor() {
+    super();
+    this.metadata = {
+      name: 'focused',
+      description: 'Prioritize high-relevance secondaries',
+      version: this.metadata.version,
+    };
+  }
 
   override async *derive(
     primary: Task,

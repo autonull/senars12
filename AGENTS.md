@@ -20,6 +20,7 @@
 
 - Unit testing: avoid Mocks; test objects directly. Write focused, deterministic tests. Test behavior, not
   implementation.
+- **Never use `tail` with test commands** — capture full output to avoid missing failures and repeat runs.
 
 - Error handling: Use specific error types, log with context, avoid empty catch blocks, prefer early returns, handle
   errors at appropriate abstraction level

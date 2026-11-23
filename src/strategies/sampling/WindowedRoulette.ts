@@ -1,8 +1,8 @@
 import { ambientRng, type RandomSource, weightedSample } from '@senars/util/random';
-
 import type { Concept } from '../../memory/concept';
 import type { MemoryView } from '../../memory/view';
 import type { SamplingStrategy } from '../types';
+import { ConfigurableStrategy } from '../base';
 
 export interface WindowedRouletteConfig {
   windowSize?: number;
@@ -18,19 +18,18 @@ export interface WindowedRouletteConfig {
  * This provides cheap diversity with locality bias, distinct from global
  * priority-proportional sampling.
  */
-export class WindowedRouletteStrategy implements SamplingStrategy {
-  readonly metadata = {
-    name: 'windowed-roulette',
-    description: 'Positional-local roulette sampling within a sliding priority window',
-  };
-  readonly name = 'windowed-roulette';
-
-  private readonly windowSize: number;
-  private readonly rng: RandomSource;
-
+export class WindowedRouletteStrategy extends ConfigurableStrategy<WindowedRouletteConfig>
+  implements SamplingStrategy {
   constructor(config: WindowedRouletteConfig = {}) {
-    this.windowSize = config.windowSize ?? 10;
-    this.rng = config.rng ?? ambientRng;
+    super('windowed-roulette', 'Positional-local roulette sampling within a sliding priority window', config);
+  }
+
+  get windowSize(): number {
+    return this.config.windowSize ?? 10;
+  }
+
+  get rng(): RandomSource {
+    return this.config.rng ?? ambientRng;
   }
 
   sample(memory: MemoryView, count: number): Concept[] {

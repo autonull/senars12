@@ -2,27 +2,26 @@ import type { Concept } from '../../memory/concept';
 import type { MemoryView } from '../../memory/view';
 import type { ComponentMetadata, SamplingStrategy } from '../types';
 import { createCappedUnionByTerm, type Composable } from '../composite';
+import { ConfigurableStrategy } from '../base';
+
+interface CompositeSamplingConfig {
+  samplers: SamplingStrategy[];
+}
 
 /**
  * Union of several sampling strategies: each proposes `count` concepts, the
  * union is deduped by term identity and the highest-priority claim per term
  * wins, then the whole union is cut back to `count`.
  */
-export class CompositeSampling implements SamplingStrategy {
-  readonly metadata: ComponentMetadata = {
-    name: 'composite',
-    description: 'Union of several sampling strategies',
-  };
-
-  private readonly samplers: SamplingStrategy[];
-
+export class CompositeSampling extends ConfigurableStrategy<CompositeSamplingConfig>
+  implements SamplingStrategy {
   constructor(samplers: SamplingStrategy[]) {
-    this.samplers = samplers;
+    super('composite', 'Union of several sampling strategies', { samplers });
   }
 
   sample(memory: MemoryView, count: number): Concept[] {
     if (count <= 0) return [];
-    const composables: Composable<[MemoryView, number], Concept[]>[] = this.samplers.map(
+    const composables: Composable<[MemoryView, number], Concept[]>[] = this.config.samplers.map(
       (sampler) => ({
         metadata: { name: sampler.metadata.name, description: sampler.metadata.description },
         execute([mem, cnt]) {

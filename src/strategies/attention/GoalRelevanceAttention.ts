@@ -6,10 +6,14 @@ import type { AttentionContext } from '../types';
 import { SimpleAttention } from './SimpleAttention';
 
 export class GoalRelevanceAttention extends SimpleAttention {
-  override readonly metadata = {
-    name: 'goal-relevance',
-    description: 'Boost proportional to goal term overlap',
-  };
+  constructor(boost = 0.3) {
+    super(boost);
+    this.metadata = {
+      name: 'goal-relevance',
+      description: 'Boost proportional to goal term overlap',
+      version: this.metadata.version,
+    };
+  }
 
   override prime(concept: Concept, ctx: AttentionContext): number {
     const boost = super.prime(concept, ctx);

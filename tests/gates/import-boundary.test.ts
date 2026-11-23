@@ -25,7 +25,6 @@ describe('Import Boundary Gate', () => {
     const result = spawnSync('pnpm', ['run', 'import:boundary'], {
       cwd: ROOT,
       stdio: 'pipe',
-      shell: true,
     });
 
     // The script exits with 0 on success, non-zero on violations
@@ -54,7 +53,6 @@ describe('Import Boundary Gate', () => {
     const result = spawnSync('pnpm', ['run', 'import:boundary'], {
       cwd: ROOT,
       stdio: 'pipe',
-      shell: true,
     });
 
     expect(result.status).toBe(0);
