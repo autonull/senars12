@@ -31,7 +31,7 @@ export type {
   ValidationFeedback,
 } from './feedback';
 export { BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop } from './feedback';
-export { type GrammarName, loadGrammar } from './grammars/index';
+export * from './grammars/index';
 export {
   CYCLE_PATH_PREFIXES,
   IN_CYCLE_EDGE_ATTRIBUTIONS,
@@ -131,32 +131,7 @@ export type {
   ShadowValidationResult,
 } from './shadow-validation';
 export { ShadowValidator, shadowValidator } from './shadow-validation';
-export {
-  EmbeddingCache,
-  createEmbeddingCache,
-  type EmbeddingCacheConfig,
-  type EmbeddingCacheMetrics,
-  seedTruth,
-  fitCalibrationLock,
-  identityECE,
-  canonicalState,
-  createManifold,
-  createOpenSystemOneManifold,
-  LMReflex,
-  JudgmentDataset,
-  actionGrammar,
-  ManifoldReflex,
-  PlacementCascadeReflex,
-  ConfidenceRouter,
-  createSystemOneLMRuleAdapter,
-  createLMServiceCortex,
-  verifyCascade,
-  ContrastiveMemory,
-  type ContrastiveMemoryConfig,
-  createContrastiveMemory,
-  SystemOneIngressJudge,
-  type SystemOneIngressJudgeConfig,
-} from './system-one/index';
+export * from './system-one/index';
 export { BrierHarness, loadSession, startArcadeTickSpan, saveSession } from '../eval/index';
 export { MiningBag, type MiningBagOptions, mineHardNegatives } from './system-one/hard-negatives';
 export { SeededRNG } from '../util/random';
