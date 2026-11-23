@@ -49,7 +49,7 @@ function getSecondArg(term: Term): Term {
 /** Get first two args of a binary compound term. */
 function getBinaryArgs(term: Term): { first: Term; second: Term } {
   const args = getArgs(term);
-  if (!args || args.length < 2) throw new SenarsError('Expected binary operation', 'VALIDATION_ERROR');
+  if (!args || args.length < 2) throw new SenarsError('Expected binary operation', 'VALIDATION_ERROR', { term: term.toString(), argCount: args?.length ?? 0 });
   return { first: args[0] as Term, second: args[1] as Term };
 }
 

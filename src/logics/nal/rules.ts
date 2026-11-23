@@ -252,7 +252,7 @@ export const NAL_RULES: NALRule[] = [
     condition: withArity(1, ([p]) => isSequential(p.term)),
     buildConclusion: withArity(1, ([p]) => {
       const args = getArgs(p.term);
-      if (!args || args.length < 2) throw new SenarsError('Expected sequential term with 2 args', 'VALIDATION_ERROR');
+      if (!args || args.length < 2) throw new SenarsError('Expected sequential term with 2 args', 'VALIDATION_ERROR', { term: p.term.toString(), argCount: args?.length ?? 0 });
       return createPrediction(args[0]!, args[1]!);
     }),
   },
@@ -269,7 +269,7 @@ export const NAL_RULES: NALRule[] = [
     condition: withArity(1, ([p]) => isPrediction(p.term)),
     buildConclusion: withArity(1, ([p]) => {
       const args = getArgs(p.term);
-      if (!args || args.length < 2) throw new SenarsError('Expected prediction term with 2 args', 'VALIDATION_ERROR');
+      if (!args || args.length < 2) throw new SenarsError('Expected prediction term with 2 args', 'VALIDATION_ERROR', { term: p.term.toString(), argCount: args?.length ?? 0 });
       return createSequential(args[0]!, args[1]!);
     }),
   },
@@ -387,25 +387,25 @@ function isVariable(term: Term): boolean {
 
 function getSubject(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 1) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR');
+  if (!args || args.length < 1) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR', { term: term.toString(), argCount: args?.length ?? 0 });
   return args[0]!;
 }
 
 function getPredicate(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 2) throw new SenarsError('Expected compound term with at least 2 args', 'VALIDATION_ERROR');
+  if (!args || args.length < 2) throw new SenarsError('Expected compound term with at least 2 args', 'VALIDATION_ERROR', { term: term.toString(), argCount: args?.length ?? 0 });
   return args[1]!;
 }
 
 function getAntecedent(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 1) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR');
+  if (!args || args.length < 1) throw new SenarsError('Expected compound term with at least 1 arg', 'VALIDATION_ERROR', { term: term.toString(), argCount: args?.length ?? 0 });
   return args[0]!;
 }
 
 function getConsequent(term: Term): Term {
   const args = getArgs(term);
-  if (!args || args.length < 2) throw new SenarsError('Expected compound term with at least 2 args', 'VALIDATION_ERROR');
+  if (!args || args.length < 2) throw new SenarsError('Expected compound term with at least 2 args', 'VALIDATION_ERROR', { term: term.toString(), argCount: args?.length ?? 0 });
   return args[1]!;
 }
 

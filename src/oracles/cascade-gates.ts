@@ -214,28 +214,28 @@ export class CascadeGatesOracle implements Oracle<
       case 'cascade.groundedness': {
         const args = input.args as [string, string];
         const [narration, correlationId] = args;
-        if (!this.groundednessGate) throw new SenarsError('Groundedness gate not initialized', 'OPERATION_ERROR');
+        if (!this.groundednessGate) throw new SenarsError('Groundedness gate not initialized', 'OPERATION_ERROR', { operation: 'cascade.groundedness', correlationId });
         return this.groundednessGate(narration, correlationId);
       }
 
       case 'cascade.traceGrade': {
         const args = input.args as [import('@senars/types/cognitive').AgentTrace];
         const [trace] = args;
-        if (!this.traceGrader) throw new SenarsError('Trace grader not initialized', 'OPERATION_ERROR');
+        if (!this.traceGrader) throw new SenarsError('Trace grader not initialized', 'OPERATION_ERROR', { operation: 'cascade.traceGrade', traceCorrelationId: trace?.correlationId });
         return this.traceGrader(trace);
       }
 
       case 'cascade.wakeGate': {
         const args = input.args as [string, { userInput?: boolean }?];
         const [sleepNote, hint] = args;
-        if (!this.wakeGate) throw new SenarsError('Wake gate not initialized', 'OPERATION_ERROR');
+        if (!this.wakeGate) throw new SenarsError('Wake gate not initialized', 'OPERATION_ERROR', { operation: 'cascade.wakeGate', sleepNoteLength: sleepNote.length });
         return this.wakeGate(sleepNote, hint);
       }
 
       case 'cascade.resourceCharge': {
         const args = input.args as [string, import('../lm/system-one/types').ResourceCost];
         const [scopeId, cost] = args;
-        if (!this.budgetGate) throw new SenarsError('Budget gate not configured', 'CONFIGURATION_ERROR');
+        if (!this.budgetGate) throw new SenarsError('Budget gate not configured', 'CONFIGURATION_ERROR', { operation: 'cascade.resourceCharge', scopeId });
         return chargeJudgment(this.budgetGate, scopeId, cost);
       }
 

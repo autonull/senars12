@@ -77,13 +77,13 @@ function evalTermRef(ref: TermRef, ctx: EvalContext): Term {
           return premise.term;
         case 'subject': {
           if (premise.term.op !== TermOp.INHERITANCE && premise.term.op !== TermOp.SIMILARITY) {
-            throw new SenarsError('Expected inheritance or similarity term', 'VALIDATION_ERROR');
+            throw new SenarsError('Expected inheritance or similarity term', 'VALIDATION_ERROR', { term: premise.term.toString(), actualOp: premise.term.op });
           }
           return premise.term.args[0]!;
         }
         case 'predicate': {
           if (premise.term.op !== TermOp.INHERITANCE && premise.term.op !== TermOp.SIMILARITY) {
-            throw new SenarsError('Expected inheritance or similarity term', 'VALIDATION_ERROR');
+            throw new SenarsError('Expected inheritance or similarity term', 'VALIDATION_ERROR', { term: premise.term.toString(), actualOp: premise.term.op });
           }
           return premise.term.args[1]!;
         }

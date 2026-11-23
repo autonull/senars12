@@ -160,7 +160,7 @@ export class LearnedHeadOracle implements Oracle<
       case 'learnedHead.evaluate': {
         const args = input.args as [Float32Array];
         const [embedding] = args;
-        if (!this.loadedHead) throw new SenarsError('Head bundle not loaded', 'OPERATION_ERROR');
+        if (!this.loadedHead) throw new SenarsError('Head bundle not loaded', 'OPERATION_ERROR', { operation: 'learnedHead.evaluate', modelDigest: this.currentConfig?.modelDigest });
         return this.loadedHead.evaluate(embedding);
       }
 

@@ -188,7 +188,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
     try {
       pl = await import('tau-prolog');
     } catch {
-      throw new SenarsError('tau-prolog not installed. Install with: pnpm add tau-prolog', 'OPERATION_ERROR');
+      throw new SenarsError('tau-prolog not installed. Install with: pnpm add tau-prolog', 'OPERATION_ERROR', { suggestion: 'pnpm add tau-prolog' });
     }
 
     const startTs = Date.now();
@@ -196,7 +196,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new SenarsError(`Tau Prolog query timeout after ${timeoutMs}ms`, 'TIMEOUT'));
+        reject(new SenarsError(`Tau Prolog query timeout after ${timeoutMs}ms`, 'TIMEOUT', { timeoutMs, elapsedMs: Date.now() - startTs }));
       }, timeoutMs);
 
       session.consult(program, {

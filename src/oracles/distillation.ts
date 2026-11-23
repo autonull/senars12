@@ -191,7 +191,7 @@ export class DistillationOracle implements Oracle<
       case 'distillation.fitCalibration': {
         const args = input.args as [DistillationFitInput['args'][0]?];
         const [options] = args;
-        if (!this.calibrators) throw new SenarsError('Calibrators not configured', 'CONFIGURATION_ERROR');
+        if (!this.calibrators) throw new SenarsError('Calibrators not configured', 'CONFIGURATION_ERROR', { operation: 'distillation.fitCalibration' });
         // Cast options to FitCalibrationOptions with proper types
         const fitOptions = options as import('../lm/system-one/calibration-fit').FitCalibrationOptions | undefined;
         const result = fitCalibrationLock(this.dataset, fitOptions);
@@ -225,7 +225,7 @@ export class DistillationOracle implements Oracle<
       case 'distillation.applyLock': {
         const args = input.args as [CalibrationLock];
         const [lock] = args;
-        if (!this.calibrators) throw new SenarsError('Calibrators not configured', 'CONFIGURATION_ERROR');
+        if (!this.calibrators) throw new SenarsError('Calibrators not configured', 'CONFIGURATION_ERROR', { operation: 'distillation.applyLock' });
         applyCalibrationLock(this.calibrators, lock);
         return lock;
       }

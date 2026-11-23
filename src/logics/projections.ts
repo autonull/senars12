@@ -159,7 +159,7 @@ export class ProjectionEngine {
       },
       project: (source) => {
         const formula = source.context?.formula as Formula;
-        if (!isCompound(formula)) throw new SenarsError('Expected compound formula', 'VALIDATION_ERROR');
+        if (!isCompound(formula)) throw new SenarsError('Expected compound formula', 'VALIDATION_ERROR', { formula: formula?.toString?.() ?? 'unknown' });
         const left = formula.left as Atom;
         const right = formula.right as Atom;
 
@@ -188,7 +188,7 @@ export class ProjectionEngine {
       },
       project: (source) => {
         const formula = source.context?.formula as Formula;
-        if (!isCompound(formula)) throw new SenarsError('Expected compound formula', 'VALIDATION_ERROR');
+        if (!isCompound(formula)) throw new SenarsError('Expected compound formula', 'VALIDATION_ERROR', { formula: formula?.toString?.() ?? 'unknown' });
         const left = formula.left as Atom;
         const right = formula.right as Atom;
 

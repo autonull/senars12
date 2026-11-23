@@ -155,7 +155,7 @@ export class GbnfOracle implements Oracle<
       case 'gbnf.constrainedGenerate': {
         const args = input.args as [string, string, { task?: 'compact' | 'fast' | 'quality' | 'structured'; temperature?: number; maxTokens?: number }?];
         const [prompt, grammar, options] = args;
-        if (!this.lmService) throw new SenarsError('LM service not configured for constrained generation', 'CONFIGURATION_ERROR');
+        if (!this.lmService) throw new SenarsError('LM service not configured for constrained generation', 'CONFIGURATION_ERROR', { operation: 'gbnf.constrainedGenerate' });
 
         const { generateObject } = await import('ai');
         const { zodSchema } = await import('ai');
@@ -163,7 +163,7 @@ export class GbnfOracle implements Oracle<
 
         const task = options?.task ?? 'structured';
         const model = this.lmService.getModel(task);
-        if (!model) throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
+        if (!model) throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR', { task, hasModel: this.lmService.hasModel() });
 
         // Use the grammar as a constraint - we parse it to extract allowed values
         // For GBNF, we use a schema that matches the grammar's root rule
@@ -183,7 +183,7 @@ export class GbnfOracle implements Oracle<
       case 'gbnf.getActions': {
         const args = input.args as [unknown];
         const [state] = args;
-        if (!this.actionProvider) throw new SenarsError('Action provider not configured', 'CONFIGURATION_ERROR');
+        if (!this.actionProvider) throw new SenarsError('Action provider not configured', 'CONFIGURATION_ERROR', { operation: 'gbnf.getActions' });
         return this.actionProvider(state);
       }
 

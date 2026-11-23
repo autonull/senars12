@@ -160,7 +160,7 @@ export class LogStore {
 
   /** Append an event to the log. Returns the assigned sequence number. */
   async append(event: CognitiveEvent, options: { parents?: UUID[]; ts?: TimestampMs } = {}): Promise<number> {
-    if (this.closed) throw new SenarsError('Log store is closed', 'VALIDATION_ERROR');
+    if (this.closed) throw new SenarsError('Log store is closed', 'VALIDATION_ERROR', { storeDir: this.config.dir });
 
     const entryBase = createLogEntry(event, options);
     const seq = ++this.currentSeq;
@@ -172,7 +172,7 @@ export class LogStore {
     const buffer = Buffer.from(line, 'utf-8');
 
     const segment = this.segments[this.currentSegment];
-    if (!segment) throw new SenarsError('No current segment', 'VALIDATION_ERROR');
+    if (!segment) throw new SenarsError('No current segment', 'VALIDATION_ERROR', { currentSegment: this.currentSegment, segmentCount: this.segments.length });
     await segment.fd.write(buffer, 0, buffer.length);
     segment.size += buffer.length;
     segment.entryCount++;
@@ -201,7 +201,7 @@ export class LogStore {
   /** Rotate to a new segment. */
   private async rotateSegment(): Promise<void> {
     const oldSegment = this.segments[this.currentSegment];
-    if (!oldSegment) throw new SenarsError('No current segment to rotate', 'VALIDATION_ERROR');
+    if (!oldSegment) throw new SenarsError('No current segment to rotate', 'VALIDATION_ERROR', { currentSegment: this.currentSegment });
     await oldSegment.fd.datasync();
     await oldSegment.fd.close();
     // Reopen the rotated segment in read mode so it remains readable

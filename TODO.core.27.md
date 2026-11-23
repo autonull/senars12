@@ -511,6 +511,7 @@ const provider = new NodeTracerProvider();
 - Key retry/budget policies on `SenarsError.code` where a caller retries today on message text.
 - Finish deferred Q2–Q4 (builder, event taxonomy, serialization helpers).
 - ✅ Implement priority-proportional sampling in `PriorityBag.sample()` — done (roulette wheel without replacement via `weightedSample`).
+- ✅ Enrich `context` on ~40 `SenarsError` throw sites with useful payloads (ids, paths, keys, term strings, arg counts, correlation IDs, operation names)
 
 ---
 
