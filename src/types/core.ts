@@ -3,7 +3,7 @@
  * Single source of truth for foundational types
  */
 
-import { narCoreBounds, narCoreDefaults } from '../config';
+import { narCoreDefaults } from '../config';
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import type { Truth as TruthType } from '../terms/impls/Truth';

@@ -2,8 +2,7 @@ import { createLogger } from '../util/logger';
 import { deepEqual, deepFreeze, deepMerge } from '../util/object';
 import { errMsg } from '../util/error';
 import { keyedBy } from '../util/collections';
-import { cognitiveBound, cognitiveBounds } from './cognitive-bounds';
-import { validateAgainstBounds, buildDefaultsFromBounds } from './bounds';
+import { cognitiveBound, boundTables, COGNITIVE_DEFAULT_PATHS, validateAgainstBounds, buildDefaultsFromBounds } from './bound-table';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,
@@ -239,29 +238,6 @@ export interface MemoryParams {
 
   [key: string]: unknown;
 }
-
-/** Paths in the cognitive bounds table that contribute to defaults. */
-const COGNITIVE_DEFAULT_PATHS = [
-  'priority.initialPriority',
-  'priority.maxPriority',
-  'priority.directMentionBoost',
-  'priority.relatedConceptBoost',
-  'priority.decayRate',
-  'priority.propagationStrength',
-  'lm.maxRulesPerCycle',
-  'lm.callTimeoutMs',
-  'attention.primeBoost',
-  'attention.relatedBoost',
-  'attention.propagationIterations',
-  'inference.maxDerivationsPerStep',
-  'inference.maxDerivationDepth',
-  'inference.cpuThrottleMs',
-  'inference.maxSampledConcepts',
-  'inference.rankingMaxAdmissions',
-  'inference.rankingMinScore',
-  'modelRunner.maxLoops',
-  'memory.activationDecayRate',
-] as const;
 
 /** Build default parameters from the shared cognitive bounds. */
 export function buildDefaults(): CognitiveParameters {

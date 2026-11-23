@@ -1,23 +1,14 @@
 /**
- * The one projection of a bound table.
+ * Unified bound table system.
  *
- * Every knob in the system is bounded by a row of `{min, max, default, step}`, and every
- * reader of that row re-derived what it needed from it: a zod schema restating the two
- * limits, a tuner restating the range, a config default restating the landing value, a
- * clamp restating the arithmetic. Three tables (`narCoreBounds`, `cognitiveBounds`,
- * `systemOneBounds`) each shipped their own projector, and two of them declared the row's
- * own shape a second time — so a row had three types, and which one a call site meant was
- * a property of the table it happened to come from rather than of the row.
- *
- * A table now contributes only its numbers. A row has one shape, is addressed by one path
- * (`key`, or `category.key`), and every projection of it is named here.
+ * Replaces cognitive-bounds.ts, nar-core-bounds.ts, system-one.ts bound tables.
+ * Single source of truth for validation schemas, config defaults, and UI slider configs.
  */
 
 import { z } from 'zod';
 import { clamp } from '../util/numeric';
 import { keyedBy } from '../util/collections';
 import { SenarsError } from '../errors/senars-error';
-
 
 /** One knob's admissible numbers: the range, the landing value, and the scan quantum. */
 export interface BoundRow {
@@ -29,10 +20,7 @@ export interface BoundRow {
 
 export type BoundProp = keyof BoundRow;
 
-/**
- * `{min, max, default}` — what a surface that *picks* a value needs. `step` is deliberately
- * absent: it quantizes writes, it does not describe the search space.
- */
+/** `{min, max, default}` — what a surface that *picks* a value needs. */
 export type BoundRange = Pick<BoundRow, 'min' | 'max' | 'default'>;
 
 /** `{min, max, step}` — {@link BoundRange} for the surface that scans for one. */
@@ -60,9 +48,7 @@ export interface BoundSchemaOptions {
 }
 
 /**
- * One row, addressed by path. Every read of a bound table is one of these, so "what may
- * this knob hold, and where does it land" has one answer per table rather than one per
- * caller.
+ * One row, addressed by path. Every read of a bound table is one of these.
  */
 export interface BoundProjection<Path extends string> {
   /** One number out of one row. */
@@ -120,8 +106,7 @@ const project = <Path extends string>(
   },
 });
 
-/** The whole flat table's landing values and schemas, keyed by row — the projections a
- *  config schema and a `DEFAULT_*` constant each used to re-derive row by row. */
+/** The whole flat table's landing values and schemas, keyed by row. */
 export type FlatBoundProjection<T extends FlatBoundTable> = BoundProjection<keyof T & string> & {
   readonly defaults: Record<keyof T & string, number>;
   readonly defaultsSchema: Record<keyof T & string, z.ZodType<number>>;
@@ -148,7 +133,6 @@ export const nestedBounds = <const T extends NestedBoundTable>(
 
 /**
  * Build a defaults object from a bound projection by reading every row's default value.
- * Eliminates manual `projection.at('path', 'default')` calls.
  *
  * @param projection - The bound projection from flatBounds() or nestedBounds()
  * @param paths - Array of paths to read defaults for (e.g., ['priority.initialPriority', 'lm.maxRulesPerCycle'])
@@ -173,7 +157,7 @@ function setNested(obj: Record<string, unknown>, path: string, value: unknown): 
   const parts = path.split('.');
   let current: Record<string, unknown> = obj;
   for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i]!; // parts is non-empty from split on non-empty path
+    const part = parts[i]!;
     if (!(part in current) || typeof current[part] !== 'object' || current[part] === null) {
       current[part] = {};
     }
@@ -185,10 +169,6 @@ function setNested(obj: Record<string, unknown>, path: string, value: unknown): 
 /**
  * Validate a config object against a bound table's rows.
  * Returns an array of error messages (empty if valid).
- *
- * @param config - The config object to validate (may be nested matching the bound table structure)
- * @param projection - The bound projection from flatBounds() or nestedBounds()
- * @param prefix - Optional prefix for error messages (e.g., 'priority', 'inference')
  */
 export function validateAgainstBounds(
   config: { [key: string]: unknown } | undefined,
@@ -209,9 +189,137 @@ export function validateAgainstBounds(
         // Path not in bounds table - skip validation for this key
       }
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      // Recurse into nested objects
       errors.push(...validateAgainstBounds(value as { [key: string]: unknown }, projection, path));
     }
   }
   return errors;
 }
+
+/**
+ * Predefined bound tables for the system.
+ */
+export const boundTables = {
+  /** Cognitive architecture parameters. */
+  cognitive: {
+    priority: {
+      initialPriority: { min: 0.01, max: 1.0, default: 0.1, step: 0.01 },
+      maxPriority: { min: 0.5, max: 2.0, default: 1.0, step: 0.1 },
+      directMentionBoost: { min: 0.0, max: 1.0, default: 0.3, step: 0.05 },
+      relatedConceptBoost: { min: 0.0, max: 1.0, default: 0.15, step: 0.05 },
+      decayRate: { min: 0.0, max: 0.5, default: 0.05, step: 0.01 },
+      propagationStrength: { min: 0.0, max: 1.0, default: 0.1, step: 0.05 },
+    },
+    lm: {
+      enabled: { min: 0, max: 1, default: 1, step: 1 },
+      singlePremiseEnabled: { min: 0, max: 1, default: 1, step: 1 },
+      maxRulesPerCycle: { min: 1, max: 20, default: 13, step: 1 },
+      callTimeoutMs: { min: 500, max: 60000, default: 5000, step: 500 },
+      selectionStrategy: { min: 0, max: 3, default: 0, step: 1 },
+    },
+    attention: {
+      autoPrime: { min: 0, max: 1, default: 1, step: 1 },
+      primeBoost: { min: 0.0, max: 1.0, default: 0.3, step: 0.05 },
+      relatedBoost: { min: 0.0, max: 1.0, default: 0.15, step: 0.05 },
+      structuralSimilarity: { min: 0, max: 1, default: 1, step: 1 },
+      semanticRelatedness: { min: 0, max: 1, default: 0, step: 1 },
+      propagateActivation: { min: 0, max: 1, default: 1, step: 1 },
+      propagationIterations: { min: 1, max: 10, default: 2, step: 1 },
+    },
+    inference: {
+      maxDerivationsPerStep: { min: 10, max: 10000, default: 1000, step: 10 },
+      maxDerivationDepth: { min: 1, max: 20, default: 10, step: 1 },
+      enableCircularDetection: { min: 0, max: 1, default: 1, step: 1 },
+      enableTraceCollection: { min: 0, max: 1, default: 0, step: 1 },
+      cpuThrottleMs: { min: 0, max: 100, default: 0, step: 1 },
+      maxSampledConcepts: { min: 10, max: 1000, default: 100, step: 10 },
+      rankingMaxAdmissions: { min: 10, max: 1000, default: 100, step: 10 },
+      rankingMinScore: { min: 0.0, max: 1.0, default: 0.0, step: 0.05 },
+    },
+    modelRunner: {
+      maxLoops: { min: 1, max: 20, default: 5, step: 1 },
+    },
+    memory: {
+      activationDecayRate: { min: 0.001, max: 0.5, default: 0.01, step: 0.001 },
+    },
+  } as const,
+
+  /** NAR core config parameters. */
+  narCore: {
+    maxConcepts: { min: 100, max: 10000, default: 1000, step: 100 },
+    activationDecayRate: { min: 0, max: 1, default: 0.01, step: 0.001 },
+    consolidationInterval: { min: 1, max: 100, default: 10, step: 1 },
+    cpuThrottleMs: { min: 0, max: 100, default: 10, step: 1 },
+    maxDerivationDepth: { min: 1, max: 100, default: 10, step: 1 },
+    maxDerivationsPerStep: { min: 10, max: 10000, default: 1000, step: 10 },
+    sampleSize: { min: 1, max: 1000, default: 100, step: 1 },
+  } as const,
+
+  /** System One config parameters. */
+  systemOne: {
+    budgets: {
+      maxJudgmentCallsPerCycle: { min: 1, max: 32, default: 8, step: 1 },
+      maxConsensusPerCycle: { min: 1, max: 8, default: 2, step: 1 },
+      maxLatencyMsPerJudgment: { min: 10, max: 200, default: 33, step: 1 },
+      maxTokensPerCycle: { min: 256, max: 32768, default: 4096, step: 256 },
+      maxMemoryMbPerCycle: { min: 32, max: 2048, default: 256, step: 32 },
+    },
+    provisional: {
+      cInitial: { min: 0.01, max: 0.5, default: 0.1, step: 0.01 },
+      decayRate: { min: 0.05, max: 1.0, default: 0.3, step: 0.05 },
+      maxTtlMs: { min: 5000, max: 300000, default: 30000, step: 5000 },
+    },
+  } as const,
+} as const;
+
+// Type exports for convenience
+export type CognitiveBounds = typeof boundTables.cognitive;
+export type CognitiveBoundCategory = keyof CognitiveBounds;
+
+export type NarCoreBounds = typeof boundTables.narCore;
+export type NarCoreBoundKey = keyof NarCoreBounds;
+
+export type SystemOneBounds = typeof boundTables.systemOne;
+export type SystemOneBoundCategory = keyof SystemOneBounds;
+export type SystemOneBoundKey<C extends SystemOneBoundCategory> = keyof SystemOneBounds[C];
+
+// Pre-built projections for convenience
+export const cognitiveBound = nestedBounds(boundTables.cognitive);
+export const narCoreBound = flatBounds(boundTables.narCore);
+export const systemOneBound = nestedBounds(boundTables.systemOne);
+
+// Default paths for each table
+export const COGNITIVE_DEFAULT_PATHS = [
+  'priority.initialPriority',
+  'priority.maxPriority',
+  'priority.directMentionBoost',
+  'priority.relatedConceptBoost',
+  'priority.decayRate',
+  'priority.propagationStrength',
+  'lm.maxRulesPerCycle',
+  'lm.callTimeoutMs',
+  'attention.primeBoost',
+  'attention.relatedBoost',
+  'attention.propagationIterations',
+  'inference.maxDerivationsPerStep',
+  'inference.maxDerivationDepth',
+  'inference.cpuThrottleMs',
+  'inference.maxSampledConcepts',
+  'inference.rankingMaxAdmissions',
+  'inference.rankingMinScore',
+  'modelRunner.maxLoops',
+  'memory.activationDecayRate',
+] as const;
+
+export const SYSTEM_ONE_DEFAULT_PATHS = [
+  'budgets.maxJudgmentCallsPerCycle',
+  'budgets.maxConsensusPerCycle',
+  'budgets.maxLatencyMsPerJudgment',
+  'budgets.maxTokensPerCycle',
+  'budgets.maxMemoryMbPerCycle',
+  'provisional.cInitial',
+  'provisional.decayRate',
+  'provisional.maxTtlMs',
+] as const;
+
+// Re-export raw tables for backward compatibility
+export const cognitiveBounds = boundTables.cognitive;

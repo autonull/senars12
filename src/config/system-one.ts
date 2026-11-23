@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { positiveInt, unitInterval } from './boundary';
-import { nestedBounds, buildDefaultsFromBounds } from './bounds';
+import { systemOneBound, SYSTEM_ONE_DEFAULT_PATHS, buildDefaultsFromBounds, type SystemOneBounds, type SystemOneBoundCategory, type SystemOneBoundKey } from './bound-table';
 
 /** How much a judgment is trusted to decide on its own. Declared once because it was
  *  written out six times — as a type in the decision layer, four times as an inline
@@ -16,56 +16,7 @@ export type CriticalityLevel = (typeof CRITICALITY_LEVELS)[number];
 
 export const criticalitySchema = z.enum(CRITICALITY_LEVELS);
 
-/**
- * Min/max/default/step for the System One knobs a tuner may move.
- *
- * The System One counterpart to `cognitiveBounds`, and the reason the tuner can reach every
- * value the config admits: the numbers lived in three places, and only two of them were the
- * table. `rlfp/knobs.ts` bounded these eight rows by hand while `systemOneSchema` below
- * declared five of them unbounded — so the schema admitted `maxTokensPerCycle: 1e12` and the
- * tuner could not have proposed it, and `provisional.cInitial` was capped at 1 by one and
- * 0.5 by the other.
- */
-export const systemOneBounds = {
-  budgets: {
-    maxJudgmentCallsPerCycle: { min: 1, max: 32, default: 8, step: 1 },
-    maxConsensusPerCycle: { min: 1, max: 8, default: 2, step: 1 },
-    maxLatencyMsPerJudgment: { min: 10, max: 200, default: 33, step: 1 },
-    maxTokensPerCycle: { min: 256, max: 32768, default: 4096, step: 256 },
-    maxMemoryMbPerCycle: { min: 32, max: 2048, default: 256, step: 32 },
-  },
-  provisional: {
-    cInitial: { min: 0.01, max: 0.5, default: 0.1, step: 0.01 },
-    decayRate: { min: 0.05, max: 1.0, default: 0.3, step: 0.05 },
-    maxTtlMs: { min: 5000, max: 300000, default: 30000, step: 5000 },
-  },
-} as const;
-
-export type SystemOneBounds = typeof systemOneBounds;
-export type SystemOneBoundCategory = keyof SystemOneBounds;
-export type SystemOneBoundKey<C extends SystemOneBoundCategory> = keyof SystemOneBounds[C];
-
-/**
- * The one reader of {@link systemOneBounds}, addressed as `category.key`.
- *
- * This table shipped its own `BoundRow` — a fourth declaration of a shape two other bound
- * tables already declared — plus a private `bound(category, key, prop)` and a pair of
- * builders that restated the same `.min().max().default()` chain. The row has one shape and
- * one set of projections now; this table contributes only its numbers.
- */
-export const systemOneBound = nestedBounds(systemOneBounds);
-
-/** Paths in the systemOne bounds table that contribute to defaults. */
-const SYSTEM_ONE_DEFAULT_PATHS = [
-  'budgets.maxJudgmentCallsPerCycle',
-  'budgets.maxConsensusPerCycle',
-  'budgets.maxLatencyMsPerJudgment',
-  'budgets.maxTokensPerCycle',
-  'budgets.maxMemoryMbPerCycle',
-  'provisional.cInitial',
-  'provisional.decayRate',
-  'provisional.maxTtlMs',
-] as const;
+export { type SystemOneBounds, type SystemOneBoundCategory, type SystemOneBoundKey };
 
 const boundDefaults = buildDefaultsFromBounds(systemOneBound, [...SYSTEM_ONE_DEFAULT_PATHS]) as {
   budgets: { maxJudgmentCallsPerCycle: number; maxConsensusPerCycle: number; maxLatencyMsPerJudgment: number; maxTokensPerCycle: number; maxMemoryMbPerCycle: number };

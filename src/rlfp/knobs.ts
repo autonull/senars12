@@ -1,8 +1,7 @@
 import { getNested, setNested } from '@senars/util/object';
 import { indexBy, keyedBy } from '@senars/util/collections';
-import { cognitiveBound } from '../config/cognitive-bounds';
-import { systemOneBound } from '../config/system-one';
-import type { BoundProjection } from '@senars/config/bounds';
+import { cognitiveBound, systemOneBound } from '../config/bound-table';
+import type { BoundProjection } from '../config/bound-table';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
 
 export interface TunableKnob {

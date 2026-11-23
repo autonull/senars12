@@ -7,7 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   type CognitiveParameters,
   DEFAULT_COGNITIVE_PARAMETERS,
-} from '@senars/config';
+  mergeParameters,
+} from '@senars/config/cognitive-parameters';
 import { GateRegistry } from '@senars/kernel';
 import {
   replayIntoMemory,
@@ -347,13 +348,13 @@ describe('todo7: full-state memory replay (LogStore)', () => {
       return concept.priority;
     };
 
-    const configured = await replay({
-      ...DEFAULT_COGNITIVE_PARAMETERS,
-      strategies: {
-        ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
-        attention: { type: 'simple', config: { boost: 0.3 } },
-      },
-    });
+    const configured = await replay(
+      mergeParameters({
+        strategies: {
+          attention: { type: 'simple', config: { boost: 0.3 } },
+        },
+      })
+    );
     const unconfigured = await replay(undefined);
 
     expect(configured).toBeLessThan(1);

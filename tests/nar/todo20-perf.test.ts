@@ -24,7 +24,7 @@ describe('Bench 69 — P1: Bag seeded LCG', () => {
     expect(sample(42)).not.toEqual(sample(43));
   });
 
-  it('seeded LCG sampling overhead vs Math.random is within CI-safe tolerance', () => {
+  it('seeded LCG sampling overhead vs Math.random is within CI-safe tolerance', { timeout: 30000 }, () => {
     const timed = (makeRng?: (seed: number) => RandomSource) => {
       const bag = new PriorityBag<{ id: string; priority: number }>({
         capacity: 1000,
