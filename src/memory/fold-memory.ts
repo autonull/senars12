@@ -61,6 +61,7 @@ import { EpisodicMemory } from './EpisodicMemory';
 import type { Episode, EpisodeType } from '@senars/types/episodic-memory';
 import { EPISODE_TYPES } from '@senars/types/episodic-memory';
 import { ConceptConfig } from './concept';
+import type { Belief, Question, MemoryStats } from './view';
 
 /** Stateless, so one instance serves every memory that was not given a model. */
 const NULL_ATTENTION = new NullAttentionModel();
@@ -641,6 +642,40 @@ export class FoldMemory implements MemoryPorts {
       }
     }
     return goals;
+  }
+
+  // --- Belief/Question Enumeration ---
+
+  getBeliefs(): Belief[] {
+    this.#ensureProjections();
+    const beliefs: Belief[] = [];
+    for (const c of this.#concepts.values()) {
+      if (!c.isArchived) {
+        for (const belief of c.concept.getBeliefs()) {
+          beliefs.push(taskFromBagItem(belief, 'belief', c.concept.priority) as Belief);
+        }
+      }
+    }
+    return beliefs;
+  }
+
+  getQuestions(): Question[] {
+    this.#ensureProjections();
+    const questions: Question[] = [];
+    for (const c of this.#concepts.values()) {
+      if (!c.isArchived) {
+        for (const question of c.concept.getQuestions()) {
+          questions.push(taskFromBagItem(question, 'question', c.concept.priority) as Question);
+        }
+      }
+    }
+    return questions;
+  }
+
+  // --- StatisticsView ---
+
+  stats(): MemoryStats {
+    return this.getStatistics();
   }
 
   // --- StatisticsView ---

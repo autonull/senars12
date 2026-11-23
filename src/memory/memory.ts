@@ -41,6 +41,7 @@ import { evictUnderPressure } from './pressure';
 import { selectSimilar } from './similarity';
 import { calculateConceptStats, storePressure, tallyConcepts } from './state';
 import { filterByTerm } from './term-filter';
+import type { Belief, Question, MemoryStats } from './view';
 
 /** Stateless, so one instance serves every memory that was not given a model. */
 const NULL_ATTENTION = new NullAttentionModel();
@@ -229,6 +230,39 @@ export class Memory implements MemoryPorts {
       }
     }
     return goals;
+  }
+
+  /**
+   * A pure read: the stored beliefs, as tasks.
+   */
+  getBeliefs(): Belief[] {
+    const beliefs: Belief[] = [];
+    for (const concept of this.concepts.values()) {
+      for (const b of concept.beliefBag.all()) {
+        beliefs.push(taskFromBagItem(b, 'belief', concept.priority) as Belief);
+      }
+    }
+    return beliefs;
+  }
+
+  /**
+   * A pure read: the stored questions, as tasks.
+   */
+  getQuestions(): Question[] {
+    const questions: Question[] = [];
+    for (const concept of this.concepts.values()) {
+      for (const q of concept.questionBag.all()) {
+        questions.push(taskFromBagItem(q, 'question', concept.priority) as Question);
+      }
+    }
+    return questions;
+  }
+
+  /**
+   * Memory statistics.
+   */
+  stats(): MemoryStatistics {
+    return this.getStatistics();
   }
 
   getConfig(): MemoryConfig {

@@ -20,11 +20,19 @@ import type { RandomSource } from '../types/primitives';
 import type { Term } from '../terms/index';
 import type { Task } from '../types/index';
 import type { LinkPort } from './ports/memory-ports';
+import type { MemoryStats } from './state/statistics';
+export type { MemoryStats };
 
 /** Semantic similarity between two terms — the embedding layer's read surface. */
 export interface SemanticSimilarity {
   similarity(a: Concept['term'], b: Concept['term']): number;
 }
+
+/** Belief task type. */
+export interface Belief extends Task {}
+
+/** Question task type. */
+export interface Question extends Task {}
 
 /**
  * The read-only memory surface for the strategy layer.
@@ -41,20 +49,34 @@ export interface MemoryView {
   getConcept(term: Term): Concept | undefined;
   readonly size: number;
 
-  // GoalEnumeration methods needed by strategies
+  // Belief/Goal/Question enumeration
+  getBeliefs(): Belief[];
   getGoals(): Task[];
+  getQuestions(): Question[];
 
-  getFocus(): Focus;
+  // Links
   /** The link surface, as a port: recall and strength, not the manager's storage. */
   links(): LinkPort;
+
+  // Associative
   /** Every associative index (term links, embedding similarity, co-activation) by name. */
   getAssociativeMemories(): AssociativeRegistry;
+
+  // Embeddings
   /** Absent when no semantic layer is configured — a deployment choice, not an error. */
   getEmbeddingIndex(): SemanticSimilarity | undefined;
+
+  // Focus
+  getFocus(): Focus;
+
+  // Sampling
   /** The `n` highest-attention resident concepts, in attention order. */
   topConcepts(limit: number): Concept[];
   /** A contiguous window of the priority order, for positional-local sampling. */
   sampleWindow(windowSize: number, rng: RandomSource): Concept[];
+
+  // Stats
+  stats(): MemoryStats;
 }
 
 export type { AssociativeRegistry, Focus, LinkPort };

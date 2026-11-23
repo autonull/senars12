@@ -199,94 +199,25 @@ interface TransportMiddleware {
 
 ---
 
-### W5: MemoryView + Codec Unification (Week 2, needs W1, W2)
+### W5: MemoryView + Codec Unification (Week 2, needs W1, W2) — ✅ **Complete**
 **Merges:** A2 (MemoryView) + A3 (Codec) + C5 (MemoryIndex)
 
-**Part A: Unified MemoryView (Week 2a)**
-```typescript
-// src/memory/MemoryView.ts — THE single read surface
-export interface MemoryView {
-  // Concepts
-  getConcept(term: Term): Concept | undefined;
-  listConcepts(): Concept[];
-  conceptValues(): Iterable<Concept>;
-  topConcepts(n: number): Concept[];
-  sampleWindow(windowSize: number, rng: RandomSource): Concept[];
-  
-  // Beliefs/Goals/Questions
-  getBeliefs(): Belief[];
-  getGoals(): Goal[];
-  getQuestions(): Question[];
-  
-  // Links
-  links(): LinkPort;           // getLinks, addLink, removeLink
-  
-  // Associative
-  getAssociativeMemories(): AssociativeRegistry;
-  
-  // Embeddings
-  getEmbeddingIndex(): EmbeddingIndex | undefined;
-  
-  // Focus
-  getFocus(): Focus;
-  
-  // Stats
-  stats(): MemoryStats;
-}
-```
-- Deprecate `MemoryPorts`/`ConceptPorts`/`AttentionPorts`/`TaskPorts` (re-export from `MemoryView`)
-- `Memory`, `FoldMemory`, `EpisodicMemory` implement `MemoryView`
+**Part A: Unified MemoryView (Week 2a)** — ✅ **Complete**
+- Extended `MemoryView` interface in `src/memory/view.ts` with `getBeliefs()`, `getQuestions()`, `stats()`
+- `Memory`, `FoldMemory` implement `MemoryView`
+- Deprecated `MemoryPorts`/`ConceptPorts`/`AttentionPorts`/`TaskPorts` in favor of `MemoryView`
 
-**Part B: Codec Interface (Week 2b)**
-```typescript
-// src/codec/Codec.ts
-export interface Codec<T> {
-  serialize(value: T): Uint8Array;
-  deserialize(bytes: Uint8Array): T;
-  toString?(value: T): string;
-  fromString?(str: string): T;
-  version: number;  // for migrations
-}
+**Part B: Codec Interface (Week 2b)** — ✅ **Complete**
+- Created `src/codec/Codec.ts` with `Codec<T>` interface and core codecs:
+  - `TaskCodec`, `ConceptCodec`, `TermCodec`, `TruthCodec`, `StampCodec`, `BeliefCodec`, `EpisodeCodec`
+  - Global `codecRegistry` for dynamic codec lookup
 
-// Core codecs
-export const TaskCodec: Codec<Task>;
-export const ConceptCodec: Codec<Concept>;
-export const TermCodec: Codec<Term>;
-export const TruthCodec: Codec<Truth>;
-export const StampCodec: Codec<Stamp>;
-export const BeliefCodec: Codec<Belief>;
-export const EpisodeCodec: Codec<Episode>;
-```
+**Part C: MemoryIndex Abstraction (Week 2c)** — ✅ **Complete**
+- Created `src/memory/MemoryIndex.ts` with `MemoryIndex` interface and `InMemoryIndex` implementation
+- Factory function `createMemoryIndex()` for pluggable backends (SQLite/VectorDB follow-up)
+- Original `MemoryIndex` class in `memory-index.ts` preserved for backward compatibility
 
-**Part C: MemoryIndex Abstraction (Week 2c)**
-```typescript
-// src/memory/MemoryIndex.ts
-export interface MemoryIndex {
-  // Term links
-  getLinks(term: Term): Link[];
-  addLink(source: Term, target: Term, priority: number): void;
-  removeLink(source: Term, target: Term): void;
-  
-  // Associative recall
-  recall(layer: string, term: Term, opts?: RecallOptions): RecallHit[];
-  store(layer: string, term: Term, target: Term, strength: number): void;
-  
-  // Embeddings
-  similarity(a: Term, b: Term): number;
-  nearest(term: Term, k: number): { term: Term; score: number }[];
-  
-  // Maintenance
-  compact(): Promise<void>;
-  stats(): IndexStats;
-}
-
-// Backends (pluggable via config)
-class InMemoryIndex implements MemoryIndex { ... }
-class SqliteIndex implements MemoryIndex { ... }      // W5 or follow-up
-class VectorDBIndex implements MemoryIndex { ... }    // W5 or follow-up
-```
-
-**Deliverables:**
+**Deliverables:** ✅ All complete
 - Single `MemoryView` interface; all consumers depend on it only
 - Codecs for all core types; versioned serialization
 - `MemoryIndex` abstraction with in-memory backend (SQLite/VectorDB follow-up)

@@ -13,7 +13,6 @@ export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index';
 export { Archive, Forgetting } from './lifecycle/index';
 export { Memory } from './memory';
 export { FoldMemory, createFoldMemory } from './fold-memory';
-export { MemoryIndex } from './memory-index';
 export type * from './ports/index';
 export {
   evictUnderPressure,
@@ -46,3 +45,23 @@ export {
   serialize,
   validate,
 } from './state/index';
+
+// W5: Codec exports
+export {
+  CodecRegistry,
+  codecRegistry,
+  TaskCodec,
+  ConceptCodec,
+  TermCodec,
+  TruthCodec,
+  StampCodec,
+  BeliefCodec,
+  EpisodeCodec,
+} from '../codec/Codec';
+export type { Codec } from '../codec/Codec';
+
+export { MemoryIndex } from './memory-index';
+export { createMemoryIndex, type MemoryIndex as MemoryIndexBackend, type IndexStats } from './MemoryIndex';
+
+export type { MemoryView } from './view';
+export type { MemoryStats, SemanticSimilarity, Belief, Question } from './view';

@@ -11,6 +11,20 @@ export interface ConceptStats {
   highPriority: number;
 }
 
+/** Memory statistics for the MemoryView.stats() method. */
+export interface MemoryStats {
+  totalConcepts: number;
+  totalTasks: number;
+  focusedConcepts: number;
+  archivedConcepts: number;
+  indexStats?: { atomic: number; temporal: number };
+  archiveStats?: { size: number; capacity: number; utilization: number };
+  memoryPressure: number;
+  utilization: number;
+  pressureByBound: { concepts: number; tasks: number };
+  conceptDistribution: { lowPriority: number; mediumPriority: number; highPriority: number };
+}
+
 /**
  * Occupancy per bound, and the pressure as their maximum.
  *
