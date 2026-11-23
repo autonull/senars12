@@ -288,3 +288,7 @@ export * from './witness/index';
 // Ledger
 /** @public Append-only ledger with content-addressable entries. */
 export * from './ledger/index';
+
+// Fluent Builder
+/** @public Shared fluent builder pattern infrastructure. */
+export * from './fluent-builder';

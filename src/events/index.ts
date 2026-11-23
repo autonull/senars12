@@ -4,3 +4,4 @@ export { ListenerBag } from './listener-bag';
 export { PushQueue } from './push-queue';
 export { Signal } from './signal';
 export type { EventReceiver, EventUnsubscribe } from './types';
+export * from './domain-event-taxonomy';

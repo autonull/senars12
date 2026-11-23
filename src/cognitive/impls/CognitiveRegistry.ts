@@ -11,6 +11,7 @@
  */
 
 import { emitDomainEvent } from '../../agent/event-sink';
+import { DOMAIN_EVENTS } from '../../events';
 
 import { ConfigurationError } from '../../types';
 import { ambientRng } from '@senars/util/random';
@@ -262,7 +263,7 @@ export class CognitiveRegistry implements StrategyRegistry {
     this.configured[type].clear();
     this.composed[type].clear();
     // Emit reconfigure event
-    emitDomainEvent('strategy.reconfigure', 'strategy', {
+    emitDomainEvent(DOMAIN_EVENTS.STRATEGY_RECONFIGURE, 'strategy', {
       type,
       spec: typeof spec === 'string' ? spec : JSON.stringify(spec),
       context: { hasConfig: config !== undefined },
@@ -341,7 +342,7 @@ export class CognitiveRegistry implements StrategyRegistry {
   #emit(type: StrategyType, name: string, tier: ResolutionTier, digest?: string): void {
     const memoSize = this.memoizedSize(type);
     recordStrategyMemoSize(type, memoSize);
-    emitDomainEvent('strategy.selection', 'strategy', {
+    emitDomainEvent(DOMAIN_EVENTS.STRATEGY_SELECTION, 'strategy', {
       type,
       name,
       config_digest: digest,

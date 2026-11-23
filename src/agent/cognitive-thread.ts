@@ -21,6 +21,7 @@ import {
   snapshotBudget,
 } from '../budget/budget';
 import { emitDomainEvent } from './event-sink';
+import { DOMAIN_EVENTS } from '../events';
 import { SenarsError } from '../errors/senars-error';
 
 
@@ -36,7 +37,7 @@ const emitBackpressureDecision = (attributes: {
   mailboxSize: number;
   mailboxCapacity: number;
 }): void => {
-  emitDomainEvent('thread.backpressure', '', attributes);
+  emitDomainEvent(DOMAIN_EVENTS.THREAD_BACKPRESSURE, '', attributes);
 };
 
 export type ThreadStatus = 'created' | 'running' | 'waiting' | 'completed' | 'killed' | 'error';
