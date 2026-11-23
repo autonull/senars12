@@ -16,7 +16,7 @@ export const chunk = <T>(items: readonly T[], size: number): T[][] => {
 };
 
 /** The one edge identity between two term keys. */
-export const edgeKey = (source: string, target: string): string => `${source}->${target}`;
+const edgeKey = (source: string, target: string): string => `${source}->${target}`;
 
 /**
  * Composite keys: the join and the split, so a key that is written in two places
@@ -32,7 +32,7 @@ export const edgeKey = (source: string, target: string): string => `${source}->$
  * pair is a split, not a quote, and {@link splitKey} reports the arity it found
  * rather than quietly returning a part with the separator still in it.
  */
-export const KEY_SEPARATOR = '::';
+const KEY_SEPARATOR = '::';
 
 export const joinKey = (...parts: readonly string[]): string => parts.join(KEY_SEPARATOR);
 

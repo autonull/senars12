@@ -151,128 +151,78 @@ export class Reducer {
 export function createReducer(): Reducer {
   const reducer = new Reducer();
 
+  const rule = (name: string, priority: number, match: (term: Term) => boolean, reduce: (term: Term) => Term | null) =>
+    reducer.addRule({ name, priority, match, reduce });
+
   // Double negation elimination: ~~A -> A
-  reducer.addRule({
-    name: 'double_negation',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.NEGATION || args === null || args.length === 0) return false;
-      const firstArg = args[0]!;
-      return isCompound(firstArg) && firstArg.op === TermOp.NEGATION;
-    },
-    reduce: (term): Term => {
-      const inner = getFirstArg(term) as CompoundTerm;
-      return getFirstArg(inner);
-    },
-    priority: 100,
-  });
+  rule('double_negation', 100,
+    t => t.op === TermOp.NEGATION && (getArgs(t)?.[0]?.op === TermOp.NEGATION),
+    t => getFirstArg(getFirstArg(t) as CompoundTerm));
 
   // Double conversion elimination (inheritance): (A-->B)--> -> A-->B
-  reducer.addRule({
-    name: 'double_conversion_inheritance',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.INHERITANCE || args === null || args.length < 2) return false;
-      const subj = args[0]!;
-      const pred = args[1]!;
-      return isCompound(subj) && subj.op === TermOp.INHERITANCE && isConstant(pred);
+  rule('double_conversion_inheritance', 90,
+    t => {
+      const args = getArgs(t);
+      return !!(t.op === TermOp.INHERITANCE && args && args.length >= 2 &&
+        args[0]?.op === TermOp.INHERITANCE && isConstant(args[1]!));
     },
-    reduce: (term): Term => getFirstArg(term),
-    priority: 90,
-  });
+    t => getFirstArg(t));
 
   // Tautology elimination: A & A -> A
-  reducer.addRule({
-    name: 'tautology_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.CONJUNCTION && args !== null && args.length >= 2 && args[0] === args[1];
-    },
-    reduce: (term): Term => getFirstArg(term),
-    priority: 80,
-  });
+  rule('tautology_conjunction', 80,
+    t => t.op === TermOp.CONJUNCTION && (getArgs(t)?.[0] === getArgs(t)?.[1]),
+    t => getFirstArg(t));
 
   // Contradiction elimination: A & ~A -> FALSE
-  reducer.addRule({
-    name: 'contradiction_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.CONJUNCTION || args === null || args.length < 2) return false;
-      const a = args[0]!;
-      const b = args[1]!;
-      return a.op === TermOp.NEGATION && isCompound(a) && getArgs(a)![0] === b ||
-        b.op === TermOp.NEGATION && isCompound(b) && getArgs(b)![0] === a;
+  rule('contradiction_conjunction', 80,
+    t => {
+      const args = getArgs(t);
+      return !!(t.op === TermOp.CONJUNCTION && args && args.length >= 2 &&
+        (args[0]?.op === TermOp.NEGATION && getArgs(args[0])?.[0] === args[1] ||
+         args[1]?.op === TermOp.NEGATION && getArgs(args[1])?.[0] === args[0]));
     },
-    reduce: (): Term => termInterner.constant('FALSE'),
-    priority: 80,
-  });
+    () => termInterner.constant('FALSE'));
 
   // Identity elimination: A | A -> A
-  reducer.addRule({
-    name: 'tautology_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.DISJUNCTION && args !== null && args.length >= 2 && args[0] === args[1];
-    },
-    reduce: (term): Term => getFirstArg(term),
-    priority: 80,
-  });
+  rule('tautology_disjunction', 80,
+    t => t.op === TermOp.DISJUNCTION && (getArgs(t)?.[0] === getArgs(t)?.[1]),
+    t => getFirstArg(t));
 
   // Tautology: A | ~A -> TRUE
-  reducer.addRule({
-    name: 'tautology_disjunction_negation',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.DISJUNCTION || args === null || args.length < 2) return false;
-      const a = args[0]!;
-      const b = args[1]!;
-      return a.op === TermOp.NEGATION && getArgs(a)![0] === b ||
-        b.op === TermOp.NEGATION && getArgs(b)![0] === a;
+  rule('tautology_disjunction_negation', 80,
+    t => {
+      const args = getArgs(t);
+      return !!(t.op === TermOp.DISJUNCTION && args && args.length >= 2 &&
+        (args[0]?.op === TermOp.NEGATION && getArgs(args[0])?.[0] === args[1] ||
+         args[1]?.op === TermOp.NEGATION && getArgs(args[1])?.[0] === args[0]));
     },
-    reduce: (): Term => termInterner.constant('TRUE'),
-    priority: 80,
-  });
+    () => termInterner.constant('TRUE'));
 
   // Absorption: A & (A | B) -> A
-  reducer.addRule({
-    name: 'absorption_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.CONJUNCTION || args === null || args.length < 2) return false;
-      const a = args[0]!;
-      const b = args[1]!;
-      return b.op === TermOp.DISJUNCTION && getArgs(b)!.some(arg => arg === a);
+  rule('absorption_conjunction', 70,
+    t => {
+      const args = getArgs(t);
+      return t.op === TermOp.CONJUNCTION && !!args && args.length >= 2 &&
+        args[1]?.op === TermOp.DISJUNCTION && (getArgs(args[1]) ?? []).some(a => a === args[0]);
     },
-    reduce: (term): Term => getFirstArg(term),
-    priority: 70,
-  });
+    t => getFirstArg(t));
 
   // Absorption: A | (A & B) -> A
-  reducer.addRule({
-    name: 'absorption_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.DISJUNCTION || args === null || args.length < 2) return false;
-      const a = args[0]!;
-      const b = args[1]!;
-      return b.op === TermOp.CONJUNCTION && getArgs(b)!.some(arg => arg === a);
+  rule('absorption_disjunction', 70,
+    t => {
+      const args = getArgs(t);
+      return t.op === TermOp.DISJUNCTION && !!args && args.length >= 2 &&
+        args[1]?.op === TermOp.CONJUNCTION && (getArgs(args[1]) ?? []).some(a => a === args[0]);
     },
-    reduce: (term): Term => getFirstArg(term),
-    priority: 70,
-  });
+    t => getFirstArg(t));
 
   // Distribution: A & (B | C) -> (A & B) | (A & C)
-  reducer.addRule({
-    name: 'distribution_conjunction_over_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.CONJUNCTION || args === null) return false;
-      return args.some(arg => arg.op === TermOp.DISJUNCTION);
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const disjArg = args.find(arg => arg.op === TermOp.DISJUNCTION)!;
-      const otherArg = args.find(arg => arg.op !== TermOp.DISJUNCTION)!;
+  rule('distribution_conjunction_over_disjunction', 60,
+    t => t.op === TermOp.CONJUNCTION && (getArgs(t) ?? []).some(a => a.op === TermOp.DISJUNCTION),
+    t => {
+      const args = getArgs(t)!;
+      const disjArg = args.find(a => a.op === TermOp.DISJUNCTION)!;
+      const otherArg = args.find(a => a.op !== TermOp.DISJUNCTION)!;
       const disjArgs = getArgs(disjArg)!;
       const d1 = disjArgs[0]!;
       const d2 = disjArgs[1]!;
@@ -280,22 +230,15 @@ export function createReducer(): Reducer {
         termInterner.conjunction(otherArg, d1),
         termInterner.conjunction(otherArg, d2)
       );
-    },
-    priority: 60,
-  });
+    });
 
   // Distribution: A | (B & C) -> (A | B) & (A | C)
-  reducer.addRule({
-    name: 'distribution_disjunction_over_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (term.op !== TermOp.DISJUNCTION || args === null) return false;
-      return args.some(arg => arg.op === TermOp.CONJUNCTION);
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const conjArg = args.find(arg => arg.op === TermOp.CONJUNCTION)!;
-      const otherArg = args.find(arg => arg.op !== TermOp.CONJUNCTION)!;
+  rule('distribution_disjunction_over_conjunction', 60,
+    t => t.op === TermOp.DISJUNCTION && (getArgs(t) ?? []).some(a => a.op === TermOp.CONJUNCTION),
+    t => {
+      const args = getArgs(t)!;
+      const conjArg = args.find(a => a.op === TermOp.CONJUNCTION)!;
+      const otherArg = args.find(a => a.op !== TermOp.CONJUNCTION)!;
       const conjArgs = getArgs(conjArg)!;
       const c1 = conjArgs[0]!;
       const c2 = conjArgs[1]!;
@@ -303,229 +246,99 @@ export function createReducer(): Reducer {
         termInterner.disjunction(otherArg, c1),
         termInterner.disjunction(otherArg, c2)
       );
-    },
-    priority: 60,
-  });
+    });
 
   // De Morgan: ~(A & B) -> ~A | ~B
-  reducer.addRule({
-    name: 'de_morgan_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (!args || args.length === 0) return false;
-      return term.op === TermOp.NEGATION && args[0]!.op === TermOp.CONJUNCTION;
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const inner = args[0]! as CompoundTerm;
-      const innerArgs = inner.args;
-      const a = innerArgs[0]!;
-      const b = innerArgs[1]!;
-      return termInterner.disjunction(
-        termInterner.negation(a),
-        termInterner.negation(b)
-      );
-    },
-    priority: 90,
-  });
+  rule('de_morgan_conjunction', 90,
+    t => t.op === TermOp.NEGATION && getArgs(t)?.[0]?.op === TermOp.CONJUNCTION,
+    t => {
+      const inner = getArgs(t)![0] as CompoundTerm;
+      const args = getArgs(inner)!;
+      const a = args[0]!;
+      const b = args[1]!;
+      return termInterner.disjunction(termInterner.negation(a), termInterner.negation(b));
+    });
 
   // De Morgan: ~(A | B) -> ~A & ~B
-  reducer.addRule({
-    name: 'de_morgan_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      if (!args || args.length === 0) return false;
-      return term.op === TermOp.NEGATION && args[0]!.op === TermOp.DISJUNCTION;
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const inner = args[0]! as CompoundTerm;
-      const innerArgs = inner.args;
-      const a = innerArgs[0]!;
-      const b = innerArgs[1]!;
-      return termInterner.conjunction(
-        termInterner.negation(a),
-        termInterner.negation(b)
-      );
-    },
-    priority: 90,
-  });
+  rule('de_morgan_disjunction', 90,
+    t => t.op === TermOp.NEGATION && getArgs(t)?.[0]?.op === TermOp.DISJUNCTION,
+    t => {
+      const inner = getArgs(t)![0] as CompoundTerm;
+      const args = getArgs(inner)!;
+      const a = args[0]!;
+      const b = args[1]!;
+      return termInterner.conjunction(termInterner.negation(a), termInterner.negation(b));
+    });
 
   // Implication elimination: (A ==> B) -> (~A | B)
-  reducer.addRule({
-    name: 'implication_elimination',
-    match: (term): boolean => term.op === TermOp.IMPLICATION,
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
+  rule('implication_elimination', 85,
+    t => t.op === TermOp.IMPLICATION,
+    t => {
+      const args = getArgs(t)!;
       const ante = args[0]!;
       const conseq = args[1]!;
-      return termInterner.disjunction(
-        termInterner.negation(ante),
-        conseq
-      );
-    },
-    priority: 85,
-  });
+      return termInterner.disjunction(termInterner.negation(ante), conseq);
+    });
 
   // Equivalence elimination: (A <=> B) -> (A ==> B) & (B ==> A)
-  reducer.addRule({
-    name: 'equivalence_elimination',
-    match: (term): boolean => term.op === TermOp.EQUIVALENCE,
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
+  rule('equivalence_elimination', 85,
+    t => t.op === TermOp.EQUIVALENCE,
+    t => {
+      const args = getArgs(t)!;
       const left = args[0]!;
       const right = args[1]!;
       return termInterner.conjunction(
         termInterner.implication(left, right),
         termInterner.implication(right, left)
       );
-    },
-    priority: 85,
-  });
+    });
 
-  // Flatten nested conjunctions: (A & B) & C -> A & B & C
-  reducer.addRule({
-    name: 'flatten_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.CONJUNCTION && args !== null && args.some(arg => arg.op === TermOp.CONJUNCTION);
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const flattened: Term[] = [];
-      const collect = (t: Term) => {
-        if (t.op === TermOp.CONJUNCTION) {
-          getArgs(t)?.forEach(collect);
-        } else {
-          flattened.push(t);
-        }
-      };
-      args.forEach(collect);
-      return termInterner.conjunction(...flattened);
-    },
-    priority: 75,
-  });
+  // Flatten nested: (A op B) op C -> A op B op C
+  const flatten = (op: TermOp, name: string, priority: number) =>
+    rule(`flatten_${name}`, priority,
+      t => t.op === op && (getArgs(t) ?? []).some(a => a.op === op),
+      t => {
+        const flattened: Term[] = [];
+        const collect = (x: Term) => x.op === op ? (getArgs(x) ?? []).forEach(collect) : flattened.push(x);
+        (getArgs(t) ?? []).forEach(collect);
+        return termInterner.compound(op, ...flattened);
+      });
 
-  // Flatten nested disjunctions: (A | B) | C -> A | B | C
-  reducer.addRule({
-    name: 'flatten_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.DISJUNCTION && args !== null && args.some(arg => arg.op === TermOp.DISJUNCTION);
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const flattened: Term[] = [];
-      const collect = (t: Term) => {
-        if (t.op === TermOp.DISJUNCTION) {
-          getArgs(t)?.forEach(collect);
-        } else {
-          flattened.push(t);
-        }
-      };
-      args.forEach(collect);
-      return termInterner.disjunction(...flattened);
-    },
-    priority: 75,
-  });
-
-  // Flatten nested products: (A * B) * C -> A * B * C
-  reducer.addRule({
-    name: 'flatten_product',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.PRODUCT && args !== null && args.some(arg => arg.op === TermOp.PRODUCT);
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const flattened: Term[] = [];
-      const collect = (t: Term) => {
-        if (t.op === TermOp.PRODUCT) {
-          getArgs(t)?.forEach(collect);
-        } else {
-          flattened.push(t);
-        }
-      };
-      args.forEach(collect);
-      return termInterner.product(...flattened);
-    },
-    priority: 75,
-  });
+  flatten(TermOp.CONJUNCTION, 'conjunction', 75);
+  flatten(TermOp.DISJUNCTION, 'disjunction', 75);
+  flatten(TermOp.PRODUCT, 'product', 75);
 
   // Sort commutative arguments for canonical form
-  reducer.addRule({
-    name: 'sort_commutative',
-    match: (term): boolean => {
-      const arity = getArity(term);
-      return [TermOp.CONJUNCTION, TermOp.DISJUNCTION, TermOp.SIMILARITY, TermOp.EQUIVALENCE, TermOp.PRODUCT].includes(term.op) && (arity ?? 0) > 1;
-    },
-    reduce: (term): Term | null => {
-      const args = getArgs(term)!;
+  rule('sort_commutative', 50,
+    t => [TermOp.CONJUNCTION, TermOp.DISJUNCTION, TermOp.SIMILARITY, TermOp.EQUIVALENCE, TermOp.PRODUCT].includes(t.op) && (getArity(t) ?? 0) > 1,
+    t => {
+      const args = getArgs(t)!;
       const sorted = [...args].sort((a, b) => termInterner.getHash(a) - termInterner.getHash(b));
-      // Check if already sorted
-      let same = true;
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] !== sorted[i]) { same = false; break; }
-      }
-      if (same) return null;
-      return termInterner.compound(term.op, ...sorted);
-    },
-    priority: 50,
-  });
+      return args.every((a, i) => a === sorted[i]) ? null : termInterner.compound(t.op, ...sorted);
+    });
 
-  // Eliminate TRUE from conjunction: TRUE & A -> A
-  reducer.addRule({
-    name: 'eliminate_true_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.CONJUNCTION && args !== null && args.some(arg => arg.op === TermOp.CONSTANT && isConstant(arg) && arg.value === 'TRUE');
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const filtered = args.filter(arg => !(arg.op === TermOp.CONSTANT && isConstant(arg) && arg.value === 'TRUE'));
-      if (filtered.length === 1) return filtered[0]!;
-      return termInterner.conjunction(...filtered);
-    },
-    priority: 70,
-  });
+  // Eliminate TRUE/FALSE
+  const elim = (op: TermOp, opName: string, value: 'TRUE' | 'FALSE', priority: number) =>
+    rule(`eliminate_${value.toLowerCase()}_${opName}`, priority,
+      t => t.op === op && (getArgs(t) ?? []).some(a => a.op === TermOp.CONSTANT && isConstant(a) && a.value === value),
+      t => {
+        const args = getArgs(t)!;
+        const filtered = args.filter(a => !(a.op === TermOp.CONSTANT && isConstant(a) && a.value === value));
+        return filtered.length === 1 ? filtered[0]! : termInterner.compound(op, ...filtered);
+      });
 
-  // Eliminate FALSE from disjunction: FALSE | A -> A
-  reducer.addRule({
-    name: 'eliminate_false_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.DISJUNCTION && args !== null && args.some(arg => arg.op === TermOp.CONSTANT && isConstant(arg) && arg.value === 'FALSE');
-    },
-    reduce: (term): Term => {
-      const args = getArgs(term)!;
-      const filtered = args.filter(arg => !(arg.op === TermOp.CONSTANT && isConstant(arg) && arg.value === 'FALSE'));
-      if (filtered.length === 1) return filtered[0]!;
-      return termInterner.disjunction(...filtered);
-    },
-    priority: 70,
-  });
+  elim(TermOp.CONJUNCTION, 'conjunction', 'TRUE', 70);
+  elim(TermOp.DISJUNCTION, 'disjunction', 'FALSE', 70);
 
   // FALSE in conjunction -> FALSE
-  reducer.addRule({
-    name: 'false_conjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.CONJUNCTION && args !== null && args.some(arg => arg.op === TermOp.CONSTANT && isConstant(arg) && arg.value === 'FALSE');
-    },
-    reduce: (): Term => termInterner.constant('FALSE'),
-    priority: 70,
-  });
+  rule('false_conjunction', 70,
+    t => t.op === TermOp.CONJUNCTION && (getArgs(t) ?? []).some(a => a.op === TermOp.CONSTANT && isConstant(a) && a.value === 'FALSE'),
+    () => termInterner.constant('FALSE'));
 
   // TRUE in disjunction -> TRUE
-  reducer.addRule({
-    name: 'true_disjunction',
-    match: (term): boolean => {
-      const args = getArgs(term);
-      return term.op === TermOp.DISJUNCTION && args !== null && args.some(arg => arg.op === TermOp.CONSTANT && isConstant(arg) && arg.value === 'TRUE');
-    },
-    reduce: (): Term => termInterner.constant('TRUE'),
-    priority: 70,
-  });
+  rule('true_disjunction', 70,
+    t => t.op === TermOp.DISJUNCTION && (getArgs(t) ?? []).some(a => a.op === TermOp.CONSTANT && isConstant(a) && a.value === 'TRUE'),
+    () => termInterner.constant('TRUE'));
 
   return reducer;
 }

@@ -7,7 +7,6 @@ export {
   chunk,
   collectUpTo,
   containerStats,
-  edgeKey,
   entryKey,
   flatUnique,
   getOrInsert,
