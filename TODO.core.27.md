@@ -507,12 +507,14 @@ const provider = new NodeTracerProvider();
 - `tests/nar/todo20-perf.test.ts` — "seeded LCG sampling overhead" times out in full suite (resource contention), passes in isolation.
 
 **Follow-ups (non-blocking, quality):**
-- Enrich `context` on remaining `SenarsError` throw sites where a useful payload exists (ids, paths, keys); the `code` migration is complete.
-- Key retry/budget policies on `SenarsError.code` where a caller retries today on message text.
-- Finish deferred Q2–Q4 (builder, event taxonomy, serialization helpers).
-- ✅ Implement priority-proportional sampling in `PriorityBag.sample()` — done (roulette wheel without replacement via `weightedSample`).
 - ✅ Enrich `context` on ~40 `SenarsError` throw sites with useful payloads (ids, paths, keys, term strings, arg counts, correlation IDs, operation names)
 - ✅ Key retry/budget policies on `SenarsError.code` — added `RETRYABLE_ERROR_CODES` set and `isRetryableError()` utility; updated action execution retry logic (`src/loop/act.ts`) and LM provider retry (`src/lm/service/errors.ts`)
+- ✅ Implement priority-proportional sampling in `PriorityBag.sample()` — done (roulette wheel without replacement via `weightedSample`)
+
+**Deferred (quality — post-consolidation):**
+- Q2 Builder Unification — consolidate `NARBuilder` / `BookBuilder` patterns
+- Q3 Event Taxonomy — standardize `emitDomainEvent` names/payloads across subsystems
+- Q4 Serialization Helpers — codec completeness (CBOR/msgpack backends), schema migration tooling
 
 ---
 
