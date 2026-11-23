@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-22T22:39:39.796Z",
+  "generatedAt": "2026-11-23T00:03:27.125Z",
   "capabilities": [
     {
       "id": "faculty.grounding",
@@ -124,25 +124,25 @@
       "name": "revision",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Revises beliefs based on new evidence",
+      "behavior": "Revises and merges conflicting beliefs into consistent knowledge",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.z3"
+        "oracle.engine.custom"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "3371c1af688a57c7"
+      "hash": "bcdf9bda450e3a69"
     },
     {
       "id": "faculty.planning",
       "name": "planning",
       "category": "planning",
       "owner": "faculty-engine",
-      "behavior": "Decomposes goals into executable plans",
+      "behavior": "Generates action sequences to achieve goals",
       "tests": [
         {
           "path": "tests/unit/nar/weighted-sample.test.ts",
@@ -156,18 +156,18 @@
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.clingo"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "8505fb4ad545f253"
+      "hash": "024791a70be99d2e"
     },
     {
       "id": "faculty.evaluation",
       "name": "evaluation",
       "category": "evaluation",
       "owner": "faculty-engine",
-      "behavior": "Evaluates outcomes and assigns value",
+      "behavior": "Evaluates outcomes and assigns credit/blame",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -178,14 +178,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "63ee6a359549091d"
+      "hash": "f8efd8edcecde39d"
     },
     {
       "id": "faculty.communication",
       "name": "communication",
       "category": "communication",
       "owner": "faculty-engine",
-      "behavior": "Translates between Narsese and natural language",
+      "behavior": "Generates natural language from formal representations",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -196,50 +196,50 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "ed973623aa382ffc"
+      "hash": "1da907f20deca0e5"
     },
     {
       "id": "faculty.governance",
       "name": "governance",
       "category": "governance",
       "owner": "faculty-engine",
-      "behavior": "Checks policy compliance and safety constraints",
+      "behavior": "Makes governance decisions about system modifications",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.z3"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "6d94c2f7b859f538"
+      "hash": "39cb50fd2407392e"
     },
     {
       "id": "faculty.perceive.formalize",
       "name": "perceive.formalize",
       "category": "perception",
       "owner": "faculty-engine",
-      "behavior": "Formalizes natural language or Narsese into perceived interpretations with provenance",
+      "behavior": "Converts natural language to formal Narsese terms",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.formalization.nlToFormal"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "4b00521ed625d992"
+      "hash": "ac46c26e2128c577"
     },
     {
       "id": "faculty.propose.action",
       "name": "propose.action",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Proposes concrete executable actions given a goal and context",
+      "behavior": "Proposes concrete actions for the current situation",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -250,14 +250,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "5572d9543a1ffa26"
+      "hash": "23f98072cc30433f"
     },
     {
       "id": "faculty.propose.hypothesis",
       "name": "propose.hypothesis",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Generates explanatory hypotheses for observations or anomalies",
+      "behavior": "Proposes explanatory hypotheses for observations",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -268,14 +268,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "dc4517db2e11aafd"
+      "hash": "c60b24f79b3d560e"
     },
     {
       "id": "faculty.propose.repair",
       "name": "propose.repair",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Proposes repair strategies for failed operations or contradictions",
+      "behavior": "Proposes repairs for detected issues or failures",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -286,32 +286,32 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "765d44a40cbb71b0"
+      "hash": "5d4532a6b92af1ca"
     },
     {
       "id": "faculty.propose.plan",
       "name": "propose.plan",
       "category": "planning",
       "owner": "faculty-engine",
-      "behavior": "Decomposes high-level goals into executable multi-step plans",
+      "behavior": "Proposes multi-step plans for goal achievement",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.clingo"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "6446e17cfdb0da26"
+      "hash": "6c361b488dc85b6d"
     },
     {
       "id": "faculty.propose.skill",
       "name": "propose.skill",
       "category": "learning",
       "owner": "faculty-engine",
-      "behavior": "Synthesizes new reusable skills from successful patterns",
+      "behavior": "Proposes new skills or capabilities to acquire",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -322,32 +322,32 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "b45cf73fdd9c7d0a"
+      "hash": "3a38b281e30ea3a7"
     },
     {
       "id": "faculty.retrieve.rerank",
       "name": "retrieve.rerank",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Reranks retrieval candidates using learned relevance",
+      "behavior": "Retrieves relevant knowledge and reranks by relevance",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.embedding.rerank"
+        "oracle.retrieval.query"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "f0de90473e55a7b3"
+      "hash": "e1bf9e6521cb3915"
     },
     {
       "id": "faculty.judge.rubric",
       "name": "judge.rubric",
       "category": "evaluation",
       "owner": "faculty-engine",
-      "behavior": "Evaluates candidates against a structured rubric using LM judgment",
+      "behavior": "Evaluates candidates against a structured rubric",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -358,14 +358,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "3e0957f088d3279d"
+      "hash": "6874d769e2acd284"
     },
     {
       "id": "faculty.narrate.explain",
       "name": "narrate.explain",
       "category": "communication",
       "owner": "faculty-engine",
-      "behavior": "Generates natural language explanations for decisions or beliefs",
+      "behavior": "Generates natural language explanations for decisions",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -376,14 +376,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "329b08476d929fd2"
+      "hash": "6145d09e8594ac2e"
     },
     {
       "id": "faculty.mirror.postmortem",
       "name": "mirror.postmortem",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Analyzes past episodes to extract lessons and patterns",
+      "behavior": "Performs retrospective analysis on past decisions",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -394,25 +394,25 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "657b532a51874480"
+      "hash": "9c4aecb7c36036bd"
     },
     {
       "id": "faculty.simulate.scenario",
       "name": "simulate.scenario",
-      "category": "reasoning",
+      "category": "planning",
       "owner": "faculty-engine",
-      "behavior": "Runs internal scenario simulations using imagination engine",
+      "behavior": "Simulates scenarios to predict outcomes",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.imagination.generate"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "74216b1f27d6743c"
+      "hash": "8c7292f67c2a6dad"
     },
     {
       "id": "oracle.lm.generateText",
@@ -2760,25 +2760,25 @@
       "name": "revision",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Revises beliefs based on new evidence",
+      "behavior": "Revises and merges conflicting beliefs into consistent knowledge",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.z3"
+        "oracle.engine.custom"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "3371c1af688a57c7"
+      "hash": "bcdf9bda450e3a69"
     },
     "faculty.planning": {
       "id": "faculty.planning",
       "name": "planning",
       "category": "planning",
       "owner": "faculty-engine",
-      "behavior": "Decomposes goals into executable plans",
+      "behavior": "Generates action sequences to achieve goals",
       "tests": [
         {
           "path": "tests/unit/nar/weighted-sample.test.ts",
@@ -2792,18 +2792,18 @@
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.clingo"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "8505fb4ad545f253"
+      "hash": "024791a70be99d2e"
     },
     "faculty.evaluation": {
       "id": "faculty.evaluation",
       "name": "evaluation",
       "category": "evaluation",
       "owner": "faculty-engine",
-      "behavior": "Evaluates outcomes and assigns value",
+      "behavior": "Evaluates outcomes and assigns credit/blame",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2814,14 +2814,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "63ee6a359549091d"
+      "hash": "f8efd8edcecde39d"
     },
     "faculty.communication": {
       "id": "faculty.communication",
       "name": "communication",
       "category": "communication",
       "owner": "faculty-engine",
-      "behavior": "Translates between Narsese and natural language",
+      "behavior": "Generates natural language from formal representations",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2832,50 +2832,50 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "ed973623aa382ffc"
+      "hash": "1da907f20deca0e5"
     },
     "faculty.governance": {
       "id": "faculty.governance",
       "name": "governance",
       "category": "governance",
       "owner": "faculty-engine",
-      "behavior": "Checks policy compliance and safety constraints",
+      "behavior": "Makes governance decisions about system modifications",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.z3"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "6d94c2f7b859f538"
+      "hash": "39cb50fd2407392e"
     },
     "faculty.perceive.formalize": {
       "id": "faculty.perceive.formalize",
       "name": "perceive.formalize",
       "category": "perception",
       "owner": "faculty-engine",
-      "behavior": "Formalizes natural language or Narsese into perceived interpretations with provenance",
+      "behavior": "Converts natural language to formal Narsese terms",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.formalization.nlToFormal"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "4b00521ed625d992"
+      "hash": "ac46c26e2128c577"
     },
     "faculty.propose.action": {
       "id": "faculty.propose.action",
       "name": "propose.action",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Proposes concrete executable actions given a goal and context",
+      "behavior": "Proposes concrete actions for the current situation",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2886,14 +2886,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "5572d9543a1ffa26"
+      "hash": "23f98072cc30433f"
     },
     "faculty.propose.hypothesis": {
       "id": "faculty.propose.hypothesis",
       "name": "propose.hypothesis",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Generates explanatory hypotheses for observations or anomalies",
+      "behavior": "Proposes explanatory hypotheses for observations",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2904,14 +2904,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "dc4517db2e11aafd"
+      "hash": "c60b24f79b3d560e"
     },
     "faculty.propose.repair": {
       "id": "faculty.propose.repair",
       "name": "propose.repair",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Proposes repair strategies for failed operations or contradictions",
+      "behavior": "Proposes repairs for detected issues or failures",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2922,32 +2922,32 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "765d44a40cbb71b0"
+      "hash": "5d4532a6b92af1ca"
     },
     "faculty.propose.plan": {
       "id": "faculty.propose.plan",
       "name": "propose.plan",
       "category": "planning",
       "owner": "faculty-engine",
-      "behavior": "Decomposes high-level goals into executable multi-step plans",
+      "behavior": "Proposes multi-step plans for goal achievement",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.engine.clingo"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "6446e17cfdb0da26"
+      "hash": "6c361b488dc85b6d"
     },
     "faculty.propose.skill": {
       "id": "faculty.propose.skill",
       "name": "propose.skill",
       "category": "learning",
       "owner": "faculty-engine",
-      "behavior": "Synthesizes new reusable skills from successful patterns",
+      "behavior": "Proposes new skills or capabilities to acquire",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2958,32 +2958,32 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "b45cf73fdd9c7d0a"
+      "hash": "3a38b281e30ea3a7"
     },
     "faculty.retrieve.rerank": {
       "id": "faculty.retrieve.rerank",
       "name": "retrieve.rerank",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Reranks retrieval candidates using learned relevance",
+      "behavior": "Retrieves relevant knowledge and reranks by relevance",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.embedding.rerank"
+        "oracle.retrieval.query"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "f0de90473e55a7b3"
+      "hash": "e1bf9e6521cb3915"
     },
     "faculty.judge.rubric": {
       "id": "faculty.judge.rubric",
       "name": "judge.rubric",
       "category": "evaluation",
       "owner": "faculty-engine",
-      "behavior": "Evaluates candidates against a structured rubric using LM judgment",
+      "behavior": "Evaluates candidates against a structured rubric",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -2994,14 +2994,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "3e0957f088d3279d"
+      "hash": "6874d769e2acd284"
     },
     "faculty.narrate.explain": {
       "id": "faculty.narrate.explain",
       "name": "narrate.explain",
       "category": "communication",
       "owner": "faculty-engine",
-      "behavior": "Generates natural language explanations for decisions or beliefs",
+      "behavior": "Generates natural language explanations for decisions",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -3012,14 +3012,14 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "329b08476d929fd2"
+      "hash": "6145d09e8594ac2e"
     },
     "faculty.mirror.postmortem": {
       "id": "faculty.mirror.postmortem",
       "name": "mirror.postmortem",
       "category": "reasoning",
       "owner": "faculty-engine",
-      "behavior": "Analyzes past episodes to extract lessons and patterns",
+      "behavior": "Performs retrospective analysis on past decisions",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
@@ -3030,25 +3030,25 @@
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "657b532a51874480"
+      "hash": "9c4aecb7c36036bd"
     },
     "faculty.simulate.scenario": {
       "id": "faculty.simulate.scenario",
       "name": "simulate.scenario",
-      "category": "reasoning",
+      "category": "planning",
       "owner": "faculty-engine",
-      "behavior": "Runs internal scenario simulations using imagination engine",
+      "behavior": "Simulates scenarios to predict outcomes",
       "tests": [],
       "sources": [
         "src/faculties/fallback.ts",
         "src/faculties/specs.ts"
       ],
       "dependsOn": [
-        "oracle.imagination.generate"
+        "oracle.lm.generateObject"
       ],
       "since": "0.1.0",
       "active": true,
-      "hash": "74216b1f27d6743c"
+      "hash": "8c7292f67c2a6dad"
     },
     "oracle.lm.generateText": {
       "id": "oracle.lm.generateText",
