@@ -125,11 +125,10 @@ describe('Schema Drift Gate', () => {
     const schemasFile = join(GEN_DIR, 'schemas.ts');
     const content = readFileSync(schemasFile, 'utf8');
 
-    // Check for key schema exports
-    const requiredExports = [
+    // Check for key schema exports (some are imported from canonical locations)
+    const requiredInlineExports = [
       'TermSchema',
       'TruthValueSchema',
-      'TaskTypeSchema',
       'TaskAdmittedEventSchema',
       'ProposalSchema',
       'RuleTableSchema',
@@ -137,8 +136,13 @@ describe('Schema Drift Gate', () => {
       'RewardGateOutputSchema',
     ];
 
-    for (const exportName of requiredExports) {
+    for (const exportName of requiredInlineExports) {
       expect(content).toContain(`export const ${exportName}`);
     }
+
+    // TaskTypeSchema is imported from @senars/schemas/task (canonical location)
+    expect(content).toContain("import { TASK_TYPES, TASK_BAG_KINDS");
+    expect(content).toContain("TaskTypeSchema");
+    expect(content).toContain("from '@senars/schemas/task';");
   });
 });
