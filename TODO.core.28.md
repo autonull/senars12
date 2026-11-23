@@ -16,8 +16,11 @@
 | **Large File Decomposition** | W7–W10 | ★★★★☆ | M | Low |
 | **Seam Hardening** | W11–W13 | ★★★★☆ | S | Low |
 | **Boundary Enforcement** | W14–W16 | ★★★★★ | S | Low |
+| **Script & Tooling Consolidation** | W17–W19 | ★★★★☆ | M | Low |
+| **Documentation & Knowledge** | W20–W22 | ★★★☆☆ | L | Low |
+| **Test Architecture** | W23–W24 | ★★★★☆ | M | Low |
 
-**Total: 16 workstreams, ~8 weeks (vs 20+ unconsolidated)**
+**Total: 24 workstreams, ~10 weeks (vs 25+ unconsolidated)**
 
 ---
 
@@ -47,22 +50,47 @@
 | **W8** | **nar.ts (1,251 lines)** | Extract sub-modules | ★★★★☆ | M | W2 |
 | **W9** | **economy/learning.ts (1,011 lines)** | Split by concern | ★★★★☆ | M | W2 |
 | **W10** | **util/collections.ts (900 lines)** | Split by domain | ★★★★☆ | S | — |
+| **W11** | **faculties/specs/data.ts (919 lines)** | Split by faculty domain | ★★★★☆ | M | — |
+| **W12** | **memory/fold-memory.ts (1,001 lines)** | Split by view type | ★★★★☆ | M | — |
+| **W13** | **loop/repair.ts (878 lines)** | Extract repair strategies | ★★★★☆ | M | — |
+| **W14** | **kernel/terms/term.ts (853 lines)** | Split by term operation | ★★★★☆ | M | — |
+| **W15** | **verification/laws.ts (674 lines)** | Split by law category | ★★★★☆ | S | W2 |
+| **W16** | **logics/nal/rules.ts (508 lines)** | Split by rule family | ★★★★☆ | S | — |
 
 ### Phase 4: Seam Hardening (Weeks 4–5) — *Parallelizable*
 
 | ID | Workstream | Target | Impact | Effort | Dependencies |
 |----|------------|--------|--------|--------|--------------|
-| **W11** | **MCP Tools Consolidation** | 7 mcp/*.ts files | ★★★★☆ | S | W1 |
-| **W12** | **Bin Lib Consolidation** | 14 small bin/lib modules | ★★★★☆ | S | — |
-| **W13** | **Agent/Type Duplication** | AgentOptions, ChatOptions, ToolCall | ★★★★☆ | S | W4 |
+| **W17** | **MCP Tools Consolidation** | 7 mcp/*.ts files | ★★★★☆ | S | W1 |
+| **W18** | **Bin Lib Consolidation** | 14 small bin/lib modules | ★★★★☆ | S | — |
+| **W19** | **Agent/Type Duplication** | AgentOptions, ChatOptions, ToolCall | ★★★★☆ | S | W4 |
+| **W20** | **Scripts/lib Consolidation** | 20 scripts/lib modules | ★★★★☆ | M | — |
+| **W21** | **Gate/Seam Type Unification** | Gate, GateResult, PolicyEngine, ProjectionEngine | ★★★★☆ | M | W4 |
 
 ### Phase 5: Boundary Enforcement (Weeks 5–6) — *Parallelizable*
 
 | ID | Workstream | Target | Impact | Effort | Dependencies |
 |----|------------|--------|--------|--------|--------------|
-| **W14** | **Import Boundary Gates** | Enforce @senars/* boundaries | ★★★★★ | S | W1 |
-| **W15** | **Config Schema Drift Gate** | schema:drift for all generated | ★★★★★ | S | W1 |
-| **W16** | **Circular Dependency Audit** | Eliminate remaining cycles | ★★★★★ | S | W1 |
+| **W22** | **Import Boundary Gates** | Enforce @senars/* boundaries | ★★★★★ | S | W1 |
+| **W23** | **Config Schema Drift Gate** | schema:drift for all generated | ★★★★★ | S | W1 |
+| **W24** | **Circular Dependency Audit** | Eliminate remaining cycles | ★★★★★ | S | W1 |
+
+### Phase 6: Scripts, Tooling & Test Architecture (Weeks 6–7) — *Parallelizable*
+
+| ID | Workstream | Target | Impact | Effort | Dependencies |
+|----|------------|--------|--------|--------|--------------|
+| **W25** | **Scripts Directory Consolidation** | 70+ scripts → organized structure | ★★★★☆ | M | — |
+| **W26** | **scripts/lib Consolidation** | 20 modules → organized barrels | ★★★★☆ | S | W20 |
+| **W27** | **Test Architecture Modernization** | 439 test files, 30+ >400 lines | ★★★★☆ | L | — |
+| **W28** | **Property-Based Test Expansion** | Increase coverage for critical paths | ★★★★☆ | M | W27 |
+
+### Phase 7: Documentation & Knowledge (Weeks 7–8) — *Parallelizable*
+
+| ID | Workstream | Target | Impact | Effort | Dependencies |
+|----|------------|--------|--------|--------|--------------|
+| **W29** | **Documentation Consolidation** | 60+ readme/*.md, 100+ archive docs | ★★★☆☆ | L | — |
+| **W30** | **Self/Plan Directory Cleanup** | 15 PLAN.* files in docs/self/ | ★★★☆☆ | S | — |
+| **W31** | **Architecture Decision Records** | Capture key decisions from refactoring | ★★★☆☆ | S | — |
 
 ---
 
@@ -287,7 +315,81 @@ src/util/
 
 ---
 
-### W11: MCP Tools Consolidation (Week 4)
+### W11–W16: Additional Large File Decompositions (Week 3–4)
+
+**W11: faculties/specs/data.ts (919 lines)** — Split by faculty domain
+```
+src/faculties/specs/
+  data.ts → barrel
+  specs/
+    index.ts
+    judgment.ts
+    perception.ts
+    action.ts
+    metacognition.ts
+```
+
+**W12: memory/fold-memory.ts (1,001 lines)** — Split by view type
+```
+src/memory/
+  fold-memory.ts → barrel
+  fold/
+    index.ts
+    episodic.ts
+    semantic.ts
+    procedural.ts
+```
+
+**W13: loop/repair.ts (878 lines)** — Extract repair strategies
+```
+src/loop/
+  repair.ts → barrel
+  repair/
+    index.ts
+    derivation.ts
+    consistency.ts
+    budget.ts
+```
+
+**W14: kernel/terms/term.ts (853 lines)** — Split by term operation
+```
+src/kernel/terms/
+  term.ts → barrel
+  term/
+    index.ts
+    compound.ts
+    atomic.ts
+    variable.ts
+    canonical.ts
+```
+
+**W15: verification/laws.ts (674 lines)** — Split by law category
+```
+src/verification/
+  laws.ts → barrel
+  laws/
+    index.ts
+    structural.ts
+    semantic.ts
+    temporal.ts
+```
+
+**W16: logics/nal/rules.ts (508 lines)** — Split by rule family
+```
+src/logics/nal/
+  rules.ts → barrel
+  rules/
+    index.ts
+    deduction.ts
+    induction.ts
+    abduction.ts
+    analogy.ts
+    resemblance.ts
+```
+
+---
+
+### W17: MCP Tools Consolidation (Week 4)
 
 **Problem:** 7 files in `src/bin/lib/mcp/` with overlapping concerns.
 
@@ -311,7 +413,7 @@ mcp/
 
 ---
 
-### W12: Bin Lib Consolidation (Week 4)
+### W18: Bin Lib Consolidation (Week 4)
 
 **Problem:** 14 small modules in `src/bin/lib/`, many single-use.
 
@@ -331,7 +433,7 @@ mcp/
 
 ---
 
-### W13: Agent/Type Duplication (Week 4)
+### W19: Agent/Type Duplication (Week 4)
 
 **Problem:** Duplicate types between `src/agent/` and `src/types/`:
 
@@ -344,7 +446,99 @@ mcp/
 
 ---
 
-### W14: Import Boundary Gates (Week 5)
+### W20: Scripts/lib Consolidation (Week 5–6)
+
+**Problem:** 20 modules in `scripts/lib/` with overlapping concerns and duplicate type names (Verdict, etc.)
+
+**Current Structure (20 files):**
+```
+scripts/lib/
+  accumulator-ledger.ts (46)
+  attention-surface.ts (198)
+  bench.ts (30)
+  complexity-budget.ts (290)
+  control-budgets.ts (80)
+  cycles.ts (43)
+  decision-manifest.ts (100)
+  dispatch-table.ts (66)
+  dpdm.ts (94)
+  gates.ts (56)
+  imports.ts (157)
+  induction-inventory.ts (151)
+  layer-boundary.ts (104)
+  module-closure.ts (56)
+  narsese-literals.ts (131)
+  pkg.ts (34)
+  proposal-protocol.ts (150)
+  provider-dependency.ts (111)
+  resource-policy.ts (160)
+  rl-arms.ts (124)
+  rule-fallback.ts (53)
+  rule-table.ts (69)
+  source-scan.ts (85)
+  terms-canonical.ts (364)
+  verdicts.ts (86)
+```
+
+**Consolidation Plan:**
+```
+scripts/lib/
+  index.ts              → barrel
+  core/
+    index.ts
+    verdicts.ts         → unified Verdict type + ReportOptions
+    cycles.ts           → cycle tracking + CycleVerdict
+    gates.ts            → Gate, GateResult, KindViolation
+  analysis/
+    index.ts
+    attention-surface.ts
+    complexity-budget.ts
+    control-budgets.ts
+    decision-manifest.ts
+  protocol/
+    index.ts
+    proposal-protocol.ts
+    provider-dependency.ts
+    resource-policy.ts
+    rule-table.ts
+  codegen/
+    index.ts
+    imports.ts
+    induction-inventory.ts
+    layer-boundary.ts
+    module-closure.ts
+    narsese-literals.ts
+    pkg.ts
+    proposal-protocol.ts
+    rule-fallback.ts
+    rule-table.ts
+    source-scan.ts
+    terms-canonical.ts
+  rl/
+    index.ts
+    rl-arms.ts
+    dpdm.ts
+```
+
+**Key Unification:** `Verdict` type appears in 13+ files — unify in `core/verdicts.ts`.
+
+---
+
+### W21: Gate/Seam Type Unification (Week 5)
+
+**Problem:** Duplicate seam/gate types across packages:
+
+| Type | Locations | Resolution |
+|------|-----------|------------|
+| `Gate` | `admit/lifecycle.ts`, `lm/service/accounting.ts` | `AccountingGate` for LM |
+| `GateResult` | `admit/lifecycle.ts`, `governance/risk-verdict.ts` | `RiskVerdict` for governance |
+| `PolicyEngine` | `admit/policies.ts`, `agent/PolicyEngine.ts` | Merge into `agent` |
+| `ProjectionEngine` | `admit/projections.ts`, `logics/projections.ts` | Canonical in `logics` |
+| `Codec` | `codec/Codec.ts`, `logics/nal/codecs.ts`, `logics/port.ts` | Namespace |
+
+---
+
+### W22: Import Boundary Gates (Week 5)
 
 **Problem:** Direct imports bypassing barrels (e.g., `src/util/collections` instead of `@senars/util/collections`).
 
@@ -360,7 +554,7 @@ mcp/
 
 ---
 
-### W15: Config Schema Drift Gate (Week 5)
+### W23: Config Schema Drift Gate (Week 5)
 
 **Problem:** `schema:drift` only checks generated schemas; manual schemas can drift.
 
@@ -371,7 +565,7 @@ mcp/
 
 ---
 
-### W16: Circular Dependency Audit (Week 5)
+### W24: Circular Dependency Audit (Week 5)
 
 **Problem:** Remaining cycles in dependency graph.
 
@@ -381,6 +575,154 @@ mcp/
 - `admit/projections.ts` ↔ `logics/projections.ts` (shared interface)
 
 **Resolution:** Extract shared types to third module; use `import type` where possible.
+
+---
+
+### W25: Scripts Directory Consolidation (Week 6–7)
+
+**Problem:** 70+ scripts in flat structure, no organization.
+
+**Current:** Flat list of 70+ `.ts` files in `scripts/`
+
+**Proposed Structure:**
+```
+scripts/
+  index.ts              → CLI router
+  build/
+    generate.ts         → code generation
+    validate.ts         → validation scripts
+  test/
+    gates.ts            → gate validation
+    property.ts         → property-based tests
+    replay.ts           → replay testing
+  bench/
+    fundamentals.ts     → fundamental benchmarks
+    system-one.ts       → system one benchmarks
+  demo/
+    d1-mission.ts       → demo scripts
+    arcade.ts           → arcade demo
+  ops/
+    doctor.ts           → health checks
+    profile.ts          → profiling
+  migrate/
+    imports.ts          → import migration
+    test-imports.ts     → test import fixes
+  gates/
+    consolidated.ts     → gate scripts
+    cycle-path.ts       → cycle path validation
+```
+
+---
+
+### W26: scripts/lib Consolidation (Week 6)
+
+See W20 for details.
+
+---
+
+### W27: Test Architecture Modernization (Week 6–7)
+
+**Problem:** 439 test files, 30+ >400 lines, inconsistent patterns.
+
+**Issues:**
+- Large test files (863, 826, 702, 649, 610, 547 lines)
+- Inconsistent test organization (some in `tests/nar/`, some in `tests/unit/`, some in `tests/gates/`)
+- Property-based tests scattered
+- No clear test utilities barrel
+
+**Modernization:**
+```
+tests/
+  index.ts              → test utilities barrel
+  unit/
+    index.ts
+    util/
+    kernel/
+    admit/
+    logics/
+  integration/
+    index.ts
+    nar/
+    mcp/
+    economy/
+  property/
+    index.ts
+    invariants.ts       → shared property-based invariants
+  e2e/
+    index.ts
+    bot.ts
+    mcp.ts
+  fixtures/
+    index.ts
+    cognitive.ts        → shared fixtures
+```
+
+---
+
+### W28: Property-Based Test Expansion (Week 7)
+
+**Critical Paths Needing Property Tests:**
+- Truth algebra operations (associativity, commutativity, identity)
+- Bag operations (priority ordering, capacity bounds, eviction)
+- Term unification (substitution, occurs-check)
+- Derivation rules (soundness, completeness for known fragments)
+- Budget accounting (conservation, bounds)
+
+---
+
+### W29: Documentation Consolidation (Week 7–8)
+
+**Problem:** 60+ files in `docs/readme/`, 100+ in `docs/archive/`, duplicate content.
+
+**Structure:**
+```
+docs/
+  readme/
+    index.md            → generated from sections
+    sections/
+      architecture.md
+      configuration.md
+      api/
+        core.md
+        io.md
+        metta.md
+        nar.md
+        util.md
+      guides/
+        getting-started.md
+        run.md
+        debugging.md
+      concepts/
+        cognitive-architecture.md
+        truth-algebra.md
+        system-one.md
+      reference/
+        commands.md
+        schema.md
+  archive/              → keep but organize by year
+    2024/
+    2025/
+    2026/
+```
+
+---
+
+### W30: Self/Plan Directory Cleanup (Week 8)
+
+**Problem:** 15 `PLAN.*` files in `docs/self/` with unclear status.
+
+**Action:** Audit each, mark as DONE/ACTIVE/DEFERRED, move active to `docs/plan/`, archive rest.
+
+---
+
+### W31: Architecture Decision Records (Week 8)
+
+**Action:** Create ADRs for key decisions from this refactoring:
+- Schema unification approach
+- Truth table consolidation
+- Large file decomposition boundaries
+- Import boundary enforcement
+- Script organization
 
 ---
 
@@ -402,18 +744,39 @@ WEEK 3:
   ├─ W7: genome.ts Split (needs W1)
   ├─ W8: nar.ts Split (needs W2)
   ├─ W9: economy/learning.ts Split (needs W2)
-  └─ W11: MCP Consolidation (needs W1)
+  ├─ W11: faculties/specs/data.ts Split (parallel)
+  ├─ W12: memory/fold-memory.ts Split (parallel)
+  ├─ W13: loop/repair.ts Split (parallel)
+  ├─ W14: kernel/terms/term.ts Split (parallel)
+  ├─ W15: verification/laws.ts Split (needs W2)
+  └─ W16: logics/nal/rules.ts Split (parallel)
 
 WEEK 4:
-  ├─ W12: Bin Lib Consolidation (parallel)
-  ├─ W13: Agent/Type Duplication (needs W4)
-  └─ W14: Import Boundary Gates (needs W1)
+  ├─ W17: MCP Consolidation (needs W1)
+  ├─ W18: Bin Lib Consolidation (parallel)
+  ├─ W19: Agent/Type Duplication (needs W4)
+  └─ W21: Gate/Seam Type Unification (needs W4)
 
 WEEK 5:
-  ├─ W15: Schema Drift Gate (needs W1)
-  └─ W16: Circular Dependency Audit (needs W1, W4)
+  ├─ W20: Scripts/lib Consolidation (parallel)
+  ├─ W22: Import Boundary Gates (needs W1)
+  ├─ W23: Config Schema Drift Gate (needs W1)
+  └─ W24: Circular Dependency Audit (needs W1, W4)
 
 WEEK 6:
+  ├─ W25: Scripts Directory Consolidation (parallel)
+  ├─ W26: scripts/lib Consolidation (needs W20)
+  ├─ W27: Test Architecture Modernization (parallel)
+  └─ W28: Property-Based Test Expansion (needs W27)
+
+WEEK 7:
+  ├─ W29: Documentation Consolidation (parallel)
+  └─ W30: Self/Plan Cleanup (parallel)
+
+WEEK 8:
+  └─ W31: Architecture Decision Records
+
+WEEK 9:
   ├─ Integration testing
   ├─ Gate validation
   ├─ Parity checks
@@ -434,6 +797,8 @@ WEEK 6:
 | Circular dependencies | 5+ → 0 |
 | Import boundary violations | 0 (enforced) |
 | `schema:drift` coverage | 100% (generated + manual) |
+| Scripts organized | 70+ → structured |
+| Test file organization | 439 → structured |
 | Test pass rate | 100% (402 files, 3761 tests) |
 | Complexity budget | ≤ 129,208 LOC |
 
@@ -448,6 +813,8 @@ WEEK 6:
 | Large file splits introduce circular deps | Medium | Medium | Plan module boundaries first; use `import type` |
 | Bin lib inlining loses testability | Low | Medium | Keep public functions; test via integration |
 | Import boundary enforcement breaks builds | Medium | Low | Dry-run mode first; fix incrementally |
+| Script consolidation breaks CI | Medium | Medium | Incremental; keep old paths with deprecation |
+| Test reorganization loses coverage | Low | High | Run full suite after each reorg step |
 
 ---
 
