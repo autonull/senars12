@@ -6,13 +6,11 @@ export type {
   CyclesBudget,
   EvictStrategy,
   Histogram,
-  HistogramImpl,
   InternalEntry,
   PressureListener,
   PressureLevel,
   PressureTransition,
-  PriorityBag,
   RandomSource,
-} from './bag';
+} from '../bag';
 
-export { PriorityBag, HistogramImpl } from './bag';
+export { PriorityBag, HistogramImpl } from '../bag';

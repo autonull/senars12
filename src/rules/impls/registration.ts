@@ -23,12 +23,6 @@ import { NALRules } from '../nal/index';
 import type { RuleDef, RuleFn } from '../types';
 import { RulePatterns } from './rule-patterns';
 
-const _rule = (
-  id: string,
-  description: string,
-  config: Omit<RuleDef, 'id' | 'description'>
-): RuleDef => ({ id, description, ...config });
-
 /** Namespaced so the three colliding names stay distinct bodies. */
 const namespaced = (prefix: string, table: Record<string, RuleFn>): Record<string, RuleFn> =>
   keyedBy(
@@ -42,6 +36,90 @@ export const RULE_BODIES: Readonly<Record<string, RuleFn>> = {
   ...namespaced('nal.extended', NALExtendedRules),
 };
 
+/** Compact rule definition: [id, description, patternKey, body, truth, priority] */
+type RuleTuple = [
+  string, // id
+  string, // description
+  keyof typeof RulePatterns | [Term['kind'], Term['kind']], // pattern
+  string, // body
+  keyof typeof Truth, // truth
+  number, // priority
+];
+
+const toDef = ([id, description, pattern, body, truth, priority]: RuleTuple): RuleDef => ({
+  id,
+  description,
+  pattern: Array.isArray(pattern) ? pattern : RulePatterns[pattern],
+  body,
+  truth,
+  priority,
+});
+
+/** Core NAL rules — compact tuple format reduces ~8 lines per rule to 1. */
+const NAL_RULES: RuleTuple[] = [
+  ['nal.deduction', 'Classic syllogistic deduction', 'inheritance_inheritance', 'nal:deduction', 'deduction', 1.0],
+  ['nal.induction', 'Inductive generalization', 'inheritance_inheritance', 'nal:induction', 'induction', 0.9],
+  ['nal.abduction', 'Abductive reasoning', 'inheritance_inheritance', 'nal:abduction', 'abduction', 0.8],
+  ['nal.similarity', 'Similarity-based inference', 'inheritance_inheritance', 'nal:similarity', 'resemblance', 0.95],
+  ['nal.contrapositive', 'Contrapositive rule', 'implication_inheritance', 'nal:contrapositive', 'contraposition', 0.7],
+  ['nal.intersection', 'Intersection composition', 'conjunction_conjunction', 'nal:intersection', 'intersection', 0.85],
+  ['nal.union', 'Union composition', 'disjunction_disjunction', 'nal:union', 'union', 0.8],
+  ['nal.conjunctionIntro', 'Conjunction introduction', 'inheritance_inheritance', 'nal:conjunctionIntro', 'intersection', 0.75],
+  ['nal.disjunctionIntro', 'Disjunction introduction', 'atom_atom', 'nal:disjunctionIntro', 'union', 0.7],
+  ['nal.implicationIntro', 'Implication introduction', 'inheritance_negation', 'nal:implicationIntro', 'deduction', 0.8],
+  ['nal.implicationElim', 'Implication elimination (modus ponens)', 'implication_atom', 'nal:implicationElim', 'deduction', 0.9],
+  ['nal.equivalenceIntro', 'Equivalence introduction', 'implication_implication', 'nal:equivalenceIntro', 'intersection', 0.85],
+  ['nal.equivalenceElim', 'Equivalence elimination', 'equivalence_atom', 'nal:equivalenceElim', 'deduction', 0.9],
+  ['nal.negationIntro', 'Negation introduction', 'implication_implication', 'nal:negationIntro', 'deduction', 0.75],
+  ['nal.negationElim', 'Negation elimination', 'negation_negation', 'nal:negationElim', 'union', 0.8],
+  ['nal.destruct', 'Destructuring rule', 'conjunction_atom', 'nal:destruct', 'deduction', 0.85],
+  ['nal.decompose', 'Decomposition rule', 'conjunction_conjunction', 'nal:decompose', 'deduction', 0.8],
+  ['nal.analogy', 'Analogical reasoning', 'inheritance_similarity', 'nal:analogy', 'analogy', 0.75],
+  ['nal.comparison', 'Comparison inference', 'inheritance_inheritance', 'nal:comparison', 'sameness', 0.8],
+  ['nal.instantiation', 'Term instantiation', 'inheritance_similarity', 'nal:instantiation', 'deduction', 0.85],
+  ['nal.exemplification', 'Exemplification inference', 'inheritance_inheritance', 'nal:exemplification', 'exemplification', 0.8],
+  ['nal.higherOrderDeduction', 'Higher-order deduction', 'implication_implication', 'nal:higherOrderDeduction', 'deduction', 0.85],
+  ['nal.higherOrderAbduction', 'Higher-order abduction', 'implication_implication', 'nal:higherOrderAbduction', 'abduction', 0.7],
+  ['nal.higherOrderInduction', 'Higher-order induction', 'implication_implication', 'nal:higherOrderInduction', 'induction', 0.75],
+];
+
+/** Extended NAL rules — same compact format. */
+const NAL_EXTENDED_RULE_TUPLES: RuleTuple[] = [
+  ['nal.modusPonens', 'Modus ponens', 'implication_atom', 'nal.extended:modusPonens', 'deduction', 0.95],
+  ['nal.modusTollens', 'Modus tollens', 'implication_negation', 'nal.extended:modusTollens', 'contraposition', 0.9],
+  ['nal.disjunctiveSyllogism', 'Disjunctive syllogism', 'disjunction_negation', 'nal.extended:disjunctiveSyllogism', 'deduction', 0.9],
+  ['nal.conversion', 'Term conversion', 'inheritance_inheritance', 'nal.extended:conversion', 'conversion', 0.7],
+  ['nal.extended.analogy', 'Extended analogy', 'inheritance_inheritance', 'nal.extended:analogy', 'analogy', 0.8],
+  ['nal.extended.comparison', 'Extended comparison', 'inheritance_inheritance', 'nal.extended:comparison', 'resemblance', 0.75],
+  ['nal.contrapositionRule', 'Contraposition rule', 'implication_implication', 'nal.extended:contrapositionRule', 'contraposition', 0.7],
+  ['nal.structuralInheritance', 'Structural inheritance', ['conjunction', 'inheritance'], 'nal.extended:structuralInheritance', 'deduction', 0.75],
+  ['nal.structuralReduction', 'Structural reduction', 'inheritance_inheritance', 'nal.extended:structuralReduction', 'structuralReduction', 0.7],
+  ['nal.intersectionComposition', 'Intersection composition', 'inheritance_inheritance', 'nal.extended:intersectionComposition', 'intersection', 0.8],
+  ['nal.unionComposition', 'Union composition', 'inheritance_inheritance', 'nal.extended:unionComposition', 'union', 0.75],
+  ['nal.difference', 'Difference rule', 'inheritance_inheritance', 'nal.extended:difference', 'deduction', 0.7],
+  ['nal.implicationDeduction', 'Implication deduction', 'implication_implication', 'nal.extended:implicationDeduction', 'deduction', 0.85],
+  ['nal.equivalence', 'Equivalence rule', 'implication_implication', 'nal.extended:equivalence', 'intersection', 0.8],
+  ['nal.variableIntroduction', 'Variable introduce', 'inheritance_inheritance', 'nal.extended:variableIntroduction', 'deduction', 0.6],
+  ['nal.decomposition', 'Decomposition rule', 'conjunction_conjunction', 'nal.extended:decomposition', 'deduction', 0.75],
+  ['nal.variableDependency', 'Variable dependency', 'inheritance_inheritance', 'nal.extended:variableDependency', 'deduction', 0.5],
+  ['nal.sameness', 'Sameness rule', 'inheritance_inheritance', 'nal.extended:sameness', 'sameness', 0.85],
+  ['nal.revisionWeak', 'Weak revision', 'inheritance_inheritance', 'nal.extended:revisionWeak', 'revision', 0.65],
+  ['nal.extended.exemplification', 'Extended exemplification', 'inheritance_inheritance', 'nal.extended:exemplification', 'exemplification', 0.8],
+  ['nal.instanceConversion', 'Instance conversion', 'inheritance_setExt', 'nal.extended:instanceConversion', 'conversion', 0.7],
+  ['nal.propertyConversion', 'Property conversion', 'inheritance_setInt', 'nal.extended:propertyConversion', 'conversion', 0.7],
+  ['nal.instanceDeduction', 'Instance deduction', 'inheritance_setExt', 'nal.extended:instanceDeduction', 'deduction', 0.85],
+  ['nal.propertyInduction', 'Property induction', 'inheritance_setInt', 'nal.extended:propertyInduction', 'induction', 0.75],
+  ['nal.sequenceIntroduction', 'Sequence introduction', 'inheritance_inheritance', 'nal.extended:sequenceIntroduction', 'deduction', 0.75],
+  ['nal.parallelIntroduction', 'Parallel introduction', 'inheritance_inheritance', 'nal.extended:parallelIntroduction', 'deduction', 0.7],
+  ['nal.predictiveImplication', 'Predictive implication', 'sequence_inheritance', 'nal.extended:predictiveImplication', 'deduction', 0.8],
+  ['nal.temporalDeduction', 'Temporal deduction', 'predictive_sequence', 'nal.extended:temporalDeduction', 'deduction', 0.85],
+  ['nal.proceduralDecomposition', 'Procedural decomposition', 'sequence_operation', 'nal.extended:proceduralDecomposition', 'deduction', 0.75],
+  ['nal.proceduralChaining', 'Procedural chaining', 'operation_operation', 'nal.extended:proceduralChaining', 'deduction', 0.8],
+  ['nal.operationToPredictive', 'Operation to predictive', 'operation_sequence', 'nal.extended:operationToPredictive', 'deduction', 0.75],
+];
+
+const NAL_EXTENDED_RULES = NAL_EXTENDED_RULE_TUPLES.map(toDef);
+
 const declarationOf = (rule: RuleDef) => ({
   ruleId: rule.id,
   description: rule.description,
@@ -51,342 +129,6 @@ const declarationOf = (rule: RuleDef) => ({
   body: rule.body,
   priority: rule.priority,
 });
-
-const NAL_RULES: RuleDef[] = [
-  _rule('nal.deduction', 'Classic syllogistic deduction', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:deduction',
-    truth: 'deduction',
-    priority: 1.0,
-  }),
-  _rule('nal.induction', 'Inductive generalization', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:induction',
-    truth: 'induction',
-    priority: 0.9,
-  }),
-  _rule('nal.abduction', 'Abductive reasoning', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:abduction',
-    truth: 'abduction',
-    priority: 0.8,
-  }),
-  _rule('nal.similarity', 'Similarity-based inference', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:similarity',
-    truth: 'resemblance',
-    priority: 0.95,
-  }),
-  _rule('nal.contrapositive', 'Contrapositive rule', {
-    pattern: RulePatterns.implication_inheritance,
-    body: 'nal:contrapositive',
-    truth: 'contraposition',
-    priority: 0.7,
-  }),
-  _rule('nal.intersection', 'Intersection composition', {
-    pattern: RulePatterns.conjunction_conjunction,
-    body: 'nal:intersection',
-    truth: 'intersection',
-    priority: 0.85,
-  }),
-  _rule('nal.union', 'Union composition', {
-    pattern: RulePatterns.disjunction_disjunction,
-    body: 'nal:union',
-    truth: 'union',
-    priority: 0.8,
-  }),
-  _rule('nal.conjunctionIntro', 'Conjunction introduction', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:conjunctionIntro',
-    truth: 'intersection',
-    priority: 0.75,
-  }),
-  _rule('nal.disjunctionIntro', 'Disjunction introduction', {
-    pattern: RulePatterns.atom_atom,
-    body: 'nal:disjunctionIntro',
-    truth: 'union',
-    priority: 0.7,
-  }),
-  _rule('nal.implicationIntro', 'Implication introduction', {
-    pattern: RulePatterns.inheritance_negation,
-    body: 'nal:implicationIntro',
-    truth: 'deduction',
-    priority: 0.8,
-  }),
-  _rule('nal.implicationElim', 'Implication elimination (modus ponens)', {
-    pattern: RulePatterns.implication_atom,
-    body: 'nal:implicationElim',
-    truth: 'deduction',
-    priority: 0.9,
-  }),
-  _rule('nal.equivalenceIntro', 'Equivalence introduction', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal:equivalenceIntro',
-    truth: 'intersection',
-    priority: 0.85,
-  }),
-  _rule('nal.equivalenceElim', 'Equivalence elimination', {
-    pattern: RulePatterns.equivalence_atom,
-    body: 'nal:equivalenceElim',
-    truth: 'deduction',
-    priority: 0.9,
-  }),
-  _rule('nal.negationIntro', 'Negation introduction', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal:negationIntro',
-    truth: 'deduction',
-    priority: 0.75,
-  }),
-  _rule('nal.negationElim', 'Negation elimination', {
-    pattern: RulePatterns.negation_negation,
-    body: 'nal:negationElim',
-    truth: 'union',
-    priority: 0.8,
-  }),
-  _rule('nal.destruct', 'Destructuring rule', {
-    pattern: RulePatterns.conjunction_atom,
-    body: 'nal:destruct',
-    truth: 'deduction',
-    priority: 0.85,
-  }),
-  _rule('nal.decompose', 'Decomposition rule', {
-    pattern: RulePatterns.conjunction_conjunction,
-    body: 'nal:decompose',
-    truth: 'deduction',
-    priority: 0.8,
-  }),
-  _rule('nal.analogy', 'Analogical reasoning', {
-    pattern: RulePatterns.inheritance_similarity,
-    body: 'nal:analogy',
-    truth: 'analogy',
-    priority: 0.75,
-  }),
-  _rule('nal.comparison', 'Comparison inference', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:comparison',
-    truth: 'sameness',
-    priority: 0.8,
-  }),
-  _rule('nal.instantiation', 'Term instantiation', {
-    pattern: RulePatterns.inheritance_similarity,
-    body: 'nal:instantiation',
-    truth: 'deduction',
-    priority: 0.85,
-  }),
-  _rule('nal.exemplification', 'Exemplification inference', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal:exemplification',
-    truth: 'exemplification',
-    priority: 0.8,
-  }),
-  _rule('nal.higherOrderDeduction', 'Higher-order deduction', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal:higherOrderDeduction',
-    truth: 'deduction',
-    priority: 0.85,
-  }),
-  _rule('nal.higherOrderAbduction', 'Higher-order abduction', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal:higherOrderAbduction',
-    truth: 'abduction',
-    priority: 0.7,
-  }),
-  _rule('nal.higherOrderInduction', 'Higher-order induction', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal:higherOrderInduction',
-    truth: 'induction',
-    priority: 0.75,
-  }),
-];
-
-const NAL_EXTENDED_RULES: RuleDef[] = [
-  _rule('nal.modusPonens', 'Modus ponens', {
-    pattern: RulePatterns.implication_atom,
-    body: 'nal.extended:modusPonens',
-    truth: 'deduction',
-    priority: 0.95,
-  }),
-  _rule('nal.modusTollens', 'Modus tollens', {
-    pattern: RulePatterns.implication_negation,
-    body: 'nal.extended:modusTollens',
-    truth: 'contraposition',
-    priority: 0.9,
-  }),
-  _rule('nal.disjunctiveSyllogism', 'Disjunctive syllogism', {
-    pattern: RulePatterns.disjunction_negation,
-    body: 'nal.extended:disjunctiveSyllogism',
-    truth: 'deduction',
-    priority: 0.9,
-  }),
-  _rule('nal.conversion', 'Term conversion', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:conversion',
-    truth: 'conversion',
-    priority: 0.7,
-  }),
-  _rule('nal.extended.analogy', 'Extended analogy', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:analogy',
-    truth: 'analogy',
-    priority: 0.8,
-  }),
-  _rule('nal.extended.comparison', 'Extended comparison', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:comparison',
-    truth: 'resemblance',
-    priority: 0.75,
-  }),
-  _rule('nal.contrapositionRule', 'Contraposition rule', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal.extended:contrapositionRule',
-    truth: 'contraposition',
-    priority: 0.7,
-  }),
-  _rule('nal.structuralInheritance', 'Structural inheritance', {
-    pattern: ['conjunction', 'inheritance'],
-    body: 'nal.extended:structuralInheritance',
-    truth: 'deduction',
-    priority: 0.75,
-  }),
-  _rule('nal.structuralReduction', 'Structural reduction', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:structuralReduction',
-    truth: 'structuralReduction',
-    priority: 0.7,
-  }),
-  _rule('nal.intersectionComposition', 'Intersection composition', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:intersectionComposition',
-    truth: 'intersection',
-    priority: 0.8,
-  }),
-  _rule('nal.unionComposition', 'Union composition', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:unionComposition',
-    truth: 'union',
-    priority: 0.75,
-  }),
-  _rule('nal.difference', 'Difference rule', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:difference',
-    truth: 'deduction',
-    priority: 0.7,
-  }),
-  _rule('nal.implicationDeduction', 'Implication deduction', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal.extended:implicationDeduction',
-    truth: 'deduction',
-    priority: 0.85,
-  }),
-  _rule('nal.equivalence', 'Equivalence rule', {
-    pattern: RulePatterns.implication_implication,
-    body: 'nal.extended:equivalence',
-    truth: 'intersection',
-    priority: 0.8,
-  }),
-  _rule('nal.variableIntroduction', 'Variable introduce', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:variableIntroduction',
-    truth: 'deduction',
-    priority: 0.6,
-  }),
-  _rule('nal.decomposition', 'Decomposition rule', {
-    pattern: RulePatterns.conjunction_conjunction,
-    body: 'nal.extended:decomposition',
-    truth: 'deduction',
-    priority: 0.75,
-  }),
-  _rule('nal.variableDependency', 'Variable dependency', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:variableDependency',
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.sameness', 'Sameness rule', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:sameness',
-    truth: 'sameness',
-    priority: 0.85,
-  }),
-  _rule('nal.revisionWeak', 'Weak revision', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:revisionWeak',
-    truth: 'revision',
-    priority: 0.65,
-  }),
-  _rule('nal.extended.exemplification', 'Extended exemplification', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:exemplification',
-    truth: 'exemplification',
-    priority: 0.8,
-  }),
-  _rule('nal.instanceConversion', 'Instance conversion', {
-    pattern: RulePatterns.inheritance_setExt,
-    body: 'nal.extended:instanceConversion',
-    truth: 'conversion',
-    priority: 0.7,
-  }),
-  _rule('nal.propertyConversion', 'Property conversion', {
-    pattern: RulePatterns.inheritance_setInt,
-    body: 'nal.extended:propertyConversion',
-    truth: 'conversion',
-    priority: 0.7,
-  }),
-  _rule('nal.instanceDeduction', 'Instance deduction', {
-    pattern: RulePatterns.inheritance_setExt,
-    body: 'nal.extended:instanceDeduction',
-    truth: 'deduction',
-    priority: 0.85,
-  }),
-  _rule('nal.propertyInduction', 'Property induction', {
-    pattern: RulePatterns.inheritance_setInt,
-    body: 'nal.extended:propertyInduction',
-    truth: 'induction',
-    priority: 0.75,
-  }),
-  _rule('nal.sequenceIntroduction', 'Sequence introduction', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:sequenceIntroduction',
-    truth: 'deduction',
-    priority: 0.75,
-  }),
-  _rule('nal.parallelIntroduction', 'Parallel introduction', {
-    pattern: RulePatterns.inheritance_inheritance,
-    body: 'nal.extended:parallelIntroduction',
-    truth: 'deduction',
-    priority: 0.7,
-  }),
-  _rule('nal.predictiveImplication', 'Predictive implication', {
-    pattern: RulePatterns.sequence_inheritance,
-    body: 'nal.extended:predictiveImplication',
-    truth: 'deduction',
-    priority: 0.8,
-  }),
-  _rule('nal.temporalDeduction', 'Temporal deduction', {
-    pattern: RulePatterns.predictive_sequence,
-    body: 'nal.extended:temporalDeduction',
-    truth: 'deduction',
-    priority: 0.85,
-  }),
-  _rule('nal.proceduralDecomposition', 'Procedural decomposition', {
-    pattern: RulePatterns.sequence_operation,
-    body: 'nal.extended:proceduralDecomposition',
-    truth: 'deduction',
-    priority: 0.75,
-  }),
-  _rule('nal.proceduralChaining', 'Procedural chaining', {
-    pattern: RulePatterns.operation_operation,
-    body: 'nal.extended:proceduralChaining',
-    truth: 'deduction',
-    priority: 0.8,
-  }),
-  _rule('nal.operationToPredictive', 'Operation to predictive', {
-    pattern: RulePatterns.operation_sequence,
-    body: 'nal.extended:operationToPredictive',
-    truth: 'deduction',
-    priority: 0.75,
-  }),
-];
 
 /**
  * Rules that are registered but **not shipped**, each with the reason it is off.
@@ -430,7 +172,7 @@ const DISABLED: Readonly<Record<string, string>> = {
  * dropped here and nowhere else, so `BUILTIN_DECLARATIONS` is the single answer
  * to "what does this NAR actually run".
  */
-export const BUILTIN_DECLARATIONS = [...NAL_RULES, ...NAL_EXTENDED_RULES]
+export const BUILTIN_DECLARATIONS = [...NAL_RULES.map(toDef), ...NAL_EXTENDED_RULE_TUPLES.map(toDef)]
   .map(declarationOf)
   .filter((declaration) => !(declaration.ruleId in DISABLED));
 
