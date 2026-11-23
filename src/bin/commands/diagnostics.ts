@@ -62,7 +62,7 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
   }),
   cmd('selftune', 'Quick 3-iteration self-tune demo', async () => {
     const { RLFPLearner } = await import('@senars/rlfp');
-    const { DEFAULT_COGNITIVE_PARAMETERS } = await import('@senars/config/nar');
+    const { DEFAULT_COGNITIVE_PARAMETERS } = await import('@senars/config');
     const rlfp = new RLFPLearner({ currentParams: { ...DEFAULT_COGNITIVE_PARAMETERS } });
     let best = -Infinity;
     for (let i = 0; i < 3; i++) {

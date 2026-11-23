@@ -25,6 +25,7 @@ export { agentSectionSchema } from './schema';
 export { connectionsSchema } from './schema';
 export { loadConfig, loadConfigFromEnv } from './loader';
 export { DEFAULT_APP_CONFIG, withDefaults } from './defaults';
+export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from './cognitive-parameters';
 export { boundTables, cognitiveBounds, cognitiveBound, narCoreBound, systemOneBound } from './bound-table';
 export type { CognitiveBounds, NarCoreBounds, SystemOneBounds } from './bound-table';
 export type { BoundRange, BoundProjection, FlatBoundProjection } from './bound-table';

@@ -8,7 +8,7 @@ import { CognitiveRegistry } from '@senars/agent';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,
-} from '@senars/config/nar';
+} from '@senars/config';
 import { DEFAULT_CONFIG } from '@senars/agent';
 import type { NARConfig } from '@senars/agent';
 import { deepMerge } from '@senars/utils';

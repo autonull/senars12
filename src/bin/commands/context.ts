@@ -7,7 +7,7 @@
  */
 
 import type { AuthManager, CommandRegistry, ConnectionManager } from '@senars/io';
-import type { ParameterLedger } from '@senars/config/nar';
+import type { ParameterLedger } from '@senars/config';
 import type { DialogueCapture, RetrospectiveAdapter } from '@senars/dialogue';
 import type {
   EmbeddingCache,

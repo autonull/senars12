@@ -1,6 +1,6 @@
 /** Dialogue Flywheel commands (`.react`, `.turns`, `.retrospect*`, `.probes`, …). */
 
-import { OutcomeLinker } from '@senars/config/nar';
+import { OutcomeLinker } from '@senars/config';
 import { episodeQualitySurface } from '@senars/query';
 import { errMsg } from '@senars/util/error';
 import { finiteOr } from '@senars/util/numeric';

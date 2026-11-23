@@ -7,8 +7,8 @@
 
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
-import type { CognitiveParameters } from '@senars/config/nar';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/nar';
+import type { CognitiveParameters } from '@senars/config';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config';
 import { createKnobSet, RLFPLearner, type TaskRewardMetrics } from '@senars/rlfp';
 import { formatDuration, section } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
