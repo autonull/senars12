@@ -37,14 +37,35 @@ export {
   DECISION_QUERIES,
   type DecisionCallSite,
 } from '../decision/index';
-export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from '../nar-presets';
-export type { NARConfig, RLFPConfig } from '../nar';
-export { NAR } from '../nar';
-export type { NAREventMap } from '../types/events';
-export { NarEventBus } from '../types/events';
-export type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../protocol/index';
-export { readPersistedBoundary } from '../state/persisted';
-export type { ChatStreamEvent } from './chat';
+
+// Re-export shared types from main index to avoid duplication
+export type {
+  NARConfig,
+  RLFPConfig,
+  NarEventBus,
+  NAREventMap,
+  ConnectionConfig,
+  Connection,
+  CognitiveEvent,
+  TermSymbol,
+  Task,
+  TaskType,
+  TruthType,
+  Source,
+  Hash,
+  CoreConfig,
+  Term,
+  AtomicTerm,
+  CompoundTerm,
+  Stamp,
+  SerializedStamp,
+  deserializeStamp,
+  observeStampId,
+  serializeStamp,
+} from '../index';
+
+export { NAR, Truth, isTruthEqual, createBotNAR, createMinimalNAR, createNAR, createTestNAR } from '../index';
+export { readPersistedBoundary } from '../index';
 export { createCognitiveThread, ThreadPool, type ThreadMessage, type ThreadStatus, type BackpressureReason, type SpawnResult, type JoinResult } from './cognitive-thread';
 export { composeStrategy, describeStrategyExpression } from '../reason/strategy-algebra';
 export { ParameterLedger, OutcomeLinker } from '../config/parameter-ledger';
@@ -108,9 +129,8 @@ export { askSafely, DECISION_ASK_TIMEOUT_MS } from '../ports/decision';
 export { createTetrisGame, TetrisGame, createSelfMetaGame } from '../game/index';
 export { SOURCE_QUALITY_CONFIDENCE } from '../schemas/index';
 export { SchedulerAdapter, SchemaInductor, AIKRProcessor } from '../learning/index';
-export { TaskManager, type Budget } from '../task/index';
+export { TaskManager, type Budget as TaskBudget } from '../task/index';
 export { createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask } from '../types/core';
-export { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from '../tools/index';
 export { RuleProcessor, ProofStreamRing, rankDerivations } from '../rules/index';
 export { DEFAULT_CONFIG } from '../types/core';
 export {
@@ -159,13 +179,10 @@ export {
   termsEqual,
   visitTerms,
   walkTerms,
-  type AtomicTerm,
-  type CompoundTerm,
-  type Term,
+  type AtomicTerm as TermsAtomicTerm,
+  type CompoundTerm as TermsCompoundTerm,
+  type Term as TermsTerm,
 } from '../terms/index';
-export { type TermSymbol } from '../types/core';
-export { isTruthEqual, Truth } from '../terms/impls/Truth';
-export { deserializeStamp, observeStampId, Stamp, serializeStamp, type SerializedStamp } from '../terms/impls/Stamp';
 export { NARExecution } from '../nar-execution';
 export { PROPOSAL_SCHEMA_VERSION, RULE_TABLE_SCHEMA_VERSION, BUILTIN_RULE_ARTIFACT_VERSION } from '../schemas/index';
 export { createMockLMService } from '../lm/lm-service';
@@ -173,3 +190,9 @@ export { narEventToCognitive, MAPPED_NAR_EVENTS } from '../events/index';
 export { EmbeddingCache, createEmbeddingCache } from '../lm/system-one/index';
 export { RESOURCE_CONTRACTS, RESOURCE_IDS } from '../resources/index';
 export { DEFAULT_MEMORY_CONFIG } from '../memory/config';
+
+// Types not in main index - import from original sources
+export type { Tool } from '../protocol/index';
+export type { ChatStreamEvent } from './chat';
+export type { AgentOptions } from '../types/agent';
+export { AgentOptionsSchema, ConnectionConfigSchema } from '../tools/index';

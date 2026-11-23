@@ -422,6 +422,22 @@ export type {
   TermSymbol,
   TruthType,
 } from './types/core';
+export type {
+  NAREventMap,
+  EventMap,
+  EventReceiver,
+  EventUnsubscribe,
+} from './types/events';
+export type {
+  ConnectionConfig,
+  Connection,
+  ConnectionDeps,
+  ConnectionFactory,
+  ConnectionState,
+  IOMessage,
+  MessageClassification,
+  TransportDeps,
+} from './types/transport';
 /** Core builders, task factories, and NAR error hierarchy. @public */
 export {
   ConfigurationError,
