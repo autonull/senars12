@@ -512,6 +512,7 @@ const provider = new NodeTracerProvider();
 - Finish deferred Q2–Q4 (builder, event taxonomy, serialization helpers).
 - ✅ Implement priority-proportional sampling in `PriorityBag.sample()` — done (roulette wheel without replacement via `weightedSample`).
 - ✅ Enrich `context` on ~40 `SenarsError` throw sites with useful payloads (ids, paths, keys, term strings, arg counts, correlation IDs, operation names)
+- ✅ Key retry/budget policies on `SenarsError.code` — added `RETRYABLE_ERROR_CODES` set and `isRetryableError()` utility; updated action execution retry logic (`src/loop/act.ts`) and LM provider retry (`src/lm/service/errors.ts`)
 
 ---
 

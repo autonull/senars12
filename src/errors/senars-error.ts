@@ -82,6 +82,29 @@ export class SenarsError extends Error {
   }
 }
 
+/** Retryable error codes — errors with these codes should be retried with backoff. */
+export const RETRYABLE_ERROR_CODES: ReadonlySet<ErrorCode> = new Set([
+  'TRANSPORT_ERROR',
+  'CONNECTION_ERROR',
+  'TIMEOUT',
+  'UNAVAILABLE',
+  'LM_UNAVAILABLE',
+  'SANDBOX_TIMEOUT',
+]);
+
+/** Check if an error (any type) is retryable based on its code (for SenarsError) or message fallback. */
+export function isRetryableError(error: unknown): boolean {
+  if (error instanceof SenarsError) {
+    return RETRYABLE_ERROR_CODES.has(error.code);
+  }
+  // Fallback for non-SenarsError: message-based heuristic (legacy compatibility)
+  const msg = errMsg(error).toLowerCase();
+  return (
+    /\b(fetch|network|econn|timeout|aborted|socket|rate.?limit|5\d\d)\b/.test(msg) ||
+    /failed to (fetch|connect)/.test(msg)
+  );
+}
+
 /**
  * The one subclass shape in the taxonomy: a `name`, an {@link ErrorCode}, and the
  * `(message, context, cause)` arguments all of them accepted.

@@ -1,7 +1,7 @@
 import { errMsg } from '@senars/util/error';
 import { withRetry as utilWithRetry } from '@senars/util/retry';
 import { type LMTask } from '@senars/types/llm';
-import { SenarsError } from '@senars/errors';
+import { SenarsError, isRetryableError } from '@senars/errors';
 
 /** H6/X14: provider-specific remediation hints appended to LM failures. */
 const LADDER_HINTS: Partial<Record<string, string>> = {
@@ -35,13 +35,8 @@ export class LMUnavailableError extends SenarsError {
   }
 }
 
-export const isTransportError = (e: unknown): boolean => {
-  const msg = errMsg(e).toLowerCase();
-  return (
-    /\b(fetch|network|econn|timeout|aborted|socket|rate.?limit|5\d\d)\b/.test(msg) ||
-    /failed to (fetch|connect)/.test(msg)
-  );
-};
+/** @deprecated Use `isRetryableError` from `@senars/errors` instead. Kept for backward compatibility. */
+export const isTransportError = (e: unknown): boolean => isRetryableError(e);
 
 export const withRetry = async <T>(
   fn: () => Promise<T>,
@@ -52,7 +47,7 @@ export const withRetry = async <T>(
   utilWithRetry(fn, {
     retries,
     baseMs: 250,
-    isRetryable: isTransportError,
+    isRetryable: isRetryableError,
     mapError: (error) =>
       new LMUnavailableError(
         withHint(`LM provider unavailable (${provider ?? 'unknown'}): ${errMsg(error)}`, provider),

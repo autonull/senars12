@@ -8,7 +8,7 @@ import type { Task, TaskType } from '../kernel/types';
 import type { SelectionResult, SelectionCandidate } from './select';
 import type { Clock } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
-import { SenarsError } from '../errors/senars-error';
+import { SenarsError, isRetryableError } from '../errors/senars-error';
 
 
 /** Action types. */
@@ -92,8 +92,9 @@ export interface RetryPolicy {
   maxDelayMs: number;
   /** Backoff multiplier. */
   backoffMultiplier: number;
-  /** Retryable error types. */
-  retryableErrors: string[];
+  /** @deprecated Retryability is now determined by {@link isRetryableError} based on SenarsError.code.
+   * This field is kept for backward compatibility but is no longer used. */
+  retryableErrors?: string[];
 }
 
 /** Default retry policy. */
@@ -217,9 +218,13 @@ export class ActionExecutor {
         lastError = error instanceof Error ? error : new SenarsError(String(error), 'OPERATION_ERROR');
         attempt++;
 
-        if (attempt <= (action.retry?.maxAttempts ?? defaultRetryPolicy.maxAttempts)) {
+        // Only retry if error is retryable (based on SenarsError.code or message fallback)
+        if (attempt <= (action.retry?.maxAttempts ?? defaultRetryPolicy.maxAttempts) && isRetryableError(lastError)) {
           const delay = this.computeDelay(attempt, action.retry ?? defaultRetryPolicy);
           await this.sleep(delay);
+        } else {
+          // Non-retryable error — fail immediately
+          break;
         }
       }
     }

@@ -17,6 +17,7 @@ export { ToolError, type ToolError as ToolErrorType } from './tool';
 export { TransportError, type TransportError as TransportErrorType } from './transport';
 export { PolicyViolation } from './policy';
 export type { ErrorCode } from './senars-error';
+export { RETRYABLE_ERROR_CODES, isRetryableError } from './senars-error';
 
 /** E1: assembly-time failure, typed by the builder step that failed. */
 export class BuilderError extends SenarsError {
