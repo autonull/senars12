@@ -64,10 +64,6 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
     reason: 'policy coefficients, not rates',
   },
   {
-    file: 'src/cognitive/fold-queries.ts',
-    reason: 'domain-specific flooredRatio variants for cognitive metrics',
-  },
-  {
     file: 'src/economy/successor.ts',
     reason: 'flooredRatio for successor feature computation',
   },
@@ -78,14 +74,6 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
   {
     file: 'src/faculties/judgment/calibration.ts',
     reason: 'softFalloff for judge calibration curves',
-  },
-  {
-    file: 'src/faculties/judgment/cascade.ts',
-    reason: 'flooredRatio for judgment cascade thresholds',
-  },
-  {
-    file: 'src/faculties/judgment/judge.ts',
-    reason: 'flooredRatio and softFalloff for judge scoring',
   },
   {
     file: 'src/kernel/stamp.ts',

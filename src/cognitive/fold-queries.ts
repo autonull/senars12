@@ -11,6 +11,7 @@ import { fromNarsese } from '../kernel/terms/term';
 import type { Truth } from '../kernel/truth';
 import type { Concept } from '../memory/concept';
 import type { ModelRuleStats } from '../lm';
+import { flooredRatio } from '@senars/util/numeric';
 
 // ============================================================================
 // Types
@@ -472,10 +473,10 @@ export async function recomputePolicyFold(
   const totalTools = [...toolCounts.values()].reduce((a, b) => a + b, 0);
 
   const routingWeights: Record<string, number> = {};
-  for (const [kind, count] of routeCounts) routingWeights[kind] = count / Math.max(1, totalRoutes);
+  for (const [kind, count] of routeCounts) routingWeights[kind] = count * flooredRatio(1, totalRoutes);
 
   const toolSelectionBias: Record<string, number> = {};
-  for (const [tool, count] of toolCounts) toolSelectionBias[tool] = count / Math.max(1, totalTools);
+  for (const [tool, count] of toolCounts) toolSelectionBias[tool] = count * flooredRatio(1, totalTools);
 
   // Adjust by rule performance if available
   if (ruleStats) {
@@ -584,7 +585,7 @@ export async function identifyIssuesFold(
   };
 
   // Resource issues
-  const lowPriorityRatio = concepts.filter(c => c.priority < 0.2).length / Math.max(1, concepts.length);
+  const lowPriorityRatio = concepts.filter(c => c.priority < 0.2).length * flooredRatio(1, concepts.length);
   if (lowPriorityRatio > 0.5) {
     issues.resourceIssues.push({
       type: 'high_low_priority_ratio',

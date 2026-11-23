@@ -28,6 +28,8 @@ import { OraclePinStore } from '../../oracles/pins';
 import { SenarsError } from '../../errors/senars-error';
 import { createLogger } from '../../util/logger';
 import { errMsg } from '@senars/util/error';
+import { flooredRatio, sigmoid } from '@senars/util/numeric';
+import { mapToRecord } from '@senars/util/collections';
 
 const logger = createLogger({ scope: 'faculties:judgment:cascade' });
 
@@ -347,7 +349,7 @@ export class JudgmentCascade {
       preConfidence: selected?.confidence ?? 0,
       postConfidence: selected?.confidence ?? 0,
       method: 'none',
-      judgeECE: Object.fromEntries(this.judgeECE),
+      judgeECE: mapToRecord(this.judgeECE),
     };
 
     if (this.config.enableCalibration && selected) {
@@ -574,7 +576,7 @@ export class JudgmentCascade {
       }
 
       // Existing evidence strength
-      const existingStrength = candidate.evidence.reduce((sum, e) => sum + e.strength, 0) / Math.max(1, candidate.evidence.length);
+      const existingStrength = candidate.evidence.reduce((sum, e) => sum + e.strength, 0) * flooredRatio(1, candidate.evidence.length);
       support = (support + existingStrength) / 2;
 
       candidate.evidenceSupport = Math.min(1, Math.max(0, support));
@@ -623,7 +625,7 @@ export class JudgmentCascade {
             return sum + score * (criterion?.weight ?? 1);
           }, 0);
           const totalWeight = rubricCriteria.reduce((sum, c) => sum + c.weight, 0);
-          candidate.rubricOverall = weightedSum / Math.max(1, totalWeight);
+          candidate.rubricOverall = weightedSum * flooredRatio(1, totalWeight);
           candidate.confidence = (candidate.confidence + candidate.rubricOverall) / 2;
 
           candidate.evidence.push({
@@ -851,10 +853,10 @@ Provide scores 0-1 for each criterion.
   getStats() {
     return {
       ...this.stats,
-      byStage: Object.fromEntries(this.stats.byStage),
-      judgeECE: Object.fromEntries(this.judgeECE),
-      judgeDriftCycles: Object.fromEntries(this.judgeDriftCycles),
-      judgeDemoted: Object.fromEntries(this.judgeDemoted),
+      byStage: mapToRecord(this.stats.byStage),
+      judgeECE: mapToRecord(this.judgeECE),
+      judgeDriftCycles: mapToRecord(this.judgeDriftCycles),
+      judgeDemoted: mapToRecord(this.judgeDemoted),
       calibrationDataPoints: this.calibrationManager.getStats().dataPoints,
     };
   }

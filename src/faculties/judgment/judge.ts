@@ -8,6 +8,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { JudgmentCandidate, JudgmentContext, JudgmentCalibration } from './cascade';
 import type { TelemetryCollector } from './telemetry';
+import { flooredRatio, sigmoid } from '@senars/util/numeric';
 
 /** Judge training example. */
 export interface JudgeTrainingExample {
@@ -102,7 +103,7 @@ export class LogisticJudge implements JudgeModel {
 
   /** Extract features from candidate and context. */
   extractFeatures(candidate: JudgmentCandidate, context: JudgmentContext, numCandidates: number): JudgeFeatures {
-    const evidenceStrength = candidate.evidence.reduce((sum, e) => sum + e.strength, 0) / Math.max(1, candidate.evidence.length);
+    const evidenceStrength = candidate.evidence.reduce((sum, e) => sum + e.strength, 0) * flooredRatio(1, candidate.evidence.length);
 
     // Encode faculty
     const facultyMap: Record<string, number> = {
@@ -195,7 +196,7 @@ export class LogisticJudge implements JudgeModel {
 
   /** Sigmoid function. */
   private sigmoid(x: number): number {
-    return 1 / (1 + Math.exp(-x));
+    return sigmoid(x);
   }
 
   /** Predict score. */
@@ -389,7 +390,7 @@ export class JudgeEnsemble implements JudgeModel {
       return {
         candidateConfidence: candidate.confidence,
         evidenceCount: candidate.evidence.length,
-        avgEvidenceStrength: candidate.evidence.reduce((sum, e) => sum + e.strength, 0) / Math.max(1, candidate.evidence.length),
+        avgEvidenceStrength: candidate.evidence.reduce((sum, e) => sum + e.strength, 0) * flooredRatio(1, candidate.evidence.length),
         sourceFaculty: -1,
         goalAlignment: 0,
         beliefSupport: 0,
