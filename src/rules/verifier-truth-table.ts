@@ -13,6 +13,7 @@
 
 import type { Truth } from '../terms';
 import { Truth as EngineTruth } from '../terms';
+import { clamp, clamp01, safeDiv } from '@senars/util/numeric';
 
 type TruthFn = (t1: Truth, t2?: Truth, ...args: unknown[]) => Truth | null | number;
 
@@ -23,9 +24,6 @@ const CONFIRM_GAIN = 1.1;
 const CONTRADICT_DECAY = 0.9;
 const OUTCOME_GAIN = 0.1;
 
-const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
-const clamp01 = (v: number): number => clamp(v, 0, 1);
-const safeDiv = (num: number, den: number): number => (den === 0 ? 0 : num / den);
 // Matches kernel/types.ts softSquash: c / (1 + c * factor) with default factor=10
 const softSquash = (c: number, factor = 10): number => c / (1 + c * factor);
 
