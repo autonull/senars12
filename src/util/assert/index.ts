@@ -1,2 +1,2 @@
 /** @public Assertion helpers. */
-export { assertDefined, invariant } from './assert';
+export { assertDefined, invariant } from '../assert';

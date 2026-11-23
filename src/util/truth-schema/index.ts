@@ -1,2 +1,2 @@
 /** @public Truth schemas. */
-export { BeliefTruthSchema, TermTruthSchema } from './truth-schema';
+export { BeliefTruthSchema, TermTruthSchema } from '../truth-schema';

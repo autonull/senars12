@@ -11,6 +11,6 @@ export {
   sha256HexParts,
   sha256Prefixed,
   shortSha256Hex,
-} from './hash';
+} from '../hash';
 
-export type { DigestInput } from './hash';
+export type { DigestInput } from '../hash';

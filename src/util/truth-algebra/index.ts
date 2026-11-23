@@ -4,4 +4,4 @@ export {
   confidenceToWeight,
   weightToConfidence,
   weakenConfidence,
-} from './truth-algebra';
+} from '../truth-algebra';

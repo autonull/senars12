@@ -5,5 +5,5 @@ export type {
   UnifierDialect,
   UnifyOptions,
   VariablePolicy,
-} from './unify';
-export { structuralEqual, Unifier } from './unify';
+} from '../unify';
+export { structuralEqual, Unifier } from '../unify';

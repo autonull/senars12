@@ -9,4 +9,4 @@ export {
   percentiles,
   section,
   utcDate,
-} from './format';
+} from '../format';

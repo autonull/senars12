@@ -9,4 +9,4 @@ export {
   egressVerdict,
   JUDGMENT_SHAPES,
   JudgmentShapeSchema,
-} from './cognitive-schemas';
+} from '../cognitive-schemas';

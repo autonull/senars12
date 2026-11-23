@@ -1,5 +1,5 @@
 /** @public The fallible-result union, and the folds over it. */
-export type { Err, Ok, Result } from './result';
+export type { Err, Ok, Result } from '../result';
 export {
   attempt,
   attemptAsync,
@@ -13,4 +13,4 @@ export {
   match,
   ok,
   unwrapOrThrow,
-} from './result';
+} from '../result';

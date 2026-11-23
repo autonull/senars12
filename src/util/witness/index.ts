@@ -5,4 +5,4 @@ export {
   type WitnessList,
   witnessFiles,
   witnessHolds,
-} from './witness';
+} from '../witness';

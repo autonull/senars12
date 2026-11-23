@@ -4,4 +4,4 @@ export {
   migrateConfig,
   migrateConfigFile,
   type MigrationOutcome,
-} from './config-migrate';
+} from '../config-migrate';

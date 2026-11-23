@@ -5,4 +5,4 @@ export {
   Logger,
   registerLogEnricher,
   silentLogger,
-} from './logger';
+} from '../logger';

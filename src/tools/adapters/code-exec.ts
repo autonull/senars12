@@ -1,5 +1,5 @@
 import { basename, resolve } from 'node:path';
-import { envStr } from '@senars/util/config';
+import { envStr } from '@senars/config';
 import { stopwatch } from '@senars/util/async';
 import { truncateBytes } from '@senars/util/text';
 import { tool } from 'ai';

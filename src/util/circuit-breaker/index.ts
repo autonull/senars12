@@ -5,5 +5,5 @@ export type {
   CircuitSnapshot,
   CircuitState,
   TransitionReason,
-} from './circuit-breaker';
-export { CircuitBreaker } from './circuit-breaker';
+} from '../circuit-breaker';
+export { CircuitBreaker } from '../circuit-breaker';

@@ -17,6 +17,6 @@ export {
   truncate,
   truncateBytes,
   wordOverlap,
-} from './text';
+} from '../text';
 
-export { NARSESE_ATOM_CHARS } from './alphabet';
+export { NARSESE_ATOM_CHARS } from '../alphabet';

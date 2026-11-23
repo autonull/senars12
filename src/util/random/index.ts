@@ -19,6 +19,6 @@ export {
   weightedPick,
   weightedSample,
   weightedSampleBy,
-} from './random';
+} from '../random';
 
-export type { RandomSource } from './random';
+export type { RandomSource } from '../random';

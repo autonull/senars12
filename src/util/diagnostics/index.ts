@@ -1,2 +1,2 @@
 /** @public Schema issue formatting. */
-export { formatIssues, type SchemaIssue } from './diagnostics';
+export { formatIssues, type SchemaIssue } from '../diagnostics';

@@ -44,7 +44,7 @@ export {
   unique,
   uniqueBy,
   victimBy,
-} from './collections';
+} from '../collections';
 
 export type {
   BoundedContainer,
@@ -52,4 +52,4 @@ export type {
   EvictByScore,
   OverflowPolicy,
   ReadOnlyLookup,
-} from './collections';
+} from '../collections';

@@ -35,4 +35,4 @@ export {
   ucb1,
   variance,
   invTemperature,
-} from './numeric';
+} from '../numeric';

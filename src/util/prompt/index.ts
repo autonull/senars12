@@ -1,2 +1,2 @@
 /** @public Prompt utilities. */
-export { extractLastUserMessage } from './prompt';
+export { extractLastUserMessage } from '../prompt';

@@ -5,4 +5,4 @@ export {
   type LedgerConfig,
   createLedger,
   Ledger,
-} from './ledger';
+} from '../ledger';

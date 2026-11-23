@@ -23,6 +23,7 @@ import {
   ECONOMY_EVENTS,
   defaultSchedulerConfig,
 } from './types';
+import { calculateTotalUtility, calculateTaskUtility } from './utility-voi';
 import type { Truth } from '../kernel/truth';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';

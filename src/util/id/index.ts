@@ -8,4 +8,4 @@ export {
   primeIdCount,
   sequentialIdSource,
   sortableIdSource,
-} from './id';
+} from '../id';

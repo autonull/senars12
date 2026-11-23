@@ -1,5 +1,5 @@
 import type { ConnectionConfig } from '@senars/types/transport';
-import { agentOptionsSchema, nonEmpty } from '@senars/util/config';
+import { agentOptionsSchema, nonEmpty } from '@senars/config';
 import { z } from 'zod';
 
 /** The zod twin, pinned to the transport type so a widened field is a compile error here. */

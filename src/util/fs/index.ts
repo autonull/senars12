@@ -20,6 +20,6 @@ export {
   writeJsonFile,
   writeJsonFileSync,
   writeJsonl,
-} from './fs';
+} from '../fs';
 
-export type { JsonlLoadResult } from './fs';
+export type { JsonlLoadResult } from '../fs';

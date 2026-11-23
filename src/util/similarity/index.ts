@@ -1,5 +1,5 @@
 /** @public Vector and set similarity functions (cosine, Jaccard, L2 normalization). */
-export type { NormalizedVector, ReadonlySetLike } from './similarity';
+export type { NormalizedVector, ReadonlySetLike } from '../similarity';
 export {
   cosine,
   cosineNormalized,
@@ -7,4 +7,4 @@ export {
   jaccard,
   l2Normalize,
   normalize,
-} from './similarity';
+} from '../similarity';

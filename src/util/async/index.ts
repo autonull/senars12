@@ -2,7 +2,7 @@
  *  deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
  *  text measurement, schema-failure rendering, and error coercion.
  */
-export type { Deadline, Debounced, Deferred } from './async';
+export type { Deadline, Debounced, Deferred } from '../async';
 export {
   boundedDeadline,
   boundedFetch,
@@ -23,4 +23,4 @@ export {
   TRUNCATION_MARKER,
   withDeadline,
   withTimeout,
-} from './async';
+} from '../async';

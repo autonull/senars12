@@ -1,2 +1,2 @@
 /** @public Statistical utilities. */
-export { weightedMean } from './stats';
+export { weightedMean } from '../stats';
