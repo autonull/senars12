@@ -16,7 +16,7 @@ import { lmCommandsFor } from './lm';
 import { memoryCommandsFor } from './memory';
 import { profileCommandsFor } from './profile';
 import { runtimeCommandsFor } from './runtime';
-import { systemOneCommandsFor } from './systemone';
+import { systemOneCommandsFor } from './systemone/commands';
 
 export type {
   BotRuntime,
