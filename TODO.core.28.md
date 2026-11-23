@@ -3,7 +3,7 @@
 **Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), W10: util/collections.ts split complete
+**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete** (ENGINE_ORIGINS, TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation → schemas/task.ts; configDigest → config/digest.ts; systemOneOf → bin/commands/context.ts; cognitiveBounds → config/bound-table.ts; economy TASK_BAG_KINDS renamed to ECONOMY_TASK_BAG_KINDS)
 
 ---
 
@@ -32,7 +32,7 @@
 |----|------------|--------|--------|--------|--------------|
 | **W1** | **Generated ↔ Manual Schema Unification** | 152 common exports | ★★★★★ | L | — | ✅ **DONE** |
 | **W2** | **Truth Table Consolidation** | verifier-truth-table ↔ verify-derivation | ★★★★★ | M | W1 |
-| **W3** | **Constant Canonicalization** | 30+ duplicated constants | ★★★★☆ | S | W1 |
+| **W3** | **Constant Canonicalization** | 30+ duplicated constants | ★★★★☆ | S | W1 | ✅ **DONE** |
 
 ### Phase 2: Duplicate Elimination (Weeks 2–3) — *Parallelizable*
 
@@ -149,7 +149,7 @@
 
 ---
 
-### W3: Constant Canonicalization (Week 1–2)
+### W3: Constant Canonicalization (Week 1–2) ✅ **DONE**
 
 **Problem:** 30+ constants defined in multiple places:
 - `unitInterval`, `signedUnitInterval`, `nonEmpty`, `uuid`, `nonNegativeInt`, `positiveInt`, `timestamp` — in `config/boundary.ts` AND `generated/schemas.ts`
@@ -158,17 +158,27 @@
 - `systemOneOf` — in `commands/context.ts` AND `commands/systemone/constants.ts`
 - `TASK_BAG_KINDS` — in `economy/types.ts`, `generated/schemas.ts`, `schemas/task.ts`
 
-**Approach:** Single definition in most logical location, re-export elsewhere.
+**Completed:**
+- ✅ `ENGINE_ORIGINS` → `util/origins.ts` (canonical), genome.ts imports for generation
+- ✅ `TASK_TYPES`, `TASK_BAG_KINDS`, `TASK_PUNCTUATIONS`, `TOLERANT_PUNCTUATIONS`, `TASK_PUNCTUATION`, `taskTypeForPunctuation` → `schemas/task.ts` (canonical), genome.ts imports for generation
+- ✅ `configDigest` → `config/digest.ts` (canonical), removed from `strategies/registration.ts`
+- ✅ `systemOneOf` → `bin/commands/context.ts` (canonical), removed from `bin/commands/systemone/constants.ts`
+- ✅ `cognitiveBounds` → `config/bound-table.ts` (canonical), deleted `config/cognitive-bounds.ts`
+- ✅ Economy's `TASK_BAG_KINDS` renamed to `ECONOMY_TASK_BAG_KINDS` to avoid collision
+- ✅ Budget tests updated to use `BUDGET_TYPES_MAP`
 
-| Constant | Canonical Location | Re-export From |
-|----------|-------------------|----------------|
-| `unitInterval` family | `config/boundary.ts` | `@senars/config` |
-| `configDigest` | `config/digest.ts` | `@senars/config` |
-| `cognitiveBounds` | `config/bound-table.ts` | `@senars/config` |
-| `systemOneOf` | `commands/context.ts` | `@senars/commands` |
-| `TASK_BAG_KINDS` | `schemas/task.ts` | `@senars/schemas` |
-| `TASK_TYPES` | `schemas/task.ts` | `@senars/schemas` |
-| `ENGINE_ORIGINS` | `util/origins.ts` | `@senars/util` |
+**Remaining (deferred):**
+- `unitInterval` family — `config/boundary.ts` vs `generated/schemas.ts` (generated file is standalone; acceptable duplication for build-time independence)
+
+| Constant | Canonical Location | Re-export From | Status |
+|----------|-------------------|----------------|--------|
+| `unitInterval` family | `config/boundary.ts` | `@senars/config` | Deferred (generated standalone) |
+| `configDigest` | `config/digest.ts` | `@senars/config` | ✅ Done |
+| `cognitiveBounds` | `config/bound-table.ts` | `@senars/config` | ✅ Done |
+| `systemOneOf` | `commands/context.ts` | `@senars/commands` | ✅ Done |
+| `TASK_BAG_KINDS` | `schemas/task.ts` | `@senars/schemas` | ✅ Done |
+| `TASK_TYPES` | `schemas/task.ts` | `@senars/schemas` | ✅ Done |
+| `ENGINE_ORIGINS` | `util/origins.ts` | `@senars/util` | ✅ Done |
 
 ---
 

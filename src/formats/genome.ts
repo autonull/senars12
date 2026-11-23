@@ -13,6 +13,15 @@ import { z } from 'zod';
 import { writeFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { ENGINE_ORIGINS } from '../util/origins';
+import {
+  TASK_TYPES,
+  TASK_BAG_KINDS,
+  TASK_PUNCTUATIONS,
+  TOLERANT_PUNCTUATIONS,
+  TASK_PUNCTUATION,
+  taskTypeForPunctuation,
+} from '../schemas/task';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '..', 'generated');
@@ -28,10 +37,6 @@ mkdirSync(JSON_SCHEMA_DIR, { recursive: true });
 const Defs = {
   // Enums (values only, types derived)
   enums: {
-    TASK_TYPES: ['belief', 'goal', 'question', 'command'] as const,
-    TASK_BAG_KINDS: ['belief', 'goal', 'question'] as const,
-    TASK_PUNCTUATIONS: ['.', '!', '?', ';'] as const,
-    TOLERANT_PUNCTUATIONS: ['', '.', '!', '?'] as const,
     SOURCE_QUALITY: [
       'PRIMARY',
       'SECONDARY',
@@ -86,7 +91,7 @@ const Defs = {
       'variable',
     ] as const,
     RULE_PROVENANCE_KINDS: ['builtin', 'proposal', 'import'] as const,
-    ENGINE_ORIGINS: ['nar', 'kernel', 'proposer', 'metta'] as const,
+    ENGINE_ORIGINS,
     PROPOSAL_KINDS: ['content', 'rule'] as const,
     PROPOSAL_REJECTIONS: [
       'schema-version',
@@ -325,7 +330,13 @@ function generate(): string {
   lines.push('// ENUMS');
   lines.push('// ============================================================================');
   lines.push('');
+  // ENGINE_ORIGINS is imported from @senars/util/origins (canonical location)
+  lines.push("import { ENGINE_ORIGINS, type EngineOrigin } from '@senars/util/origins';");
+  // Task vocabulary imported from @senars/schemas/task (canonical location)
+  lines.push("import { TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation, TaskTypeSchema, TaskBagKindSchema, TaskPunctuationSchema, TolerantPunctuationSchema, type TaskType, type TaskBagKind, type TaskPunctuation, type TolerantPunctuation } from '@senars/schemas/task';");
+  lines.push('');
   for (const [name, values] of Object.entries(Defs.enums)) {
+    if (name === 'ENGINE_ORIGINS') continue; // Imported from canonical location
     const typeName = name.replace(/S$/, '').replace(/_/g, '_');
     // Special case: AMBIGUITY_SEVERITIES -> AMBIGUITY_SEVERITY (not AMBIGUITY_SEVERITIE)
     const finalTypeName = name === 'AMBIGUITY_SEVERITIES' ? 'AMBIGUITY_SEVERITY' : typeName;
@@ -333,6 +344,14 @@ function generate(): string {
     lines.push(`export type ${finalTypeName} = (typeof ${name})[number];`);
     lines.push('');
   }
+  // Re-export ENGINE_ORIGINS type for compatibility
+  lines.push('export type ENGINE_ORIGIN = EngineOrigin;');
+  // Re-export task vocabulary types for compatibility
+  lines.push('export type TASK_TYPE = TaskType;');
+  lines.push('export type TASK_BAG_KIND = TaskBagKind;');
+  lines.push('export type TASK_PUNCTUATION = TaskPunctuation;');
+  lines.push('export type TOLERANT_PUNCTUATION = TolerantPunctuation;');
+  lines.push('');
 
   // ============================================================================
   // CONSTANTS
@@ -1106,24 +1125,12 @@ function generate(): string {
   lines.push("export const NAR_ORIGIN = 'nar' as const;");
   lines.push('');
 
-  // --- Task ---
-  lines.push('export const TaskTypeSchema = z.enum(TASK_TYPES);');
-  lines.push('export type TaskType = z.infer<typeof TaskTypeSchema>;');
-  lines.push('export const TaskBagKindSchema = z.enum(TASK_BAG_KINDS);');
-  lines.push('export type TaskBagKind = z.infer<typeof TaskBagKindSchema>;');
-  lines.push('export const TaskPunctuationSchema = z.enum(TASK_PUNCTUATIONS);');
-  lines.push('export type TaskPunctuation = z.infer<typeof TaskPunctuationSchema>;');
-  lines.push('export const TolerantPunctuationSchema = z.enum(TOLERANT_PUNCTUATIONS);');
-  lines.push('export type TolerantPunctuation = z.infer<typeof TolerantPunctuationSchema>;');
-  lines.push('');
+  // --- Task (schemas imported from @senars/schemas/task) ---
   lines.push('export const KernelControlStateSchema = z.enum(KERNEL_CONTROL_STATES);');
   lines.push('export type KernelControlState = z.infer<typeof KernelControlStateSchema>;');
   lines.push('');
   lines.push('export const CapabilityRiskSchema = z.enum(CAPABILITY_RISKS);');
   lines.push('export type CapabilityRisk = z.infer<typeof CapabilityRiskSchema>;');
-  lines.push('');
-  lines.push('const TASK_TYPE_BY_PUNCTUATION = new Map<string, TaskType>(Object.entries(TASK_PUNCTUATION).map(([type, mark]) => [mark, type as TaskType]));');
-  lines.push('export const taskTypeForPunctuation = (punctuation: string): TaskType | null => TASK_TYPE_BY_PUNCTUATION.get(punctuation) ?? null;');
   lines.push('');
 
   // --- Cognitive events (kernel) ---

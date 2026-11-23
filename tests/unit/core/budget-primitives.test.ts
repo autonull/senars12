@@ -1,7 +1,7 @@
 import {
   ALL_RESOURCES,
   BUDGET_RESOURCES,
-  BUDGET_TYPES,
+  BUDGET_TYPES_MAP,
   type BudgetResource,
   budgetAffords,
   budgetLimit,
@@ -30,7 +30,7 @@ describe('core/budget — the four AIKR dimensions have one arithmetic', () => {
   });
 
   it('each dimension has one event-level name, and a fresh budget has spent nothing', () => {
-    expect(BUDGET_TYPES).toEqual({
+    expect(BUDGET_TYPES_MAP).toEqual({
       cycles: 'cycles',
       depth: 'depth',
       memoryOps: 'memory',

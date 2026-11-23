@@ -9,7 +9,7 @@ import { weightedPick } from '@senars/util/random';
 import type { RandomSource } from '@senars/util/random';
 import {
   type EconomyTask,
-  type TaskBagKind,
+  type EconomyTaskBagKind as TaskBagKind,
   type TaskSource,
   type SchedulerConfig,
   type SchedulerStats,
@@ -19,7 +19,7 @@ import {
   type Overlay,
   type AgingPolicy,
   type Successor,
-  TASK_BAG_KINDS,
+  ECONOMY_TASK_BAG_KINDS as TASK_BAG_KINDS,
   ECONOMY_EVENTS,
   defaultSchedulerConfig,
 } from './types';

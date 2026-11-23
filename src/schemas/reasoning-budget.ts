@@ -8,6 +8,7 @@ export {
   ConsumedBudgetSchema,
   type ConsumedBudget,
   BUDGET_TYPES,
+  BUDGET_TYPES_MAP,
   BudgetTypeSchema,
   type BudgetType,
   BUDGET_SCOPE_IDS,

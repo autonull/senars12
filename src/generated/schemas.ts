@@ -25,36 +25,8 @@ export type TimestampMs = number;
 // ENUMS
 // ============================================================================
 
-export const TASK_TYPES = [
-  "belief",
-  "goal",
-  "question",
-  "command"
-] as const;
-export type TASK_TYPE = (typeof TASK_TYPES)[number];
-
-export const TASK_BAG_KINDS = [
-  "belief",
-  "goal",
-  "question"
-] as const;
-export type TASK_BAG_KIND = (typeof TASK_BAG_KINDS)[number];
-
-export const TASK_PUNCTUATIONS = [
-  ".",
-  "!",
-  "?",
-  ";"
-] as const;
-export type TASK_PUNCTUATION = (typeof TASK_PUNCTUATIONS)[number];
-
-export const TOLERANT_PUNCTUATIONS = [
-  "",
-  ".",
-  "!",
-  "?"
-] as const;
-export type TOLERANT_PUNCTUATION = (typeof TOLERANT_PUNCTUATIONS)[number];
+import { ENGINE_ORIGINS, type EngineOrigin } from '@senars/util/origins';
+import { TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation, TaskTypeSchema, TaskBagKindSchema, TaskPunctuationSchema, TolerantPunctuationSchema, type TaskType, type TaskBagKind, type TaskPunctuation, type TolerantPunctuation } from '@senars/schemas/task';
 
 export const SOURCE_QUALITY = [
   "PRIMARY",
@@ -169,14 +141,6 @@ export const RULE_PROVENANCE_KINDS = [
   "import"
 ] as const;
 export type RULE_PROVENANCE_KIND = (typeof RULE_PROVENANCE_KINDS)[number];
-
-export const ENGINE_ORIGINS = [
-  "nar",
-  "kernel",
-  "proposer",
-  "metta"
-] as const;
-export type ENGINE_ORIGIN = (typeof ENGINE_ORIGINS)[number];
 
 export const PROPOSAL_KINDS = [
   "content",
@@ -369,6 +333,12 @@ export const INDEPENDENCE = [
   "unknown"
 ] as const;
 export type INDEPENDENCE = (typeof INDEPENDENCE)[number];
+
+export type ENGINE_ORIGIN = EngineOrigin;
+export type TASK_TYPE = TaskType;
+export type TASK_BAG_KIND = TaskBagKind;
+export type TASK_PUNCTUATION = TaskPunctuation;
+export type TOLERANT_PUNCTUATION = TolerantPunctuation;
 
 // ============================================================================
 // CONSTANTS
@@ -1105,23 +1075,11 @@ export const CognitiveEventBaseSchema = z.object({
 export const PROPOSER_ORIGIN = 'proposer' as const;
 export const NAR_ORIGIN = 'nar' as const;
 
-export const TaskTypeSchema = z.enum(TASK_TYPES);
-export type TaskType = z.infer<typeof TaskTypeSchema>;
-export const TaskBagKindSchema = z.enum(TASK_BAG_KINDS);
-export type TaskBagKind = z.infer<typeof TaskBagKindSchema>;
-export const TaskPunctuationSchema = z.enum(TASK_PUNCTUATIONS);
-export type TaskPunctuation = z.infer<typeof TaskPunctuationSchema>;
-export const TolerantPunctuationSchema = z.enum(TOLERANT_PUNCTUATIONS);
-export type TolerantPunctuation = z.infer<typeof TolerantPunctuationSchema>;
-
 export const KernelControlStateSchema = z.enum(KERNEL_CONTROL_STATES);
 export type KernelControlState = z.infer<typeof KernelControlStateSchema>;
 
 export const CapabilityRiskSchema = z.enum(CAPABILITY_RISKS);
 export type CapabilityRisk = z.infer<typeof CapabilityRiskSchema>;
-
-const TASK_TYPE_BY_PUNCTUATION = new Map<string, TaskType>(Object.entries(TASK_PUNCTUATION).map(([type, mark]) => [mark, type as TaskType]));
-export const taskTypeForPunctuation = (punctuation: string): TaskType | null => TASK_TYPE_BY_PUNCTUATION.get(punctuation) ?? null;
 
 export const StimulusSourceSchema = z.enum(STIMULUS_SOURCES);
 export type StimulusSource = (typeof STIMULUS_SOURCES)[number];

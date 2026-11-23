@@ -17,7 +17,7 @@ import {
   writeEvalSet,
   JudgmentDataset,
 } from '@senars/lm/system-one';
-import { EVAL_SET_PATH, datasetPathOf, systemOneOf } from './constants';
+import { EVAL_SET_PATH, datasetPathOf } from './constants';
 
 const statusHandlers: Record<string, SubHandler> = {
   status: (rt: BotRuntime) => formatSystemOneStatus(rt.wired.nar, rt.conversationGame),

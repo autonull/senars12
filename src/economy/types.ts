@@ -10,8 +10,8 @@ import type { Truth } from '../kernel/truth';
 import type { Task, TaskType } from '../kernel/types';
 import type { RNG, Clock } from '../kernel/env';
 
-/** Task bag kinds — unified from focus, goals, beliefs. */
-export const TASK_BAG_KINDS = [
+/** Economy task bag kinds — extends NAR task vocabulary with economy-specific kinds. */
+export const ECONOMY_TASK_BAG_KINDS = [
   'belief',
   'goal',
   'skill',
@@ -20,7 +20,7 @@ export const TASK_BAG_KINDS = [
   'plan',
 ] as const;
 
-export type TaskBagKind = (typeof TASK_BAG_KINDS)[number];
+export type EconomyTaskBagKind = (typeof ECONOMY_TASK_BAG_KINDS)[number];
 
 /** Economy task — the atomic unit of work in the economy. */
 export interface EconomyTask extends Task {

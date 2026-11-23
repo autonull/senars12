@@ -2,7 +2,7 @@
 
 import { cmd, dispatchSub, onOff, ratioArg } from '../cli';
 import { incrementCount } from '@senars/util/collections';
-import { systemOneOf } from './constants';
+import { systemOneOf } from '../context';
 import type { BotRuntime } from '../context';
 
 export const traceCommand = cmd(
@@ -28,7 +28,7 @@ export const traceCommand = cmd(
           return `Trace sample rate set to ${parsed.value}`;
         },
         dataset: () => {
-          const dataset = systemOneOf(rt).systemOne?.dataset;
+          const dataset = systemOneOf(rt)?.dataset;
           if (!dataset) return 'Dataset not available (distillation not configured)';
           const bySource = new Map<string, number>();
           for (const row of dataset.all()) incrementCount(bySource, row.source, 1);

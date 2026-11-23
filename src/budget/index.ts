@@ -40,7 +40,7 @@ export {
   sliceExhaustedPayload,
   sliceMergedPayload,
 } from './budget';
-export { BUDGET_TYPES, BudgetTypeSchema } from '../schemas/reasoning-budget';
+export { BUDGET_TYPES, BUDGET_TYPES_MAP, BudgetTypeSchema } from '../schemas/reasoning-budget';
 export { createCapturePhase, createReflectPhase, DEFAULT_MACRO_PIPELINE, runCycle } from '../agent/phases';
 export {
   ALL_RESOURCES,

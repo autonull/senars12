@@ -1,7 +1,7 @@
 import {
   ALL_RESOURCES,
   BUDGET_RESOURCES,
-  BUDGET_TYPES,
+  BUDGET_TYPES_MAP,
   budgetLimit,
   budgetRemaining,
 } from '@senars/budget';
@@ -76,7 +76,7 @@ describe('the gate spends the budget core accounts', () => {
     expect(gate.isExhausted('never-declared')).toBe(false);
 
     for (const resource of ALL_RESOURCES) {
-      expect(BUDGET_TYPES[resource]).toBeTruthy();
+      expect(BUDGET_TYPES_MAP[resource]).toBeTruthy();
       expect(budgetLimit(gate.getBudget(), resource)).toBe(1);
     }
   });

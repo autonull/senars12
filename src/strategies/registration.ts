@@ -14,7 +14,7 @@
 import { ensureArray } from '@senars/util/guards';
 import { formatIssues } from '@senars/util/diagnostics';
 import { indexBy } from '@senars/util/collections';
-import { sha256HexParts } from '@senars/util/hash';
+import { configDigest } from '@senars/config/digest';
 import { stableStringify } from '@senars/util/json';
 import { type ZodError, z } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra';
@@ -152,9 +152,8 @@ export const singleton = (
 /** Recursively key-sorted JSON, so `{a,b}` and `{b,a}` are one configuration. */
 export const canonicalJson = (value: unknown): string => stableStringify(value, true);
 
-/** The digest of a name and its canonical config — the memo key and the telemetry attribute. */
-export const configDigest = (name: string, config: StrategyConfig): string =>
-  sha256HexParts([name, canonicalJson(config)]);
+/** Re-export configDigest from canonical location. */
+export { configDigest } from '@senars/config/digest';
 
 export const isStrategyExpression = (
   spec: StrategySpec | CompositeSpec

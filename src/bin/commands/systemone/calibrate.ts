@@ -3,7 +3,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { formatBytes } from '@senars/util/format';
 import { attempted, cmd } from '../cli';
-import { datasetPathOf, systemOneOf } from './constants';
+import { datasetPathOf } from './constants';
 import type { BotRuntime } from '../context';
 
 export const calibrateCommand = cmd(

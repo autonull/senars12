@@ -45,9 +45,11 @@ describe('Schema Genome Generator', () => {
 
   it('should contain all enum declarations', () => {
     const content = readFileSync(GENERATED, 'utf-8');
-    // Task types
-    expect(content).toContain('export const TASK_TYPES = [');
-    expect(content).toContain('export type TASK_TYPE = (typeof TASK_TYPES)[number];');
+    // Task types are imported from canonical @senars/schemas/task
+    expect(content).toContain("import { TASK_TYPES, TASK_BAG_KINDS");
+    expect(content).toContain("from '@senars/schemas/task';");
+    expect(content).toContain('export type TASK_TYPE = TaskType;');
+    expect(content).toContain('export type TASK_BAG_KIND = TaskBagKind;');
     // Source quality
     expect(content).toContain('export const SOURCE_QUALITY = [');
     expect(content).toContain('export type SOURCE_QUALITY = (typeof SOURCE_QUALITY)[number];');
