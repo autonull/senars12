@@ -6,6 +6,7 @@ import { getPredicate, getSubject, type Term, termKey } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { Strategy, ComponentMetadata } from '../types';
+import { Strategy as BaseStrategy } from '../base';
 
 /** Minimum belief priority for a link to be promoted to a secondary task. */
 const MIN_TASK_PRIORITY = 0.3;
@@ -22,17 +23,16 @@ export interface LinkLayerStrategyConfig {
  * becomes a premise source by being registered with the `LinkManager` and
  * named here. `CompositeStrategy` combines several of them per task.
  */
-export class LinkLayerStrategy implements Strategy {
-  readonly name: string;
-  readonly metadata: ComponentMetadata;
+export class LinkLayerStrategy extends BaseStrategy implements Strategy {
+  readonly layer: string;
 
   constructor(
-    readonly layer: string,
+    layer: string,
     name?: string,
     private readonly config: LinkLayerStrategyConfig = {}
   ) {
-    this.name = name ?? `${layer}-link`;
-    this.metadata = { name: this.name, description: `Link-layer premise selection (${this.layer})` };
+    super(name ?? `${layer}-link`, `Link-layer premise selection (${layer})`);
+    this.layer = layer;
   }
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {

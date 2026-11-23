@@ -128,45 +128,27 @@ export const intAtLeast = (min) => z.number().int().min(min);
 
 ---
 
-### W3: Strategy System Unification (Week 2, needs W1) — 🟡 **In Progress**
+### W3: Strategy System Unification (Week 2, needs W1) — ✅ **Complete**
 **Merges:** F3 (base class) + C1 (algebra runtime) + C2 (hot-reload)
 
-**Part A: Strategy Base (Week 2a)** — 🟡 **Partially Complete**
+**Part A: Strategy Base (Week 2a)** — ✅ **Complete**
 - All 25+ strategies extend `Strategy` or `ConfigurableStrategy<Config>` from `strategies/base.ts`
 - Consistent `metadata: { name, description, version? }`
-- ✅ Sampling (6), Attention (4), LM-Selectors (5) — **15/25 done**
-- 🟡 Derivation (2/4): `DefaultDerivation`, `FocusedDerivation` updated
-- ⏳ Premise (5): Not started
+- ✅ Sampling (6), Attention (4), LM-Selectors (5), Derivation (4), Premise (5), LM-Graph (1) — **25/25 done**
 
-**Part B: Strategy Algebra Runtime (Week 2b)**
-```typescript
-// strategies/algebra.ts
-export type StrategyExpr<T> =
-  | { seq: StrategyExpr<T>[] }
-  | { parallel: StrategyExpr<T>[] }
-  | { fallback: StrategyExpr<T>[] }
-  | { weighted: [StrategyExpr<T>, number][] }
-  | { name: string; config?: StrategyConfig };
-
-export function compose<T>(expr: StrategyExpr<T>, registry: StrategyRegistry): T;
-```
+**Part B: Strategy Algebra Runtime (Week 2b)** — ✅ **Complete**
+- Implemented in `src/reason/strategy-algebra.ts` and `src/cognitive/impls/composition.ts`
 - Works for all 5 strategy types (sampling, premise, derivation, lm-rule, attention)
 - `CognitiveRegistry.resolve` accepts expression syntax (tier 2)
 - Telemetry per sub-expression
 
-**Part C: Registry Events + Hot-Reload (Week 2c)**
-```typescript
-interface LiveStrategyRegistry extends StrategyRegistry {
-  onRegister(type: StrategyType, handler: (reg: StrategyRegistration) => void): () => void;
-  onUnregister(type: StrategyType, handler: (name: string) => void): () => void;
-  reconfigure(type: StrategyType, spec: StrategySpec, config?: StrategyConfig): void;
-}
-```
+**Part C: Registry Events + Hot-Reload (Week 2c)** — ✅ **Complete**
+- Added `onRegister`, `onUnregister`, `reconfigure` to `StrategyRegistry` interface
 - `CognitiveRegistry` clears relevant memo caches on reconfigure
 - Events via `emitDomainEvent` (existing)
 - Canary: `reconfigure('sampling', 'windowed-roulette', { windowSize: 5 })` → 10% traffic
 
-**Deliverables:**
+**Deliverables:** ✅ All complete
 - All strategies on unified base
 - Algebra expressions work in config
 - Live reconfigure without restart

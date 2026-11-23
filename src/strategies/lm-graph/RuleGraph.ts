@@ -36,6 +36,7 @@ import type { ModelRule } from '../../rules/types';
 import { termKey } from '../../terms';
 import type { Term } from '../../terms/index';
 import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types';
+import { Strategy as BaseStrategy } from '../base';
 
 export interface RuleGraphOptions {
   maxNodes?: number;
@@ -46,13 +47,7 @@ export interface RuleGraphOptions {
   clock?: Clock;
 }
 
-export class RuleGraph implements ModelRuleSelector {
-  readonly metadata: ComponentMetadata = {
-    name: 'lm-graph',
-    description: 'ConceptGraph-based LM rule selector with RLFPLearner rewards',
-  };
-  readonly name = 'lm-graph';
-
+export class RuleGraph extends BaseStrategy implements ModelRuleSelector {
   /** Published so a `Memory` can adopt it as its `graph` associative memory. */
   readonly graph: ConceptGraph;
   private readonly fallbackWeight: number;
@@ -68,6 +63,7 @@ export class RuleGraph implements ModelRuleSelector {
   #rulePerformance: RulePerformance | undefined;
 
   constructor(options: RuleGraphOptions = {}) {
+    super('lm-graph', 'ConceptGraph-based LM rule selector with RLFPLearner rewards');
     this.graph = new ConceptGraph({
       maxNodes: options.maxNodes ?? 5000,
       maxEdgesPerNode: options.maxEdgesPerNode ?? 30,

@@ -28,6 +28,7 @@ import {
   type StrategyFactoryDeps,
   type StrategyRegistration,
   type StrategySpec,
+  type RegistrationHandler,
 } from '../../strategies/registration';
 import type { StrategyImpl, StrategyType } from '../../strategies/types';
 import type { StrategyRegistry } from '../../strategies/registration';
@@ -119,6 +120,17 @@ export class CognitiveRegistry implements StrategyRegistry {
   private readonly building = new Set<string>();
   /** Ambient randomness handed to every factory (TODO27 §16). */
   private readonly rng: RandomSource;
+  /** Event handlers for registration changes. */
+  private readonly registerHandlers: Record<StrategyType, Set<RegistrationHandler<StrategyRegistration>>> = keyedBy(
+    SLOT_TYPES,
+    (type) => type,
+    () => new Set()
+  );
+  private readonly unregisterHandlers: Record<StrategyType, Set<(name: string) => void>> = keyedBy(
+    SLOT_TYPES,
+    (type) => type,
+    () => new Set()
+  );
 
   constructor({ rng }: { rng?: RandomSource } = {}) {
     this.rng = rng ?? ambientRng;
@@ -144,6 +156,22 @@ export class CognitiveRegistry implements StrategyRegistry {
         : nameOrRegistration;
 
     this.stores[type].register(registration);
+    // Emit registration event
+    for (const handler of this.registerHandlers[type]) {
+      try { handler(registration); } catch { /* ignore handler errors */ }
+    }
+  }
+
+  /** Subscribe to registration events for a strategy type. */
+  onRegister(type: StrategyType, handler: RegistrationHandler<StrategyRegistration>): () => void {
+    this.registerHandlers[type].add(handler);
+    return () => this.registerHandlers[type].delete(handler);
+  }
+
+  /** Subscribe to unregistration events for a strategy type. */
+  onUnregister(type: StrategyType, handler: (name: string) => void): () => void {
+    this.unregisterHandlers[type].add(handler);
+    return () => this.unregisterHandlers[type].delete(handler);
   }
 
   /** What a factory gets: tier-0 resolution by name, and the ambient stream. */
@@ -187,7 +215,14 @@ export class CognitiveRegistry implements StrategyRegistry {
     // Tier 1 keys are digests that embed the name, so a re-registration must
     // drop every memoized instance of the slot, not one entry.
     this.configured[type].clear();
-    return this.stores[type].delete(name);
+    const deleted = this.stores[type].delete(name);
+    if (deleted) {
+      // Emit unregistration event
+      for (const handler of this.unregisterHandlers[type]) {
+        try { handler(name); } catch { /* ignore handler errors */ }
+      }
+    }
+    return deleted;
   }
 
   /** Total memoized (tier 1 + tier 2) instances held for a slot — bounded, not a leak. */
@@ -218,6 +253,20 @@ export class CognitiveRegistry implements StrategyRegistry {
   ): void {
     const errors = strategySpecErrors(slot, type, spec, config, this.list(type));
     if (errors.length) throw new ConfigurationError(errors.join('; '), { type, errors });
+  }
+
+  /** Live reconfigure: update a slot's spec/config and clear relevant memo caches. */
+  reconfigure(type: StrategyType, spec: StrategySpec, config?: StrategyConfig): void {
+    this.validate(type, spec, config);
+    // Clear memo caches for this type so new instances are built with updated config
+    this.configured[type].clear();
+    this.composed[type].clear();
+    // Emit reconfigure event
+    emitDomainEvent('strategy.reconfigure', 'strategy', {
+      type,
+      spec: typeof spec === 'string' ? spec : JSON.stringify(spec),
+      context: { hasConfig: config !== undefined },
+    });
   }
 
   #buildDefault(type: StrategyType, name: string): StrategyImpl {

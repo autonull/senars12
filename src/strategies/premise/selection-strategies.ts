@@ -14,6 +14,7 @@ import {
   EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
   TermLinkStrategy as RealTermLinkStrategy,
 } from './term-link';
+import { Strategy as BaseStrategy } from '../base';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -95,12 +96,10 @@ export const createPremiseStrategy = (
   return createStrategy({ ...primitives, name, ...overrides });
 };
 
-export class DecompositionStrategy implements Strategy {
-  readonly metadata: ComponentMetadata = {
-    name: 'decomposition',
-    description: 'Decompose conjunctions into component beliefs',
-  };
-  readonly name = 'decomposition';
+export class DecompositionStrategy extends BaseStrategy implements Strategy {
+  constructor() {
+    super('decomposition', 'Decompose conjunctions into component beliefs');
+  }
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {
     if (task.term.kind !== 'conjunction') return [];
@@ -136,19 +135,14 @@ function asComposable(strategy: Strategy): Composable<[Task, MemoryView], Task[]
   };
 }
 
-export class CompositeStrategy implements Strategy {
-  readonly metadata: ComponentMetadata = {
-    name: 'composite',
-    description: 'Combine multiple premise strategies',
-  };
-  readonly name = 'composite';
-
+export class CompositeStrategy extends BaseStrategy implements Strategy {
   private readonly composite: Composable<[Task, MemoryView], Task[]>;
 
   constructor(
     private strategies: Strategy[],
     private mode: CompositeMode = 'concatenate'
   ) {
+    super('composite', 'Combine multiple premise strategies');
     const composables = strategies.map(asComposable);
     this.composite =
       mode === 'dedup'

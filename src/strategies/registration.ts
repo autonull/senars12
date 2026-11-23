@@ -241,6 +241,9 @@ export interface StrategyCatalog {
   list(type: StrategyType): readonly StrategyRegistration[];
 }
 
+/** Callback for registration changes. */
+export type RegistrationHandler<T> = (registration: T) => void;
+
 /** The strategy system's front door, as consumers depend on it. */
 export interface StrategyRegistry {
   /** Register a name + config contract; the implementation is built on demand. */
@@ -255,4 +258,13 @@ export interface StrategyRegistry {
   has(type: StrategyType, name: string): boolean;
 
   unregister(type: StrategyType, name: string): boolean;
+
+  /** Subscribe to registration events for a strategy type. */
+  onRegister(type: StrategyType, handler: RegistrationHandler<StrategyRegistration>): () => void;
+
+  /** Subscribe to unregistration events for a strategy type. */
+  onUnregister(type: StrategyType, handler: (name: string) => void): () => void;
+
+  /** Live reconfigure: update a slot's spec/config and clear relevant memo caches. */
+  reconfigure(type: StrategyType, spec: StrategySpec, config?: StrategyConfig): void;
 }

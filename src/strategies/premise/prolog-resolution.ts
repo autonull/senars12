@@ -10,6 +10,7 @@ import { applySubstitution, getArgs, unify, type Substitution } from '../../term
 import type { Task, TaskType } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types';
+import { Strategy as BaseStrategy } from '../base';
 
 interface PrologConfig {
   maxDepth?: number;
@@ -107,17 +108,13 @@ function sldResolve(
   }
 }
 
-export class PrologResolutionStrategy implements Strategy {
-  readonly name = 'prolog-resolution';
-  readonly metadata: ComponentMetadata = {
-    name: 'prolog-resolution',
-    description:
-      'SLD resolution with unification, Horn clause backward chaining, occurs-check, depth-bounded search',
-  };
+export class PrologResolutionStrategy extends BaseStrategy implements Strategy {
   readonly sampleSize = 20;
   readonly limit = 5;
 
-  constructor(private readonly config: PrologConfig = {}) {}
+  constructor(private readonly config: PrologConfig = {}) {
+    super('prolog-resolution', 'SLD resolution with unification, Horn clause backward chaining, occurs-check, depth-bounded search');
+  }
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {
     const clauses = findHornClauses(memory);
