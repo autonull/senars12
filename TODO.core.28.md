@@ -3,7 +3,7 @@
 **Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete** (ENGINE_ORIGINS, TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation → schemas/task.ts; configDigest → config/digest.ts; systemOneOf → bin/commands/context.ts; cognitiveBounds → config/bound-table.ts; economy TASK_BAG_KINDS renamed to ECONOMY_TASK_BAG_KINDS), **W2: Truth Table Consolidation complete** (shared kernel/truth-constants.ts eliminates constant duplication between engine and verifier; verifier-drift and cross-witness tests pass), **W4: Interface/Class Collisions complete** (Gate→AccountingGate, GateResult→RiskVerdict, PolicyEngine→AdmissionPolicyEngine, ProjectionEngine→VerifierProjectionEngine, Codec namespaced to LogicCodec/NalCodec)
+**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete** (ENGINE_ORIGINS, TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation → schemas/task.ts; configDigest → config/digest.ts; systemOneOf → bin/commands/context.ts; cognitiveBounds → config/bound-table.ts; economy TASK_BAG_KINDS renamed to ECONOMY_TASK_BAG_KINDS), **W2: Truth Table Consolidation complete** (shared kernel/truth-constants.ts eliminates constant duplication between engine and verifier; verifier-drift and cross-witness tests pass), **W4: Interface/Class Collisions complete** (Gate→AccountingGate, GateResult→RiskVerdict, PolicyEngine→AdmissionPolicyEngine, ProjectionEngine→VerifierProjectionEngine, Codec namespaced to LogicCodec/NalCodec), **W5: Function Duplication partially complete** (truth algebra consolidated in kernel/truth-constants.ts; defaultEconomyState deduplicated), **W6: Bag/Type Redundancy complete** (deleted unused src/bag/types.ts)
 
 ---
 
@@ -207,27 +207,33 @@
 
 ---
 
-### W5: Function/Constant Duplication (Week 2–3)
+### W5: Function/Constant Duplication (Week 2–3) — **Partially Complete**
 
 **Problem:** 80+ duplicate exported functions/constants.
 
-**High-Priority:**
+**High-Priority — RESOLVED:**
+| Function | Locations | Resolution | Status |
+|----------|-----------|------------|--------|
+| `defaultEconomyState` | `economy/index.ts`, `economy/scheduler.ts` | Canonical in `scheduler.ts`, re-exported from `index.ts` | ✅ |
+| Truth algebra (`confidenceToWeight`, `weightToConfidence`, `weakenSquash`, `weakenConfidence`, `normalizeTruth`) | `kernel/types.ts`, `kernel/truth-constants.ts`, `util/truth-algebra.ts`, `rules/verifier-truth-table.ts` | Consolidated in `kernel/truth-constants.ts`; others re-export | ✅ |
+
+**Remaining (lower priority / not true duplicates):**
 | Function | Locations | Resolution |
 |----------|-----------|------------|
-| `AUTONOMY_MODES` | `autonomy/config.ts`, `generated/schemas.ts` | Canonical in generated |
-| `systemOneOf` | `context.ts`, `systemone/constants.ts` | Canonical in `context.ts` |
-| `cognitiveBounds` | `bound-table.ts`, `cognitive-bounds.ts` | Canonical in `bound-table.ts` |
-| `configDigest` | `digest.ts`, `strategies/registration.ts` | Canonical in `digest.ts` |
-| `defaultEconomyState` | `economy/index.ts`, `economy/scheduler.ts` | Canonical in `index.ts` |
+| `AUTONOMY_MODES` | `autonomy/config.ts`, `generated/schemas.ts` | Different enums (heartbeat vs governance) — rename one |
+| `systemOneOf` | `context.ts` only | Already consolidated |
+| `cognitiveBounds` | `bound-table.ts` only | Already consolidated |
+| `configDigest` | `digest.ts`, `strategies/registration.ts` | Correct pattern: canonical in `digest.ts`, re-exported |
 
 **Approach:** Keep definition in most logical module; re-export from barrels.
 
 ---
 
-### W6: Bag/Type Redundancy (Week 2)
+### W6: Bag/Type Redundancy (Week 2) ✅ **DONE**
 
-**Problem:** `src/bag/types.ts` and `src/util/bag.ts` both export identical types:
-- `BagItem`, `InternalEntry`, `CyclesBudget`, `Bag`, `BagOptions`, `EvictStrategy`, `Histogram`, `PressureListener`, `PressureLevel`, `PressureTransition`, `RandomSource`, `CyclesBudget`
+**Problem:** `src/bag/types.ts` and `src/util/bag.ts` both export identical types.
+
+**Resolution:** Deleted unused `src/bag/types.ts`; all imports use `@senars/bag` which re-exports from `src/util/bag.ts`.
 
 **Resolution:** `src/bag/types.ts` re-exports from `src/util/bag.ts` (or vice versa). Bag substrate is in util.
 
@@ -754,8 +760,8 @@ WEEK 2:
 ```
   ├─ W2: Truth Table Consolidation (needs W1) ✅ **DONE**
   ├─ W4: Interface/Class Collisions (needs W1 for type names) ✅ **DONE**
-  ├─ W5: Function Duplication (needs W1, W3)
-  └─ W6: Bag/Type Redundancy (needs W1)
+  ├─ W5: Function Duplication (needs W1, W3) — **Partially done** (truth algebra, defaultEconomyState)
+  └─ W6: Bag/Type Redundancy (needs W1) ✅ **DONE**
 
 WEEK 3:
   ├─ W7: genome.ts Split (needs W1)

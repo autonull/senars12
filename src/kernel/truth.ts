@@ -18,7 +18,7 @@ import {
   CONFIRM_GAIN,
   CONTRADICT_DECAY,
   OUTCOME_GAIN,
-  softSquash,
+  weakenSquash,
   confidenceToWeight,
   weightToConfidence,
 } from './truth-constants';
@@ -147,19 +147,19 @@ export const Truth: {
   /** Deduction (inheritance): (f1*f2, c1*c2). */
   deduction: (t1: Truth, t2: Truth): Truth => normalizeTruth(t1.f * t2.f, t1.c * t2.c),
 
-  /** Deduction with weakening: c -> softSquash(c). */
+  /** Deduction with weakening: c -> weakenSquash(c). */
   deductionWeak: (t1: Truth, t2: Truth): Truth | null => {
     const res = Truth.deduction(t1, t2);
-    return createTruth(res.f, softSquash(res.c, WEAKENING_FACTOR));
+    return createTruth(res.f, weakenSquash(res.c, WEAKENING_FACTOR));
   },
 
-  /** Induction: (f2, softSquash(f2*c1*c2)). */
+  /** Induction: (f2, weakenSquash(f2*c1*c2)). */
   induction: (t1: Truth, t2: Truth): Truth =>
-    normalizeTruth(t2.f, softSquash(t2.f * t1.c * t2.c)),
+    normalizeTruth(t2.f, weakenSquash(t2.f * t1.c * t2.c)),
 
-  /** Abduction: (f1, softSquash(f1*c1*c2)). */
+  /** Abduction: (f1, weakenSquash(f1*c1*c2)). */
   abduction: (t1: Truth, t2: Truth): Truth =>
-    normalizeTruth(t1.f, softSquash(t1.f * t1.c * t2.c)),
+    normalizeTruth(t1.f, weakenSquash(t1.f * t1.c * t2.c)),
 
   /** Detachment: (f2, f1*c1*c2). */
   detachment: (t1: Truth, t2: Truth): Truth =>
@@ -190,13 +190,13 @@ export const Truth: {
   choice: (t1: Truth, t2: Truth): Truth =>
     Truth.expectation(t1) > Truth.expectation(t2) ? t1 : t2,
 
-  /** Structural deduction: (f*f, softSquash(c)*c). */
+  /** Structural deduction: (f*f, weakenSquash(c)*c). */
   structuralDeduction: (t: Truth): Truth =>
-    normalizeTruth(t.f * t.f, softSquash(t.c) * t.c),
+    normalizeTruth(t.f * t.f, weakenSquash(t.c) * t.c),
 
-  /** Structural reduction: (f, softSquash(c)). */
+  /** Structural reduction: (f, weakenSquash(c)). */
   structuralReduction: (t: Truth): Truth =>
-    normalizeTruth(t.f, softSquash(t.c, WEAKENING_FACTOR)),
+    normalizeTruth(t.f, weakenSquash(t.c, WEAKENING_FACTOR)),
 
   /** Confidence decay. */
   damp: (t: Truth, factor: number): Truth =>

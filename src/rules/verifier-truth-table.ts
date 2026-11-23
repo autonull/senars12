@@ -23,7 +23,7 @@ import {
   CONFIRM_GAIN,
   CONTRADICT_DECAY,
   OUTCOME_GAIN,
-  softSquash,
+  weakenSquash,
   confidenceToWeight,
   weightToConfidence,
   normalizeTruth,
@@ -76,7 +76,7 @@ export const BINARY_TRUTH: Readonly<Record<string, (f1: number, f2: number, c1: 
     return [n.f, n.c];
   },
   exemplification: (f1, f2, c1, c2) => {
-    const [f, c] = [f1 * f2, softSquash(c1) * c1 * c2 * f1 * f2];
+    const [f, c] = [f1 * f2, weakenSquash(c1) * c1 * c2 * f1 * f2];
     const n = normalizeTruth(f, c);
     return [n.f, n.c];
   },
@@ -91,12 +91,12 @@ export const BINARY_TRUTH: Readonly<Record<string, (f1: number, f2: number, c1: 
     return [n.f, n.c];
   },
   induction: (f1, f2, c1, c2) => {
-    const [f, c] = [f2, softSquash(f2 * c1 * c2)];
+    const [f, c] = [f2, weakenSquash(f2 * c1 * c2)];
     const n = normalizeTruth(f, c);
     return [n.f, n.c];
   },
   abduction: (f1, f2, c1, c2) => {
-    const [f, c] = [f1, softSquash(f1 * c1 * c2)];
+    const [f, c] = [f1, weakenSquash(f1 * c1 * c2)];
     const n = normalizeTruth(f, c);
     return [n.f, n.c];
   },
@@ -142,12 +142,12 @@ export const UNARY_TRUTH: Readonly<Record<string, (f: number, c: number) => [num
     return [n.f, n.c];
   },
   structuralDeduction: (f, c) => {
-    const [nf, nc] = [f * f, softSquash(c) * c];
+    const [nf, nc] = [f * f, weakenSquash(c) * c];
     const n = normalizeTruth(nf, nc);
     return [n.f, n.c];
   },
   structuralReduction: (f, c) => {
-    const [nf, nc] = [f, softSquash(c, WEAKENING_FACTOR)];
+    const [nf, nc] = [f, weakenSquash(c, WEAKENING_FACTOR)];
     const n = normalizeTruth(nf, nc);
     return [n.f, n.c];
   },
