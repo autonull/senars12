@@ -3,7 +3,7 @@
 **Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-23 — 47 redundant util barrels removed, systemone.ts (676→19 files), dialogue.ts (316→11 files), config/nar.ts consolidated, **W10: util/collections.ts split (899→7 modules + barrel) complete**
+**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), W10: util/collections.ts split complete
 
 ---
 
@@ -30,7 +30,7 @@
 
 | ID | Workstream | Merges | Impact | Effort | Dependencies |
 |----|------------|--------|--------|--------|--------------|
-| **W1** | **Generated ↔ Manual Schema Unification** | 152 common exports | ★★★★★ | L | — |
+| **W1** | **Generated ↔ Manual Schema Unification** | 152 common exports | ★★★★★ | L | — | ✅ **DONE** |
 | **W2** | **Truth Table Consolidation** | verifier-truth-table ↔ verify-derivation | ★★★★★ | M | W1 |
 | **W3** | **Constant Canonicalization** | 30+ duplicated constants | ★★★★☆ | S | W1 |
 
@@ -115,10 +115,10 @@
 4. **Migration:** Update all imports to `@senars/schemas` (already the barrel); remove direct `@senars/generated` imports
 
 **Deliverables:**
-- [ ] genome.ts defines ALL enums/constants/schemas once
-- [ ] src/schemas/*.ts re-export from @senars/generated
-- [ ] All 152 duplicate exports resolved
-- [ ] Zero behavior change verified by tests
+- [x] genome.ts defines ALL enums/constants/schemas once
+- [x] src/schemas/*.ts re-export from @senars/generated
+- [x] All 152 duplicate exports resolved
+- [x] Zero behavior change verified by tests (schema:drift passes, 3761 tests pass)
 
 **Risk Mitigation:**
 - Run `schema:drift` after each sub-step

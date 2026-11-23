@@ -1,73 +1,14 @@
 /**
- * Derivation record schemas — standalone verifier input: a minimal,
- * dependency-free derivation proof. Used by the standalone Derivation Verifier.
+ * Derivation record schemas — rule application audit trail.
+ * Re-exported from generated genome for backward compatibility.
  */
-
-import { nonNegativeInt, timestamp, uuid, validatorFor } from '../config';
-import { z } from 'zod';
-import { IndependenceSchema } from './common';
-import { TruthValueSchema } from './truth';
-
-export const RULE_CATEGORIES = [
-  'core',
-  'logic',
-  'propositional',
-  'higher-order',
-  'comparison',
-  'classical',
-  'structural',
-  'temporal',
-  'procedural',
-  'meta-cognitive',
-  'variable',
-] as const;
-
-export const RuleCategorySchema = z.enum(RULE_CATEGORIES);
-
-export type RuleCategory = (typeof RULE_CATEGORIES)[number];
-
-export const DerivationStepSchema = z.object({
-  stepId: uuid,
-  ruleId: z.string(),
-  ruleCategory: RuleCategorySchema,
-  premises: z.array(z.string()), // Term strings
-  conclusion: z.string(), // Term string
-  truth: TruthValueSchema,
-  /**
-   * The truth function the producing rule *declared*, as its name in the NAL
-   * algebra. Optional because records written before the name was carried do
-   * not have one; when present it is authoritative and needs no rule-id guess.
-   */
-  truthFn: z.string().optional(),
-  substitution: z.record(z.string(), z.string()).optional(), // Variable bindings
-  premiseTruths: z.array(TruthValueSchema).optional(), // Truth of each premise, in order — enables standalone truth-algebra verification
-  evidenceLineage: z.array(uuid), // Parent derivation IDs
-  independence: IndependenceSchema,
-  /** The kernel cycle the rule fired in — CORE.19 M0.3/C3.1 joins a fire to its cycle. */
-  cycle: nonNegativeInt.optional(),
-  /**
-   * The run/stimulus correlation the fire belongs to (CORE.19 C3.1). Stamped from
-   * the kernel run's correlation id, so a fire record and its durable
-   * `derivation.accepted` event join the same way the cycle's other events do.
-   */
-  correlationId: z.string().optional(),
-  /** When the fire was recorded. Absent on records written before it was carried. */
-  timestamp: timestamp.optional(),
-});
-
-export const DerivationRecordSchema = z.object({
-  derivationId: uuid,
-  taskId: uuid,
-  goalTerm: z.string(),
-  steps: z.array(DerivationStepSchema),
-  finalTruth: TruthValueSchema,
-  totalCycles: nonNegativeInt,
-  maxDepthReached: nonNegativeInt,
-  timestamp: timestamp,
-  engine: z.literal('nar'),
-});
-
-export type DerivationRecord = z.infer<typeof DerivationRecordSchema>;
-export type DerivationStep = z.infer<typeof DerivationStepSchema>;
-
-export const validateDerivationRecord = validatorFor(DerivationRecordSchema, 'DerivationRecord');
+export {
+  RuleCategorySchema,
+  type RuleCategory,
+  RULE_CATEGORIES,
+  DerivationStepSchema,
+  type DerivationStep,
+  DerivationRecordSchema,
+  type DerivationRecord,
+  validateDerivationRecord,
+} from '@senars/generated';

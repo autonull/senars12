@@ -363,6 +363,13 @@ export const EGRESS_GATES = [
 ] as const;
 export type EGRESS_GATE = (typeof EGRESS_GATES)[number];
 
+export const INDEPENDENCE = [
+  "independent",
+  "dependent",
+  "unknown"
+] as const;
+export type INDEPENDENCE = (typeof INDEPENDENCE)[number];
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -481,17 +488,22 @@ export type Budget = z.infer<typeof BudgetSchema>;
 
 /** One turn of conversation history. Re-exported from @senars/util. */
 export interface HistoryEntry {
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'agent' | 'system';
   content: string;
   timestamp: number;
 }
 export const HistoryEntrySchema = z.object({
-  role: z.enum(['user', 'assistant', 'system']),
+  role: z.enum(['user', 'agent', 'system']),
   content: z.string(),
   timestamp: z.number().int().nonnegative(),
 });
 
+export const IndependenceSchema = z.enum(INDEPENDENCE);
+export type Independence = z.infer<typeof IndependenceSchema>;
+
 export const ambiguitySeverityOf = (type: AMBIGUITY_TYPE): typeof AMBIGUITY_SEVERITIES[number] => AMBIGUITY_SEVERITY[type] as typeof AMBIGUITY_SEVERITIES[number];
+
+export type AmbiguityType = AMBIGUITY_TYPE;
 
 export const AmbiguityReportSchema = z.object({
   type: z.enum(AMBIGUITY_TYPES),
@@ -538,6 +550,9 @@ export const FormalizationBatchSchema = z.object({
   globalAmbiguities: z.array(AmbiguityFlagSchema).optional(),
 });
 export type FormalizationBatch = z.infer<typeof FormalizationBatchSchema>;
+
+export const DetectedIntentSchema = z.enum(DETECTED_INTENTS);
+export type DetectedIntent = z.infer<typeof DetectedIntentSchema>;
 
 // ============================================================================
 // ORACLE SCHEMAS — per-operation query/result/cert schemas
@@ -884,6 +899,9 @@ export type Stamp = z.infer<typeof StampSchema>;
 export const BudgetScopeIdSchema = z.enum(BUDGET_SCOPE_IDS);
 export type BudgetScopeId = z.infer<typeof BudgetScopeIdSchema>;
 
+export const BudgetTypeSchema = z.enum(BUDGET_TYPES);
+export type BudgetType = z.infer<typeof BudgetTypeSchema>;
+
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),
   source: z.enum(STIMULUS_SOURCES).optional(),
@@ -940,6 +958,9 @@ export type AutonomyMode = z.infer<typeof AutonomyModeSchema>;
 
 export const AutonomyAuthoritySchema = z.enum(AUTONOMITY_AUTHORITIES);
 export type AutonomyAuthority = z.infer<typeof AutonomyAuthoritySchema>;
+
+export const RiskLevelSchema = z.enum(RISK_LEVELS);
+export type RiskLevel = z.infer<typeof RiskLevelSchema>;
 
 export const GameDomainSchema = z.enum(GAME_DOMAINS);
 export type GameDomain = z.infer<typeof GameDomainSchema>;
@@ -1092,6 +1113,12 @@ export const TaskPunctuationSchema = z.enum(TASK_PUNCTUATIONS);
 export type TaskPunctuation = z.infer<typeof TaskPunctuationSchema>;
 export const TolerantPunctuationSchema = z.enum(TOLERANT_PUNCTUATIONS);
 export type TolerantPunctuation = z.infer<typeof TolerantPunctuationSchema>;
+
+export const KernelControlStateSchema = z.enum(KERNEL_CONTROL_STATES);
+export type KernelControlState = z.infer<typeof KernelControlStateSchema>;
+
+export const CapabilityRiskSchema = z.enum(CAPABILITY_RISKS);
+export type CapabilityRisk = z.infer<typeof CapabilityRiskSchema>;
 
 const TASK_TYPE_BY_PUNCTUATION = new Map<string, TaskType>(Object.entries(TASK_PUNCTUATION).map(([type, mark]) => [mark, type as TaskType]));
 export const taskTypeForPunctuation = (punctuation: string): TaskType | null => TASK_TYPE_BY_PUNCTUATION.get(punctuation) ?? null;
@@ -1430,6 +1457,7 @@ export const KernelReadyEventSchema = NarBase.extend({
   type: z.literal('kernel.ready'),
   payload: z.object({ backendIds: z.array(z.string()) }),
 });
+export type KernelReadyEvent = z.infer<typeof KernelReadyEventSchema>;
 
 export const BackendRegisteredEventSchema = NarBase.extend({
   type: z.literal('backend.registered'),
@@ -1669,6 +1697,27 @@ export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;
 export type SnapshotCreatedEvent = z.infer<typeof SnapshotCreatedEventSchema>;
 export type SnapshotRestoredEvent = z.infer<typeof SnapshotRestoredEventSchema>;
 
+export type InputUserEvent = z.infer<typeof InputUserEventSchema>;
+export type DerivationMadeEvent = z.infer<typeof DerivationMadeEventSchema>;
+export type AtomDerivedEvent = z.infer<typeof AtomDerivedEventSchema>;
+export type AtomRetractedEvent = z.infer<typeof AtomRetractedEventSchema>;
+export type BeliefAddedEvent = z.infer<typeof BeliefAddedEventSchema>;
+export type BeliefRetractedEvent = z.infer<typeof BeliefRetractedEventSchema>;
+export type GoalAchievedEvent = z.infer<typeof GoalAchievedEventSchema>;
+export type GoalFailedEvent = z.infer<typeof GoalFailedEventSchema>;
+export type SkillExecutedEvent = z.infer<typeof SkillExecutedEventSchema>;
+export type ToolRequestEvent = z.infer<typeof ToolRequestEventSchema>;
+export type ToolResponseEvent = z.infer<typeof ToolResponseEventSchema>;
+export type ConflictDetectedEvent = z.infer<typeof ConflictDetectedEventSchema>;
+export type ConfigDeleteEvent = z.infer<typeof ConfigDeleteEventSchema>;
+export type ConfigSchemaEvent = z.infer<typeof ConfigSchemaEventSchema>;
+export type ConfigSetEvent = z.infer<typeof ConfigSetEventSchema>;
+export type BootstrapEvent = z.infer<typeof BootstrapEventSchema>;
+export type CycleEvent = z.infer<typeof CycleEventSchema>;
+export type HealthEvent = z.infer<typeof HealthEventSchema>;
+export type DriveChangedEvent = z.infer<typeof DriveChangedEventSchema>;
+export type BackendRegisteredEvent = z.infer<typeof BackendRegisteredEventSchema>;
+
 export type CognitiveEventOf<T extends CognitiveEvent['type']> = Extract<CognitiveEvent, { type: T }>;
 
 export const validateCognitiveEvent = (data: unknown) => CognitiveEventSchema.parse(data);
@@ -1678,6 +1727,33 @@ export const validateFormalizationBatch = (data: unknown) => FormalizationBatchS
 export const validateDerivationRecord = (data: unknown) => DerivationRecordSchema.parse(data);
 export const validateReasoningBudget = (data: unknown) => ReasoningBudgetSchema.parse(data);
 export const validateRuleTable = (data: unknown) => RuleTableSchema.parse(data);
+
+const durableEventTypes = [
+  "task.admitted","derivation.accepted","derivation.record","belief.added",
+  "belief.retracted","belief.revised","atom.derived","atom.retracted",
+  "goal.achieved","goal.failed","skill.executed","tool.response",
+  "conflict:detected","budget.exhausted","policy.violation","autonomy.mode.changed",
+  "egress.gate.rejected","shadow.validation.dropped","proposal.admitted",
+  "proposal.rejected","self-mod.proposal","bootstrap"
+] as const;
+export const DURABLE_EVENT_TYPES = new Set(durableEventTypes);
+
+const recalledEventTypesArr = [
+  "input.user","belief.added","belief.retracted","belief.revised",
+  "task.admitted","derivation.accepted","tool.request","tool.response",
+  "skill.executed","goal.achieved","goal.failed","conflict:detected",
+  "policy.violation","budget.exhausted","autonomy.mode.changed"
+] as const;
+export const RECALLED_EVENT_TYPES = new Set(recalledEventTypesArr);
+
+export const isDurableEvent = (event: { type: string }): boolean => DURABLE_EVENT_TYPES.has(event.type as typeof durableEventTypes[number]);
+
+export const recalledEventTypes = (): string[] => [...RECALLED_EVENT_TYPES];
+
+const nonExecutingModes = new Set(["observe-only", "propose-only"] as const);
+export const permitsExecution = (mode: AutonomyMode): boolean => !nonExecutingModes.has(mode as "observe-only" | "propose-only");
+
+export const riskLevelOf = (risk: "low" | "medium" | "high"): "LOW" | "MEDIUM" | "HIGH" => ({"low":"LOW","medium":"MEDIUM","high":"HIGH"} as const)[risk];
 
 export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> => e.engine === 'nar';
 

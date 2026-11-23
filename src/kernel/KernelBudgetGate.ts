@@ -39,6 +39,7 @@ import { validateReasoningBudget } from '../schemas/reasoning-budget';
 import { keyedBy, mapValues } from '../util/collections';
 import { BUDGET_SCOPES, withBudgetId } from './budget-scopes';
 import { KernelGate, projectOutcome } from './gate-base';
+import { BUDGET_TYPES_MAP } from '@senars/schemas';
 
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;
@@ -204,7 +205,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
         engine: 'kernel',
         correlationId: correlation(),
         payload: {
-          budgetType: BUDGET_TYPES[resource],
+          budgetType: BUDGET_TYPES_MAP[resource],
           remaining: budgetRemaining(budget, resource),
           limit: budgetLimit(budget, resource),
           terminationReason,

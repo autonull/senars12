@@ -1,211 +1,53 @@
 /**
- * The `engine: 'nar'` family — every event the NAR's own event bridge mints.
- *
- * These are the variants `util/src/types/cognitive.ts` used to declare by hand,
- * with no runtime validator behind them, which is why the union that *did* have
- * one rejected all of them. One union, one validator: these schemas sit in the
- * discriminated union in `cognitive-events.ts` alongside the kernel's.
+ * NAR-specific event schemas — engine-originated events.
+ * Re-exported from generated genome for backward compatibility.
  */
-
-import { HEALTH_STATUSES } from '../util/health-status';
-import { z } from 'zod';
-import { CognitiveEventBaseSchema } from './event-base';
-import { TruthValueSchema } from './truth';
-
-/** Nar events are the `engine: 'nar'` discriminant `isNarEvent` narrows on. */
-const NarBase = CognitiveEventBaseSchema.extend({ engine: z.literal('nar') });
-
-export const InputUserEventSchema = NarBase.extend({
-  type: z.literal('input.user'),
-  payload: z.object({ text: z.string(), source: z.string() }),
-});
-
-export const DerivationMadeEventSchema = NarBase.extend({
-  type: z.literal('derivation.made'),
-  payload: z.object({
-    rule: z.string(),
-    premises: z.array(z.string()),
-    conclusion: z.string(),
-    cpuMs: z.number().optional(),
-    lmCalls: z.number().optional(),
-    lmTokens: z.number().optional(),
-  }),
-});
-
-export const AtomDerivedEventSchema = NarBase.extend({
-  type: z.literal('atom.derived'),
-  payload: z.object({ atom: z.string(), space: z.string() }),
-});
-
-export const AtomRetractedEventSchema = NarBase.extend({
-  type: z.literal('atom.retracted'),
-  payload: z.object({ atom: z.string(), space: z.string() }),
-});
-
-export const BeliefAddedEventSchema = NarBase.extend({
-  type: z.literal('belief.added'),
-  payload: z.object({ term: z.string(), truth: TruthValueSchema }),
-});
-
-export const BeliefRetractedEventSchema = NarBase.extend({
-  type: z.literal('belief.retracted'),
-  payload: z.object({ term: z.string() }),
-});
-
-export const DriveChangedEventSchema = NarBase.extend({
-  type: z.literal('drive.changed'),
-  payload: z.object({ drive: z.string(), urgency: z.number() }),
-});
-
-export const GoalAchievedEventSchema = NarBase.extend({
-  type: z.literal('goal.achieved'),
-  payload: z.object({ goal: z.string() }),
-});
-
-export const GoalFailedEventSchema = NarBase.extend({
-  type: z.literal('goal.failed'),
-  payload: z.object({ goal: z.string(), reason: z.string() }),
-});
-
-export const SkillExecutedEventSchema = NarBase.extend({
-  type: z.literal('skill.executed'),
-  payload: z.object({
-    skill: z.string(),
-    args: z.array(z.string()),
-    result: z.string(),
-    durationMs: z.number(),
-  }),
-});
-
-export const ToolRequestEventSchema = NarBase.extend({
-  type: z.literal('tool.request'),
-  payload: z.object({
-    toolName: z.string(),
-    args: z.record(z.string(), z.unknown()),
-    timeoutMs: z.number().optional(),
-  }),
-});
-
-export const ToolResponseEventSchema = NarBase.extend({
-  type: z.literal('tool.response'),
-  payload: z.object({
-    requestId: z.string(),
-    toolName: z.string(),
-    result: z.unknown().optional(),
-    error: z.string().optional(),
-    durationMs: z.number(),
-  }),
-});
-
-const ConfigBase = {
-  payload: z.object({ path: z.string() }),
-};
-
-export const ConfigSetEventSchema = NarBase.extend({
-  type: z.literal('config.set'),
-  payload: z.object({ path: z.string(), value: z.unknown() }),
-});
-
-export const ConfigDeleteEventSchema = NarBase.extend({
-  type: z.literal('config.delete'),
-  ...ConfigBase,
-});
-
-export const ConfigSchemaEventSchema = NarBase.extend({
-  type: z.literal('config.schema'),
-  payload: z.object({ schema: z.unknown() }),
-});
-
-export const KernelReadyEventSchema = NarBase.extend({
-  type: z.literal('kernel.ready'),
-  payload: z.object({ backendIds: z.array(z.string()) }),
-});
-
-export const BackendRegisteredEventSchema = NarBase.extend({
-  type: z.literal('backend.registered'),
-  payload: z.object({ manifest: z.unknown() }),
-});
-
-export const BootstrapEventSchema = NarBase.extend({
-  type: z.literal('bootstrap'),
-  payload: z.object({
-    beliefs: z.array(z.string()).optional(),
-    atoms: z.array(z.object({ atom: z.string(), space: z.string().optional() })).optional(),
-    skills: z.array(z.object({ name: z.string(), code: z.string() })).optional(),
-    /**
-     * What a restart resumed from the persistence boundary (CORE.19 C4.6). A
-     * restore is a bootstrap of persisted state, so it rides the existing
-     * `bootstrap` type rather than minting a new cognitive variant the UI
-     * catalog would have to name.
-     */
-    restored: z
-      .object({
-        cycleCount: z.number(),
-        concepts: z.number(),
-        pendingTasks: z.number(),
-      })
-      .optional(),
-  }),
-});
-
-/** The kernel control state machine a cycle is observed in (CORE.19 C2). */
-export const KERNEL_CONTROL_STATES = ['running', 'paused', 'stepping'] as const;
-export type KernelControlState = (typeof KERNEL_CONTROL_STATES)[number];
-
-export const CycleEventSchema = NarBase.extend({
-  type: z.literal('cycle'),
-  cycle: z.number(),
-  derived: z.number(),
-  payload: z.object({
-    cycle: z.number(),
-    derived: z.number(),
-    /** The control-plane state at the moment the cycle closed. */
-    state: z.enum(KERNEL_CONTROL_STATES),
-    /** The stage the kernel is in after the cycle — `idle` between cycles. */
-    phase: z.string(),
-    /** Pending tasks across the manager, read without draining the queue. */
-    activeTasks: z.number(),
-    /** Control-budget spend by scopeId — the observable heartbeat of the bounds. */
-    budget: z.record(z.string(), z.number()),
-  }),
-});
-
-export const HealthEventSchema = NarBase.extend({
-  type: z.literal('health'),
-  payload: z.object({
-    status: z.enum(HEALTH_STATUSES),
-    cycleCount: z.number(),
-    errorRate: z.number(),
-    /** Per-engine fault counts behind `errorRate`, as `Agent.health()` reports them. */
-    byEngine: z.record(z.string(), z.number()).optional(),
-  }),
-});
-
-export const ConflictDetectedEventSchema = NarBase.extend({
-  type: z.literal('conflict:detected'),
-  payload: z.object({ term: z.string(), conflictWith: z.string() }),
-});
-
-export const NarEventSchemas = [
+export {
   InputUserEventSchema,
   DerivationMadeEventSchema,
   AtomDerivedEventSchema,
   AtomRetractedEventSchema,
   BeliefAddedEventSchema,
   BeliefRetractedEventSchema,
-  DriveChangedEventSchema,
   GoalAchievedEventSchema,
   GoalFailedEventSchema,
   SkillExecutedEventSchema,
   ToolRequestEventSchema,
   ToolResponseEventSchema,
-  ConfigSetEventSchema,
+  ConflictDetectedEventSchema,
   ConfigDeleteEventSchema,
   ConfigSchemaEventSchema,
-  KernelReadyEventSchema,
-  BackendRegisteredEventSchema,
+  ConfigSetEventSchema,
   BootstrapEventSchema,
-  CycleEventSchema,
+  KernelReadyEventSchema,
   HealthEventSchema,
-  ConflictDetectedEventSchema,
-] as const;
+  DriveChangedEventSchema,
+  BackendRegisteredEventSchema,
+  NarEventSchemas,
+  KERNEL_CONTROL_STATES,
+  KernelControlStateSchema,
+} from '@senars/generated';
+
+export type {
+  InputUserEvent,
+  DerivationMadeEvent,
+  AtomDerivedEvent,
+  AtomRetractedEvent,
+  BeliefAddedEvent,
+  BeliefRetractedEvent,
+  GoalAchievedEvent,
+  GoalFailedEvent,
+  SkillExecutedEvent,
+  ToolRequestEvent,
+  ToolResponseEvent,
+  ConflictDetectedEvent,
+  ConfigDeleteEvent,
+  ConfigSchemaEvent,
+  ConfigSetEvent,
+  BootstrapEvent,
+  KernelReadyEvent,
+  HealthEvent,
+  DriveChangedEvent,
+  BackendRegisteredEvent,
+  KernelControlState,
+} from '@senars/generated';

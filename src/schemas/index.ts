@@ -1,227 +1,29 @@
 /**
- * Operational invariants boundary — the zod schemas that define the trusted
- * kernel's validation layer at untrusted boundaries.
+ * Unified schema barrel — re-exports all contracts from the generated genome.
  *
- * One vocabulary per module, layered so that a module only depends on the ones
- * below it: `task` (the kind of claim and its sentence mark) and `truth` (the
- * epistemic pair and the source-quality ceiling) → `reasoning-budget` →
- * `governance` → `cognitive-events` → `gate-io`, with `derivation-records` and
- * `formalization` hanging off `truth` alone. A caller
- * that needs one contract imports that module rather than this barrel, and a
- * module that grows a field cannot silently widen a sibling's.
+ * This is the single public surface for all kernel contracts. The actual
+ * definitions live in the genome (`src/formats/genome.ts`) and are emitted to
+ * `src/generated/schemas.ts`. This barrel preserves the original sub-module
+ * paths for backward compatibility.
  */
-/** Truth schemas — imported first to break circular dependency with cognitive-events → proposal → truth. */
-export type { CeilingLimits, CeilingReputation, SourceQuality, TruthValue } from './truth';
-export {
-  confidenceCeiling,
-  SOURCE_QUALITY_CONFIDENCE,
-  SourceQualitySchema,
-  TruthValueSchema,
-} from './truth';
-/** Budget types — shared to avoid circular dependency. */
-export type {
-  BudgetScopeId,
-  BudgetType,
-  TerminationReason,
-} from './budget-types';
-export {
-  BUDGET_SCOPE_IDS,
-  BUDGET_TYPES,
-  BudgetTypeSchema,
-  TerminationReasonSchema,
-} from './budget-types';
-/** Reasoning budget — uses budget-types. */
-export type {
-  ConsumedBudget,
-  ReasoningBudget,
-} from './reasoning-budget';
-export {
-  ConsumedBudgetSchema,
-  ReasoningBudgetSchema,
-  validateReasoningBudget,
-  zeroConsumed,
-} from './reasoning-budget';
-export type {
-  AutonomyModeChangedEvent,
-  BeliefRevisedEvent,
-  BudgetExhaustedEvent,
-  CognitiveEvent,
-  CognitiveEventOf,
-  ConceptActivatedEvent,
-  DerivationAcceptedEvent,
-  EgressGateRejectedEvent,
-  JudgmentResolvedEvent,
-  PolicyViolationEvent,
-  SelfModProposalEvent,
-  ShadowValidationDropEvent,
-  StimulusSource,
-  TaskAdmittedEvent,
-} from './cognitive-events';
-export {
-  AutonomyModeChangedEventSchema,
-  BeliefRevisedEventSchema,
-  BudgetExhaustedEventSchema,
-  CognitiveEventSchema,
-  ConceptActivatedEventSchema,
-  DerivationAcceptedEventSchema,
-  EgressGateRejectedEventSchema,
-  isEventType,
-  isNarEvent,
-  JudgmentResolvedEventSchema,
-  mintCognitiveEvent,
-  PolicyViolationEventSchema,
-  SelfModProposalEventSchema,
-  ShadowValidationDropEventSchema,
-  STIMULUS_SOURCES,
-  StimulusSourceSchema,
-  TaskAdmittedEventSchema,
-  validateCognitiveEvent,
-} from './cognitive-events';
-export type {
-  Budget,
-  HistoryEntry,
-  Independence,
-  RulePattern,
-  RulePatternSide,
-} from './common';
-export {
-  BudgetSchema,
-  HistoryEntrySchema,
-  INDEPENDENCE,
-  IndependenceSchema,
-  RulePatternSchema,
-  RulePatternSideSchema,
-} from './common';
-export type { DerivationRecord, DerivationStep, RuleCategory } from './derivation-records';
-export {
-  DerivationRecordSchema,
-  DerivationStepSchema,
-  RULE_CATEGORIES,
-  RuleCategorySchema,
-  validateDerivationRecord,
-} from './derivation-records';
-export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base';
-export type {
-  AmbiguityFlag,
-  AmbiguityReport,
-  AmbiguitySeverity,
-  AmbiguityType,
-  DetectedIntent,
-  FormalizationBatch,
-  FormalizationCandidate,
-  SourceSpan,
-} from './formalization';
-export {
-  AMBIGUITY_SEVERITIES,
-  AMBIGUITY_SEVERITY,
-  AMBIGUITY_TYPES,
-  AmbiguityFlagSchema,
-  AmbiguityReportSchema,
-  ambiguitySeverityOf,
-  DETECTED_INTENTS,
-  DetectedIntentSchema,
-  FormalizationBatchSchema,
-  FormalizationCandidateSchema,
-  SourceSpanSchema,
-  validateFormalizationBatch,
-  validateFormalizationCandidate,
-} from './formalization';
-/**
- * Gate I/O types and schemas are deliberately NOT re-exported from this barrel
- * to avoid a circular dependency with reasoning-budget. Import directly from
- * @senars/schemas/gate-io.js instead.
- */
-export type {
-  AutonomyAuthority,
-  AutonomyMode,
-  GameDomain,
-  GovernanceDecision,
-  GovernanceEvent,
-  PatchProposal,
-  RewardDomain,
-  RiskAssessment,
-  RiskLevel,
-  SelfImprovementProposal,
-} from './governance';
-export {
-  AUTONOMITY_AUTHORITIES,
-  AutonomyAuthoritySchema,
-  AutonomyModeSchema,
-  GameDomainSchema,
-  GovernanceDecisionSchema,
-  GovernanceEventSchema,
-  PatchProposalSchema,
-  PROPOSAL_RISK,
-  permitsExecution,
-  proposalRisk,
-  RewardDomainSchema,
-  RISK_LEVELS,
-  RiskAssessmentSchema,
-  RiskLevelSchema,
-  riskLevelOf,
-  SelfImprovementProposalSchema,
-} from './governance';
-export { NarEventSchemas } from './nar-events';
-export type { KernelControlState } from './nar-events';
-export { KERNEL_CONTROL_STATES } from './nar-events';
-export type {
-  ContentProposal,
-  Proposal,
-  ProposalAdmittedEvent,
-  ProposalRejectedEvent,
-  ProposalRejection,
-  RuleProposal,
-} from './proposal';
-export {
-  ContentProposalSchema,
-  PROPOSAL_KINDS,
-  PROPOSAL_REJECTIONS,
-  PROPOSAL_SCHEMA_VERSION,
-  ProposalSchema,
-  RuleProposalSchema,
-  validateProposal,
-} from './proposal';
-export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events';
-export type {
-  RuleArtifactEntry,
-  RuleDeclaration,
-  RuleProvenance,
-  RuleTable,
-  RuleTableDiff,
-  RuleTableFault,
-  RuleTableRejection,
-} from './rule-table';
-export {
-  BUILTIN_RULE_ARTIFACT_VERSION,
-  RULE_TABLE_REJECTIONS,
-  RULE_TABLE_SCHEMA_VERSION,
-  RuleArtifactEntrySchema,
-  RuleDeclarationSchema,
-  RuleProvenanceSchema,
-  RuleTableSchema,
-  validateRuleTable,
-} from './rule-table';
-export type { TaskBagKind, TaskPunctuation, TaskType } from './task';
-export {
-  TASK_BAG_KINDS,
-  TASK_PUNCTUATION,
-  TASK_PUNCTUATIONS,
-  TASK_TYPES,
-  TaskBagKindSchema,
-  TaskPunctuationSchema,
-  TaskTypeSchema,
-  TOLERANT_PUNCTUATIONS,
-  taskTypeForPunctuation,
-} from './task';
 
-/**
- * Which cognitive events the append-only log keeps, and which of those episodic
- * recall reads (CORE.19 C1.2).
- * Re-exported from recalled-events.ts to avoid circular dependency with the schemas barrel.
- */
-export {
-  DURABLE_EVENT_TYPES,
-  RECALLED_EVENT_TYPES,
-  isDurableEvent,
-  recalledEventTypes,
-} from './recalled-events';
+// Re-export everything from generated schemas
+export * from '@senars/generated';
+
+// Sub-module re-exports for backward compatibility
+export * from './cognitive-events';
+export * from './common';
+export * from './derivation-records';
+export * from './event-base';
+export * from './formalization';
+export * from './gate-io';
+export * from './governance';
+export * from './nar-events';
+export * from './proposal';
+export * from './proposal-events';
+export * from './reasoning-budget';
+export * from './recalled-events';
+export * from './rule-table';
+export * from './task';
+export * from './truth';
+export * from './budget-types';

@@ -176,6 +176,7 @@ const Defs = {
     SHADOW_SOURCES: ['llm', 'bridge-llm'] as const,
     STAMP_TYPES: ['standard', 'provisional'] as const,
     EGRESS_GATES: ['groundedness', 'risk'] as const,
+    INDEPENDENCE: ['independent', 'dependent', 'unknown'] as const,
   },
 
   // Derived constants (objects, maps) - these are NOT enums, declared once
@@ -230,6 +231,47 @@ const Defs = {
     BUILTIN_RULE_ARTIFACT_VERSION: 'builtin/1',
     RULE_TABLE_SCHEMA_VERSION: 1,
     PROPOSAL_SCHEMA_VERSION: 2,
+    DURABLE_EVENT_TYPES: [
+      'task.admitted',
+      'derivation.accepted',
+      'derivation.record',
+      'belief.added',
+      'belief.retracted',
+      'belief.revised',
+      'atom.derived',
+      'atom.retracted',
+      'goal.achieved',
+      'goal.failed',
+      'skill.executed',
+      'tool.response',
+      'conflict:detected',
+      'budget.exhausted',
+      'policy.violation',
+      'autonomy.mode.changed',
+      'egress.gate.rejected',
+      'shadow.validation.dropped',
+      'proposal.admitted',
+      'proposal.rejected',
+      'self-mod.proposal',
+      'bootstrap',
+    ] as const,
+    RECALLED_EVENT_TYPES: [
+      'input.user',
+      'belief.added',
+      'belief.retracted',
+      'belief.revised',
+      'task.admitted',
+      'derivation.accepted',
+      'tool.request',
+      'tool.response',
+      'skill.executed',
+      'goal.achieved',
+      'goal.failed',
+      'conflict:detected',
+      'policy.violation',
+      'budget.exhausted',
+      'autonomy.mode.changed',
+    ] as const,
   },
 
   // Primitive validators
@@ -300,6 +342,7 @@ function generate(): string {
   lines.push('// ============================================================================');
   lines.push('');
   for (const [name, value] of Object.entries(Defs.constants)) {
+    if (name === 'DURABLE_EVENT_TYPES' || name === 'RECALLED_EVENT_TYPES') continue;
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       lines.push(`export const ${name} = ${JSON.stringify(value, null, 2)} as const;`);
     } else {
@@ -372,19 +415,24 @@ function generate(): string {
 
   lines.push('/** One turn of conversation history. Re-exported from @senars/util. */');
   lines.push('export interface HistoryEntry {');
-  lines.push("  role: 'user' | 'assistant' | 'system';");
+  lines.push("  role: 'user' | 'agent' | 'system';");
   lines.push('  content: string;');
   lines.push('  timestamp: number;');
   lines.push('}');
   lines.push('export const HistoryEntrySchema = z.object({');
-  lines.push("  role: z.enum(['user', 'assistant', 'system']),");
+  lines.push("  role: z.enum(['user', 'agent', 'system']),");
   lines.push('  content: z.string(),');
   lines.push('  timestamp: z.number().int().nonnegative(),');
   lines.push('});');
   lines.push('');
+  lines.push('export const IndependenceSchema = z.enum(INDEPENDENCE);');
+  lines.push('export type Independence = z.infer<typeof IndependenceSchema>;');
+  lines.push('');
 
   // --- Formalization ---
   lines.push('export const ambiguitySeverityOf = (type: AMBIGUITY_TYPE): typeof AMBIGUITY_SEVERITIES[number] => AMBIGUITY_SEVERITY[type] as typeof AMBIGUITY_SEVERITIES[number];');
+  lines.push('');
+  lines.push('export type AmbiguityType = AMBIGUITY_TYPE;');
   lines.push('');
   lines.push('export const AmbiguityReportSchema = z.object({');
   lines.push('  type: z.enum(AMBIGUITY_TYPES),');
@@ -431,6 +479,9 @@ function generate(): string {
   lines.push('  globalAmbiguities: z.array(AmbiguityFlagSchema).optional(),');
   lines.push('});');
   lines.push('export type FormalizationBatch = z.infer<typeof FormalizationBatchSchema>;');
+  lines.push('');
+  lines.push('export const DetectedIntentSchema = z.enum(DETECTED_INTENTS);');
+  lines.push('export type DetectedIntent = z.infer<typeof DetectedIntentSchema>;');
   lines.push('');
 
   // --- Oracle schemas ---
@@ -835,6 +886,9 @@ function generate(): string {
   lines.push('export const BudgetScopeIdSchema = z.enum(BUDGET_SCOPE_IDS);');
   lines.push('export type BudgetScopeId = z.infer<typeof BudgetScopeIdSchema>;');
   lines.push('');
+  lines.push('export const BudgetTypeSchema = z.enum(BUDGET_TYPES);');
+  lines.push('export type BudgetType = z.infer<typeof BudgetTypeSchema>;');
+  lines.push('');
 
   // --- Gate I/O ---
   lines.push('export const PerceptionGateInputSchema = z.object({');
@@ -900,6 +954,9 @@ function generate(): string {
   lines.push('');
   lines.push('export const AutonomyAuthoritySchema = z.enum(AUTONOMITY_AUTHORITIES);');
   lines.push('export type AutonomyAuthority = z.infer<typeof AutonomyAuthoritySchema>;');
+  lines.push('');
+  lines.push('export const RiskLevelSchema = z.enum(RISK_LEVELS);');
+  lines.push('export type RiskLevel = z.infer<typeof RiskLevelSchema>;');
   lines.push('');
   lines.push('export const GameDomainSchema = z.enum(GAME_DOMAINS);');
   lines.push('export type GameDomain = z.infer<typeof GameDomainSchema>;');
@@ -1058,6 +1115,12 @@ function generate(): string {
   lines.push('export type TaskPunctuation = z.infer<typeof TaskPunctuationSchema>;');
   lines.push('export const TolerantPunctuationSchema = z.enum(TOLERANT_PUNCTUATIONS);');
   lines.push('export type TolerantPunctuation = z.infer<typeof TolerantPunctuationSchema>;');
+  lines.push('');
+  lines.push('export const KernelControlStateSchema = z.enum(KERNEL_CONTROL_STATES);');
+  lines.push('export type KernelControlState = z.infer<typeof KernelControlStateSchema>;');
+  lines.push('');
+  lines.push('export const CapabilityRiskSchema = z.enum(CAPABILITY_RISKS);');
+  lines.push('export type CapabilityRisk = z.infer<typeof CapabilityRiskSchema>;');
   lines.push('');
   lines.push('const TASK_TYPE_BY_PUNCTUATION = new Map<string, TaskType>(Object.entries(TASK_PUNCTUATION).map(([type, mark]) => [mark, type as TaskType]));');
   lines.push('export const taskTypeForPunctuation = (punctuation: string): TaskType | null => TASK_TYPE_BY_PUNCTUATION.get(punctuation) ?? null;');
@@ -1438,6 +1501,7 @@ function generate(): string {
   lines.push("  type: z.literal('kernel.ready'),");
   lines.push('  payload: z.object({ backendIds: z.array(z.string()) }),');
   lines.push('});');
+  lines.push('export type KernelReadyEvent = z.infer<typeof KernelReadyEventSchema>;');
   lines.push('');
 
   lines.push('export const BackendRegisteredEventSchema = NarBase.extend({');
@@ -1703,6 +1767,28 @@ function generate(): string {
   lines.push('export type SnapshotCreatedEvent = z.infer<typeof SnapshotCreatedEventSchema>;');
   lines.push('export type SnapshotRestoredEvent = z.infer<typeof SnapshotRestoredEventSchema>;');
   lines.push('');
+  // NAR event types
+  lines.push('export type InputUserEvent = z.infer<typeof InputUserEventSchema>;');
+  lines.push('export type DerivationMadeEvent = z.infer<typeof DerivationMadeEventSchema>;');
+  lines.push('export type AtomDerivedEvent = z.infer<typeof AtomDerivedEventSchema>;');
+  lines.push('export type AtomRetractedEvent = z.infer<typeof AtomRetractedEventSchema>;');
+  lines.push('export type BeliefAddedEvent = z.infer<typeof BeliefAddedEventSchema>;');
+  lines.push('export type BeliefRetractedEvent = z.infer<typeof BeliefRetractedEventSchema>;');
+  lines.push('export type GoalAchievedEvent = z.infer<typeof GoalAchievedEventSchema>;');
+  lines.push('export type GoalFailedEvent = z.infer<typeof GoalFailedEventSchema>;');
+  lines.push('export type SkillExecutedEvent = z.infer<typeof SkillExecutedEventSchema>;');
+  lines.push('export type ToolRequestEvent = z.infer<typeof ToolRequestEventSchema>;');
+  lines.push('export type ToolResponseEvent = z.infer<typeof ToolResponseEventSchema>;');
+  lines.push('export type ConflictDetectedEvent = z.infer<typeof ConflictDetectedEventSchema>;');
+  lines.push('export type ConfigDeleteEvent = z.infer<typeof ConfigDeleteEventSchema>;');
+  lines.push('export type ConfigSchemaEvent = z.infer<typeof ConfigSchemaEventSchema>;');
+  lines.push('export type ConfigSetEvent = z.infer<typeof ConfigSetEventSchema>;');
+  lines.push('export type BootstrapEvent = z.infer<typeof BootstrapEventSchema>;');
+  lines.push('export type CycleEvent = z.infer<typeof CycleEventSchema>;');
+  lines.push('export type HealthEvent = z.infer<typeof HealthEventSchema>;');
+  lines.push('export type DriveChangedEvent = z.infer<typeof DriveChangedEventSchema>;');
+  lines.push('export type BackendRegisteredEvent = z.infer<typeof BackendRegisteredEventSchema>;');
+  lines.push('');
 
   lines.push('export type CognitiveEventOf<T extends CognitiveEvent[\'type\']> = Extract<CognitiveEvent, { type: T }>;');
   lines.push('');
@@ -1714,6 +1800,35 @@ function generate(): string {
   lines.push('export const validateDerivationRecord = (data: unknown) => DerivationRecordSchema.parse(data);');
   lines.push('export const validateReasoningBudget = (data: unknown) => ReasoningBudgetSchema.parse(data);');
   lines.push('export const validateRuleTable = (data: unknown) => RuleTableSchema.parse(data);');
+  lines.push('');
+
+  // Durable and recalled event types - inlined to avoid Defs reference
+  lines.push('const durableEventTypes = [');
+  lines.push('  "task.admitted","derivation.accepted","derivation.record","belief.added",');
+  lines.push('  "belief.retracted","belief.revised","atom.derived","atom.retracted",');
+  lines.push('  "goal.achieved","goal.failed","skill.executed","tool.response",');
+  lines.push('  "conflict:detected","budget.exhausted","policy.violation","autonomy.mode.changed",');
+  lines.push('  "egress.gate.rejected","shadow.validation.dropped","proposal.admitted",');
+  lines.push('  "proposal.rejected","self-mod.proposal","bootstrap"');
+  lines.push('] as const;');
+  lines.push('export const DURABLE_EVENT_TYPES = new Set(durableEventTypes);');
+  lines.push('');
+  lines.push('const recalledEventTypesArr = [');
+  lines.push('  "input.user","belief.added","belief.retracted","belief.revised",');
+  lines.push('  "task.admitted","derivation.accepted","tool.request","tool.response",');
+  lines.push('  "skill.executed","goal.achieved","goal.failed","conflict:detected",');
+  lines.push('  "policy.violation","budget.exhausted","autonomy.mode.changed"');
+  lines.push('] as const;');
+  lines.push('export const RECALLED_EVENT_TYPES = new Set(recalledEventTypesArr);');
+  lines.push('');
+  lines.push('export const isDurableEvent = (event: { type: string }): boolean => DURABLE_EVENT_TYPES.has(event.type as typeof durableEventTypes[number]);');
+  lines.push('');
+  lines.push('export const recalledEventTypes = (): string[] => [...RECALLED_EVENT_TYPES];');
+  lines.push('');
+  lines.push('const nonExecutingModes = new Set(["observe-only", "propose-only"] as const);');
+  lines.push('export const permitsExecution = (mode: AutonomyMode): boolean => !nonExecutingModes.has(mode as "observe-only" | "propose-only");');
+  lines.push('');
+  lines.push('export const riskLevelOf = (risk: "low" | "medium" | "high"): "LOW" | "MEDIUM" | "HIGH" => ({"low":"LOW","medium":"MEDIUM","high":"HIGH"} as const)[risk];');
   lines.push('');
 
   lines.push("export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> => e.engine === 'nar';");

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { HistoryEntrySchema, type HistoryEntry } from '@senars/generated';
 
 /**
  * Who spoke a turn. The chat wire schema, the session ledger's persistence
@@ -14,17 +15,7 @@ export const MessageRoleSchema = z.enum(MESSAGE_ROLES);
 
 export type MessageRole = (typeof MESSAGE_ROLES)[number];
 
-export interface HistoryEntry {
-  role: MessageRole;
-  content: string;
-  timestamp: number;
-}
-
-export const HistoryEntrySchema = z.object({
-  role: MessageRoleSchema,
-  content: z.string(),
-  timestamp: z.number(),
-});
+export { HistoryEntrySchema, type HistoryEntry };
 
 export interface ConversationSession {
   id: string;
