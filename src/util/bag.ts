@@ -92,7 +92,7 @@ export interface CyclesBudget {
 }
 
 import type { RandomSource } from './random';
-import { shuffleInPlace, ambientRng } from './random';
+import { shuffleInPlace, ambientRng, weightedSample } from './random';
 
 /** Random source for bag operations (re-exported from random). */
 export type { RandomSource };
@@ -391,8 +391,8 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   sample(count: number): T[] {
     const items = this.all();
     if (items.length <= count) return items;
-    const shuffled = shuffleInPlace([...items], this.#rng);
-    return shuffled.slice(0, count);
+    // Priority-proportional sampling (roulette wheel without replacement)
+    return weightedSample(items, count, (item) => item.priority, this.#rng);
   }
 
   onPressure(listener: PressureListener): () => void {

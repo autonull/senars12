@@ -510,7 +510,7 @@ const provider = new NodeTracerProvider();
 - Enrich `context` on remaining `SenarsError` throw sites where a useful payload exists (ids, paths, keys); the `code` migration is complete.
 - Key retry/budget policies on `SenarsError.code` where a caller retries today on message text.
 - Finish deferred Q2–Q4 (builder, event taxonomy, serialization helpers).
-- Implement priority-proportional sampling in `PriorityBag.sample()` (currently uniform).
+- ✅ Implement priority-proportional sampling in `PriorityBag.sample()` — done (roulette wheel without replacement via `weightedSample`).
 
 ---
 
