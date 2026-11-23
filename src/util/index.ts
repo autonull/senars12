@@ -1,601 +1,290 @@
 // Types
 /** @public Shared cognitive event types and guards used across core, nar, io, and bins. */
 
+// Commands
 /** @public Unified command registry. */
 export { CommandRegistry } from '../commands/registry';
-// Commands
+// Commands types
 /** @public Command system types. */
-export {
-  type CommandContext,
-  type CommandDefinition,
-  type CommandHandler,
-  isQuitResult,
-  QUIT_SENTINEL,
-} from '../commands/types';
+export * from '../commands/types';
+
 // Config
 /** @public Shared configuration types, validation, and env mapping. */
 /** @public Standardized SENARS_* env → config path mapping. */
-export {
-  agentOptionsSchema,
-  CACHE_DIR,
-  cachePath,
-  contextOptsSchema,
-  envBool,
-  envCsv,
-  envFirst,
-  envInt,
-  envNum,
-  envPositive,
-  envSet,
-  envStr,
-  envStrOr,
-  isTruthy,
-  parseEnvValue,
-  parseOrThrow,
-  PRESSURE,
-  readEnvOverrides,
-  SchemaValidationError,
-  SENARS_ENV_MAP,
-  systemOneDefaults,
-  systemOneSchema,
-  type SystemOneConfig,
-} from '../config/index';
+export * from '../config/index';
+
 // Errors
 /** @public Unified error hierarchy for all SeNARS packages. */
-export {
-  ConfigurationError,
-  ConnectionError,
-  EngineError,
-  OperationError,
-  PolicyViolation,
-  SenarsError,
-  ToolError,
-  TransportError,
-  ValidationError,
-} from '../errors/index';
+export * from '../errors/index';
+
+// Events
 /** @public Event bus receiver/unsubscribe contracts. */
 export type { EventReceiver, EventUnsubscribe } from '../events/types';
-// Events
+// Events runtime
 /** @public Generic typed event bus runtime. */
-export { EventBus } from '../events/event-bus';
-export { ListenerBag } from '../events/listener-bag';
-// Bag
+export * from '../events/event-bus';
+export * from '../events/listener-bag';
+export * from '../events/push-queue';
+export * from '../events/signal';
+
+// Bag (AIKR substrate)
 /** @public AIKR bag substrate — one implementation, many consumers. */
-export type {
-  Bag,
-  BagItem,
-  BagOptions,
-  CyclesBudget,
-  EvictStrategy,
-  Histogram,
-  HistogramImpl,
-  InternalEntry,
-  PressureListener,
-  PressureLevel,
-  PressureTransition,
-  PriorityBag,
-  RandomSource,
-} from './bag';
-/** @public Push-to-async-iterator bridge shared by config views and event logs. */
-export { PushQueue } from '../events/push-queue';
-/** @public Single-subject fan-out with isolated listeners. */
-export { Signal } from '../events/signal';
+export * from './bag/index';
+
+// Feedback
 /** @public Tool feedback observer for unified statistics tracking. */
-export {
-  DefaultToolFeedbackObserver,
-  type SkillFeedback,
-  type ToolFeedback,
-  type ToolFeedbackObserver,
-  toSkillFeedback,
-} from '../feedback/ToolFeedbackObserver';
+export * from '../feedback/ToolFeedbackObserver';
+
+// Logger
 /** @public The monorepo's one logger. */
-export {
-  createLogger,
-  defaultLogger,
-  Logger,
-  registerLogEnricher,
-  silentLogger,
-} from './logger';
-export type { SessionStoreOptions } from '../memory/in-memory-session-manager';
-// Memory
+export * from './logger/index';
+
+// Memory (session)
 /** @public Bounded session store and the in-memory session manager over it. */
-export {
-  abortSession,
-  createSession,
-  InMemorySessionManager,
-  SessionStore,
-} from '../memory/in-memory-session-manager';
-export type { Middleware } from './middleware';
+export * from '../memory/in-memory-session-manager';
+
+// Middleware
 /** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
-export { dispatch } from './middleware';
+export * from './middleware/index';
+
+// Agent types
 /** @public Agent-facing option and capability types. */
-export type {
-  AgentOptions,
-  AuthDecision,
-  BridgeOptions,
-  HealthStatus,
-  ParsedCommand,
-  SkillDefinition,
-} from '../types/agent';
+export * from '../types/agent';
+
+// Health status
 /** @public Health status levels. */
-export { HEALTH_STATUSES, type HealthLevel } from './health-status';
+export * from './health-status/index';
+
+// Capability risk
 /** @public The shared capability risk vocabulary. */
-export { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from './capability-risk';
-export type {
-  AgentTrace,
-  BandDecision,
-  ChatOptions,
-  CognitiveAxis,
-  CognitiveStimulus,
-  Context,
-  Derivation,
-  EgressVerdict,
-  GroundednessGate,
-  TracedToolCall,
-  TraceGrader,
-} from '../types/cognitive';
+export * from './capability-risk/index';
+
+// Cognitive types
+export * from '../types/cognitive';
+
+// Cognitive schemas
 /** @public The vocabularies a cognitive event carries, so the zod boundary in `core`
  *  cannot admit an origin, a band, an axis or a query shape the types do not carry. */
-export {
-  BANDS,
-  BandDecisionSchema,
-  bandOrdinal,
-  COGNITIVE_AXES,
-  CognitiveAxisSchema,
-  egressVerdict,
-  JUDGMENT_SHAPES,
-  JudgmentShapeSchema,
-} from './cognitive-schemas';
-/** @public Engine origin discriminants. */
-export { ENGINE_ORIGINS, type EngineOrigin, PROPOSER_ORIGIN, NAR_ORIGIN } from './origins';
-/** @public Engine contract and identifiers. */
-export type { Engine, EngineId } from '../types/engine';
-/** @public The one tool outcome shape and its two constructors. */
-export { toolAttempt, toolError, toolOk } from '../types/engine';
-/** @public Episodic memory contracts. */
-export type {
-  Episode,
-  EpisodeFilter,
-  EpisodeType,
-  EpisodicMemory,
-  EpisodicMemoryConfig,
-} from '../types/episodic-memory';
-export { EPISODE_TYPES } from '../types/episodic-memory';
-/** @public Health-report types (O3, TODO20). */
-export type { HealthCheckResult, HealthReport } from '../types/health';
-/** @public Component lifecycle and observability contracts. */
-export type {
-  BaseComponent,
-  ComponentContext,
-  ComponentState,
-  EventPublisher,
-  LogEntry,
-  LoggerConfig,
-  LogLevel,
-  ScopedLogger,
-} from '../types/lifecycle';
-/** @public LM service contract. */
-export type {
-  LMExecutionStats,
-  LMGenerateOptions,
-  LMPromptGenerator,
-  LMResponseProcessor,
-  LMRuleConfig,
-  LMService,
-  LMTask,
-  LMTaskGenerator,
-  MockLMConfig,
-  ModelRuleStats,
-} from '../types/llm';
-export { CIRCUIT_STATES, LM_TASKS } from '../types/llm';
-/** @public Session/memory manager contracts. */
-export type {
-  ConversationSession,
-  HistoryEntry,
-  MessageRole,
-  SessionManager,
-} from '../types/memory';
-export { HistoryEntrySchema, MESSAGE_ROLES, MessageRoleSchema } from '../types/memory';
-/** @public Tool contracts. */
-export type {
-  ToolBudget,
-  ToolCall,
-  ToolCapabilities,
-  ToolContext,
-  ToolDescriptor,
-  ToolFn,
-  ToolResult,
-  ToolSchema,
-  ToolSchemaProperty,
-  ToolSpec,
-} from '../types/tools';
-export { objectSpec } from '../types/tools';
+export * from './cognitive-schemas/index';
 
+// Engine origins
+/** @public Engine origin discriminants. */
+export * from './origins/index';
+
+// Engine contracts
+/** @public Engine contract and identifiers. */
+export * from '../types/engine';
+
+// Tool outcome
+/** @public The one tool outcome shape and its two constructors. */
+export * from '../types/engine';
+
+// Episodic memory
+/** @public Episodic memory contracts. */
+export * from '../types/episodic-memory';
+
+// Health report types
+/** @public Health-report types (O3, TODO20). */
+export * from '../types/health';
+
+// Lifecycle
+/** @public Component lifecycle and observability contracts. */
+export * from '../types/lifecycle';
+
+// LM service
+/** @public LM service contract. */
+export {
+  LM_TASKS,
+  type LMTask,
+  type LMExecutionStats,
+  createLMStats,
+  recordLMCall,
+  type LMGenerateOptions,
+  type LMService,
+  type ModelRuleStats,
+  type LMRuleConfig,
+  type LMPromptGenerator,
+  type LMResponseProcessor,
+  type LMTaskGenerator,
+  type MockLMConfig,
+} from '../types/llm';
+
+// Session/memory manager
+/** @public Session/memory manager contracts. */
+export * from '../types/memory';
+
+// Tool contracts
+/** @public Tool contracts. */
+export * from '../types/tools';
+
+// Transport/connection
 /** @public Transport/connection contracts shared by io and core. */
-export type {
-  Connection,
-  ConnectionConfig,
-  ConnectionDeps,
-  ConnectionFactory,
-  ConnectionState,
-  IOMessage,
-  MessageClassification,
-  TransportDeps,
-} from '../types/transport';
+export * from '../types/transport';
+
+// Truth branded types
 /** @public Truth value branded types. */
-export type { BeliefTruth, Confidence, Frequency, TermTruth, TruthLike } from '../types/truth';
-/** @public Truth value constructors. */
-export {
-  asBeliefTruth,
-  formatNarseseTruth,
-  formatTruth,
-  parseNarseseTruth,
-  parseTruthLiteral,
-  serializeTruth,
-  stripTruthSuffix,
-  toConfidence,
-  toFrequency,
-  toTermTruth,
-} from '../types/truth';
-/** @public Truth schemas. */
-export { BeliefTruthSchema, TermTruthSchema } from './truth-schema';
+export * from '../types/truth';
+
+// Truth algebra
 /** @public Truth algebra (confidence/weight conversion, weakening). */
-export {
-  WEIGHT_AT_CERTAINTY,
-  confidenceToWeight,
-  weightToConfidence,
-  weakenConfidence,
-} from './truth-algebra';
-// Utils
+export * from './truth-algebra/index';
+
+// Truth schema
+/** @public Truth schemas. */
+export * from './truth-schema/index';
+
+// Assert
 /** @public Assertion helpers. */
-export { assertDefined, invariant } from './assert';
+export * from './assert/index';
+
+// Async primitives
 /**
  * @public The general-purpose primitives, grouped by domain: clocks and
  * deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
  * text measurement, schema-failure rendering, and error coercion.
  */
-export type { Deadline, Debounced, Deferred } from './async';
-export {
-  boundedDeadline,
-  boundedFetch,
-  deadline,
-  debounce,
-  deferred,
-  drain,
-  monotonicNow,
-  periodic,
-  raceDeadline,
-  readBodyBounded,
-  readBytesBounded,
-  SerialLanes,
-  SerialQueue,
-  sleep,
-  stopwatch,
-  TimeoutError,
-  TRUNCATION_MARKER,
-  withDeadline,
-  withTimeout,
-} from './async';
+export * from './async/index';
+
 // Bandit substrate
 /** @public One `(state, action)` estimate store for every tabular policy. */
-export type { ConfidenceCurve, Exploration, QEntry, QUpdate } from './bandit';
-export {
-  greedy,
-  isYoung,
-  lerpUpdate,
-  meanUpdate,
-  QTable,
-  rampConfidence,
-  UNVISITED,
-  ucb,
-  visitConfidence,
-} from './bandit';
+export * from './bandit/index';
+
+// Bounded map
 /** @public Bounded map with pluggable eviction order and optional TTL. */
-export type { BoundedMapOptions, EvictionOrder } from './bounded-map';
-export { BoundedMap } from './bounded-map';
-export type { Flags } from './cli';
-export { parseFlags, jsonMode } from './cli';
+export * from './bounded-map/index';
+
+// CLI flags
+export * from './cli/index';
+
+// Clock
 /** @public The one injectable time source; every bounded container and cache takes one. */
-export type { Clock } from './clock';
-export { fixedClock, systemClock } from './clock';
-export type {
-  BoundedContainer,
-  ContainerStats,
-  EvictByScore,
-  OverflowPolicy,
-  ReadOnlyLookup,
-} from './collections';
+export * from './clock/index';
 
 // Collections
 /** @public Bounded FIFO ring buffer; evicting or refusing at capacity. */
-export {
-  accumulate,
-  addToSet,
-  BoundedRing,
-  buckets,
-  chunk,
-  collectUpTo,
-  containerStats,
-  entryKey,
-  flatUnique,
-  getOrInsert,
-  groupBy,
-  incrementCount,
-  indexBy,
-  indexMap,
-  insertByScoreDesc,
-  joinKey,
-  keyedBy,
-  lastByKey,
-  mapToRecord,
-  mapValues,
-  maxBy,
-  maxScore,
-  minBy,
-  minScore,
-  perPart,
-  pushCapped,
-  type RankOptions,
-  rankBy,
-  removeBy,
-  removeFromSet,
-  removeLastBy,
-  selectByPriority,
-  selectTopN,
-  shareCount,
-  shareOf,
-  sortBy,
-  splitKey,
-  takeFirst,
-  takeLast,
-  trimCapped,
-  unique,
-  uniqueBy,
-  victimBy,
-} from './collections';
-export { formatIssues, type SchemaIssue } from './diagnostics';
+export * from './collections/index';
+
+// Diagnostics
+export * from './diagnostics/index';
+
+// Circuit breaker
 /** @public Circuit breaker state machine for provider routing health. */
-export type {
-  CircuitBreakerConfig,
-  CircuitBreakerSettings,
-  CircuitSnapshot,
-  CircuitState,
-  TransitionReason,
-} from './circuit-breaker';
-export { CircuitBreaker } from './circuit-breaker';
+export {
+  type CircuitBreakerConfig,
+  type CircuitBreakerSettings,
+  type CircuitSnapshot,
+  type TransitionReason,
+  CircuitBreaker,
+} from './circuit-breaker/index';
+
+// Config migration
 /** @public Config migration utilities. */
-export {
-  CURRENT_CONFIG_VERSION,
-  migrateConfig,
-  migrateConfigFile,
-  type MigrationOutcome,
-} from './config-migrate';
+export * from './config-migrate/index';
+
+// Divergence
 /** @public Frequency divergence detection for contradiction mining. */
-export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from './divergence';
+export * from './divergence/index';
+
+// Env validation
 /** @public Environment variable validation against declared grammar. */
-export { validateEnv, assertValidEnv, type ValidationResult } from './env-validate';
+export * from './env-validate/index';
+
+// Disposal
 /** @public The registry every component records its teardown in. */
-export type { Teardown } from './disposal';
-export { DisposalRegistry } from './disposal';
-export { degrade, errMsg, toError } from './error';
+export * from './disposal/index';
+
+// Error utilities
+export * from './error/index';
+
+// Format
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
-export {
-  bar,
-  divider,
-  formatBytes,
-  formatDuration,
-  pct,
-  percentile,
-  percentiles,
-  section,
-  utcDate,
-} from './format';
-export type { JsonlLoadResult } from './fs';
+export * from './format/index';
+
 // Filesystem
-export {
-  appendJsonl,
-  appendJsonlAsync,
-  appendJsonlRow,
-  appendJsonlRowAsync,
-  containsPath,
-  ensureDir,
-  ensureDirSync,
-  ensureParentDir,
-  ensureParentDirSync,
-  iterateJsonl,
-  jsonlPayload,
-  parseJsonOr,
-  readJsonFile,
-  readJsonFileSync,
-  readJsonl,
-  readJsonlAsync,
-  readJsonlWith,
-  writeJsonFile,
-  writeJsonFileSync,
-  writeJsonl,
-} from './fs';
-export { compact, ensureArray, isNil, isPlainObject } from './guards';
-export type { DigestInput } from './hash';
+/** @public Filesystem utilities. */
+export * from './fs/index';
+
+// Guards
+export * from './guards/index';
+
 // Hashing
 /** @public SHA-256 digests for provenance keys, digest pinning, and state hashes. */
-export {
-  djb2,
-  djb2Step,
-  fnv1a,
-  fnv1aCombine,
-  mul32,
-  SHA256_PINNED,
-  seededStringHash,
-  sha256Hex,
-  sha256HexParts,
-  sha256Prefixed,
-  shortSha256Hex,
-} from './hash';
+export * from './hash/index';
+
+// ID generation
 /** @public ULID id generation. */
-export {
-  currentIdCount,
-  generateId,
-  type IdSource,
-  installIdSource,
-  makeId,
-  primeIdCount,
-  sequentialIdSource,
-  sortableIdSource,
-} from './id';
+export * from './id/index';
+
+// JSON
 /** @public Deterministic JSON with sorted object keys — the one serializer behind every cache key and content digest. */
-export { extractJsonObject, parseJsonObject, stableKeyOf, stableStringify } from './json';
+export * from './json/index';
+
+// Keyed collection
 /** @public Keyed storage by derived identity, and the named registry over it. */
-export type { KeyedRegistryOptions } from './keyed-collection';
-export {
-  KeyedCollection,
-  KeyedRegistry,
-} from './keyed-collection';
-export type { LruCacheOptions } from './lru-cache';
+export * from './keyed-collection/index';
+
+// LRU cache
 /** @public Bounded recency-ordered cache with optional TTL. */
-export { LruCache } from './lru-cache';
-export {
-  anneal,
-  CHARS_PER_TOKEN,
-  clamp,
-  clamp01,
-  clampSigned,
-  decayCurve,
-  estimateTokens,
-  finiteOr,
-  flooredRatio,
-  forget,
-  lerp,
-  mean,
-  meanOf,
-  nearlyEqual,
-  normalizeToSum,
-  occupancy,
-  pearson,
-  perSecond,
-  renormalize,
-  roundTo,
-  safeDiv,
-  retain,
-  safeRatio,
-  saturationRamp,
-  sigmoid,
-  softFalloff,
-  softmax,
-  softmaxWeights,
-  softSquash,
-  stdDev,
-  sumBy,
-  toFiniteNumber,
-  ucb1,
-  variance,
-  invTemperature,
-} from './numeric';
-export { deepEqual, deepFreeze, deepMerge, getNested, setNested, thaw } from './object';
-export { extractLastUserMessage } from './prompt';
+export * from './lru-cache/index';
+
+// Numeric
+export * from './numeric/index';
+
+// Object
+export * from './object/index';
+
+// Prompt
+export * from './prompt/index';
+
+// Random
 /** @public The seeded PRNG, weighted sampling, and the deterministic split primitive. */
-export {
-  ambientRng,
-  choice,
-  createLCG,
-  fillSeededUnitRange,
-  holdoutSplit,
-  isStatefulRandomSource,
-  mulberry32,
-  nextInt,
-  randomSourceOf,
-  rngFrom,
-  SeededRNG,
-  type SeededStream,
-  seededStream,
-  type StatefulRandomSource,
-  shuffleInPlace,
-  type Weighted,
-  weightedPick,
-  weightedSample,
-  weightedSampleBy,
-} from './random';
-export type { RateLimiterOptions } from './rate-limit';
+export * from './random/index';
+
+// Rate limit
 /** @public Keyed sliding-window rate limiter for transports and guards. */
-export { SlidingWindowRateLimiter } from './rate-limit';
-export type { Err, Ok, Result } from './result';
+export * from './rate-limit/index';
+
+// Result
 /** @public The fallible-result union, and the folds over it. */
-export {
-  attempt,
-  attemptAsync,
-  err,
-  flatMap,
-  getOrElse,
-  isErr,
-  isOk,
-  map,
-  mapErr,
-  match,
-  ok,
-  unwrapOrThrow,
-} from './result';
-export type { RetryOptions } from './retry';
-// Caching
-export { withRetry } from './retry';
+export * from './result/index';
+
+// Retry
+/** @public Retry utilities. */
+export * from './retry/index';
+
+// Shutdown
 /** @public Process signal → graceful shutdown for every binary; returns its own uninstall. */
-export { setupGracefulShutdown } from './shutdown';
-export { weightedMean } from './stats';
+export * from './shutdown/index';
+
+// Stats
+export * from './stats/index';
+
+// Similarity
 /** @public Vector and set similarity functions (cosine, Jaccard, L2 normalization). */
-export type { NormalizedVector, ReadonlySetLike } from './similarity';
-export {
-  cosine,
-  cosineNormalized,
-  cosineUnit,
-  jaccard,
-  l2Normalize,
-  normalize,
-} from './similarity';
+export * from './similarity/index';
+
+// Tally
 /** @public One tally of attempts, and the bounded per-key series of them. */
-export type { CallTally, CallTallySeriesOptions } from './tally';
-export { CallTallySeries, createCallTally, recordCall } from './tally';
-export {
-  appendTextDelta,
-  collectText,
-  containsFolded,
-  escapeRegExp,
-  extractTerm,
-  filterFolded,
-  foldNeedle,
-  isNarsese,
-  limitList,
-  overlapCount,
-  splitLines,
-  splitWords,
-  TERM_SEPARATORS,
-  tokenizeWords,
-  truncate,
-  truncateBytes,
-  wordOverlap,
-} from './text';
+export * from './tally/index';
+
+// Text
+export * from './text/index';
+
+// Alphabet
 export { NARSESE_ATOM_CHARS } from './alphabet';
+
+// Registry
 /** @public Base registry classes for type-safe registries. */
-export { BaseRegistry, IdRegistry, NameRegistry, FunctionRegistry } from './registry';
+export * from './registry/index';
+
+// Unify
 /** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
-export type {
-  EqualityDialect,
-  Substitution as UnifierSubstitution,
-  UnifierDialect,
-  UnifyOptions,
-  VariablePolicy,
-} from './unify';
-export { structuralEqual, Unifier } from './unify';
+export * from './unify/index';
+
+// Witness
 /** @public Source-anchored call-site declarations for the seam ledgers. */
-export {
-  formatWitness,
-  type Witness,
-  type WitnessList,
-  witnessFiles,
-  witnessHolds,
-} from './witness';
+export * from './witness/index';
+
+// Ledger
 /** @public Append-only ledger with content-addressable entries. */
-export {
-  BaseLedgerEntrySchema,
-  type BaseLedgerEntry,
-  type LedgerConfig,
-  createLedger,
-  Ledger,
-} from './ledger';
+export * from './ledger/index';
