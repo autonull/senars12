@@ -1,4 +1,5 @@
 import type { Game, GameOutcome, Perception } from '../Game';
+import { GameBase, type GameConfig } from '../GameBase';
 import { SeededRNG, shuffleInPlace } from '@senars/util/random';
 
 export type Cell = { r: number; c: number };
@@ -20,33 +21,36 @@ export interface SnakeState {
   terminal: boolean;
 }
 
-export interface SnakeGameConfig {
-  id?: string;
+export interface SnakeGameConfig extends GameConfig {
   width?: number;
   height?: number;
-  seed?: number;
-  maxSteps?: number;
 }
 
-export class SnakeGame implements Game<SnakeState, Direction> {
-  readonly id: string;
+export class SnakeGame extends GameBase<SnakeState, Direction> {
   readonly width: number;
   readonly height: number;
-  private readonly maxSteps: number;
-  private readonly rng: SeededRNG;
   private readonly spawnBag: Cell[] = [];
-  private state_: SnakeState;
+  private snake: Cell[];
+  private apple: Cell;
+  private dir: Direction;
+  private steps = 0;
+  private terminal_ = false;
 
   constructor(config: SnakeGameConfig = {}) {
-    this.id = config.id ?? 'snake';
+    super(config.id ?? 'snake', { ...config, maxSteps: config.maxSteps ?? 200 });
     this.width = config.width ?? 8;
     this.height = config.height ?? 8;
-    this.maxSteps = config.maxSteps ?? 200;
-    this.rng = new SeededRNG(config.seed ?? 1);
-    this.state_ = this.initialState();
+    const mid = Math.floor(this.height / 2);
+    this.snake = [
+      { r: mid, c: 4 },
+      { r: mid, c: 3 },
+      { r: mid, c: 2 },
+    ];
+    this.dir = 1;
+    this.apple = this.spawnApple();
   }
 
-  private initialState(): SnakeState {
+  protected override getInitialState(): SnakeState {
     const mid = Math.floor(this.height / 2);
     const snake: Cell[] = [
       { r: mid, c: 4 },
@@ -54,17 +58,24 @@ export class SnakeGame implements Game<SnakeState, Direction> {
       { r: mid, c: 2 },
     ];
     const state: SnakeState = { snake, apple: { r: 0, c: 0 }, dir: 1, steps: 0, terminal: false };
-    state.apple = this.spawnApple(state);
+    state.apple = this.spawnApple();
     return state;
   }
 
+  protected override getStateId(state: SnakeState): string {
+    const grid = Array.from({ length: this.height }, () => Array(this.width).fill('.'));
+    for (const seg of state.snake) grid[seg.r]![seg.c] = 'o';
+    grid[state.apple.r]![state.apple.c] = 'A';
+    return grid.map((row) => row.join('')).join('|') + `#${state.dir}`;
+  }
+
   /** Bag-7-style spawn: shuffled bag of free cells, refilled when exhausted. */
-  private spawnApple(state: SnakeState): Cell {
+  private spawnApple(): Cell {
     const free = new Set<string>();
     for (let r = 0; r < this.height; r++)
       for (let c = 0; c < this.width; c++) free.add(`${r},${c}`);
-    for (const s of state.snake) free.delete(`${s.r},${s.c}`);
-    if (free.size === 0) return state.apple;
+    for (const s of this.snake) free.delete(`${s.r},${s.c}`);
+    if (free.size === 0) return this.apple;
 
     let next = this.spawnBag.pop();
     while (next && !free.has(`${next.r},${next.c}`)) next = this.spawnBag.pop();
@@ -78,8 +89,118 @@ export class SnakeGame implements Game<SnakeState, Direction> {
     return this.spawnBag.pop()!;
   }
 
-  reset(): void {
-    this.state_ = this.initialState();
+  private hits(next: Cell): boolean {
+    if (next.r < 0 || next.c < 0 || next.r >= this.height || next.c >= this.width) return true;
+    // The tail vacates unless the snake is growing, so the last segment is not
+    // in the way — walked by index rather than sliced, because this runs once
+    // per direction per step over a body that reaches the whole grid.
+    for (let i = 0, end = this.snake.length - 1; i < end; i++) {
+      const seg = this.snake[i]!;
+      if (seg.r === next.r && seg.c === next.c) return true;
+    }
+    return false;
+  }
+
+  override step(action: Direction): GameOutcome {
+    if (this.terminal_ || !this.legalActions(this.state()).includes(action))
+      return { reward: -1, terminal: true, info: { reason: 'illegal' } };
+
+    const d = DELTAS[action];
+    const head = { r: this.snake[0]!.r + d.r, c: this.snake[0]!.c + d.c };
+    const eats = head.r === this.apple.r && head.c === this.apple.c;
+    if (!eats) this.snake.pop();
+    this.snake.unshift(head);
+    this.dir = action;
+    this.steps++;
+    this.incrementStep();
+
+    let reward = 0;
+    if (eats) {
+      reward = 1;
+      this.apple = this.spawnApple();
+    }
+    if (this.snake.length === this.width * this.height) this.terminal_ = true;
+    if (this.steps >= this.maxSteps) this.terminal_ = true;
+
+    return {
+      reward,
+      terminal: this.terminal_,
+      info: { steps: this.steps, length: this.snake.length },
+    };
+  }
+
+  override isTerminal(state: SnakeState): boolean {
+    return state.terminal;
+  }
+
+  override legalActions(state: SnakeState): Direction[] {
+    if (state.terminal) return [];
+    const out: Direction[] = [];
+    for (const dir of [0, 1, 2, 3] as Direction[]) {
+      if (dir === OPPOSITE[state.dir] && state.snake.length > 1) continue;
+      const d = DELTAS[dir];
+      if (!this.hits({ r: state.snake[0]!.r + d.r, c: state.snake[0]!.c + d.c })) out.push(dir);
+    }
+    return out.length > 0 ? out : [1];
+  }
+
+  override state(): SnakeState {
+    return {
+      snake: this.snake.map((s) => ({ ...s })),
+      apple: { ...this.apple },
+      dir: this.dir,
+      steps: this.steps,
+      terminal: this.terminal_,
+    };
+  }
+
+  override observe(): Perception {
+    const head = this.snake[0]!;
+    return {
+      stateId: this.getStateId(this.state()),
+      features: {
+        headR: head.r,
+        headC: head.c,
+        appleR: this.apple.r,
+        appleC: this.apple.c,
+        length: this.snake.length,
+        dir: this.dir,
+        steps: this.steps,
+      },
+      confidence: 1,
+      terminal: this.terminal_,
+    };
+  }
+
+  override reset(): SnakeState {
+    const mid = Math.floor(this.height / 2);
+    this.snake = [
+      { r: mid, c: 4 },
+      { r: mid, c: 3 },
+      { r: mid, c: 2 },
+    ];
+    this.dir = 1;
+    this.steps = 0;
+    this.terminal_ = false;
+    this.stepCount = 0;
+    this.spawnBag.length = 0;
+    this.apple = this.spawnApple();
+    return this.getInitialState();
+  }
+
+  stateKey(): string {
+    const grid = Array.from({ length: this.height }, () => Array(this.width).fill('.'));
+    for (const seg of this.snake) grid[seg.r]![seg.c] = 'o';
+    grid[this.apple.r]![this.apple.c] = 'A';
+    return grid.map((row) => row.join('')).join('|') + `#${this.dir}`;
+  }
+
+  render(): string {
+    const grid = Array.from({ length: this.height }, () => Array(this.width).fill('.'));
+    for (const seg of this.snake) grid[seg.r]![seg.c] = 'o';
+    grid[this.snake[0]!.r]![this.snake[0]!.c] = '@';
+    grid[this.apple.r]![this.apple.c] = 'A';
+    return grid.map((row) => row.join(' ')).join('\n');
   }
 
   /** Deep copy (rng + spawn bag included) for baseline lookahead. */
@@ -91,109 +212,16 @@ export class SnakeGame implements Game<SnakeState, Direction> {
       seed: 1,
       maxSteps: this.maxSteps,
     });
-    copy.state_ = {
-      snake: this.state_.snake.map((s) => ({ ...s })),
-      apple: { ...this.state_.apple },
-      dir: this.state_.dir,
-      steps: this.state_.steps,
-      terminal: this.state_.terminal,
-    };
-    copy.rng.setState(this.rng.getState());
+    copy.snake = this.snake.map((s) => ({ ...s }));
+    copy.apple = { ...this.apple };
+    copy.dir = this.dir;
+    copy.steps = this.steps;
+    copy.terminal_ = this.terminal_;
+    copy.stepCount = this.stepCount;
+    copy.rng = new SeededRNG(this.seed);
+    for (let i = 0; i < this.stepCount; i++) copy.rng.next();
     copy.spawnBag.push(...this.spawnBag);
     return copy;
-  }
-
-  state(): SnakeState {
-    return this.state_;
-  }
-
-  private hits(next: Cell, state: SnakeState): boolean {
-    if (next.r < 0 || next.c < 0 || next.r >= this.height || next.c >= this.width) return true;
-    // The tail vacates unless the snake is growing, so the last segment is not
-    // in the way — walked by index rather than sliced, because this runs once
-    // per direction per step over a body that reaches the whole grid.
-    const { snake } = state;
-    for (let i = 0, end = snake.length - 1; i < end; i++) {
-      const seg = snake[i]!;
-      if (seg.r === next.r && seg.c === next.c) return true;
-    }
-    return false;
-  }
-
-  legalActions(state: SnakeState): Direction[] {
-    if (state.terminal) return [];
-    const out: Direction[] = [];
-    for (const dir of [0, 1, 2, 3] as Direction[]) {
-      if (dir === OPPOSITE[state.dir] && state.snake.length > 1) continue;
-      const d = DELTAS[dir];
-      if (!this.hits({ r: state.snake[0]!.r + d.r, c: state.snake[0]!.c + d.c }, state))
-        out.push(dir);
-    }
-    return out;
-  }
-
-  step(action: Direction): GameOutcome {
-    const state = this.state_;
-    if (state.terminal || !this.legalActions(state).includes(action))
-      return { reward: -1, terminal: true, info: { reason: 'illegal' } };
-
-    const d = DELTAS[action];
-    const head = { r: state.snake[0]!.r + d.r, c: state.snake[0]!.c + d.c };
-    const eats = head.r === state.apple.r && head.c === state.apple.c;
-    if (!eats) state.snake.pop();
-    state.snake.unshift(head);
-    state.dir = action;
-    state.steps++;
-
-    let reward = 0;
-    if (eats) {
-      reward = 1;
-      state.apple = this.spawnApple(state);
-    }
-    if (state.snake.length === this.width * this.height) state.terminal = true;
-    if (state.steps >= this.maxSteps) state.terminal = true;
-
-    return {
-      reward,
-      terminal: state.terminal,
-      info: { steps: state.steps, length: state.snake.length },
-    };
-  }
-
-  observe(): Perception {
-    const s = this.state_;
-    const head = s.snake[0]!;
-    return {
-      stateId: this.stateKey(),
-      features: {
-        headR: head.r,
-        headC: head.c,
-        appleR: s.apple.r,
-        appleC: s.apple.c,
-        length: s.snake.length,
-        dir: s.dir,
-        steps: s.steps,
-      },
-      confidence: 1,
-      terminal: s.terminal,
-    };
-  }
-
-  stateKey(): string {
-    const s = this.state_;
-    const grid = Array.from({ length: this.height }, () => Array(this.width).fill('.'));
-    for (const seg of s.snake) grid[seg.r]![seg.c] = 'o';
-    grid[s.apple.r]![s.apple.c] = 'A';
-    return grid.map((row) => row.join('')).join('|') + `#${s.dir}`;
-  }
-
-  render(): string {
-    const s = this.state_;
-    const grid = Array.from({ length: this.height }, () => Array(this.width).fill('.'));
-    for (const seg of s.snake) grid[seg.r]![seg.c] = 'o';
-    grid[s.snake[0]!.r]![s.snake[0]!.c] = '@';
-    grid[s.apple.r]![s.apple.c] = 'A';
-    return grid.map((row) => row.join(' ')).join('\n');
   }
 }
 

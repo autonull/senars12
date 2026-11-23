@@ -261,6 +261,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
       '@opentelemetry/sdk-trace'
     );
     const exporter = new InMemorySpanExporter();
+    const processor = new SimpleSpanProcessor({ exporter });
     // `initOtel`, not `provider.register()`: the arcade tracer reads the
     // provider `otel/index.ts` owns, and the global registration is a
     // once-per-process latch — so whichever test file registered first decided
@@ -268,7 +269,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     const { initOtel, shutdownOtel } = await import('@senars/otel');
     await initOtel({
       batch: false,
-      spanProcessors: [new SimpleSpanProcessor(exporter)],
+      spanProcessors: [processor],
     });
     try {
       const { startArcadeTickSpan } = await import('@senars/agent');
@@ -289,6 +290,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
         handover: false,
         decision: { action: '0', vetoedBy: 'nal-focus-memory', source: 'nal' },
       });
+      await processor.forceFlush();
       const spans = exporter.getFinishedSpans();
       expect(spans.length).toBe(2);
       const tetris = spans.find((s) => s.attributes['arcade.game'] === 'tetris')!;

@@ -1,4 +1,5 @@
 import type { Game, GameOutcome, Perception } from '../Game';
+import { GameBase, type GameConfig } from '../GameBase';
 import { SeededRNG } from '@senars/util/random';
 
 export type Player = 'X' | 'O';
@@ -13,9 +14,7 @@ export interface TicTacToeState {
   winner: Player | 'draw' | null;
 }
 
-export interface TicTacToeConfig {
-  id?: string;
-  seed?: number;
+export interface TicTacToeConfig extends GameConfig {
   /** Opponent policy for O: random (default) or perfect minimax. */
   opponent?: 'random' | 'minimax';
 }
@@ -69,17 +68,24 @@ export function minimax(
   return best;
 }
 
-export class TicTacToeGame implements Game<TicTacToeState, TicTacToeAction> {
-  readonly id: string;
-  private readonly rng: SeededRNG;
+export class TicTacToeGame extends GameBase<TicTacToeState, TicTacToeAction> {
   private readonly opponent: 'random' | 'minimax';
-  private state_: TicTacToeState;
+  private board: CellValue[];
+  private turn: Player;
+  private terminal: boolean;
+  private winner: Player | 'draw' | null;
 
   constructor(config: TicTacToeConfig = {}) {
-    this.id = config.id ?? 'tictactoe';
-    this.rng = new SeededRNG(config.seed ?? 1);
+    super(config.id ?? 'tictactoe', config);
     this.opponent = config.opponent ?? 'random';
-    this.state_ = {
+    this.board = Array(9).fill('.') as CellValue[];
+    this.turn = 'X';
+    this.terminal = false;
+    this.winner = null;
+  }
+
+  protected override getInitialState(): TicTacToeState {
+    return {
       board: Array(9).fill('.') as CellValue[],
       turn: 'X',
       terminal: false,
@@ -87,88 +93,101 @@ export class TicTacToeGame implements Game<TicTacToeState, TicTacToeAction> {
     };
   }
 
-  reset(): void {
-    this.state_ = {
-      board: Array(9).fill('.') as CellValue[],
-      turn: 'X',
-      terminal: false,
-      winner: null,
-    };
+  protected override getStateId(state: TicTacToeState): string {
+    return state.board.join('');
   }
 
-  /** Deep copy for baseline lookahead. */
-  clone(): TicTacToeGame {
-    const copy = new TicTacToeGame({ id: this.id, seed: 1, opponent: this.opponent });
-    copy.state_ = {
-      board: [...this.state_.board],
-      turn: this.state_.turn,
-      terminal: this.state_.terminal,
-      winner: this.state_.winner,
-    };
-    copy.rng.setState(this.rng.getState());
-    return copy;
-  }
-
-  state(): TicTacToeState {
-    return this.state_;
-  }
-
-  legalActions(state: TicTacToeState): TicTacToeAction[] {
-    if (state.terminal || state.turn !== 'X') return [];
-    return state.board.map((v, i) => (v === '.' ? i : -1)).filter((i) => i >= 0);
-  }
-
-  step(action: TicTacToeAction): GameOutcome {
-    const state = this.state_;
-    if (state.terminal || state.turn !== 'X' || state.board[action] !== '.')
+  override step(action: TicTacToeAction): GameOutcome {
+    if (this.terminal || this.turn !== 'X' || this.board[action] !== '.') {
       return { reward: -1, terminal: true, info: { reason: 'illegal' } };
+    }
 
-    state.board[action] = 'X';
+    this.board[action] = 'X';
+    this.incrementStep();
     let outcome = this.settle();
     if (outcome) return outcome;
 
     // Opponent (O) moves as part of the environment
-    const open = state.board.map((v, i) => (v === '.' ? i : -1)).filter((i) => i >= 0);
+    const open = this.board.map((v, i) => (v === '.' ? i : -1)).filter((i) => i >= 0);
     const move =
       this.opponent === 'minimax'
-        ? minimax([...state.board], 'O').action
+        ? minimax([...this.board], 'O').action
         : open[this.rng.nextInt(open.length)]!;
-    state.board[move] = 'O';
+    this.board[move] = 'O';
     outcome = this.settle();
     return outcome ?? { reward: 0, terminal: false };
   }
 
   private settle(): GameOutcome | null {
-    const state = this.state_;
-    const winner = winnerOf(state.board);
+    const winner = winnerOf(this.board);
     if (winner === null) return null;
-    state.terminal = true;
-    state.winner = winner;
+    this.terminal = true;
+    this.winner = winner;
     return { reward: winner === 'X' ? 1 : winner === 'draw' ? 0 : -1, terminal: true };
   }
 
-  observe(): Perception {
+  override isTerminal(_state: TicTacToeState): boolean {
+    return this.terminal;
+  }
+
+  override legalActions(_state: TicTacToeState): TicTacToeAction[] {
+    if (this.terminal || this.turn !== 'X') return [];
+    return this.board.map((v, i) => (v === '.' ? i : -1)).filter((i) => i >= 0);
+  }
+
+  override state(): TicTacToeState {
+    return {
+      board: [...this.board],
+      turn: this.turn,
+      terminal: this.terminal,
+      winner: this.winner,
+    };
+  }
+
+  override observe(): Perception {
+    const s = this.state();
     const features: Record<string, number> = {
-      openCells: this.state_.board.filter((v) => v === '.').length,
+      openCells: s.board.filter((v) => v === '.').length,
     };
     for (let i = 0; i < 9; i++)
-      features[`cell${i}`] =
-        this.state_.board[i] === 'X' ? 1 : this.state_.board[i] === 'O' ? 2 : 0;
+      features[`cell${i}`] = s.board[i] === 'X' ? 1 : s.board[i] === 'O' ? 2 : 0;
     return {
-      stateId: this.boardHash(),
+      stateId: this.getStateId(s),
       features,
       confidence: 1,
-      terminal: this.state_.terminal,
+      terminal: s.terminal,
     };
+  }
+
+  override reset(): TicTacToeState {
+    this.board = Array(9).fill('.') as CellValue[];
+    this.turn = 'X';
+    this.terminal = false;
+    this.winner = null;
+    this.stepCount = 0;
+    return this.getInitialState();
   }
 
   /** Deterministic board hash. */
   boardHash(): string {
-    return this.state_.board.join('');
+    return this.board.join('');
   }
 
   render(): string {
-    return [0, 3, 6].map((i) => this.state_.board.slice(i, i + 3).join(' ')).join('\n');
+    return [0, 3, 6].map((i) => this.board.slice(i, i + 3).join(' ')).join('\n');
+  }
+
+  /** Deep copy for baseline lookahead. */
+  clone(): TicTacToeGame {
+    const copy = new TicTacToeGame({ id: this.id, seed: 1, opponent: this.opponent });
+    copy.board = [...this.board];
+    copy.turn = this.turn;
+    copy.terminal = this.terminal;
+    copy.winner = this.winner;
+    copy.stepCount = this.stepCount;
+    copy.rng = new SeededRNG(this.seed);
+    for (let i = 0; i < this.stepCount; i++) copy.rng.next();
+    return copy;
   }
 }
 

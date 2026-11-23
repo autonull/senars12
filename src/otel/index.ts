@@ -156,10 +156,14 @@ export function emitEvent(name: string, prefix: string, payload: Record<string, 
 }
 
 export async function shutdownOtel(): Promise<void> {
-  if (provider) {
-    await provider.shutdown();
-    provider = null;
-    initialized = false;
+  const currentProvider = provider;
+  if (!currentProvider) return;
+  provider = null;
+  initialized = false;
+  try {
+    await currentProvider.shutdown();
+  } catch (e) {
+    // Provider already shut down or in invalid state; ignore
   }
 }
 

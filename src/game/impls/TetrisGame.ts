@@ -2,6 +2,7 @@ import { clamp01 } from '@senars/util/numeric';
 import { maxScore, minScore } from '@senars/util/collections';
 import { SeededRNG, shuffleInPlace } from '@senars/util/random';
 import type { Game, GameOutcome, Perception } from '../Game';
+import { GameBase, type GameConfig } from '../GameBase';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
 export type TetrisPlacement = string;
@@ -21,11 +22,9 @@ export interface TetrisState {
   terminal: boolean;
 }
 
-export interface TetrisGameConfig {
-  id?: string;
+export interface TetrisGameConfig extends GameConfig {
   width?: number;
   height?: number;
-  seed?: number;
   /** Enumeration cap for legalPlacements; truncation is deterministic (row-major). */
   placementCap?: number;
   pieceCap?: number;
@@ -74,29 +73,33 @@ const cellsOf = (type: number, rot: number): Array<[number, number]> => {
 
 const rotationCount = (type: number): number => (type === 1 ? 1 : type === 0 ? 2 : 4);
 
-export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
-  readonly id: string;
+export class TetrisGame extends GameBase<TetrisState, TetrisPlacement> {
   readonly width: number;
   readonly height: number;
   readonly placementCap: number;
   private readonly pieceCap: number;
-  private readonly rng: SeededRNG;
   private readonly bag: number[] = [];
-  private state_: TetrisState;
+  private grid: number[][];
+  private piece: TetrisPiece | null = null;
+  private piecesPlaced = 0;
+  private linesCleared = 0;
+  private terminal_ = false;
 
   constructor(config: TetrisGameConfig = {}) {
-    this.id = config.id ?? 'tetris';
+    super(config.id ?? 'tetris', config);
     this.width = config.width ?? 10;
     this.height = config.height ?? 10;
     this.placementCap = config.placementCap ?? 64;
     this.pieceCap = config.pieceCap ?? 100;
-    this.rng = new SeededRNG(config.seed ?? 1);
-    this.state_ = this.freshState();
+    this.grid = this.emptyGrid();
     this.spawn();
   }
 
-  /** What a new game and a reset game both start from. */
-  private freshState(): TetrisState {
+  private emptyGrid(): number[][] {
+    return Array.from({ length: this.height }, () => Array(this.width).fill(0));
+  }
+
+  protected override getInitialState(): TetrisState {
     return {
       grid: this.emptyGrid(),
       piece: null,
@@ -106,40 +109,8 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     };
   }
 
-  private emptyGrid(): number[][] {
-    return Array.from({ length: this.height }, () => Array(this.width).fill(0));
-  }
-
-  reset(): void {
-    this.bag.length = 0;
-    this.state_ = this.freshState();
-    this.spawn();
-  }
-
-  /** Deep copy for baseline lookahead. */
-  clone(): TetrisGame {
-    const copy = new TetrisGame({
-      id: this.id,
-      width: this.width,
-      height: this.height,
-      seed: 1,
-      placementCap: this.placementCap,
-      pieceCap: this.pieceCap,
-    });
-    copy.state_ = {
-      grid: this.state_.grid.map((row) => [...row]),
-      piece: this.state_.piece ? { ...this.state_.piece } : null,
-      piecesPlaced: this.state_.piecesPlaced,
-      linesCleared: this.state_.linesCleared,
-      terminal: this.state_.terminal,
-    };
-    copy.bag.push(...this.bag);
-    copy.rng.setState(this.rng.getState());
-    return copy;
-  }
-
-  state(): TetrisState {
-    return this.state_;
+  protected override getStateId(state: TetrisState): string {
+    return state.grid.map((row) => row.join('')).join('|') + `#${state.piece?.type ?? 'x'}`;
   }
 
   /** Bag-7 piece generator. */
@@ -175,12 +146,12 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     const type = this.nextType();
     const col = Math.floor((this.width - 1) / 2) - 1;
     const piece: TetrisPiece = { type, rot: 0, col, row: 0 };
-    if (this.collides(cellsOf(type, 0), 0, col, this.state_.grid)) {
-      this.state_.terminal = true;
-      this.state_.piece = null;
+    if (this.collides(cellsOf(type, 0), 0, col, this.grid)) {
+      this.terminal_ = true;
+      this.piece = null;
       return;
     }
-    this.state_.piece = piece;
+    this.piece = piece;
   }
 
   /**
@@ -189,7 +160,7 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
    * truncation (tuck/soft-drop placements under overhangs beyond one-step
    * lateral slides are not enumerated).
    */
-  legalPlacements(state: TetrisState = this.state_): TetrisPlacement[] {
+  legalPlacements(state: TetrisState = this.state()): TetrisPlacement[] {
     if (state.terminal || !state.piece) return [];
     const { type } = state.piece;
     const placements: TetrisPlacement[] = [];
@@ -207,12 +178,8 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     return placements;
   }
 
-  legalActions(state: TetrisState): TetrisPlacement[] {
-    return this.legalPlacements(state);
-  }
-
-  step(action: TetrisPlacement): GameOutcome {
-    const state = this.state_;
+  override step(action: TetrisPlacement): GameOutcome {
+    const state = this.state();
     const match = /^place:r(\d+):c(-?\d+)$/.exec(action);
     if (state.terminal || !state.piece || !match)
       return { reward: -1, terminal: true, info: { reason: 'illegal' } };
@@ -226,50 +193,80 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     for (const [dr, dc] of cells) {
       const r = row + dr;
       const c = col + dc;
-      if (r >= 0) state.grid[r]![c] = 1;
+      if (r >= 0) this.grid[r]![c] = 1;
     }
 
     let cleared = 0;
     for (let r = this.height - 1; r >= 0; r--) {
-      if (state.grid[r]!.every((v) => v === 1)) {
-        state.grid.splice(r, 1);
-        state.grid.unshift(Array(this.width).fill(0));
+      if (this.grid[r]!.every((v) => v === 1)) {
+        this.grid.splice(r, 1);
+        this.grid.unshift(Array(this.width).fill(0));
         cleared++;
         r++;
       }
     }
-    state.linesCleared += cleared;
-    state.piecesPlaced++;
+    this.linesCleared += cleared;
+    this.piecesPlaced++;
+    this.incrementStep();
 
     const lineReward = [0, 1, 3, 5, 8][cleared] ?? 8;
     const reward = clamp01(lineReward / 8);
-    if (state.piecesPlaced >= this.pieceCap) {
-      state.terminal = true;
-      state.piece = null;
+    if (this.piecesPlaced >= this.pieceCap) {
+      this.terminal_ = true;
+      this.piece = null;
       return { reward, terminal: true, info: { pieceCap: true } };
     }
     this.spawn();
-    return { reward, terminal: state.terminal, info: { cleared } };
+    return { reward, terminal: this.terminal_, info: { cleared } };
   }
 
-  observe(): Perception {
-    const s = this.state_;
+  override isTerminal(state: TetrisState): boolean {
+    return state.terminal;
+  }
+
+  override legalActions(state: TetrisState): TetrisPlacement[] {
+    return this.legalPlacements(state);
+  }
+
+  override state(): TetrisState {
     return {
-      stateId: this.stateKey(),
+      grid: this.grid.map((row) => [...row]),
+      piece: this.piece ? { ...this.piece } : null,
+      piecesPlaced: this.piecesPlaced,
+      linesCleared: this.linesCleared,
+      terminal: this.terminal_,
+    };
+  }
+
+  override observe(): Perception {
+    return {
+      stateId: this.getStateId(this.state()),
       features: {
         stackHeight: this.stackHeight(),
         holes: this.holes(),
-        linesCleared: s.linesCleared,
-        piecesPlaced: s.piecesPlaced,
+        linesCleared: this.linesCleared,
+        piecesPlaced: this.piecesPlaced,
       },
       confidence: 1,
-      terminal: s.terminal,
+      terminal: this.terminal_,
     };
+  }
+
+  override reset(): TetrisState {
+    this.bag.length = 0;
+    this.grid = this.emptyGrid();
+    this.piece = null;
+    this.piecesPlaced = 0;
+    this.linesCleared = 0;
+    this.terminal_ = false;
+    this.stepCount = 0;
+    this.spawn();
+    return this.getInitialState();
   }
 
   private stackHeight(): number {
     for (let r = 0; r < this.height; r++)
-      if (this.state_.grid[r]!.some((v) => v === 1)) return this.height - r;
+      if (this.grid[r]!.some((v) => v === 1)) return this.height - r;
     return 0;
   }
 
@@ -278,7 +275,7 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     for (let c = 0; c < this.width; c++) {
       let seen = false;
       for (let r = 0; r < this.height; r++) {
-        if (this.state_.grid[r]![c]) seen = true;
+        if (this.grid[r]![c]) seen = true;
         else if (seen) holes++;
       }
     }
@@ -286,17 +283,16 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
   }
 
   stateKey(): string {
-    const s = this.state_;
-    return s.grid.map((row) => row.join('')).join('|') + `#${s.piece?.type ?? 'x'}`;
+    return this.grid.map((row) => row.join('')).join('|') + `#${this.piece?.type ?? 'x'}`;
   }
 
   render(): string {
-    const grid = this.state_.grid.map((row) => [...row]);
-    const piece = this.state_.piece;
+    const grid = this.grid.map((row) => [...row]);
+    const piece = this.piece;
     if (piece) {
       const cells = cellsOf(piece.type, piece.rot);
       let row = piece.row;
-      while (!this.collides(cells, row + 1, piece.col, this.state_.grid)) row++;
+      while (!this.collides(cells, row + 1, piece.col, this.grid)) row++;
       for (const [dr, dc] of cells) {
         const r = row + dr;
         const c = piece.col + dc;
@@ -306,6 +302,28 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     return grid
       .map((row) => row.map((v) => (v === 1 ? '#' : v === 2 ? '>' : '.')).join(' '))
       .join('\n');
+  }
+
+  /** Deep copy for baseline lookahead. */
+  clone(): TetrisGame {
+    const copy = new TetrisGame({
+      id: this.id,
+      width: this.width,
+      height: this.height,
+      seed: 1,
+      placementCap: this.placementCap,
+      pieceCap: this.pieceCap,
+    });
+    copy.grid = this.grid.map((row) => [...row]);
+    copy.piece = this.piece ? { ...this.piece } : null;
+    copy.piecesPlaced = this.piecesPlaced;
+    copy.linesCleared = this.linesCleared;
+    copy.terminal_ = this.terminal_;
+    copy.stepCount = this.stepCount;
+    copy.bag.push(...this.bag);
+    copy.rng = new SeededRNG(this.seed);
+    for (let i = 0; i < this.stepCount; i++) copy.rng.next();
+    return copy;
   }
 }
 

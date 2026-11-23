@@ -1,4 +1,5 @@
 import type { Game, GameOutcome, Perception } from '../Game';
+import { GameBase, type GameConfig } from '../GameBase';
 import { SeededRNG } from '@senars/util/random';
 import type { CapabilityTier } from '../../agent/profiles';
 import type { CognitionAction, Reward, Sensor } from '../types';
@@ -53,6 +54,7 @@ export interface ReasoningState {
   vetoes: number;
   consolidations: number;
   cycle: number;
+  terminal: boolean;
 }
 
 /** Domain presets (R1): per-domain spec data. */
@@ -96,22 +98,33 @@ export interface ReasoningGameOptions extends ReasoningGameSpec {
   rewards: Reward[];
 }
 
-export class ReasoningGame implements Game<ReasoningState, string> {
-  readonly id: string;
-  private readonly spec: ReasoningGameOptions;
-  private readonly rng: SeededRNG;
-  private readonly tasks: ReasoningTask[];
-  private internal: ReasoningState;
+interface ReasoningGameConfig extends GameConfig {
+  spec: ReasoningGameOptions;
+  tasks: ReasoningTask[];
+}
 
-  constructor(spec: ReasoningGameOptions, seed: number, tasks: ReasoningTask[]) {
-    this.spec = spec;
-    this.id = spec.id;
-    this.rng = new SeededRNG(seed);
-    this.tasks = tasks;
-    this.internal = this.initialState();
+export class ReasoningGame extends GameBase<ReasoningState, string> {
+  private readonly spec: ReasoningGameOptions;
+  private readonly tasks: ReasoningTask[];
+  private taskIndex = 0;
+  private task: RunningTask | null = null;
+  private tokens = 0;
+  private settled = 0;
+  private vetoes = 0;
+  private consolidations = 0;
+  private cycle = 0;
+  private terminal_ = false;
+
+  constructor(config: ReasoningGameConfig) {
+    super(config.id ?? config.spec.id, config);
+    this.spec = config.spec;
+    this.tasks = config.tasks;
+    this.task = this.tasks.length
+      ? { ...this.tasks[0]!, ambiguityRemaining: this.tasks[0]!.ambiguity }
+      : null;
   }
 
-  private initialState(): ReasoningState {
+  protected override getInitialState(): ReasoningState {
     return {
       taskIndex: 0,
       task: this.tasks.length
@@ -122,11 +135,16 @@ export class ReasoningGame implements Game<ReasoningState, string> {
       vetoes: 0,
       consolidations: 0,
       cycle: 0,
+      terminal: false,
     };
   }
 
+  protected override getStateId(state: ReasoningState): string {
+    return `${this.spec.id}#t${state.cycle}`;
+  }
+
   /** R2: tier gates legalActions — tier-0 reflex ops only; ask_lm needs tier ≥ 2. */
-  legalActions(state: ReasoningState): string[] {
+  override legalActions(state: ReasoningState): string[] {
     return this.spec.actions
       .filter((a) => a.tier <= this.spec.tier && !(a.id === 'tune'))
       .map((a) => a.id)
@@ -134,45 +152,10 @@ export class ReasoningGame implements Game<ReasoningState, string> {
       .concat(state.taskIndex < this.tasks.length ? [] : ['finish']);
   }
 
-  observe(): Perception {
-    const s = this.internal;
-    const features: Record<string, number> = {
-      taskIndex: s.taskIndex,
-      tokens: s.tokens,
-      settled: s.settled,
-      vetoes: s.vetoes,
-      consolidations: s.consolidations,
-      ambiguity: s.task?.ambiguityRemaining ?? 0,
-    };
-    for (const sensor of this.spec.sensors) {
-      const reading = sensor.read({ outcome: this.outcomeFromState() });
-      for (const [k, v] of Object.entries(reading.features))
-        features[`${sensor.id}.${k}`] = v * reading.confidence;
-    }
-    return {
-      stateId: `${this.id}#t${s.cycle}`,
-      features,
-      confidence: 1,
-      terminal: s.taskIndex >= this.tasks.length,
-    };
-  }
-
-  private outcomeFromState() {
-    const s = this.internal;
-    return {
-      tokens: s.tokens,
-      settled: s.settled,
-      attempted: this.tasks.length,
-      vetoes: s.vetoes,
-      consolidations: s.consolidations,
-      ambiguityBefore: this.tasks[0]?.ambiguity,
-      ambiguityAfter: s.task?.ambiguityRemaining,
-    };
-  }
-
-  step(action: string): GameOutcome {
-    this.internal.cycle++;
-    const task = this.internal.task;
+  override step(action: string): GameOutcome {
+    this.cycle++;
+    this.incrementStep();
+    const task = this.task;
     switch (action) {
       case 'clarify':
         if (task) task.ambiguityRemaining = Math.max(0, task.ambiguityRemaining - 0.4);
@@ -180,14 +163,14 @@ export class ReasoningGame implements Game<ReasoningState, string> {
       case 'ask_lm':
         if (task) {
           task.ambiguityRemaining = Math.max(0, task.ambiguityRemaining - 0.6);
-          this.internal.tokens += this.spec.askLMTokenCost;
+          this.tokens += this.spec.askLMTokenCost;
         }
         break;
       case 'spawn_subgoal':
         if (task) task.ambiguityRemaining = Math.max(0, task.ambiguityRemaining - 0.2);
         break;
       case 'consolidate':
-        this.internal.consolidations++;
+        this.consolidations++;
         break;
       case 'revise':
       case 'cycle':
@@ -195,13 +178,13 @@ export class ReasoningGame implements Game<ReasoningState, string> {
         break;
       case 'settle': {
         if (task && task.ambiguityRemaining <= 0) {
-          this.internal.settled++;
-          this.internal.taskIndex++;
-          this.internal.task =
-            this.internal.taskIndex < this.tasks.length
+          this.settled++;
+          this.taskIndex++;
+          this.task =
+            this.taskIndex < this.tasks.length
               ? {
-                  ...this.tasks[this.internal.taskIndex]!,
-                  ambiguityRemaining: this.tasks[this.internal.taskIndex]!.ambiguity,
+                  ...this.tasks[this.taskIndex]!,
+                  ambiguityRemaining: this.tasks[this.taskIndex]!.ambiguity,
                 }
               : null;
         }
@@ -213,15 +196,78 @@ export class ReasoningGame implements Game<ReasoningState, string> {
     const score = composeReward(this.spec.rewards, this.spec.rewardWeights, {
       outcome: this.outcomeFromState(),
     });
+    this.terminal_ = this.taskIndex >= this.tasks.length;
     return {
       reward: score,
-      terminal: this.internal.taskIndex >= this.tasks.length,
+      terminal: this.terminal_,
       info: { action },
     };
   }
 
-  state(): ReasoningState {
-    return { ...this.internal, task: this.internal.task ? { ...this.internal.task } : null };
+  override isTerminal(state: ReasoningState): boolean {
+    return state.terminal;
+  }
+
+  override state(): ReasoningState {
+    return {
+      taskIndex: this.taskIndex,
+      task: this.task ? { ...this.task } : null,
+      tokens: this.tokens,
+      settled: this.settled,
+      vetoes: this.vetoes,
+      consolidations: this.consolidations,
+      cycle: this.cycle,
+      terminal: this.terminal_,
+    };
+  }
+
+  override observe(): Perception {
+    const features: Record<string, number> = {
+      taskIndex: this.taskIndex,
+      tokens: this.tokens,
+      settled: this.settled,
+      vetoes: this.vetoes,
+      consolidations: this.consolidations,
+      ambiguity: this.task?.ambiguityRemaining ?? 0,
+    };
+    for (const sensor of this.spec.sensors) {
+      const reading = sensor.read({ outcome: this.outcomeFromState() });
+      for (const [k, v] of Object.entries(reading.features))
+        features[`${sensor.id}.${k}`] = v * reading.confidence;
+    }
+    return {
+      stateId: this.getStateId(this.state()),
+      features,
+      confidence: 1,
+      terminal: this.terminal_,
+    };
+  }
+
+  override reset(): ReasoningState {
+    this.taskIndex = 0;
+    this.task = this.tasks.length
+      ? { ...this.tasks[0]!, ambiguityRemaining: this.tasks[0]!.ambiguity }
+      : null;
+    this.tokens = 0;
+    this.settled = 0;
+    this.vetoes = 0;
+    this.consolidations = 0;
+    this.cycle = 0;
+    this.terminal_ = false;
+    this.stepCount = 0;
+    return this.getInitialState();
+  }
+
+  private outcomeFromState() {
+    return {
+      tokens: this.tokens,
+      settled: this.settled,
+      attempted: this.tasks.length,
+      vetoes: this.vetoes,
+      consolidations: this.consolidations,
+      ambiguityBefore: this.tasks[0]?.ambiguity,
+      ambiguityAfter: this.task?.ambiguityRemaining,
+    };
   }
 }
 
@@ -252,5 +298,10 @@ export const createReasoningGame = (
     actions: spec.actions?.length ? spec.actions : [...DEFAULT_ACTIONS],
     rewards: spec.rewards?.length ? spec.rewards : [...DEFAULT_REWARDS],
   };
-  return new ReasoningGame(full, seed, tasks ?? generateEvalTasks(full, seed));
+  return new ReasoningGame({
+    id: full.id,
+    seed,
+    spec: full,
+    tasks: tasks ?? generateEvalTasks(full, seed),
+  });
 };

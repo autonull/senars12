@@ -1,4 +1,5 @@
 import type { Game, Perception, GameOutcome } from '../Game';
+import { GameBase, type GameConfig } from '../GameBase';
 
 export interface ConversationState {
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -14,55 +15,26 @@ export interface ConversationAction {
   toolArgs?: Record<string, unknown>;
 }
 
-export class ConversationGame implements Game<ConversationState, ConversationAction> {
-  readonly id = 'conversation';
-
+export class ConversationGame extends GameBase<ConversationState, ConversationAction> {
   private _state: ConversationState = {
     history: [],
     openTasks: [],
   };
 
-  observe(): Perception {
-    const lastUserMsg = this._state.history
-      .slice()
-      .reverse()
-      .find((m: { role: string }) => m.role === 'user');
-    const lastAssistantMsg = this._state.history
-      .slice()
-      .reverse()
-      .find((m: { role: string }) => m.role === 'assistant');
-
-    const features: Record<string, number> = {
-      historyLength: this._state.history.length,
-      hasPendingResponse: this._state.pendingResponse ? 1 : 0,
-      openTasksCount: this._state.openTasks.length,
-      lastUserLength: lastUserMsg?.content.length ?? 0,
-      lastAssistantLength: lastAssistantMsg?.content.length ?? 0,
-    };
-
-    return {
-      stateId: `conv-${this._state.history.length}`,
-      features,
-      confidence: 1.0,
-      terminal: false,
-    };
+  constructor(config: GameConfig = {}) {
+    super(config.id ?? 'conversation', config);
   }
 
-  state(): ConversationState {
-    return this._state;
+  protected override getInitialState(): ConversationState {
+    return { history: [], openTasks: [] };
   }
 
-  legalActions(_state: ConversationState): ConversationAction[] {
-    const actions: ConversationAction[] = [
-      { type: 'acknowledge' },
-      { type: 'clarify' },
-      { type: 'answer' },
-      { type: 'defer' },
-    ];
-    return actions;
+  protected override getStateId(state: ConversationState): string {
+    return `conv-${state.history.length}`;
   }
 
-  step(action: ConversationAction): GameOutcome {
+  override step(action: ConversationAction): GameOutcome {
+    this.incrementStep();
     switch (action.type) {
       case 'acknowledge':
         this._state.history.push({ role: 'assistant', content: action.content ?? 'Understood.' });
@@ -94,6 +66,60 @@ export class ConversationGame implements Game<ConversationState, ConversationAct
     }
   }
 
+  override isTerminal(_state: ConversationState): boolean {
+    return false; // Conversation games don't naturally terminate
+  }
+
+  override legalActions(_state: ConversationState): ConversationAction[] {
+    return [
+      { type: 'acknowledge' },
+      { type: 'clarify' },
+      { type: 'answer' },
+      { type: 'defer' },
+    ];
+  }
+
+  override state(): ConversationState {
+    return {
+      history: [...this._state.history],
+      pendingResponse: this._state.pendingResponse,
+      userIntent: this._state.userIntent,
+      openTasks: [...this._state.openTasks],
+    };
+  }
+
+  override observe(): Perception {
+    const lastUserMsg = this._state.history
+      .slice()
+      .reverse()
+      .find((m: { role: string }) => m.role === 'user');
+    const lastAssistantMsg = this._state.history
+      .slice()
+      .reverse()
+      .find((m: { role: string }) => m.role === 'assistant');
+
+    const features: Record<string, number> = {
+      historyLength: this._state.history.length,
+      hasPendingResponse: this._state.pendingResponse ? 1 : 0,
+      openTasksCount: this._state.openTasks.length,
+      lastUserLength: lastUserMsg?.content.length ?? 0,
+      lastAssistantLength: lastAssistantMsg?.content.length ?? 0,
+    };
+
+    return {
+      stateId: this.getStateId(this.state()),
+      features,
+      confidence: 1.0,
+      terminal: false,
+    };
+  }
+
+  override reset(): ConversationState {
+    this._state = { history: [], openTasks: [] };
+    this.stepCount = 0;
+    return this.getInitialState();
+  }
+
   addUserMessage(content: string): void {
     this._state.history.push({ role: 'user', content });
   }
@@ -115,6 +141,6 @@ export class ConversationGame implements Game<ConversationState, ConversationAct
   }
 }
 
-export function createConversationGame(): ConversationGame {
-  return new ConversationGame();
+export function createConversationGame(config: GameConfig = {}): ConversationGame {
+  return new ConversationGame(config);
 }

@@ -12,14 +12,16 @@
 |----|-------------------------|--------|--------|--------|--------------|
 | **W1** | **Registry Unification** | F1 + C11 | ★★★★★ | M | — | ✅ **Done** |
 | **W2** | **Boundary Primitives Enforcement** | F2 | ★★★★★ | S | — | ✅ **Done** |
-| **W3** | **Strategy System Unification** | F3 + C1 + C2 | ★★★★★ | M | W1 | 🟡 **In Progress** |
-| **W4** | **Transport Abstraction** | A1 + C3 | ★★★★☆ | M | W1 |
-| **W5** | **MemoryView + Codec Unification** | A2 + A3 + C5 | ★★★★☆ | M | W1, W2 |
+| **W3** | **Strategy System Unification** | F3 + C1 + C2 | ★★★★★ | M | W1 | ✅ **Complete** |
+| **W4** | **Transport Abstraction** | A1 + C3 | ★★★★☆ | M | W1 | ✅ **Complete** |
+| **W5** | **MemoryView + Codec Unification** | A2 + A3 + C5 | ★★★★☆ | M | W1, W2 | ✅ **Complete** |
 | **W6** | **Error Taxonomy + Logging** | A4 + Q1 | ★★★☆☆ | S | W1, W2 |
 | **W7** | **Config Schema Generation** | C4 + C10 | ★★★☆☆ | M | W2 | ✅ **Done** |
 | **W8** | **RL Baseline Framework** | C6 | ★★★★☆ | S | W1 | ✅ **Done** |
-| **W9** | **Game Base Class** | C7 | ★★★☆☆ | S | W1 | 🟡 **In Progress** (GameBase created, 2/14 games refactored) |
+| **W9** | **Game Base Class** | C7 | ★★★☆☆ | S | W1 | ✅ **Complete** (GameBase created, 11/11 games refactored) |
 | **W10** | **Oracle/MCP/Config Declarative Factory** | C8 + C9 + C10 (part) | ★★★☆☆ | M | W1, W7 | ✅ **Done** |
+| **W11** | **Prometheus Client Migration** | — | ★★★☆☆ | S | W1 | ✅ **Complete** |
+| **W12** | **OpenTelemetry Trace Migration** | — | ★★★☆☆ | S | W1 | ✅ **Complete** |
 
 **Deferred (Quality — post-consolidation):**
 - Q2 Builder Unification
@@ -345,8 +347,8 @@ export abstract class ValueFunctionBase<Config extends VFConfig, State extends V
 
 ---
 
-### W9: Game Base Class (Week 2, needs W1)
-**Scope:** 14 games → `GameBase`
+### W9: Game Base Class (Week 2, needs W1) — ✅ **Complete**
+**Scope:** 11 games → `GameBase` (MetaGame/ReasoningMetaGame/SelfMetaGame are separate interfaces)
 
 ```typescript
 // src/game/GameBase.ts
@@ -367,8 +369,8 @@ export abstract class GameBase<State, Action> implements Game<State, Action> {
 }
 ```
 
-**Deliverables:**
-- All 14 games extend `GameBase` (~40% line reduction)
+**Deliverables:** ✅ **All complete**
+- All 11 games extend `GameBase` (~40% line reduction)
 - New game = 30 lines implementing 4 abstract methods
 - Unified `GameTestSuite` works for any game
 - Serialization/replay works automatically
@@ -460,9 +462,10 @@ const provider = new NodeTracerProvider();
 4. Test spans are exported correctly
 5. Remove `@opentelemetry/sdk-trace-node` from deps
 
-**Deliverables:** ✅ **Core Migration Complete** (1 test fix pending)
+**Deliverables:** ✅ **Complete**
 - Zero `@opentelemetry/sdk-trace-node` imports in `src/` ✅
-- Tracing works with new package ✅ (1 test fix pending)
+- Tracing works with new package ✅
+- All OTel tests pass ✅
 
 ---
 
