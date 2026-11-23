@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ENGINE_ORIGINS, EngineOrigin, NAR_ORIGIN, PROPOSER_ORIGIN } from './origins';
 
 /** Bands, most permissive first. `abstain` is below `block` rather than beside it. */
 export const BANDS = { act: 2, review: 1, block: 0, abstain: -1 } as const;
@@ -14,15 +15,9 @@ export const CognitiveAxisSchema = z.enum(COGNITIVE_AXES);
 export const JUDGMENT_SHAPES = ['classify', 'evaluate', 'synthesize'] as const;
 export const JudgmentShapeSchema = z.enum(JUDGMENT_SHAPES);
 
-/** The one origin permitted to append proposal events. */
-export const PROPOSER_ORIGIN = 'proposer' as const;
-
-/** The origin the reasoning engine appends under. */
-export const NAR_ORIGIN = 'nar' as const;
-
-/** Engine origin discriminants. */
-export const ENGINE_ORIGINS = ['nar', 'kernel', 'proposer', 'metta'] as const;
-export type EngineOrigin = (typeof ENGINE_ORIGINS)[number];
+/** Re-export engine origin discriminants from origins.ts to avoid duplication. */
+export { ENGINE_ORIGINS, NAR_ORIGIN, PROPOSER_ORIGIN };
+export type { EngineOrigin };
 
 /** How restrictive a band is; abstaining is always the most restrictive. */
 export const bandOrdinal = (band: BandDecision): number => BANDS[band];
