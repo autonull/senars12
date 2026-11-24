@@ -245,6 +245,13 @@ export const EVENT_CATALOG = defineCatalog({
     provenanceRole: 'resource',
     shapes: ['series', 'table'],
   },
+  'budget.consumed': {
+    label: 'Budget consumed',
+    category: 'budget',
+    severity: 'info',
+    provenanceRole: 'resource',
+    shapes: ['series', 'table'],
+  },
   'policy.violation': {
     label: 'Policy violation',
     category: 'governance',
@@ -280,6 +287,20 @@ export const EVENT_CATALOG = defineCatalog({
     provenanceRole: 'verdict',
     shapes: ['table', 'text'],
   },
+  'gate.failed': {
+    label: 'Gate failed',
+    category: 'judgment',
+    severity: 'error',
+    provenanceRole: 'verdict',
+    shapes: ['table', 'text'],
+  },
+  'gate.passed': {
+    label: 'Gate passed',
+    category: 'judgment',
+    severity: 'notice',
+    provenanceRole: 'verdict',
+    shapes: ['table', 'text'],
+  },
   'shadow.validation.dropped': {
     label: 'Shadow validation dropped',
     category: 'memory',
@@ -300,6 +321,27 @@ export const EVENT_CATALOG = defineCatalog({
     severity: 'warning',
     provenanceRole: 'verdict',
     shapes: ['graph', 'table', 'tree'],
+  },
+  'proposal.submitted': {
+    label: 'Proposal submitted',
+    category: 'proposal',
+    severity: 'info',
+    provenanceRole: 'premise',
+    shapes: ['graph', 'table', 'tree'],
+  },
+  'snapshot.created': {
+    label: 'Snapshot created',
+    category: 'system',
+    severity: 'notice',
+    provenanceRole: 'meta',
+    shapes: ['text', 'table'],
+  },
+  'snapshot.restored': {
+    label: 'Snapshot restored',
+    category: 'system',
+    severity: 'notice',
+    provenanceRole: 'meta',
+    shapes: ['text', 'table'],
   },
 } as const satisfies Record<CognitiveEvent['type'], { label: string; category: EventCategory; severity: EventSeverity; provenanceRole: ProvenanceRole; shapes: readonly Shape[] }>);
 

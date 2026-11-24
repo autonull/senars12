@@ -61,12 +61,12 @@ const between = (source: string, start: string, end: string): string => {
 
 export const scanProtocol = (): ProtocolSubject => {
   const read = (path: string): string => readFileSync(join(ROOT, path), 'utf8');
-  const proposal = read('src/schemas/proposal.ts');
+  const proposal = read('src/generated/schemas.ts');
   const lifecycle = read('src/proposal/lifecycle.ts');
   return {
     doc: read(PROTOCOL_DOC),
     reasons: [
-      ...(between(proposal, 'PROPOSAL_REJECTIONS = [', '] as const').matchAll(/'([^']+)'/g) ?? []),
+      ...(between(proposal, 'PROPOSAL_REJECTIONS = [', '] as const').matchAll(/["']([^"']+)["']/g) ?? []),
     ]
       .map(([, reason]) => reason)
       .filter((reason): reason is string => reason !== undefined),
@@ -75,7 +75,7 @@ export const scanProtocol = (): ProtocolSubject => {
       maxPendingContent: Number(/maxPendingContent: (\d+)/.exec(lifecycle)?.[1] ?? NaN),
       maxPendingRules: Number(/maxPendingRules: (\d+)/.exec(lifecycle)?.[1] ?? NaN),
     },
-    kinds: [...(between(proposal, 'PROPOSAL_KINDS = [', '] as const').matchAll(/'([^']+)'/g) ?? [])]
+    kinds: [...(between(proposal, 'PROPOSAL_KINDS = [', '] as const').matchAll(/["']([^"']+)["']/g) ?? [])]
       .map(([, kind]) => kind)
       .filter((kind): kind is string => kind !== undefined),
     refuseReasons: [...lifecycle.matchAll(/this\.refuse\([^,]+, '([^']+)'/g)]

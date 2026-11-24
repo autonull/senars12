@@ -377,25 +377,10 @@ export class RepairLoop {
 }
 
 /** Create a RepairLoop instance. */
-export function createRepairLoop(config?: Partial<RepairLoopConfig>): RepairLoop {
-  const defaultConfig: RepairLoopConfig = {
-    maxAttempts: 3,
-    policies: defaultRepairPolicies,
-    detectors: [
-      stallDetector,
-      divergenceDetector,
-      resourceExhaustionDetector,
-      oracleFailureDetector,
-      gateFailureDetector,
-    ],
-    clock: { now: () => Date.now() },
-  };
-
-  return new RepairLoop({ ...defaultConfig, ...config });
+export function createRepairLoop(config: RepairLoopConfig): RepairLoop {
+  // Clock must be provided via config (from Env)
+  return new RepairLoop(config);
 }
-
-/** Default repair loop instance. */
-export const repairLoop = createRepairLoop();
 
 // ============================================================================
 // Anomaly Detectors

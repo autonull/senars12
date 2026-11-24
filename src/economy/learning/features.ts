@@ -6,6 +6,8 @@ import type { EconomyTask } from '../types';
 import type { Truth } from '../../kernel/truth';
 import type { Term } from '../../kernel/terms';
 import { TermOp } from '../../kernel/terms';
+import type { Clock } from '../../kernel/env';
+import { createDefaultClock } from '../../kernel/env';
 import { flooredRatio } from '@senars/util/numeric';
 
 /** Feature names used in TD learning. */
@@ -34,19 +36,20 @@ export const FEATURE_NAMES = [
 export const FEATURE_DIM = FEATURE_NAMES.length;
 
 /** Extract numerical features from a task. */
-export function extractFeatures(task: EconomyTask, featureNames: readonly string[] = FEATURE_NAMES): number[] {
+export function extractFeatures(task: EconomyTask, featureNames: readonly string[] = FEATURE_NAMES, clock?: Clock): number[] {
   const features: number[] = new Array(featureNames.length).fill(0);
+  const now = clock?.now() ?? createDefaultClock().now();
 
   for (let i = 0; i < featureNames.length; i++) {
     const name = featureNames[i]!;
-    features[i] = extractSingleFeature(task, name);
+    features[i] = extractSingleFeature(task, name, now);
   }
 
   return features;
 }
 
 /** Extract a single feature by name. */
-function extractSingleFeature(task: EconomyTask, name: string): number {
+function extractSingleFeature(task: EconomyTask, name: string, now: number): number {
   switch (name) {
     case 'truth-frequency':
       return task.truth.f;
@@ -57,7 +60,7 @@ function extractSingleFeature(task: EconomyTask, name: string): number {
     case 'task-activation':
       return task.activation;
     case 'task-age':
-      return Math.min(1, (Date.now() - task.createdAt) / 86400000); // Normalize to days
+      return Math.min(1, (now - task.createdAt) / 86400000); // Normalize to days
     case 'kind-goal':
       return task.kind === 'goal' ? 1 : 0;
     case 'kind-belief':
@@ -159,13 +162,14 @@ export function computeSuccessorFeatures(
   successors: EconomyTask[],
   config: TDLearningConfig = defaultTDConfig,
   visited: Set<string> = new Set(),
-  depth = 0
+  depth = 0,
+  clock?: Clock
 ): SuccessorFeatures {
   const { gamma, featureDimensions } = config;
   const featureDim = featureDimensions.length;
 
   // Base features for current task
-  const baseFeatures = extractFeatures(task, featureDimensions);
+  const baseFeatures = extractFeatures(task, featureDimensions, clock);
 
   if (depth > 10 || visited.has(task.id) || successors.length === 0) {
     return {
@@ -181,7 +185,7 @@ export function computeSuccessorFeatures(
   // Accumulate discounted successor features
   const accumulated: number[] = new Array(featureDim).fill(0);
   for (const succ of successors) {
-    const succSF = computeSuccessorFeatures(succ, [], config, new Set(visited), depth + 1);
+    const succSF = computeSuccessorFeatures(succ, [], config, new Set(visited), depth + 1, clock);
     for (let i = 0; i < featureDim; i++) {
       accumulated[i]! += gamma * succSF.features[i]!;
     }
@@ -212,17 +216,19 @@ export function computeSuccessorFeatures(
 export function learnValueWeights(
   transitions: Array<{ from: EconomyTask; to: EconomyTask[]; reward: number }>,
   config: TDLearningConfig = defaultTDConfig,
-  initialWeights?: ValueWeights
+  initialWeights?: ValueWeights,
+  clock?: Clock
 ): ValueWeights {
   const { gamma, alpha, featureDimensions } = config;
   const featureDim = featureDimensions.length;
 
   let weights: number[] = initialWeights?.weights ?? new Array(featureDim).fill(0);
   let samples = initialWeights?.samples ?? 0;
+  const now = clock?.now() ?? createDefaultClock().now();
 
   for (const trans of transitions) {
-    const fromFeatures = extractFeatures(trans.from, featureDimensions);
-    const target = trans.reward + gamma * computeNextValue(trans.to, weights, featureDimensions);
+    const fromFeatures = extractFeatures(trans.from, featureDimensions, clock);
+    const target = trans.reward + gamma * computeNextValue(trans.to, weights, featureDimensions, clock);
     const currentValue = weights.reduce((sum, w, i) => sum + w * fromFeatures[i]!, 0);
     const tdError = target - currentValue;
 
@@ -236,18 +242,18 @@ export function learnValueWeights(
   return {
     weights,
     featureNames: featureDimensions,
-    updatedAt: Date.now(),
+    updatedAt: now,
     samples,
   };
 }
 
 /** Compute next state value from successor tasks. */
-function computeNextValue(tasks: EconomyTask[], weights: number[], featureNames: readonly string[]): number {
+function computeNextValue(tasks: EconomyTask[], weights: number[], featureNames: readonly string[], clock?: Clock): number {
   if (tasks.length === 0) return 0;
 
   let total = 0;
   for (const task of tasks) {
-    const features = extractFeatures(task, featureNames);
+    const features = extractFeatures(task, featureNames, clock);
     let v = 0;
     for (let i = 0; i < weights.length; i++) {
       v += weights[i]! * features[i]!;
@@ -261,9 +267,10 @@ function computeNextValue(tasks: EconomyTask[], weights: number[], featureNames:
 export function predictValue(
   task: EconomyTask,
   valueWeights: ValueWeights,
-  config: TDLearningConfig = defaultTDConfig
+  config: TDLearningConfig = defaultTDConfig,
+  clock?: Clock
 ): number {
-  const features = extractFeatures(task, valueWeights.featureNames);
+  const features = extractFeatures(task, valueWeights.featureNames, clock);
   let value = 0;
   const weights = valueWeights.weights;
   for (let i = 0; i < features.length; i++) {

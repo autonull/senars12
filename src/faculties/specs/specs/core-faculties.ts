@@ -1,39 +1,42 @@
 /**
- * Core Faculty Specifications — the 20 core faculty definitions.
+ * Core Faculty Specifications — the 25 core faculty definitions.
  *
  * This file collects all faculty specs into a single array for registration.
  */
 
 import type { FacultySpec } from '../../specs';
 import { groundingSpec, perceiveFormalizeSpec } from './perception';
-import { inferenceSpec, abductionSpec, analogySpec, revisionSpec, evaluationSpec, proposeHypothesisSpec } from './judgment';
-import { planningSpec, proposeActionSpec, proposePlanSpec } from './action';
-import { communicationSpec, governanceSpec, proposeRepairSpec, proposeSkillSpec, inductionSpec } from './metacognition';
+import { inferenceSpec, abductionSpec, analogySpec, revisionSpec, evaluationSpec, proposeHypothesisSpec, judgeRubricSpec } from './judgment';
+import { planningSpec, proposeActionSpec, proposePlanSpec, simulateScenarioSpec } from './action';
+import { communicationSpec, governanceSpec, proposeRepairSpec, proposeSkillSpec, inductionSpec, narrateExplainSpec, mirrorPostmortemSpec, retrieveRerankSpec } from './metacognition';
 
-/** The 20 core faculty specifications, in registration order. */
+/** The 25 core faculty specifications, in registration order. */
 export const CORE_FACULTIES: FacultySpec[] = [
   // Perception (2)
   groundingSpec,
   perceiveFormalizeSpec,
-  // Reasoning (5)
+  // Reasoning (7)
   inferenceSpec,
   abductionSpec,
   inductionSpec,
   analogySpec,
   revisionSpec,
-  // Action (4)
-  planningSpec,
   evaluationSpec,
-  communicationSpec,
-  governanceSpec,
-  // Meta/LM Roles (5)
+  judgeRubricSpec,
+  // Action (5)
+  planningSpec,
   proposeActionSpec,
+  proposePlanSpec,
+  simulateScenarioSpec,
+  communicationSpec,
+  // Meta/LM Roles (7)
   proposeHypothesisSpec,
   proposeRepairSpec,
-  proposePlanSpec,
   proposeSkillSpec,
-  // Learning/Communication/Memory/Governance are categories but not individual specs in this list
-  // The remaining 4 are covered by the above
+  governanceSpec,
+  narrateExplainSpec,
+  mirrorPostmortemSpec,
+  retrieveRerankSpec,
 ];
 
 /** Faculty names for quick lookup. */

@@ -564,7 +564,7 @@ export const defaultAnswerabilityModel: AnswerabilityModel = {
   bias: 0.5,
   samples: 0,
   accuracy: 0.5,
-  updatedAt: Date.now(),
+  updatedAt: createDefaultClock().now(),
 };
 
 /** Task features for answerability prediction. */
@@ -587,7 +587,8 @@ export interface AnswerabilityFeatures {
 export function extractAnswerabilityFeatures(
   task: EconomyTask,
   oracleCapabilities: string[],
-  facultyCapabilities: string[]
+  facultyCapabilities: string[],
+  clock?: Clock
 ): AnswerabilityFeatures {
   const taskStr = task.term.toString();
   const taskPrefix = taskStr.split('(')[0] ?? taskStr;
@@ -618,7 +619,8 @@ export function extractAnswerabilityFeatures(
   };
   taskKind[task.kind] = 1;
 
-  const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
+  const now = clock?.now() ?? createDefaultClock().now();
+  const ageHours = (now - task.createdAt) / (1000 * 60 * 60);
 
   return {
     hasOracle,
@@ -652,13 +654,14 @@ export function trainAnswerabilityModel(
   outcomes: Array<{ task: EconomyTask; resolved: boolean }>,
   oracleCapabilities: string[],
   facultyCapabilities: string[],
-  initialModel?: AnswerabilityModel
+  initialModel?: AnswerabilityModel,
+  clock?: Clock
 ): AnswerabilityModel {
   const model = initialModel ?? { ...defaultAnswerabilityModel };
   const learningRate = 0.01;
 
   for (const { task, resolved } of outcomes) {
-    const features = extractAnswerabilityFeatures(task, oracleCapabilities, facultyCapabilities);
+    const features = extractAnswerabilityFeatures(task, oracleCapabilities, facultyCapabilities, clock);
     const prediction = predictAnswerability(features, model);
     const target = resolved ? 1 : 0;
     const error = target - prediction;
@@ -677,7 +680,7 @@ export function trainAnswerabilityModel(
     model.samples++;
   }
 
-  model.updatedAt = Date.now();
+  model.updatedAt = clock?.now() ?? createDefaultClock().now();
   return model;
 }
 
@@ -692,14 +695,16 @@ export interface VoIWithAnswerability extends VoIBreakdown {
 /** Calculate VoI with answerability weighting. */
 export function calculateVoIWithAnswerability(
   context: VoIContext,
-  answerabilityModel: AnswerabilityModel = defaultAnswerabilityModel
+  answerabilityModel: AnswerabilityModel = defaultAnswerabilityModel,
+  clock?: Clock
 ): VoIWithAnswerability {
   const baseVoI = calculateDetailedVoI(context);
 
   const features = extractAnswerabilityFeatures(
     context.task,
     context.oracleCapabilities,
-    context.facultyCapabilities
+    context.facultyCapabilities,
+    clock
   );
   const answerability = predictAnswerability(features, answerabilityModel);
 

@@ -4,6 +4,8 @@
 
 import type { EconomyTask } from '../types';
 import type { TDLearningConfig, ValueWeights, SuccessorFeatures } from './features';
+import type { Clock } from '../../kernel/env';
+import { createDefaultClock } from '../../kernel/env';
 import { defaultTDConfig, extractFeatures, predictValueFromSF } from './features';
 
 /**
@@ -14,17 +16,18 @@ export function tdStep(
   to: EconomyTask[],
   reward: number,
   valueWeights: ValueWeights,
-  config: TDLearningConfig = defaultTDConfig
+  config: TDLearningConfig = defaultTDConfig,
+  clock?: Clock
 ): ValueWeights {
   const { gamma, alpha, featureDimensions } = config;
   const featureNames = featureDimensions;
   const featureDim = featureNames.length;
-  const fromFeatures = extractFeatures(from, featureNames);
+  const fromFeatures = extractFeatures(from, featureNames, clock);
 
   // Compute target
   let nextValue = 0;
   for (const succ of to) {
-    const succFeatures = extractFeatures(succ, featureNames);
+    const succFeatures = extractFeatures(succ, featureNames, clock);
     let v = 0;
     const weights = valueWeights.weights;
     for (let i = 0; i < featureDim; i++) {
@@ -44,10 +47,11 @@ export function tdStep(
   for (let i = 0; i < featureDim; i++) {
     newWeights[i]! += alpha * tdError * fromFeatures[i]!;
   }
+  const now = clock?.now() ?? createDefaultClock().now();
   return {
     weights: newWeights,
     featureNames,
-    updatedAt: Date.now(),
+    updatedAt: now,
     samples: valueWeights.samples + 1,
   };
 }

@@ -7,7 +7,7 @@
 export * from './types';
 export * from './scheduler';
 export * from './utility-voi';
-export * from './learning/';
+export * from './learning';
 export * from './overlays-drives';
 export * from './aging';
 export type { PickRecord } from './types';

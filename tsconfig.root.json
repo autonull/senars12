@@ -51,6 +51,8 @@
       "@senars/cli/*": ["./src/cli/*"],
       "@senars/deck": ["./src/deck/index.ts"],
       "@senars/deck/*": ["./src/deck/*"],
+      "@senars/ui": ["./ui/src/index.ts"],
+      "@senars/ui/*": ["./ui/src/*"],
       "@senars/ui-contract": ["./ui-contract/src/index.ts"],
       "@senars/ui-contract/*": ["./ui-contract/src/*"],
       "@senars/ui-shell": ["./ui-shell/src/index.ts"],

@@ -190,6 +190,19 @@ const reducers = {
     });
   },
 
+  'proposal.submitted': (event, { projection }) => {
+    const { proposalId, kind } = event.payload;
+    projection.applyDelta({
+      nodes: [
+        makeNode(`proposal:${proposalId}`, undefined, undefined, {
+          type: 'proposal',
+          result: `submitted:${kind}`,
+        }),
+      ],
+      edges: [],
+    });
+  },
+
   'task.admitted': (event, { projection }) => {
     const { taskId, term, taskType } = event.payload;
     projection.applyDelta({

@@ -94,6 +94,7 @@ export {
   TASK_TYPES,
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
+  TASK_PUNCTUATION,
   TASK_PUNCTUATIONS,
   TaskTypeSchema,
   FormalizationCandidateSchema,
