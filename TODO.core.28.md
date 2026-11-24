@@ -239,7 +239,7 @@
 
 ---
 
-### W7: genome.ts Decomposition (Week 3–4)
+### W7: genome.ts Decomposition (Week 3–4) ✅ **DONE**
 
 **Problem:** 1,756 lines in single file — the schema genome.
 
@@ -251,25 +251,30 @@ src/formats/
     index.ts             → barrel
     primitives.ts        → uuid, nonEmpty, intervals, timestamp
     enums.ts             → ALL enum definitions (TASK_TYPES, RISK_LEVELS, etc.)
+    constants.ts         → derived constant maps
+    defs.ts              → single source of truth (Defs object)
     schemas/
       index.ts
-      cognitive-events.ts
-      governance.ts
-      derivation-records.ts
-      formalization.ts
-      proposal.ts
-      rule-table.ts
-      task.ts
-      truth.ts
-    zod-builders.ts      → zod schema construction helpers
-    generators/
-      index.ts
-      typescript.ts      → TS type generation
-      json-schema.ts     → JSON Schema generation
-      docs.ts            → Markdown table generation
+      basic.ts           → TruthValue, SourceQuality, Budget, RulePattern, etc.
+      formalization.ts   → FormalizationCandidate, FormalizationBatch, AmbiguityReport
+      oracle.ts          → LM, Retrieval, Engine schemas
+      kernel.ts          → Term, Stamp, BudgetScopeId
+      gates.ts           → Perception/Action/Reward/Budget gate I/O
+      governance.ts      → AutonomyMode, RiskLevel, PatchProposal, SelfImprovementProposal
+      rules.ts           → RuleProvenance, RuleDeclaration, RuleTable
+      events/
+        base.ts          → CognitiveEventBaseSchema, PROPOSER_ORIGIN, NAR_ORIGIN
+        cognitive.ts     → kernel cognitive events
+        nar.ts           → NAR events + DerivationRecord
+        proposal.ts      → Proposal events
+      budget.ts          → ReasoningBudget, BudgetGate
+      unions.ts          → CognitiveEventSchema union, validators, mint function
+    json-schema.ts       → JSON Schema generation (placeholder)
 ```
 
 **Dependencies:** W1 (schema unification must complete first)
+
+**Result:** Split into 16 focused modules under `src/formats/genome/`. Generator at `src/formats/genome/index.ts` produces identical output to original `src/formats/genome.ts`. All schema drift gates pass.
 
 ---
 
@@ -764,7 +769,7 @@ WEEK 2:
   └─ W6: Bag/Type Redundancy (needs W1) ✅ **DONE**
 
 WEEK 3:
-  ├─ W7: genome.ts Split (needs W1)
+  ├─ W7: genome.ts Split (needs W1) ✅ **DONE**
   ├─ W8: nar.ts Split (needs W2)
   ├─ W9: economy/learning.ts Split (needs W2)
   ├─ W11: faculties/specs/data.ts Split (parallel)

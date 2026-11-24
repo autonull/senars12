@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from './lib/root.js';
 
-const GENOME_SCRIPT = join(ROOT, 'src/formats/genome.ts');
+const GENOME_SCRIPT = join(ROOT, 'src/formats/genome/index.ts');
 const GEN_DIR = join(ROOT, 'src/generated');
 
 function runGenome(): void {
@@ -52,7 +52,7 @@ try {
     for (const file of changed) {
       console.error(`  ${file}`);
     }
-    console.error('\nRegenerate with: tsx src/formats/genome.ts');
+    console.error('\nRegenerate with: tsx src/formats/genome/index.ts');
     console.error('Then commit the changes.');
     process.exit(1);
   }

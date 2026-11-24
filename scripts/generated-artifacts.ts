@@ -11,7 +11,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from './lib/root.js';
 
-const GENOME_SCRIPT = join(ROOT, 'src/formats/genome.ts');
+const GENOME_SCRIPT = join(ROOT, 'src/formats/genome/index.ts');
 const GEN_DIR = join(ROOT, 'src/generated');
 
 const EXPECTED_FILES = [

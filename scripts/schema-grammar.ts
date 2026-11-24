@@ -51,7 +51,7 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
     reason: 'config schema definitions',
   },
   {
-    file: 'src/formats/genome.ts',
+    file: 'src/formats/genome/index.ts',
     reason: 'genome format schemas',
   },
   {

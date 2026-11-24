@@ -9,6 +9,12 @@
 import type { UUID, TimestampMs } from '../generated/schemas';
 import { z } from 'zod';
 import {
+  TaskTypeSchema,
+  type TaskType,
+  TaskBagKindSchema,
+  type TaskBagKind,
+} from '../schemas/task';
+import {
   CognitiveEventSchema,
   type CognitiveEvent,
   TruthValueSchema,
@@ -17,10 +23,6 @@ import {
   type Term,
   StampSchema,
   type Stamp,
-  TaskTypeSchema,
-  type TaskType,
-  TaskBagKindSchema,
-  type TaskBagKind,
   SourceQualitySchema,
   type SourceQuality,
   BudgetScopeIdSchema,
