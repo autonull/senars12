@@ -39,7 +39,7 @@ function createSequential(first: Term, second: Term): Term {
 }
 
 /** Temporal rules (NAL-7). */
-export const TEMPORAL_RULES: NALRule[] = [
+const TEMPORAL_RULES: NALRule[] = [
   // Prediction: (A | B) => (A |> B)
   {
     id: 'prediction',
