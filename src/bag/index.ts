@@ -3,7 +3,6 @@ export type {
   BagItem,
   BagOptions,
   EvictStrategy,
-  InternalEntry,
   Histogram,
   PressureLevel,
   PressureListener,
@@ -14,6 +13,7 @@ export type {
 export { PriorityBag, HistogramImpl } from '../util/bag';
 export type { BagSlotParams, ResolvedBagSlot } from './registration';
 export { bagSlotErrors, resolveBagSlot } from './registration';
+export type { InternalEntry } from './types';
 
 import { emitDomainEvent } from '../agent/event-sink';
 import { DOMAIN_EVENTS } from '../events';

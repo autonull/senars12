@@ -4,22 +4,11 @@
  * entries it indexes without importing the base class back.
  */
 
-export interface BagItem {
-  id: string;
-  priority: number;
-}
+import type { BagItem } from '../util/bag';
 
+/** Minimal entry shape for storage backends (Fenwick tree, etc.). */
 export interface InternalEntry<T extends BagItem> {
   item: T;
   createdAt: number;
   lastAccessedAt: number;
-}
-
-/**
- * The neutral spend shape `sampleMany` reads: a budget measured in cycles. The
- * bag names no core budget type — a caller's richer budget is structurally
- * assignable to this one.
- */
-export interface CyclesBudget {
-  cycles: number;
 }

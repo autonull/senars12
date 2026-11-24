@@ -1,4 +1,5 @@
-import type { BagItem, InternalEntry } from './types';
+import type { BagItem } from '../util/bag';
+import type { InternalEntry } from './types';
 
 /** Largest power of two ≤ `n` (the binary-lifting descent start). */
 export function highestBit(n: number): number {
