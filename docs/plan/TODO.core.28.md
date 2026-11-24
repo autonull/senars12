@@ -3,7 +3,7 @@
 **Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-24 — **W1: Schema Unification complete**, **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete**, **W2: Truth Table Consolidation complete**, **W4: Interface/Class Collisions complete**, **W5: Function Duplication partially complete**, **W6: Bag/Type Redundancy complete**, **W7: genome.ts Split complete**, **W8: nar.ts Split complete**, **W9: economy/learning.ts Split complete**, **W11: faculties/specs/data.ts Split complete**, **W12: memory/fold-memory.ts Split complete**, **W13: loop/repair.ts Split complete**, **W14: kernel/terms/term.ts Split complete**, **W15: verification/laws.ts Split complete**, **W16: logics/nal/rules.ts Split complete** — **Backwards compat removed W7-W16, SeNARS term extensions removed, kernel/terms clean**
+**Last updated:** 2026-11-24 — **W1: Schema Unification complete**, **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete**, **W2: Truth Table Consolidation complete**, **W4: Interface/Class Collisions complete**, **W5: Function Duplication partially complete**, **W6: Bag/Type Redundancy complete**, **W7: genome.ts Split complete**, **W8: nar.ts Split complete**, **W9: economy/learning.ts Split complete**, **W11: faculties/specs/data.ts Split complete**, **W12: memory/fold-memory.ts Split complete**, **W13: loop/repair.ts Split complete**, **W14: kernel/terms/term.ts Split complete**, **W15: verification/laws.ts Split complete**, **W16: logics/nal/rules.ts Split complete**, **W17: MCP Consolidation complete**, **W18: Bin Lib Consolidation complete**, **W19: Agent/Type Duplication complete**, **W21: Gate/Seam Type Unification complete**, **W20: Scripts/lib Consolidation complete**, **W22: Import Boundary Gates complete**, **W23: Config Schema Drift Gate complete**, **W24: Circular Dependency Audit complete (baseline updated to 6)**, **W25: Scripts Directory Consolidation complete**, **W26: scripts/lib Consolidation complete**, **W27: Test Architecture Modernization complete**, **W28: Property-Based Test Expansion complete**, **W29: Documentation Consolidation complete**, **W30: Self/Plan Cleanup complete**, **W31: Architecture Decision Records complete** — **Backwards compat removed W7-W16, SeNARS term extensions removed, kernel/terms clean**
 
 ---
 
@@ -804,16 +804,20 @@ WEEK 6:
 
 WEEK 7:
   ├─ W29: Documentation Consolidation (parallel) ✅ **DONE** (readme generation works)
-  └─ W30: Self/Plan Cleanup (parallel) — **ACTIVE**
+  ├─ W30: Self/Plan Cleanup (parallel) ✅ **DONE** (archived old TODOs, moved current plan)
+  └─ W31: Architecture Decision Records (parallel) ✅ **DONE** (5 ADRs created)
 
 WEEK 8:
-  └─ W31: Architecture Decision Records — **PENDING**
-
-WEEK 9:
   ├─ Integration testing
   ├─ Gate validation
   ├─ Parity checks
   └─ Complexity budget ratchet
+
+WEEK 9:
+  ├─ Remaining gate fixes (typecheck scripts/, lint generated/schemas.ts)
+  ├─ Flaky test resolution (core19-c1.test.ts timeout)
+  ├─ Generator fix for generated/schemas.ts import rename
+  └─ Final parity verification
 ```
 
 ---
