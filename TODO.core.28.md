@@ -3,7 +3,7 @@
 **Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-23 — **W1: Schema Unification complete** (genome now single source of truth for all contracts; manual src/schemas/ replaced with re-export barrels; 152 duplicate exports resolved), **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete** (ENGINE_ORIGINS, TASK_TYPES, TASK_BAG_KINDS, TASK_PUNCTUATIONS, TOLERANT_PUNCTUATIONS, TASK_PUNCTUATION, taskTypeForPunctuation → schemas/task.ts; configDigest → config/digest.ts; systemOneOf → bin/commands/context.ts; cognitiveBounds → config/bound-table.ts; economy TASK_BAG_KINDS renamed to ECONOMY_TASK_BAG_KINDS), **W2: Truth Table Consolidation complete** (shared kernel/truth-constants.ts eliminates constant duplication between engine and verifier; verifier-drift and cross-witness tests pass), **W4: Interface/Class Collisions complete** (Gate→AccountingGate, GateResult→RiskVerdict, PolicyEngine→AdmissionPolicyEngine, ProjectionEngine→VerifierProjectionEngine, Codec namespaced to LogicCodec/NalCodec), **W5: Function Duplication partially complete** (truth algebra consolidated in kernel/truth-constants.ts; defaultEconomyState deduplicated), **W6: Bag/Type Redundancy complete** (deleted unused src/bag/types.ts)
+**Last updated:** 2026-11-24 — **W1: Schema Unification complete**, **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete**, **W2: Truth Table Consolidation complete**, **W4: Interface/Class Collisions complete**, **W5: Function Duplication partially complete**, **W6: Bag/Type Redundancy complete**, **W7: genome.ts Split complete**, **W8: nar.ts Split complete**, **W9: economy/learning.ts Split complete**, **W11: faculties/specs/data.ts Split complete**, **W12: memory/fold-memory.ts Split complete**, **W13: loop/repair.ts Split complete**, **W14: kernel/terms/term.ts Split complete**, **W15: verification/laws.ts Split complete**, **W16: logics/nal/rules.ts Split complete**
 
 ---
 
@@ -54,8 +54,8 @@
 | **W12** | **memory/fold-memory.ts (1,001 lines)** | Split by view type | ★★★★☆ | M | — | ✅ **DONE** |
 | **W13** | **loop/repair.ts (878 lines)** | Extract repair strategies | ★★★★☆ | M | — | ✅ **DONE** |
 | **W14** | **kernel/terms/term.ts (853 lines)** | Split by term operation | ★★★★☆ | M | — | ✅ **DONE** |
-| **W15** | **verification/laws.ts (674 lines)** | Split by law category | ★★★★☆ | S | W2 |
-| **W16** | **logics/nal/rules.ts (508 lines)** | Split by rule family | ★★★★☆ | S | — |
+| **W15** | **verification/laws.ts (674 lines)** | Split by law category | ★★★★☆ | S | W2 | ✅ **DONE** |
+| **W16** | **logics/nal/rules.ts (508 lines)** | Split by rule family | ★★★★☆ | S | — | ✅ **DONE** |
 
 ### Phase 4: Seam Hardening (Weeks 4–5) — *Parallelizable*
 
@@ -781,8 +781,8 @@ WEEK 3:
   ├─ W12: memory/fold-memory.ts Split (parallel) ✅ **DONE**
   ├─ W13: loop/repair.ts Split (parallel) ✅ **DONE**
   ├─ W14: kernel/terms/term.ts Split (parallel) ✅ **DONE**
-  ├─ W15: verification/laws.ts Split (needs W2)
-  └─ W16: logics/nal/rules.ts Split (parallel)
+  ├─ W15: verification/laws.ts Split (needs W2) ✅ **DONE**
+  └─ W16: logics/nal/rules.ts Split (parallel) ✅ **DONE**
 
 WEEK 4:
   ├─ W17: MCP Consolidation (needs W1)
