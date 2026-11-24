@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..');
-const GENOME_SCRIPT = join(ROOT, 'src/formats/genome.ts');
+const GENOME_SCRIPT = join(ROOT, 'src/formats/genome/index.ts');
 const GEN_DIR = join(ROOT, 'src/generated');
 
 function dirname(path: string): string {

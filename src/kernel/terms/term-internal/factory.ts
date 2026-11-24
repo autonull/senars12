@@ -191,5 +191,28 @@ export class TermFactory {
   }
 }
 
-/** Global term factory instance. */
-export const termFactory = TermFactory.getInstance();
+/** Global term factory instance (getter to always return current singleton). */
+export const termFactory = {
+  get instance(): TermFactory {
+    return TermFactory.getInstance();
+  },
+  // Proxy all methods to the current instance
+  variable(name: string) { return TermFactory.getInstance().variable(name); },
+  constant(value: string) { return TermFactory.getInstance().constant(value); },
+  compound(op: TermOp, args: readonly Term[]) { return TermFactory.getInstance().compound(op, args); },
+  // Add other methods as needed
+  inheritance(subject: Term, predicate: Term) { return TermFactory.getInstance().inheritance(subject, predicate); },
+  similarity(subject: Term, predicate: Term) { return TermFactory.getInstance().similarity(subject, predicate); },
+  implication(antecedent: Term, consequent: Term) { return TermFactory.getInstance().implication(antecedent, consequent); },
+  equivalence(subject: Term, predicate: Term) { return TermFactory.getInstance().equivalence(subject, predicate); },
+  conjunction(...terms: Term[]) { return TermFactory.getInstance().conjunction(...terms); },
+  disjunction(...terms: Term[]) { return TermFactory.getInstance().disjunction(...terms); },
+  negation(term: Term) { return TermFactory.getInstance().negation(term); },
+  product(...terms: Term[]) { return TermFactory.getInstance().product(...terms); },
+  prediction(antecedent: Term, consequent: Term) { return TermFactory.getInstance().prediction(antecedent, consequent); },
+  sequential(first: Term, second: Term) { return TermFactory.getInstance().sequential(first, second); },
+  extensionalImage(term: Term) { return TermFactory.getInstance().extensionalImage(term); },
+  intensionalImage(term: Term) { return TermFactory.getInstance().intensionalImage(term); },
+  getOrCreate(op: TermOp, args?: readonly Term[] | string, nameOrValue?: string) { return TermFactory.getInstance().getOrCreate(op, args, nameOrValue); },
+  getStats() { return TermFactory.getInstance().getStats(); },
+} as TermFactory;

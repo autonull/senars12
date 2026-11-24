@@ -6,9 +6,9 @@
 
 import type { FacultySpec } from '../../specs';
 import { groundingSpec, perceiveFormalizeSpec } from './perception';
-import { inferenceSpec, abductionSpec, inductionSpec, analogySpec, revisionSpec, evaluationSpec, proposeHypothesisSpec } from './judgment';
+import { inferenceSpec, abductionSpec, analogySpec, revisionSpec, evaluationSpec, proposeHypothesisSpec } from './judgment';
 import { planningSpec, proposeActionSpec, proposePlanSpec } from './action';
-import { communicationSpec, governanceSpec, proposeRepairSpec, proposeSkillSpec } from './metacognition';
+import { communicationSpec, governanceSpec, proposeRepairSpec, proposeSkillSpec, inductionSpec } from './metacognition';
 
 /** The 20 core faculty specifications, in registration order. */
 export const CORE_FACULTIES: FacultySpec[] = [

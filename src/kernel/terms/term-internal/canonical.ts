@@ -19,6 +19,7 @@ export function getOperatorSymbol(op: TermOp): string {
     case TermOp.SIMILARITY: return '<->';
     case TermOp.IMPLICATION: return '==>';
     case TermOp.PREDICTIVE_IMPLICATION: return '=/>'; // or '/=>'
+    case TermOp.PREDICTION: return '|>';
     case TermOp.CONJUNCTION: return '&';
     case TermOp.DISJUNCTION: return '|';
     case TermOp.NEGATION: return '-';
@@ -136,6 +137,15 @@ class NarseseParser {
       return term;
     }
 
+    // Unary prefix operators (e.g., -term or ~term for negation)
+    const unaryOp = this.peek();
+    if (unaryOp === '-' || unaryOp === '~') {
+      this.consume(); // consume '-' or '~'
+      const arg = this.parseTerm();
+      if (!arg) return null;
+      return termFactory.compound(TermOp.NEGATION, [arg]);
+    }
+
     // Variable
     if (this.peek() === '_' || /[A-Z]/.test(this.peek())) {
       return this.parseVariable();
@@ -213,16 +223,54 @@ class NarseseParser {
   }
 
   private parseCompound(): Term | null {
-    // Parse operator
+    this.skipWhitespace();
+    if (this.peek() === ')' || this.pos >= this.input.length) return null;
+
+    // Parse first term
+    const firstTerm = this.parseTerm();
+    if (!firstTerm) return null;
+
+    this.skipWhitespace();
+
+    // Check if next token is an operator (infix notation: (left op right))
+    const opStart = this.pos;
     let opStr = '';
     while (this.pos < this.input.length && !/\s|[()]/ .test(this.peek())) {
       opStr += this.consume();
     }
 
     const op = this.operatorFromString(opStr);
-    if (!op) return null;
+    if (op) {
+      // Infix notation: parse remaining arguments
+      const args: Term[] = [firstTerm];
+      while (true) {
+        this.skipWhitespace();
+        if (this.peek() === ')' || this.pos >= this.input.length) break;
+        const arg = this.parseTerm();
+        if (!arg) break;
+        args.push(arg);
+      }
+      return termFactory.compound(op, args);
+    }
 
-    // Parse arguments
+    // Not an operator - could be prefix notation or single term
+    // Reset position and try prefix notation
+    this.pos = opStart;
+    this.skipWhitespace();
+
+    // Parse operator (prefix notation: (op arg1 arg2 ...))
+    let prefixOpStr = '';
+    while (this.pos < this.input.length && !/\s|[()]/ .test(this.peek())) {
+      prefixOpStr += this.consume();
+    }
+
+    const prefixOp = this.operatorFromString(prefixOpStr);
+    if (!prefixOp) {
+      // Single term in parentheses, return it
+      return firstTerm;
+    }
+
+    // Parse arguments for prefix notation
     const args: Term[] = [];
     while (true) {
       this.skipWhitespace();
@@ -232,7 +280,7 @@ class NarseseParser {
       args.push(arg);
     }
 
-    return termFactory.compound(op, args);
+    return termFactory.compound(prefixOp, args);
   }
 
   private parseArguments(): Term[] {
@@ -255,6 +303,7 @@ class NarseseParser {
       '<->': TermOp.SIMILARITY,
       '==>': TermOp.IMPLICATION,
       '=/=>': TermOp.PREDICTIVE_IMPLICATION,
+      '|>': TermOp.PREDICTION,
       '&': TermOp.CONJUNCTION,
       '|': TermOp.DISJUNCTION,
       '-': TermOp.NEGATION,

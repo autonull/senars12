@@ -254,11 +254,11 @@ function termToTPTP(term: Term): string {
       return (term as VariableTerm).name.toUpperCase();
     case TermOp.INHERITANCE: {
       const args = (term as CompoundTerm).args;
-      return `${termToTPTP(args[0]!)} => ${termToTPTP(args[1]!)}`;
+      return `(${termToTPTP(args[0]!)} => ${termToTPTP(args[1]!)})`;
     }
     case TermOp.SIMILARITY: {
       const args = (term as CompoundTerm).args;
-      return `${termToTPTP(args[0]!)} <=> ${termToTPTP(args[1]!)}`;
+      return `(${termToTPTP(args[0]!)} <=> ${termToTPTP(args[1]!)})`;
     }
     case TermOp.CONJUNCTION: {
       const args = (term as CompoundTerm).args;

@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { NAR } from '@senars/agent';
+import { withinWorkspace } from '@senars/agent';
 import type { Tool } from '@senars/self';
 import { ToolManager } from '@senars/self';
 import { describe, expect, it } from 'vitest';
@@ -211,7 +212,7 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
     await client.close();
   });
 
-  it('sandboxes read_file to the workspace root', async () => {
+it('sandboxes read_file to the workspace root', async () => {
     const manager = new ToolManager();
     // Register read_file tool with workspace sandboxing (like core motor does)
     manager.register({
@@ -225,7 +226,6 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
       capabilities: { readOnly: true },
       execute: async (args: Record<string, unknown>) => {
         const path = args.path as string;
-        const { withinWorkspace } = await import('@senars/agent');
         if (!withinWorkspace(path)) {
           return {
             success: false,
