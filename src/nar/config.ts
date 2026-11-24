@@ -1,0 +1,199 @@
+import type { MettaPort } from '../agent/index';
+import type { AutonomyMode } from '@senars/schemas/governance';
+import { isStatefulRandomSource, type StatefulRandomSource } from '@senars/util/random';
+import type { Clock } from '@senars/util/clock';
+import type { IdSource } from '@senars/util/id';
+import type { ReasoningBudget } from '../schemas/reasoning-budget';
+import type { SystemOneConfig as SystemOneConfigSchema } from '../config/index';
+import type { ToolFeedbackObserver } from '../util/feedback';
+import type { AutonomyConfigInput } from '../autonomy/config';
+import type { MetaGoalPolicy } from '../drives/meta-goals';
+import type { CognitiveRegistry } from '../cognitive';
+import type { CognitiveParameters } from '../config/cognitive-parameters';
+import type { BudgetScopeId } from '../kernel/budget-scopes';
+import type { GateRegistry } from '../kernel/GateRegistry';
+import type { LMService, SeNARSRegistry } from '../lm';
+import type { EmbeddingCache } from '../lm/system-one/embedding-cache';
+import type { JudgmentManifold } from '../lm/system-one/types';
+import type { EmbeddingGenerator } from '../memory/embedding';
+import { ConfigurationError, type CoreConfig } from '../types';
+import type { NarEventBus } from '../types/events';
+import type { RandomSource } from '../types/primitives';
+import type { DecisionPort } from '../ports/decision';
+
+export interface RLFPConfig {
+  optimizeInterval?: number;
+}
+
+/** File-validated System One config (zod-inferred, single source of truth — G6). */
+export type SystemOneFileConfig = SystemOneConfigSchema;
+
+/** Runtime config extending the file config with injected runtime objects. */
+export interface SystemOneRuntimeConfig extends Omit<SystemOneFileConfig, 'manifold'> {
+  manifold?: SystemOneFileConfig['manifold'] | JudgmentManifold;
+  embeddingCache?: EmbeddingCache;
+  reasoningBudget?: ReasoningBudget;
+}
+
+/** Back-compat alias for the runtime config. */
+export type SystemOneConfig = SystemOneRuntimeConfig;
+
+export interface NARConfig extends CoreConfig {
+  lmService?: LMService;
+  /**
+   * TODO29.a §5.11, A11: the decision layer's port into the cycle. **Declaring
+   * one is the whole configuration surface** — a bound port is consulted, an
+   * absent one is not, and nothing else about `J` or `P` is switchable here.
+   * `enableLMRules` was deleted in A2 precisely because a boolean that reads as
+   * "no model reasoning" and means "model reasoning that answers nothing" is the
+   * defect §9 lists; a port is the honest shape.
+   */
+  decision?: DecisionPort;
+  providerRegistry?: SeNARSRegistry;
+  enableTools?: boolean;
+  enableSelf?: boolean;
+  enableRLFP?: boolean;
+  rlfp?: RLFPConfig;
+  enableBidirectionalFeedback?: boolean;
+  enableProactiveEnrichment?: boolean;
+  enableLMStreaming?: boolean;
+  /**
+   * MeTTa engine seam. `metta` sits above `nar` in the layering, so the engine
+   * is injected by the composition root rather than imported. Absent ⇒ the
+   * `metta` tool reports `metta engine not configured`.
+   */
+  metta?: MettaPort;
+  persistState?: boolean;
+  statePath?: string;
+  /** Unified LogStore for all persistence (replaces SqliteEventLog, StatePersister, KernelLedger). */
+  logStore?: import('../log/store').LogStore;
+
+  cognitiveParams?: CognitiveParameters;
+  strategyRegistry?: CognitiveRegistry;
+  adaptationInterval?: number;
+  feedbackObserver?: ToolFeedbackObserver;
+  /** TODO19 F2: per-instance gate registry; defaults to a fresh isolated instance. */
+  gateRegistry?: GateRegistry;
+
+  systemOne?: Partial<SystemOneConfig>;
+  /**
+   * TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to
+   * focus bags). A bare `RandomSource` fixes the draws; a `StatefulRandomSource`
+   * (e.g. `SeededRNG`) additionally checkpoints its position, so the consistency
+   * boundary (CORE.19 C4.1) can resume the exact draw sequence across a restart.
+   */
+  rng?: RandomSource | StatefulRandomSource;
+  /**
+   * Injectable clock — the time counterpart to `rng`, and one knob for the same
+   * reason. Concepts, bags, link layers and the graph stamp `createdAt`,
+   * `lastAccessedAt` and `lastUpdated`; before this those reads were `Date.now()`
+   * and the forgetting/pressure policies that rank on them were untestable by
+   * construction. Absent ⇒ `systemClock`, so the live path is unchanged.
+   */
+  clock?: Clock;
+  /**
+   * Id minting for the process this NAR owns. Absent ⇒ `crypto.randomUUID`.
+   * Installed for the NAR's lifetime and restored on `dispose`, so a seeded
+   * configuration yields reproducible event ids — `rng` fixes the draws, this
+   * fixes the names the draws are recorded under.
+   */
+  ids?: IdSource;
+  /** Phase B (REFACTOR.todo2): episodic consolidation as an AIKR process (inert until admit/emit sinks are wired). */
+  episodeConsolidation?: { enabled?: boolean; capacity?: number; budget?: number };
+  /** Phase D (REFACTOR.todo2): bounded proposal bag for self-improvement routing (default off ⇒ arrival order). */
+  proposals?: { bounded?: boolean; capacity?: number; budget?: number };
+  /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag (default off ⇒ direct mining). */
+  hardNegativeMining?: {
+    bounded?: boolean;
+    capacity?: number;
+    budget?: number;
+    marginFloor?: number;
+  };
+  /** Phase E: ProofMettaProposer as a negotiation proposer (learns from proof stream). */
+  proofMettaProposer?: {
+    enabled?: boolean;
+    maxRules?: number;
+    minConfidence?: number;
+    patternMinSupport?: number;
+  };
+  /** Phase C (REFACTOR.todo1): periodic AIKR-bounded learning consolidation (SchemaInductor, ContrastiveMemory, MiningBag, ProofMettaProposer). */
+  learningConsolidation?: { enabled?: boolean; budget?: number; interval?: number };
+  /** Initial autonomy mode for the action gate (default: 'observe-only'). */
+  initialAutonomyMode?: AutonomyMode;
+  /**
+   * The kernel-owned autonomy loop's configuration (CORE.19 C5.1). Absent ⇒
+   * autonomy is off and the NAR behaves exactly as it did before C5 — cycles
+   * are pull-driven only. Configuring it is what turns the heartbeat on.
+   */
+  autonomy?: AutonomyConfigInput;
+  /**
+   * The drive→meta-goal injection policy (CORE.19 C5.6). **Absent ⇒ the path is
+   * off**, which is the default: the built-in mapping's trigger sat below every
+   * drive's resting equilibrium, so nothing was ever injected. Binding
+   * `createDriveMetaGoalPolicy()` revives it; binding another policy replaces it.
+   * The built-in table and a pure policy live in `drives/meta-goals.ts`.
+   */
+  driveMetaGoals?: MetaGoalPolicy;
+  /**
+   * Control-budget ceilings, per declared `scopeId` (TODO29.a §5.7). An absent
+   * scope uses its declared default, so this is an override and not the
+   * declaration — `BUDGET_SCOPES` owns every scope's vocabulary, owner and
+   * overflow reason.
+   */
+  controlBudgets?: Partial<Record<BudgetScopeId, number>>;
+  /** Injectable event bus; defaults to a fresh `NarEventBus`. */
+  eventBus?: NarEventBus;
+  /** Disable embedding layer for semantic similarity (saves resources when no embedding model). */
+  enableEmbeddingLayer?: boolean;
+  /** Which embedder memory's semantic link layer uses. Unset reads provider settings. */
+  embeddingGenerator?: EmbeddingGenerator;
+  /** Maximum total tasks across all concepts (memory pressure bound). */
+  maxTasks?: number;
+  /**
+   * Cycles between automatic rewind checkpoints (CORE.19 C2.3). `0` or negative
+   * disables checkpointing, so `rewind` honestly reports that nothing is
+   * reachable. Absent ⇒ the default interval (10 cycles).
+   */
+  checkpointInterval?: number;
+}
+
+export function validateNarConfig(config: NARConfig): NARConfig {
+  if (config.maxConcepts <= 0) {
+    throw new ConfigurationError('maxConcepts must be positive', {
+      maxConcepts: config.maxConcepts,
+    });
+  }
+  if (config.persistState && !config.logStore) {
+    throw new ConfigurationError('persistState requires logStore to be configured', {
+      persistState: config.persistState,
+    });
+  }
+  return config;
+}
+
+/**
+ * The NAR's owned randomness (CORE.19 C4.1). An injected RNG is normalized to its
+ * bare draw function — the one stream every subsystem shares — while a stateful
+ * source keeps its position here, so the consistency boundary can round-trip it.
+ * A stateless source has no entry and the boundary omits RNG state rather than
+ * implying one.
+ */
+const OWNED_RNG = new WeakMap<RandomSource, StatefulRandomSource>();
+
+/** Normalize an injected RNG to its draw function, remembering any stateful handle. */
+export const resolveRng = (rng?: RandomSource | StatefulRandomSource): RandomSource | undefined => {
+  if (!isStatefulRandomSource(rng)) return rng;
+  OWNED_RNG.set(rng.source, rng);
+  return rng.source;
+};
+
+/** The boundary ports for the owned RNG: position round-trip, or an honest no-op. */
+export const rngBoundaryPort = (rng?: RandomSource | StatefulRandomSource) => {
+  const source = resolveRng(rng);
+  return {
+    rngState: (): number | undefined => (source ? OWNED_RNG.get(source)?.getState() : undefined),
+    setRngState: (state: number): void => {
+      if (source) OWNED_RNG.get(source)?.setState(state);
+    },
+  };
+};

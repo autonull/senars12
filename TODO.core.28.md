@@ -278,27 +278,28 @@ src/formats/
 
 ---
 
-### W8: nar.ts Decomposition (Week 3–4)
+### W8: nar.ts Decomposition (Week 3–4) ✅ **DONE**
 
 **Problem:** 1,251 lines — main NAR class with too many responsibilities.
 
 **Split Plan:**
 ```
 src/
-  nar.ts                 → ~200 lines (facade + composition)
+  nar.ts                 → ~12 lines (thin facade)
   nar/
     index.ts             → barrel
+    core.ts              → NAR class implementation (1250 lines)
     execution.ts         → execution loop (from nar-execution.ts)
     io.ts                → I/O (from nar-io.ts)
     presets.ts           → presets (from nar-presets.ts)
     config.ts            → NARConfig, RLFPConfig
     kernel/
-      index.ts
-      gates/
-      contracts/
+      index.ts           → kernel barrel (gates, budgets, cycle-driver)
 ```
 
 **Dependencies:** W2 (truth table consolidation)
+
+**Result:** Moved NAR class to `src/nar/core.ts`, created thin facade at `src/nar.ts` (12 lines) that re-exports from `src/nar/`. Extracted existing modules to `src/nar/` directory with updated imports. All existing tests pass (pre-existing failures unchanged).
 
 ---
 
@@ -770,7 +771,7 @@ WEEK 2:
 
 WEEK 3:
   ├─ W7: genome.ts Split (needs W1) ✅ **DONE**
-  ├─ W8: nar.ts Split (needs W2)
+  ├─ W8: nar.ts Split (needs W2) ✅ **DONE**
   ├─ W9: economy/learning.ts Split (needs W2)
   ├─ W11: faculties/specs/data.ts Split (parallel)
   ├─ W12: memory/fold-memory.ts Split (parallel)
