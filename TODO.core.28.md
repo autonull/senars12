@@ -799,8 +799,8 @@ WEEK 5:
 WEEK 6:
   ├─ W25: Scripts Directory Consolidation (parallel) ✅ **DONE** (all script imports fixed to .ts)
   ├─ W26: scripts/lib Consolidation (needs W20) ✅ **DONE** (all barrel files updated)
-  ├─ W27: Test Architecture Modernization (parallel) ✅ **DONE** (402 files, 3761 tests pass)
-  └─ W28: Property-Based Test Expansion (needs W27) — **ACTIVE**
+  ├─ W27: Test Architecture Modernization (parallel) ✅ **DONE** (403 files, 3779 tests pass)
+  └─ W28: Property-Based Test Expansion (needs W27) ✅ **DONE** (added tests/nar/property/memory-concept.test.ts with 18 property tests)
 
 WEEK 7:
   ├─ W29: Documentation Consolidation (parallel) ✅ **DONE** (readme generation works)
@@ -831,8 +831,8 @@ WEEK 9:
 | Import boundary violations | 0 (enforced) | ✅ **0** (gate passing) |
 | `schema:drift` coverage | 100% (generated + manual) | ✅ **passing** |
 | Scripts organized | 70+ → structured | ✅ **DONE** (imports fixed) |
-| Test file organization | 439 → structured | ✅ **DONE** (402 test files pass) |
-| Test pass rate | 100% (402 files, 3761 tests) | ✅ **100%** |
+| Test file organization | 439 → structured | ✅ **DONE** (403 test files pass) |
+| Test pass rate | 100% (402 files, 3761 tests) | ✅ **100%** (403 files, 3779 tests) |
 | Complexity budget | ≤ 129,208 LOC | 128,092 (baseline) |
 
 ---
