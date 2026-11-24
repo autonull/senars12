@@ -28,7 +28,7 @@ export interface Codec<T> {
 }
 
 /** JSON codec helper — uses JSON for simplicity, can be replaced with CBOR/msgpack. */
-function jsonCodec<T>(): Codec<T> {
+export function createJsonCodec<T>(): Codec<T> {
   return {
     serialize: (value: T) => new TextEncoder().encode(JSON.stringify(value)),
     deserialize: (bytes: Uint8Array) => JSON.parse(new TextDecoder().decode(bytes)),
@@ -39,25 +39,25 @@ function jsonCodec<T>(): Codec<T> {
 }
 
 /** Task codec. */
-export const TaskCodec: Codec<Task> = jsonCodec<Task>();
+export const TaskCodec: Codec<Task> = createJsonCodec<Task>();
 
 /** Concept codec. */
-export const ConceptCodec: Codec<Concept> = jsonCodec<Concept>();
+export const ConceptCodec: Codec<Concept> = createJsonCodec<Concept>();
 
 /** Term codec. */
-export const TermCodec: Codec<Term> = jsonCodec<Term>();
+export const TermCodec: Codec<Term> = createJsonCodec<Term>();
 
 /** Truth codec. */
-export const TruthCodec: Codec<Truth> = jsonCodec<Truth>();
+export const TruthCodec: Codec<Truth> = createJsonCodec<Truth>();
 
 /** Stamp codec. */
-export const StampCodec: Codec<Stamp> = jsonCodec<Stamp>();
+export const StampCodec: Codec<Stamp> = createJsonCodec<Stamp>();
 
 /** Belief codec. */
-export const BeliefCodec: Codec<Belief> = jsonCodec<Belief>();
+export const BeliefCodec: Codec<Belief> = createJsonCodec<Belief>();
 
 /** Episode codec. */
-export const EpisodeCodec: Codec<Episode> = jsonCodec<Episode>();
+export const EpisodeCodec: Codec<Episode> = createJsonCodec<Episode>();
 
 /** Codec registry for dynamic codec lookup. */
 export class CodecRegistry {
