@@ -1471,6 +1471,231 @@ export const ConflictDetectedEventSchema = NarBase.extend({
   payload: z.object({ term: z.string(), conflictWith: z.string() }),
 });
 
+export const MemoryPressureEventSchema = NarBase.extend({
+  type: z.literal('memory.pressure'),
+  payload: z.object({ level: z.number(), utilization: z.number() }),
+});
+
+export const MemoryConsolidatedEventSchema = NarBase.extend({
+  type: z.literal('memory.consolidated'),
+  payload: z.object({ conceptsRemoved: z.number(), conceptsArchived: z.number() }),
+});
+
+export const LmCallEventSchema = NarBase.extend({
+  type: z.literal('lm.call'),
+  payload: z.object({ modelId: z.string(), inputTokens: z.number(), outputTokens: z.number(), duration: z.number() }),
+});
+
+export const LmErrorEventSchema = NarBase.extend({
+  type: z.literal('lm.error'),
+  payload: z.object({ modelId: z.string(), error: z.string(), duration: z.number() }),
+});
+
+export const ErrorEventSchema = NarBase.extend({
+  type: z.literal('error'),
+  payload: z.object({ message: z.string(), context: z.unknown().optional() }),
+});
+
+export const NlAnalyzedEventSchema = NarBase.extend({
+  type: z.literal('nl.analyzed'),
+  payload: z.object({ text: z.string(), intent: z.string(), entities: z.array(z.string()) }),
+});
+
+export const NlTranslationEventSchema = NarBase.extend({
+  type: z.literal('nl.translation'),
+  payload: z.object({ source: z.string(), target: z.string(), confidence: z.number() }),
+});
+
+export const NlClarificationNeededEventSchema = NarBase.extend({
+  type: z.literal('nl.clarification_needed'),
+  payload: z.object({ text: z.string(), reason: z.string() }),
+});
+
+export const NalDerivedEventSchema = NarBase.extend({
+  type: z.literal('nal.derived'),
+  payload: z.object({ term: z.string(), space: z.string(), truth: z.unknown() }),
+});
+
+export const LmValidationFailedEventSchema = NarBase.extend({
+  type: z.literal('lm.validation_failed'),
+  payload: z.object({ reason: z.string(), output: z.string() }),
+});
+
+export const FeedbackCorrectionEventSchema = NarBase.extend({
+  type: z.literal('feedback.correction'),
+  payload: z.object({ original: z.string(), corrected: z.string(), source: z.string() }),
+});
+
+export const TurnStartEventSchema = NarBase.extend({
+  type: z.literal('turn.start'),
+  payload: z.object({ turnId: z.string(), input: z.string() }),
+});
+
+export const TurnEndEventSchema = NarBase.extend({
+  type: z.literal('turn.end'),
+  payload: z.object({ turnId: z.string(), output: z.string(), durationMs: z.number() }),
+});
+
+export const TurnErrorEventSchema = NarBase.extend({
+  type: z.literal('turn.error'),
+  payload: z.object({ turnId: z.string(), error: z.string() }),
+});
+
+export const StageStartEventSchema = NarBase.extend({
+  type: z.literal('stage.start'),
+  payload: z.object({ stage: z.string(), turnId: z.string() }),
+});
+
+export const StageEndEventSchema = NarBase.extend({
+  type: z.literal('stage.end'),
+  payload: z.object({ stage: z.string(), turnId: z.string(), durationMs: z.number() }),
+});
+
+export const StageErrorEventSchema = NarBase.extend({
+  type: z.literal('stage.error'),
+  payload: z.object({ stage: z.string(), turnId: z.string(), error: z.string() }),
+});
+
+export const ClassifyResultEventSchema = NarBase.extend({
+  type: z.literal('classify.result'),
+  payload: z.object({ category: z.string(), confidence: z.number() }),
+});
+
+export const TriggerScoreEventSchema = NarBase.extend({
+  type: z.literal('trigger.score'),
+  payload: z.object({ trigger: z.string(), score: z.number() }),
+});
+
+export const ReasoningStartEventSchema = NarBase.extend({
+  type: z.literal('reasoning.start'),
+  payload: z.object({ query: z.string(), mode: z.string() }),
+});
+
+export const ReasoningEndEventSchema = NarBase.extend({
+  type: z.literal('reasoning.end'),
+  payload: z.object({ query: z.string(), result: z.string(), durationMs: z.number() }),
+});
+
+export const LmStartEventSchema = NarBase.extend({
+  type: z.literal('lm.start'),
+  payload: z.object({ modelId: z.string(), prompt: z.string() }),
+});
+
+export const LmChunkEventSchema = NarBase.extend({
+  type: z.literal('lm.chunk'),
+  payload: z.object({ modelId: z.string(), chunk: z.string() }),
+});
+
+export const LmEndEventSchema = NarBase.extend({
+  type: z.literal('lm.end'),
+  payload: z.object({ modelId: z.string(), response: z.string(), durationMs: z.number() }),
+});
+
+export const LmSuggestsReasoningEventSchema = NarBase.extend({
+  type: z.literal('lm.suggests_reasoning'),
+  payload: z.object({ suggestion: z.string(), confidence: z.number() }),
+});
+
+export const LmRuleExecutedEventSchema = NarBase.extend({
+  type: z.literal('lm_rule.executed'),
+  payload: z.object({ ruleId: z.string(), input: z.string(), output: z.string() }),
+});
+
+export const LmRuleFailedEventSchema = NarBase.extend({
+  type: z.literal('lm_rule.failed'),
+  payload: z.object({ ruleId: z.string(), error: z.string() }),
+});
+
+export const LmRuleDisabledEventSchema = NarBase.extend({
+  type: z.literal('lm_rule.disabled'),
+  payload: z.object({ ruleId: z.string(), reason: z.string() }),
+});
+
+export const DirectiveFoundEventSchema = NarBase.extend({
+  type: z.literal('directive.found'),
+  payload: z.object({ directive: z.string(), target: z.string() }),
+});
+
+export const DirectiveExecuteEventSchema = NarBase.extend({
+  type: z.literal('directive.execute'),
+  payload: z.object({ directive: z.string(), args: z.unknown() }),
+});
+
+export const DirectiveLoopRequestedEventSchema = NarBase.extend({
+  type: z.literal('directive.loop_requested'),
+  payload: z.object({ directive: z.string(), reason: z.string() }),
+});
+
+export const LoopPassEventSchema = NarBase.extend({
+  type: z.literal('loop.pass'),
+  payload: z.object({ pass: z.number(), actions: z.array(z.string()) }),
+});
+
+export const ConversationMessageAddedEventSchema = NarBase.extend({
+  type: z.literal('conversation.message_added'),
+  payload: z.object({ role: z.string(), content: z.string() }),
+});
+
+export const ConversationArtifactAddedEventSchema = NarBase.extend({
+  type: z.literal('conversation.artifact_added'),
+  payload: z.object({ type: z.string(), content: z.string() }),
+});
+
+export const ConversationBeliefPinnedEventSchema = NarBase.extend({
+  type: z.literal('conversation.belief_pinned'),
+  payload: z.object({ term: z.string(), pinned: z.boolean() }),
+});
+
+export const ConversationSummarizedEventSchema = NarBase.extend({
+  type: z.literal('conversation.summarized'),
+  payload: z.object({ summary: z.string(), messageCount: z.number() }),
+});
+
+export const SystemLmRuleAppliedEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.applied'),
+  payload: z.object({ ruleId: z.string(), result: z.string() }),
+});
+
+export const SystemLmRuleSkippedEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.skipped'),
+  payload: z.object({ ruleId: z.string(), reason: z.string() }),
+});
+
+export const SystemLmRuleStructuredEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.structured'),
+  payload: z.object({ ruleId: z.string(), schema: z.string() }),
+});
+
+export const SystemLmRuleToolCalledEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.tool_called'),
+  payload: z.object({ ruleId: z.string(), tool: z.string(), args: z.unknown() }),
+});
+
+export const SystemLmRuleToolResultEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.tool_result'),
+  payload: z.object({ ruleId: z.string(), tool: z.string(), result: z.unknown() }),
+});
+
+export const SystemLmRuleFailedEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.failed'),
+  payload: z.object({ ruleId: z.string(), error: z.string() }),
+});
+
+export const SystemLmRuleCircuitOpenEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.circuit_open'),
+  payload: z.object({ ruleId: z.string() }),
+});
+
+export const SystemLmRuleCircuitHalfOpenEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.circuit_half_open'),
+  payload: z.object({ ruleId: z.string() }),
+});
+
+export const SystemLmRuleCircuitClosedEventSchema = NarBase.extend({
+  type: z.literal('system_lm_rule.circuit_closed'),
+  payload: z.object({ ruleId: z.string() }),
+});
+
 export const NarEventSchemas = [
   InputUserEventSchema,
   DerivationMadeEventSchema,
@@ -1493,6 +1718,51 @@ export const NarEventSchemas = [
   CycleEventSchema,
   HealthEventSchema,
   ConflictDetectedEventSchema,
+  MemoryPressureEventSchema,
+  MemoryConsolidatedEventSchema,
+  LmCallEventSchema,
+  LmErrorEventSchema,
+  ErrorEventSchema,
+  NlAnalyzedEventSchema,
+  NlTranslationEventSchema,
+  NlClarificationNeededEventSchema,
+  NalDerivedEventSchema,
+  LmValidationFailedEventSchema,
+  FeedbackCorrectionEventSchema,
+  TurnStartEventSchema,
+  TurnEndEventSchema,
+  TurnErrorEventSchema,
+  StageStartEventSchema,
+  StageEndEventSchema,
+  StageErrorEventSchema,
+  ClassifyResultEventSchema,
+  TriggerScoreEventSchema,
+  ReasoningStartEventSchema,
+  ReasoningEndEventSchema,
+  LmStartEventSchema,
+  LmChunkEventSchema,
+  LmEndEventSchema,
+  LmSuggestsReasoningEventSchema,
+  LmRuleExecutedEventSchema,
+  LmRuleFailedEventSchema,
+  LmRuleDisabledEventSchema,
+  DirectiveFoundEventSchema,
+  DirectiveExecuteEventSchema,
+  DirectiveLoopRequestedEventSchema,
+  LoopPassEventSchema,
+  ConversationMessageAddedEventSchema,
+  ConversationArtifactAddedEventSchema,
+  ConversationBeliefPinnedEventSchema,
+  ConversationSummarizedEventSchema,
+  SystemLmRuleAppliedEventSchema,
+  SystemLmRuleSkippedEventSchema,
+  SystemLmRuleStructuredEventSchema,
+  SystemLmRuleToolCalledEventSchema,
+  SystemLmRuleToolResultEventSchema,
+  SystemLmRuleFailedEventSchema,
+  SystemLmRuleCircuitOpenEventSchema,
+  SystemLmRuleCircuitHalfOpenEventSchema,
+  SystemLmRuleCircuitClosedEventSchema,
 ] as const;
 
 // --- Proposal events ---

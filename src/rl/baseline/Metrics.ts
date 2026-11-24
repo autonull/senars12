@@ -186,7 +186,7 @@ export function computeArmMetrics(
 
   const fallbackConfig: BaselineArmConfig = {
     algorithm: 'epsilon-greedy',
-    config: {},
+    config: { numArms: 0, epsilon: 0, seed: 0 },
     habitatType: 'bandit',
     name: 'Unknown',
   };

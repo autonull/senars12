@@ -83,7 +83,7 @@ addHandler(handlers, 'lm:error', events.kernel.lmError(), (data) => {
   const d = data as NAREventMap['lm:error'];
   return mint('lm.error', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, error: String(d.error), duration: d.duration },
+    payload: { modelId: d.ruleId, error: String(d.error), duration: d.duration },
   });
 });
 
@@ -91,7 +91,7 @@ addHandler(handlers, 'error', events.kernel.error(), (data) => {
   const d = data as NAREventMap['error'];
   return mint('error', {
     engine: 'nar',
-    payload: { error: String(d.error), context: d.context },
+    payload: { message: String(d.error), context: d.context },
   });
 });
 
@@ -100,7 +100,7 @@ addHandler(handlers, 'nl:analyzed', events.nl.analyzed(), (data) => {
   const d = data as NAREventMap['nl:analyzed'];
   return mint('nl.analyzed', {
     engine: 'nar',
-    payload: { input: d.input, analysis: d.analysis },
+    payload: { text: d.input, intent: 'unknown', entities: [] },
   });
 });
 
@@ -108,7 +108,7 @@ addHandler(handlers, 'nl:translation', events.nl.translation(), (data) => {
   const d = data as NAREventMap['nl:translation'];
   return mint('nl.translation', {
     engine: 'nar',
-    payload: { nl: d.nl, narsese: d.narsese, tier: d.tier },
+    payload: { source: d.nl, target: d.narsese, confidence: 1.0 },
   });
 });
 
@@ -116,7 +116,7 @@ addHandler(handlers, 'nl:clarification-needed', events.nl.clarificationNeeded(),
   const d = data as NAREventMap['nl:clarification-needed'];
   return mint('nl.clarification_needed', {
     engine: 'nar',
-    payload: { ambiguity: d.ambiguity },
+    payload: { text: String(d.ambiguity), reason: 'clarification needed' },
   });
 });
 
@@ -125,7 +125,7 @@ addHandler(handlers, 'nal:derived', events.cognition.nalDerived(), (data) => {
   const d = data as NAREventMap['nal:derived'];
   return mint('nal.derived', {
     engine: 'nar',
-    payload: { premises: d.premises, rule: d.rule, conclusion: d.conclusion, truth: d.truth },
+    payload: { term: d.conclusion, space: 'nal', truth: d.truth },
   });
 });
 
@@ -143,7 +143,7 @@ addHandler(handlers, 'feedback:correction', events.cognition.feedbackCorrection(
   const d = data as NAREventMap['feedback:correction'];
   return mint('feedback.correction', {
     engine: 'nar',
-    payload: { original: d.original, corrected: d.corrected },
+    payload: { original: d.original, corrected: d.corrected, source: 'cognition' },
   });
 });
 
@@ -152,7 +152,7 @@ addHandler(handlers, 'turn:start', events.system.turnStart(), (data) => {
   const d = data as NAREventMap['turn:start'];
   return mint('turn.start', {
     engine: 'nar',
-    payload: { input: d.input, passCount: d.passCount },
+    payload: { turnId: `turn-${d.passCount}`, input: String(d.input) },
   });
 });
 
@@ -160,7 +160,7 @@ addHandler(handlers, 'turn:end', events.system.turnEnd(), (data) => {
   const d = data as NAREventMap['turn:end'];
   return mint('turn.end', {
     engine: 'nar',
-    payload: { response: d.response, durationMs: d.durationMs },
+    payload: { turnId: `turn-end`, output: String(d.response), durationMs: d.durationMs },
   });
 });
 
@@ -168,7 +168,7 @@ addHandler(handlers, 'turn:error', events.system.turnError(), (data) => {
   const d = data as NAREventMap['turn:error'];
   return mint('turn.error', {
     engine: 'nar',
-    payload: { error: String(d.error), stage: d.stage, passCount: d.passCount },
+    payload: { turnId: `turn-error-${d.passCount}`, error: String(d.error) },
   });
 });
 
@@ -176,7 +176,7 @@ addHandler(handlers, 'stage:start', events.system.stageStart(), (data) => {
   const d = data as NAREventMap['stage:start'];
   return mint('stage.start', {
     engine: 'nar',
-    payload: { stage: d.stage, passCount: d.passCount },
+    payload: { stage: d.stage, turnId: `turn-${d.passCount}` },
   });
 });
 
@@ -184,7 +184,7 @@ addHandler(handlers, 'stage:end', events.system.stageEnd(), (data) => {
   const d = data as NAREventMap['stage:end'];
   return mint('stage.end', {
     engine: 'nar',
-    payload: { stage: d.stage, durationMs: d.durationMs, passCount: d.passCount },
+    payload: { stage: d.stage, turnId: `turn-${d.passCount}`, durationMs: d.durationMs },
   });
 });
 
@@ -192,7 +192,7 @@ addHandler(handlers, 'stage:error', events.system.stageError(), (data) => {
   const d = data as NAREventMap['stage:error'];
   return mint('stage.error', {
     engine: 'nar',
-    payload: { error: String(d.error), stage: d.stage, durationMs: d.durationMs },
+    payload: { stage: d.stage, turnId: `turn-unknown`, error: String(d.error) },
   });
 });
 
@@ -200,7 +200,7 @@ addHandler(handlers, 'classify:result', events.system.classifyResult(), (data) =
   const d = data as NAREventMap['classify:result'];
   return mint('classify.result', {
     engine: 'nar',
-    payload: { input: d.input, classification: d.classification },
+    payload: { category: String(d.classification), confidence: 1.0 },
   });
 });
 
@@ -208,7 +208,7 @@ addHandler(handlers, 'trigger:score', events.system.triggerScore(), (data) => {
   const d = data as NAREventMap['trigger:score'];
   return mint('trigger.score', {
     engine: 'nar',
-    payload: { heuristicScore: d.heuristicScore, lmScore: d.lmScore, total: d.total, activated: d.activated },
+    payload: { trigger: 'combined', score: d.total },
   });
 });
 
@@ -216,7 +216,7 @@ addHandler(handlers, 'reasoning:start', events.system.reasoningStart(), (data) =
   const d = data as NAREventMap['reasoning:start'];
   return mint('reasoning.start', {
     engine: 'nar',
-    payload: { inputType: d.inputType, steps: d.steps },
+    payload: { query: d.inputType, mode: 'reasoning' },
   });
 });
 
@@ -224,7 +224,7 @@ addHandler(handlers, 'reasoning:end', events.system.reasoningEnd(), (data) => {
   const d = data as NAREventMap['reasoning:end'];
   return mint('reasoning.end', {
     engine: 'nar',
-    payload: { steps: d.steps, newBeliefs: d.newBeliefs },
+    payload: { query: 'reasoning', result: d.newBeliefs.map(String).join(', '), durationMs: 0 },
   });
 });
 
@@ -232,7 +232,7 @@ addHandler(handlers, 'lm:start', events.system.lmStart(), (data) => {
   const d = data as NAREventMap['lm:start'];
   return mint('lm.start', {
     engine: 'nar',
-    payload: { promptLength: d.promptLength, streaming: d.streaming },
+    payload: { modelId: 'unknown', prompt: `prompt-length-${d.promptLength}` },
   });
 });
 
@@ -240,7 +240,7 @@ addHandler(handlers, 'lm:chunk', events.system.lmChunk(), (data) => {
   const d = data as NAREventMap['lm:chunk'];
   return mint('lm.chunk', {
     engine: 'nar',
-    payload: { content: d.content, accumulated: d.accumulated },
+    payload: { modelId: 'unknown', chunk: d.content },
   });
 });
 
@@ -248,7 +248,7 @@ addHandler(handlers, 'lm:end', events.system.lmEnd(), (data) => {
   const d = data as NAREventMap['lm:end'];
   return mint('lm.end', {
     engine: 'nar',
-    payload: { response: d.response, durationMs: d.durationMs },
+    payload: { modelId: 'unknown', response: d.response, durationMs: d.durationMs },
   });
 });
 
@@ -256,7 +256,7 @@ addHandler(handlers, 'lm:suggests-reasoning', events.system.lmSuggestsReasoning(
   const d = data as NAREventMap['lm:suggests-reasoning'];
   return mint('lm.suggests_reasoning', {
     engine: 'nar',
-    payload: { value: d },
+    payload: { suggestion: String(d), confidence: d ? 1.0 : 0.0 },
   });
 });
 
@@ -264,7 +264,7 @@ addHandler(handlers, 'lm-rule:executed', events.system.lmRuleExecuted(), (data) 
   const d = data as NAREventMap['lm-rule:executed'];
   return mint('lm_rule.executed', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, durationMs: d.durationMs, tasksGenerated: d.tasksGenerated },
+    payload: { ruleId: d.ruleId, input: `duration-${d.durationMs}`, output: `tasks-${d.tasksGenerated}` },
   });
 });
 
@@ -272,7 +272,7 @@ addHandler(handlers, 'lm-rule:failed', events.system.lmRuleFailed(), (data) => {
   const d = data as NAREventMap['lm-rule:failed'];
   return mint('lm_rule.failed', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, error: d.error, durationMs: d.durationMs },
+    payload: { ruleId: d.ruleId, error: d.error },
   });
 });
 
@@ -280,7 +280,7 @@ addHandler(handlers, 'lm-rule:disabled', events.system.lmRuleDisabled(), (data) 
   const d = data as NAREventMap['lm-rule:disabled'];
   return mint('lm_rule.disabled', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId },
+    payload: { ruleId: d.ruleId, reason: 'disabled' },
   });
 });
 
@@ -288,7 +288,7 @@ addHandler(handlers, 'directive:found', events.system.directiveFound(), (data) =
   const d = data as NAREventMap['directive:found'];
   return mint('directive.found', {
     engine: 'nar',
-    payload: { directive: d.directive },
+    payload: { directive: String(d.directive), target: 'unknown' },
   });
 });
 
@@ -296,7 +296,7 @@ addHandler(handlers, 'directive:execute', events.system.directiveExecute(), (dat
   const d = data as NAREventMap['directive:execute'];
   return mint('directive.execute', {
     engine: 'nar',
-    payload: { directive: d.directive, success: d.success, result: d.result, error: d.error },
+    payload: { directive: String(d.directive), args: { success: d.success, result: d.result, error: d.error } },
   });
 });
 
@@ -304,7 +304,7 @@ addHandler(handlers, 'directive:loop-requested', events.system.directiveLoopRequ
   const d = data as NAREventMap['directive:loop-requested'];
   return mint('directive.loop_requested', {
     engine: 'nar',
-    payload: { type: d.type },
+    payload: { directive: d.type, reason: 'loop requested' },
   });
 });
 
@@ -312,7 +312,7 @@ addHandler(handlers, 'loop:pass', events.system.loopPass(), (data) => {
   const d = data as NAREventMap['loop:pass'];
   return mint('loop.pass', {
     engine: 'nar',
-    payload: { passCount: d.passCount, needsLoopBack: d.needsLoopBack },
+    payload: { pass: d.passCount, actions: d.needsLoopBack ? ['loop-back'] : [] },
   });
 });
 
@@ -321,7 +321,7 @@ addHandler(handlers, 'conversation:message-added', events.system.conversationMes
   const d = data as NAREventMap['conversation:message-added'];
   return mint('conversation.message_added', {
     engine: 'nar',
-    payload: { message: d.message, count: d.count },
+    payload: { role: 'assistant', content: String(d.message) },
   });
 });
 
@@ -329,7 +329,7 @@ addHandler(handlers, 'conversation:artifact-added', events.system.conversationAr
   const d = data as NAREventMap['conversation:artifact-added'];
   return mint('conversation.artifact_added', {
     engine: 'nar',
-    payload: { artifact: d.artifact, count: d.count },
+    payload: { type: 'artifact', content: String(d.artifact) },
   });
 });
 
@@ -337,7 +337,7 @@ addHandler(handlers, 'conversation:belief-pinned', events.system.conversationBel
   const d = data as NAREventMap['conversation:belief-pinned'];
   return mint('conversation.belief_pinned', {
     engine: 'nar',
-    payload: { belief: d.belief, count: d.count },
+    payload: { term: d.belief, pinned: true },
   });
 });
 
@@ -345,7 +345,7 @@ addHandler(handlers, 'conversation:summarized', events.system.conversationSummar
   const d = data as NAREventMap['conversation:summarized'];
   return mint('conversation.summarized', {
     engine: 'nar',
-    payload: { summary: d.summary },
+    payload: { summary: d.summary, messageCount: 0 },
   });
 });
 
@@ -354,7 +354,7 @@ addHandler(handlers, 'system:lm.rule:applied', events.lm.ruleApplied(), (data) =
   const d = data as NAREventMap['system:lm.rule:applied'];
   return mint('system_lm_rule.applied', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, ruleName: d.ruleName, durationMs: d.durationMs, output: d.output, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId, result: d.output },
   });
 });
 
@@ -362,7 +362,7 @@ addHandler(handlers, 'system:lm.rule:skipped', events.lm.ruleSkipped(), (data) =
   const d = data as NAREventMap['system:lm.rule:skipped'];
   return mint('system_lm_rule.skipped', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, ruleName: d.ruleName, reason: d.reason, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId, reason: d.reason },
   });
 });
 
@@ -370,7 +370,7 @@ addHandler(handlers, 'system:lm.rule:structured', events.lm.ruleStructured(), (d
   const d = data as NAREventMap['system:lm.rule:structured'];
   return mint('system_lm_rule.structured', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, schema: d.schema, output: d.output, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId, schema: d.schema },
   });
 });
 
@@ -378,7 +378,7 @@ addHandler(handlers, 'system:lm.rule:tool:called', events.lm.ruleToolCalled(), (
   const d = data as NAREventMap['system:lm.rule:tool:called'];
   return mint('system_lm_rule.tool_called', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, tool: d.tool, args: d.args, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId, tool: d.tool, args: d.args },
   });
 });
 
@@ -386,7 +386,7 @@ addHandler(handlers, 'system:lm.rule:tool:result', events.lm.ruleToolResult(), (
   const d = data as NAREventMap['system:lm.rule:tool:result'];
   return mint('system_lm_rule.tool_result', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, tool: d.tool, result: d.result, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId, tool: d.tool, result: d.result },
   });
 });
 
@@ -394,7 +394,7 @@ addHandler(handlers, 'system:lm.rule:failed', events.lm.ruleFailed(), (data) => 
   const d = data as NAREventMap['system:lm.rule:failed'];
   return mint('system_lm_rule.failed', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, ruleName: d.ruleName, error: d.error, durationMs: d.durationMs, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId, error: d.error },
   });
 });
 
@@ -402,7 +402,7 @@ addHandler(handlers, 'system:lm.rule:circuit:open', events.lm.ruleCircuitOpen(),
   const d = data as NAREventMap['system:lm.rule:circuit:open'];
   return mint('system_lm_rule.circuit_open', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, ruleName: d.ruleName, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId },
   });
 });
 
@@ -410,7 +410,7 @@ addHandler(handlers, 'system:lm.rule:circuit:half-open', events.lm.ruleCircuitHa
   const d = data as NAREventMap['system:lm.rule:circuit:half-open'];
   return mint('system_lm_rule.circuit_half_open', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, ruleName: d.ruleName, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId },
   });
 });
 
@@ -418,7 +418,7 @@ addHandler(handlers, 'system:lm.rule:circuit:closed', events.lm.ruleCircuitClose
   const d = data as NAREventMap['system:lm.rule:circuit:closed'];
   return mint('system_lm_rule.circuit_closed', {
     engine: 'nar',
-    payload: { ruleId: d.ruleId, ruleName: d.ruleName, timestamp: d.timestamp },
+    payload: { ruleId: d.ruleId },
   });
 });
 

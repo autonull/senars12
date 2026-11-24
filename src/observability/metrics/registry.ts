@@ -5,11 +5,10 @@
 import { metrics, MeterProvider } from '@opentelemetry/api-metrics';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import * as resources from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import * as sdkMetrics from '@opentelemetry/sdk-metrics';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
-const ResourceValue = resources.Resource;
 const MeterProviderValue = sdkMetrics.MeterProvider;
 
 let _meterProvider: MeterProvider | null = null;
@@ -54,7 +53,7 @@ export async function initMetrics(config: MetricsConfig = {}): Promise<void> {
   }
 
   const provider = new MeterProviderValue({
-    resource: new ResourceValue({
+    resource: resourceFromAttributes({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
     }),
     readers,

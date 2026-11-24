@@ -225,6 +225,277 @@ export function generateNarEventSchemas(): string[] {
   lines.push('});');
   lines.push('');
 
+  // --- Additional NAR events for taxonomy bridge ---
+  lines.push('export const MemoryPressureEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('memory.pressure'),");
+  lines.push('  payload: z.object({ level: z.number(), utilization: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const MemoryConsolidatedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('memory.consolidated'),");
+  lines.push('  payload: z.object({ conceptsRemoved: z.number(), conceptsArchived: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmCallEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.call'),");
+  lines.push('  payload: z.object({ modelId: z.string(), inputTokens: z.number(), outputTokens: z.number(), duration: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmErrorEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.error'),");
+  lines.push('  payload: z.object({ modelId: z.string(), error: z.string(), duration: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ErrorEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('error'),");
+  lines.push('  payload: z.object({ message: z.string(), context: z.unknown().optional() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const NlAnalyzedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('nl.analyzed'),");
+  lines.push('  payload: z.object({ text: z.string(), intent: z.string(), entities: z.array(z.string()) }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const NlTranslationEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('nl.translation'),");
+  lines.push('  payload: z.object({ source: z.string(), target: z.string(), confidence: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const NlClarificationNeededEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('nl.clarification_needed'),");
+  lines.push('  payload: z.object({ text: z.string(), reason: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const NalDerivedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('nal.derived'),");
+  lines.push('  payload: z.object({ term: z.string(), space: z.string(), truth: z.unknown() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmValidationFailedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.validation_failed'),");
+  lines.push('  payload: z.object({ reason: z.string(), output: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const FeedbackCorrectionEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('feedback.correction'),");
+  lines.push('  payload: z.object({ original: z.string(), corrected: z.string(), source: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const TurnStartEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('turn.start'),");
+  lines.push('  payload: z.object({ turnId: z.string(), input: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const TurnEndEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('turn.end'),");
+  lines.push('  payload: z.object({ turnId: z.string(), output: z.string(), durationMs: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const TurnErrorEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('turn.error'),");
+  lines.push('  payload: z.object({ turnId: z.string(), error: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const StageStartEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('stage.start'),");
+  lines.push('  payload: z.object({ stage: z.string(), turnId: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const StageEndEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('stage.end'),");
+  lines.push('  payload: z.object({ stage: z.string(), turnId: z.string(), durationMs: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const StageErrorEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('stage.error'),");
+  lines.push('  payload: z.object({ stage: z.string(), turnId: z.string(), error: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ClassifyResultEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('classify.result'),");
+  lines.push('  payload: z.object({ category: z.string(), confidence: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const TriggerScoreEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('trigger.score'),");
+  lines.push('  payload: z.object({ trigger: z.string(), score: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ReasoningStartEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('reasoning.start'),");
+  lines.push('  payload: z.object({ query: z.string(), mode: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ReasoningEndEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('reasoning.end'),");
+  lines.push('  payload: z.object({ query: z.string(), result: z.string(), durationMs: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmStartEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.start'),");
+  lines.push('  payload: z.object({ modelId: z.string(), prompt: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmChunkEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.chunk'),");
+  lines.push('  payload: z.object({ modelId: z.string(), chunk: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmEndEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.end'),");
+  lines.push('  payload: z.object({ modelId: z.string(), response: z.string(), durationMs: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmSuggestsReasoningEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm.suggests_reasoning'),");
+  lines.push('  payload: z.object({ suggestion: z.string(), confidence: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmRuleExecutedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm_rule.executed'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), input: z.string(), output: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmRuleFailedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm_rule.failed'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), error: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LmRuleDisabledEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('lm_rule.disabled'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), reason: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const DirectiveFoundEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('directive.found'),");
+  lines.push('  payload: z.object({ directive: z.string(), target: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const DirectiveExecuteEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('directive.execute'),");
+  lines.push('  payload: z.object({ directive: z.string(), args: z.unknown() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const DirectiveLoopRequestedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('directive.loop_requested'),");
+  lines.push('  payload: z.object({ directive: z.string(), reason: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const LoopPassEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('loop.pass'),");
+  lines.push('  payload: z.object({ pass: z.number(), actions: z.array(z.string()) }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ConversationMessageAddedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('conversation.message_added'),");
+  lines.push('  payload: z.object({ role: z.string(), content: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ConversationArtifactAddedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('conversation.artifact_added'),");
+  lines.push('  payload: z.object({ type: z.string(), content: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ConversationBeliefPinnedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('conversation.belief_pinned'),");
+  lines.push('  payload: z.object({ term: z.string(), pinned: z.boolean() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ConversationSummarizedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('conversation.summarized'),");
+  lines.push('  payload: z.object({ summary: z.string(), messageCount: z.number() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleAppliedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.applied'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), result: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleSkippedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.skipped'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), reason: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleStructuredEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.structured'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), schema: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleToolCalledEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.tool_called'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), tool: z.string(), args: z.unknown() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleToolResultEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.tool_result'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), tool: z.string(), result: z.unknown() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleFailedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.failed'),");
+  lines.push('  payload: z.object({ ruleId: z.string(), error: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleCircuitOpenEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.circuit_open'),");
+  lines.push('  payload: z.object({ ruleId: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleCircuitHalfOpenEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.circuit_half_open'),");
+  lines.push('  payload: z.object({ ruleId: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SystemLmRuleCircuitClosedEventSchema = NarBase.extend({');
+  lines.push("  type: z.literal('system_lm_rule.circuit_closed'),");
+  lines.push('  payload: z.object({ ruleId: z.string() }),');
+  lines.push('});');
+  lines.push('');
+
   lines.push('export const NarEventSchemas = [');
   lines.push('  InputUserEventSchema,');
   lines.push('  DerivationMadeEventSchema,');
@@ -247,6 +518,51 @@ export function generateNarEventSchemas(): string[] {
   lines.push('  CycleEventSchema,');
   lines.push('  HealthEventSchema,');
   lines.push('  ConflictDetectedEventSchema,');
+  lines.push('  MemoryPressureEventSchema,');
+  lines.push('  MemoryConsolidatedEventSchema,');
+  lines.push('  LmCallEventSchema,');
+  lines.push('  LmErrorEventSchema,');
+  lines.push('  ErrorEventSchema,');
+  lines.push('  NlAnalyzedEventSchema,');
+  lines.push('  NlTranslationEventSchema,');
+  lines.push('  NlClarificationNeededEventSchema,');
+  lines.push('  NalDerivedEventSchema,');
+  lines.push('  LmValidationFailedEventSchema,');
+  lines.push('  FeedbackCorrectionEventSchema,');
+  lines.push('  TurnStartEventSchema,');
+  lines.push('  TurnEndEventSchema,');
+  lines.push('  TurnErrorEventSchema,');
+  lines.push('  StageStartEventSchema,');
+  lines.push('  StageEndEventSchema,');
+  lines.push('  StageErrorEventSchema,');
+  lines.push('  ClassifyResultEventSchema,');
+  lines.push('  TriggerScoreEventSchema,');
+  lines.push('  ReasoningStartEventSchema,');
+  lines.push('  ReasoningEndEventSchema,');
+  lines.push('  LmStartEventSchema,');
+  lines.push('  LmChunkEventSchema,');
+  lines.push('  LmEndEventSchema,');
+  lines.push('  LmSuggestsReasoningEventSchema,');
+  lines.push('  LmRuleExecutedEventSchema,');
+  lines.push('  LmRuleFailedEventSchema,');
+  lines.push('  LmRuleDisabledEventSchema,');
+  lines.push('  DirectiveFoundEventSchema,');
+  lines.push('  DirectiveExecuteEventSchema,');
+  lines.push('  DirectiveLoopRequestedEventSchema,');
+  lines.push('  LoopPassEventSchema,');
+  lines.push('  ConversationMessageAddedEventSchema,');
+  lines.push('  ConversationArtifactAddedEventSchema,');
+  lines.push('  ConversationBeliefPinnedEventSchema,');
+  lines.push('  ConversationSummarizedEventSchema,');
+  lines.push('  SystemLmRuleAppliedEventSchema,');
+  lines.push('  SystemLmRuleSkippedEventSchema,');
+  lines.push('  SystemLmRuleStructuredEventSchema,');
+  lines.push('  SystemLmRuleToolCalledEventSchema,');
+  lines.push('  SystemLmRuleToolResultEventSchema,');
+  lines.push('  SystemLmRuleFailedEventSchema,');
+  lines.push('  SystemLmRuleCircuitOpenEventSchema,');
+  lines.push('  SystemLmRuleCircuitHalfOpenEventSchema,');
+  lines.push('  SystemLmRuleCircuitClosedEventSchema,');
   lines.push('] as const;');
   lines.push('');
 
