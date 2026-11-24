@@ -104,6 +104,14 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
     reason: 'getOrInsert for term interning',
   },
   {
+    file: 'src/kernel/terms/term-internal/atomic.ts',
+    reason: 'simple substitution lookup — not a get-or-insert',
+  },
+  {
+    file: 'src/util/collections/set-map.ts',
+    reason: 'the primitives themselves — getOrInsert and unique are defined here',
+  },
+  {
     file: 'ui/src/client/components/composer-focus.ts',
     reason: 'unique for UI component deduplication',
   },

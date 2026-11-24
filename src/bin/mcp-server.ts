@@ -28,7 +28,6 @@ import { createAgentFromEnv } from './lib/lifecycle';
  * Inlined from ./lib/http-guards.ts
  * ==========================================================================*/
 import { randomBytes } from 'node:crypto';
-import type { IncomingMessage } from 'node:http';
 import { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
 
 interface HttpGuardOptions {

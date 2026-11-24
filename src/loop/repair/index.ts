@@ -13,6 +13,7 @@ import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../.
 import type { Clock } from '../../kernel/env';
 import { createLogger } from '../../util/logger';
 import { errMsg } from '@senars/util/error';
+import { unique } from '@senars/util';
 
 import type {
   Anomaly,
@@ -46,7 +47,7 @@ export const defaultRepairPolicies: RepairPolicy[] = [
 /** Repair ladder policy for escalating repairs. */
 export const repairLadderPolicy: RepairPolicy = {
   name: 'repair-ladder',
-  appliesTo: [...new Set(defaultRepairPolicies.flatMap((p) => p.appliesTo))],
+  appliesTo: unique(defaultRepairPolicies.flatMap((p) => p.appliesTo)),
   minSeverity: 'critical',
   generateActions: (context: RepairContext, anomaly: Anomaly): RepairAction[] => {
     const ladderActions = [

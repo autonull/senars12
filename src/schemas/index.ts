@@ -3,27 +3,28 @@
  *
  * This is the single public surface for all kernel contracts. The actual
  * definitions live in the genome (`src/formats/genome.ts`) and are emitted to
- * `src/generated/schemas.ts`. This barrel preserves the original sub-module
- * paths for backward compatibility.
+ * `src/generated/schemas.ts`.
  */
 
-// Re-export everything from generated schemas
+// Re-export everything from generated schemas (single source of truth)
 export * from '@senars/generated';
 
-// Sub-module re-exports for backward compatibility
-export * from './cognitive-events';
-export * from './common';
-export * from './derivation-records';
-export * from './event-base';
-export * from './formalization';
-export * from './gate-io';
-export * from './governance';
-export * from './nar-events';
-export * from './proposal';
-export * from './proposal-events';
-export * from './reasoning-budget';
-export * from './recalled-events';
-export * from './rule-table';
-export * from './task';
-export * from './truth';
-export * from './budget-types';
+// Explicit re-exports for task vocabulary items that the generated schemas may not include
+export {
+  TASK_TYPES,
+  TASK_BAG_KINDS,
+  TASK_PUNCTUATIONS,
+  TOLERANT_PUNCTUATIONS,
+  TASK_PUNCTUATION,
+  taskTypeForPunctuation,
+  TaskTypeSchema,
+  TaskBagKindSchema,
+  TaskPunctuationSchema,
+  TolerantPunctuationSchema,
+} from './task';
+export type {
+  TaskType,
+  TaskBagKind,
+  TaskPunctuation,
+  TolerantPunctuation,
+} from './task';

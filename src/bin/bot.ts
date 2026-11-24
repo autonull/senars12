@@ -73,7 +73,6 @@ import { isOneShot, readOneShot, runOneShot } from './lib/oneshot';
  * Inlined from ./lib/remote-registry.ts
  * ==========================================================================*/
 import {
-  type AuthManager,
   CommandRegistry,
   connectionCommands,
   createAuthCommands,
@@ -109,12 +108,8 @@ const createRemoteRegistry = (auth: AuthManager): CommandRegistry => {
 /* ============================================================================
  * Inlined from ./lib/multi-agent-runner.ts + ./lib/multi-agent-entry.ts
  * ==========================================================================*/
-import { CLIConnection, WSConnection } from '../io/index';
 import type { WiredNAR } from '../agent/index';
-import { createLogger } from '@senars/util/logger';
-import { setupGracefulShutdown } from '@senars/util/shutdown';
 import { NARBuilder } from '../agent/index';
-import { parseFlags } from '@senars/util/cli';
 import { mettaPort } from './lib/metta';
 
 interface MultiAgentRunnerOptions {

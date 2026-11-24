@@ -14,7 +14,7 @@ function anneal(temp: number, iter: number, coolingRate = 0.995): number {
   return temp * Math.pow(coolingRate, iter);
 }
 import { type Term, TermBuilder } from '@senars/terms';
-import { Truth } from '@senars/kernel';
+import { Truth } from '@senars/terms';
 import type { NAR } from '@senars/agent';
 import { operationNameOf, operationTerm } from '@senars/terms';
 import type { QBeliefStore } from '../QBeliefStore';

@@ -1,12 +1,12 @@
 import type { NARConfig } from '@senars/agent';
-import { Truth } from '@senars/agent';
 import { NAR } from '@senars/agent';
-import type { StrategyRegistry } from '@senars/agent';
+import type { StrategyRegistry } from '@senars/strategies';
 import type { Task } from '@senars/agent';
 import type { DecideResult } from '@senars/lm';
 import { createSystemOneBudget, type JudgmentQuery } from '@senars/lm';
-import { NarEventBus } from '@senars/agent';
-import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/utils';
+import { NarEventBus } from '@senars/types';
+import { Truth } from '@senars/terms';
+import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/util';
 import { e2eNARConfig } from './fixtures';
 
 export interface ScenarioSpec {

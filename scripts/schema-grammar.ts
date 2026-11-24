@@ -55,6 +55,30 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
     reason: 'genome format schemas',
   },
   {
+    file: 'src/formats/genome/defs.ts',
+    reason: 'genome primitive definitions for code generation',
+  },
+  {
+    file: 'src/formats/genome/primitives.ts',
+    reason: 'genome primitive generators for code generation',
+  },
+  {
+    file: 'src/formats/genome/schemas/basic.ts',
+    reason: 'genome basic schema definitions',
+  },
+  {
+    file: 'src/formats/genome/schemas/events/cognitive.ts',
+    reason: 'genome cognitive event schema definitions',
+  },
+  {
+    file: 'src/formats/genome/schemas/kernel.ts',
+    reason: 'genome kernel schema definitions',
+  },
+  {
+    file: 'src/formats/genome/schemas/oracle.ts',
+    reason: 'genome oracle schema definitions',
+  },
+  {
     file: 'src/generated/schemas.ts',
     reason: 'generated schema definitions',
   },

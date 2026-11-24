@@ -193,7 +193,6 @@
       "@senars/util/bandit": ["./src/util/bandit.ts"],
       "@senars/util/bounded-map": ["./src/util/bounded-map.ts"],
       "@senars/util/clock": ["./src/util/clock.ts"],
-      "@senars/util/collections": ["./src/util/collections.ts"],
       "@senars/util/config": ["./src/config/index.ts"],
       "@senars/util/config-migrate": ["./src/util/config-migrate.ts"],
       "@senars/util/circuit-breaker": ["./src/util/circuit-breaker.ts"],
