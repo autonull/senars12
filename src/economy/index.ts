@@ -7,7 +7,7 @@
 export * from './types';
 export * from './scheduler';
 export * from './utility-voi';
-export * from './learning';
+export * from './learning/';
 export * from './overlays-drives';
 export * from './aging';
 
@@ -16,8 +16,8 @@ import type { Env } from '../kernel/env';
 import type { Clock, RNG } from '../kernel/env';
 import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging';
 import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility-voi';
-import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './learning';
-import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './learning';
+import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './learning/';
+import { generateSuccessors, type SuccessorContext, type GeneratedSuccessor } from './learning/';
 import { calculateDetailedVoI, rankByVoI, selectByVoI, type VoIContext, type VoIBreakdown } from './utility-voi';
 import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOverlay, createCrisisOverlay, createExplorationOverlay, getBuiltinOverlays, applyOverlays, calculateEffectiveWeight, createOverlay, mergeOverlays } from './overlays-drives';
 import { getDriveContribution, type Drive, type DriveType, DEFAULT_DRIVES } from './overlays-drives';

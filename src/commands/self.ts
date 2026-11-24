@@ -1,5 +1,5 @@
 import type { CommandDefinition } from './types';
-import type { NAR } from '../nar';
+import type { NAR } from '../nar/core';
 import type { ReasoningAboutReasoning } from '../self/ReasoningAboutReasoning';
 import { requiring } from './utils';
 

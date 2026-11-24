@@ -8,8 +8,8 @@
 
 import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from '../admit/repertoire';
 import type { Book, BookEntry, BookMetadata } from '../admit/book';
-import type { Term, ConstantTerm } from '../kernel/terms/term';
-import { termFactory } from '../kernel/terms/term';
+import type { Term, ConstantTerm } from '../kernel/terms';
+import { termFactory } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Stamp } from '../kernel/types';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';

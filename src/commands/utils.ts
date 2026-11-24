@@ -1,5 +1,5 @@
 import type { CommandContext, CommandHandler } from './types';
-import type { NAR } from '../nar';
+import type { NAR } from '../nar/core';
 
 export interface NarCommandContext extends CommandContext {
   readonly nar?: NAR;

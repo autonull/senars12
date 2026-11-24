@@ -6,8 +6,8 @@
 import type { CognitiveRegistry } from './cognitive';
 import { createLMService, createSeNARSRegistry, type SeNARSRegistry } from './lm';
 import type { LMService } from './lm/lm-service';
-import type { NARConfig, SystemOneConfig } from './nar';
-import { NAR } from './nar';
+import type { NARConfig, SystemOneConfig } from './nar/config';
+import { NAR } from './nar/core';
 import type { CoreConfig } from './types';
 import { DEFAULT_CONFIG, NarEventBus } from './types';
 import type { DecisionPort } from './ports/decision';

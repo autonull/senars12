@@ -3,8 +3,8 @@
  */
 
 import type { EconomyTask, Truth } from '../types';
-import type { Term } from '../../kernel/terms/term';
-import { TermOp } from '../../kernel/terms/term';
+import type { Term } from '../../kernel/terms';
+import { TermOp } from '../../kernel/terms';
 import { flooredRatio } from '@senars/util/numeric';
 
 /** Feature names used in TD learning. */

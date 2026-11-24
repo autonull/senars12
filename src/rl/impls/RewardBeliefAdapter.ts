@@ -1,7 +1,7 @@
 import { BoundedRing } from '@senars/util/collections';
 import { clamp01 } from '@senars/util/numeric';
 import { type Term, TermBuilder, Truth } from '../../index';
-import type { NAR } from '../../nar';
+import type { NAR } from '../../nar/core';
 import type { RandomSource } from '../../types/primitives';
 import { decodeQExpectation, QBeliefStore } from './QBeliefStore';
 import { rewardBeliefTerm, rewardLevel } from './reward-term';

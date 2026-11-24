@@ -4,7 +4,7 @@
  * Detects anomalies, diagnoses root causes, and applies repairs.
  */
 
-import type { Term } from '../../kernel/terms/term';
+import type { Term } from '../../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
 import type { Task, TimestampMs } from '../../kernel/types';
 import type { FacultyInput, FacultyOutput } from '../../faculties/specs';

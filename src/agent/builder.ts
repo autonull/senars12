@@ -25,7 +25,8 @@ import { FluentBuilderMixin } from '@senars/util/fluent-builder';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles';
 export { NAR_PROFILES, resolveProfile } from './profiles';
 
-import { NAR, type NARConfig } from '../nar';
+import { NAR } from '../nar/core';
+import type { NARConfig } from '../nar/config';
 import type { CreateAgentConfig } from './config';
 
 export interface CapabilitySpec {

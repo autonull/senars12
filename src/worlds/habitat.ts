@@ -5,7 +5,7 @@
  * explicit state transitions, and verifiable outcomes.
  */
 
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Task, TaskType } from '../kernel/types';
 import { SenarsError } from '../errors/senars-error';

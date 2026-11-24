@@ -5,8 +5,8 @@
  * against the transcribed truth table (verifier-truth-table.ts).
  */
 
-import { termFactory } from '../kernel/terms/term';
-import type { Term } from '../kernel/terms/term';
+import { termFactory } from '../kernel/terms';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Truth } from '../kernel/truth';
 import { VERIFIER_TRUTH_TABLE, BINARY_TRUTH, UNARY_TRUTH } from '../rules/verifier-truth-table';

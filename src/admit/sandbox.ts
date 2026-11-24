@@ -5,7 +5,7 @@
  * bypasses admitted operators.
  */
 
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';

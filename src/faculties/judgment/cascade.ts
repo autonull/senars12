@@ -13,7 +13,7 @@
  */
 
 import { Truth as TruthOps, Truth } from '../../kernel/truth';
-import type { Term } from '../../kernel/terms/term';
+import type { Term } from '../../kernel/terms';
 import type { Task } from '../../kernel/types';
 import type { FacultyInput, FacultyOutput } from '../specs';
 import { facultyEngine } from '../engine';

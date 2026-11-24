@@ -7,7 +7,7 @@
 import type { Artifact, ArtifactKind, ArtifactStatus } from '../admit/repertoire';
 import type { MinedSchema, SchemaExample } from './schemas';
 import type { SurpriseEvent } from './surprise';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Stamp } from '../kernel/types';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';

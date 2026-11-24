@@ -5,7 +5,7 @@ import { LruCache } from '@senars/util/lru-cache';
 import type { RandomSource } from '@senars/util';
 import type { DriveManager } from '../../drives/impls/DriveManager';
 import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index';
-import type { NAR } from '../../nar';
+import type { NAR } from '../../nar/core';
 
 /**
  * Stores state-action value beliefs in NAR memory using native Product/Inheritance form

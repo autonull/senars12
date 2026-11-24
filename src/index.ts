@@ -93,9 +93,10 @@ export type { ProposalBagOptions, ProposalCandidate } from './meta/proposal-bag'
 export { ProposalBag } from './meta/proposal-bag';
 
 // Main NAR class
-export type { NARConfig, RLFPConfig } from './nar';
+export type { NARConfig, RLFPConfig, SystemOneConfig } from './nar/config';
 /** The NAR reasoning engine. @public */
-export { NAR, NarEventBus } from './nar';
+export { NAR } from './nar/core';
+export { NarEventBus } from './types';
 
 // NAR-LM integration
 /** NAR with LM capabilities. @public */

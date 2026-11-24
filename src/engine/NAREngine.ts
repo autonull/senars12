@@ -14,7 +14,7 @@ import { errMsg } from '@senars/util/error';
 import { takeLast } from '@senars/util/collections';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge';
 import { filterByTerm } from '../memory/term-filter';
-import { NAR } from '../nar';
+import { NAR } from '../nar/core';
 import { dispatchNarseseIntent } from '../nl/narsese-intent';
 import { DEFAULT_CONFIG } from '../types/index';
 

@@ -5,7 +5,7 @@
  * It is fuel-metered and has no dangerous words.
  */
 
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { SandboxAST, SandboxFunction, SandboxLimits, Sandbox } from './sandbox';
 import { createSandbox } from './sandbox';

@@ -7,7 +7,7 @@
 
 import { Term, TermOp, termInterner } from '../../kernel/terms/intern';
 import { Truth, type TruthValue } from '../../kernel/truth';
-import { getArgs } from '../../kernel/terms/term';
+import { getArgs } from '../../kernel/terms/term-internal/compound';
 import { Stamp } from '../../kernel/stamp';
 import type { Premise } from '../../kernel/step';
 import type { Clock } from '../../kernel/env';

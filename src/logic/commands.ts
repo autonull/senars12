@@ -13,7 +13,7 @@ import { CertificateGenerator, CertificateVerifier, verifyCertificate } from '..
 import { createModelFinder } from '../logics/axiomatic/models';
 import { createSLDResolver } from '../logics/axiomatic/sld';
 import { decodeNarsese, encodeNarsese, serializeTerm, deserializeTerm } from '../kernel/terms/codec/narsese';
-import { TermOp } from '../kernel/terms/term';
+import { TermOp } from '../kernel/terms';
 import { parseAtom, parseProgram } from './parse';
 import { proved, refuted, unknown, type CommandResult, type Verdict } from './verdict';
 
@@ -110,7 +110,7 @@ export const formatVerdict = (verdict: Verdict): string => {
 };
 
 /** Render a term for Prolog/TPTP. */
-const renderArg = (arg: import('../kernel/terms/term').Term): string => {
+const renderArg = (arg: import('../kernel/terms').Term): string => {
   if (arg.op === TermOp.VARIABLE) return arg.name;
   if (arg.op === TermOp.CONSTANT) return (arg as { value: string }).value;
   return '?';

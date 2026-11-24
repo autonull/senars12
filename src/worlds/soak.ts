@@ -11,7 +11,7 @@ import { createHabitatRegistry } from './habitat';
 import { createArenaAgent } from './arena';
 import { createLaneArenaRunner, runNalAbAsLane } from './arena-lanes';
 import { createWorldEvaluator } from './world-packs';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 import type { Repertoire } from '../admit/repertoire';

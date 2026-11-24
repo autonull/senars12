@@ -4,8 +4,8 @@
 
 import type { EconomyTask, Successor, SchedulerConfig, Overlay } from '../types';
 import type { Truth } from '../../kernel/truth';
-import type { Term } from '../../kernel/terms/term';
-import { termFactory, TermOp } from '../../kernel/terms/term';
+import type { Term } from '../../kernel/terms';
+import { termFactory, TermOp } from '../../kernel/terms';
 import { TaskType } from '../../kernel/types';
 import type { Clock, TimestampMs } from '../../kernel/env';
 import { createDefaultClock } from '../../kernel/env';

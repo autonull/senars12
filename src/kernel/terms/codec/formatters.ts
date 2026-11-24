@@ -5,9 +5,9 @@
  * and the Term class's toString method.
  */
 
-import type { Term, VariableTerm, ConstantTerm, CompoundTerm } from '../term';
+import type { Term, VariableTerm, ConstantTerm, CompoundTerm } from '../term-internal';
 import { TermOp } from '../term-ops';
-import { getArgs } from '../term';
+import { getArgs } from '../term-internal/compound';
 
 /** Operator symbols for Narsese. */
 const OPERATOR_SYMBOLS: Record<TermOp, string> = {

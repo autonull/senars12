@@ -7,7 +7,7 @@
  * This module provides both interfaces.
  */
 
-import type { Term } from './terms/term';
+import type { Term } from './terms';
 
 /** Timestamp in milliseconds since epoch. */
 export type TimestampMs = number;

@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { ChatStreamEvent } from '../../../agent/index';
 import { withinWorkspace } from '../../../motor/index';
 import type { NAR } from '@senars/nar';
-import { Truth } from '@senars/nar/terms';
+import { Truth } from '../../../kernel/truth';
 import type { ExtendedAgent as Agent } from '../../../agent/index';
 import { resetDemotions } from '../../../lm/index';
 import { filterFolded } from '@senars/util/text';

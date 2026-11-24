@@ -10,7 +10,7 @@
  */
 
 import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm, TermVisitor } from './intern';
-import { getArgs } from './term';
+import { getArgs } from './term-internal/compound';
 
 /** Canonical term representation. */
 export interface CanonicalTerm {

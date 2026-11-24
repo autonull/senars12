@@ -4,8 +4,8 @@
  * Verified by schema:drift gate; UI packages typecheck against this.
  */
 
-import type { Term, CompoundTerm } from '../kernel/terms/term';
-import { TermOp } from '../kernel/terms/term';
+import type { Term, CompoundTerm } from '../kernel/terms';
+import { TermOp } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Stamp } from '../kernel/types';
 

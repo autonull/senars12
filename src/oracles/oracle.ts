@@ -6,7 +6,7 @@
  */
 
 import type { UUID, TimestampMs } from '../generated/schemas';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { Task } from '../kernel/types';
 import { FunctionRegistry } from '../util/registry';
 import { createLMGenerateTextOracle, createLMGenerateObjectOracle, createLMStreamOracle } from './lm';

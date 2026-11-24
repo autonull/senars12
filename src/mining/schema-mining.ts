@@ -6,7 +6,7 @@
  */
 
 import type { Episode } from '@senars/types/episodic-memory';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { Truth } from '../kernel/truth';
 import type { Task } from '../types/task';
 import type { RandomSource } from '../types/primitives';

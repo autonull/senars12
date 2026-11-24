@@ -2,7 +2,7 @@
  * Loop Act — action execution and effect handling for the cognitive loop.
  */
 
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { Truth } from '../kernel/truth';
 import type { Task, TaskType } from '../kernel/types';
 import type { SelectionResult, SelectionCandidate } from './select';

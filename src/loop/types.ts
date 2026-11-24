@@ -5,7 +5,7 @@
 import type { EconomyTask, EconomyState, SchedulerResult, SchedulerConfig, Successor } from '../economy/index';
 import type { FacultyRegistry, FacultySpec, FacultyInput, FacultyOutput } from '../faculties/specs';
 import type { OracleRegistry, Oracle, OracleInput, OracleOutput } from '../oracles/oracle';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { Task } from '../kernel/types';
 import type { Truth } from '../kernel/truth';
 import type { Env } from '../kernel/env';

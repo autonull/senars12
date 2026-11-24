@@ -324,7 +324,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
 
   let narInstance = config.nar;
   if (!narInstance) {
-    const { NAR } = await import('../nar');
+    const { NAR } = await import('../nar/core');
     const { DEFAULT_CONFIG } = await import('../types/index');
     narInstance = new NAR({ ...DEFAULT_CONFIG, feedbackObserver, metta, logStore });
   }

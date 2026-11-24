@@ -7,7 +7,7 @@
 
 import type { Artifact, ArtifactKind } from './repertoire';
 import type { EvaluationCertificate } from '../worlds/scorecard';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';

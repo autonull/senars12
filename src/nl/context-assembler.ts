@@ -4,7 +4,7 @@ import { overlapCount, tokenizeWords } from '@senars/util/text';
 import { selectTopN, takeFirst, takeLast, uniqueBy, shareCount } from '@senars/util/collections';
 
 import { estimateTokens } from '../lm/context/context-budget';
-import type { NAR } from '../nar';
+import type { NAR } from '../nar/core';
 import { termKey } from '../terms';
 import type { TranslationCache, TranslationCacheEntry } from './cache';
 import type { NLContext } from './understanding';

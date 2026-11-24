@@ -6,7 +6,7 @@
  */
 
 import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON } from '../intern';
-import { getArgs } from '../term';
+import { getArgs } from '../term-internal/compound';
 import type { TruthValue } from '../../types';
 import {
   formatTerm as sharedFormatTerm,

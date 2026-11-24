@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import type { Term } from '../../kernel/terms/term';
+import type { Term } from '../../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
 import {
   CandidateSchema,

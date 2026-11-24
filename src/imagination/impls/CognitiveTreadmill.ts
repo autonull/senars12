@@ -4,7 +4,7 @@ import { BoundedRing } from '@senars/util/collections';
 import { clamp, clamp01, flooredRatio, perSecond, stdDev } from '@senars/util/numeric';
 import { percentile } from '@senars/util/format';
 import { sleep, stopwatch } from '@senars/util/async';
-import type { NAR } from '../../nar';
+import type { NAR } from '../../nar/core';
 import { Truth } from '../../terms/impls/Truth';
 import { termParser } from '../../terms';
 import type { Task } from '../../types/core';

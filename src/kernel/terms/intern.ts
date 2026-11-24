@@ -6,7 +6,7 @@
  * TermFactory which interns all created terms.
  */
 
-import { TermFactory, Term, VariableTerm, ConstantTerm, CompoundTerm } from './term';
+import { TermFactory, Term, VariableTerm, ConstantTerm, CompoundTerm } from './term-internal';
 import { TermOp } from './term-ops';
 import type { Frequency, Confidence, TruthLike } from '../types';
 
@@ -396,7 +396,6 @@ export function isUnifiable(a: Term, b: Term): boolean {
   return true;
 }
 
-// Re-export shared types
-export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term';
-export { TermOp, TermFactory } from './term';
-export { isCompound, isAtomic } from './term';
+// Re-export shared types (types only; term-internal is the primary export)
+export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term-internal';
+export { TermOp, TermFactory, isCompound, isAtomic } from './term-internal';

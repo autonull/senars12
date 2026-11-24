@@ -4,12 +4,12 @@
  * These provide deterministic, LM-free alternatives when oracle calls fail.
  */
 
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { Truth } from '../kernel/truth';
 import type { Task } from '../kernel/types';
 import type { FacultyInput, FacultyOutput, FacultyFallback, FacultyRegistry } from './specs';
 import { Truth as TruthOps, createTruth } from '../kernel/truth';
-import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms/term';
+import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms';
 import { createTask, type TaskType } from '../kernel/types';
 
 /** Extract Term from Term | Task. */

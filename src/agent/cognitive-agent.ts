@@ -9,7 +9,7 @@ import {
   validateParameters,
 } from '../config/cognitive-parameters';
 import type { NAR as NARType } from '../index';
-import { NAR } from '../nar';
+import { NAR } from '../nar/core';
 import { Truth, termParser } from '../terms/index';
 import type { Task } from '../types/index';
 import { DEFAULT_CONFIG } from '../types/index';

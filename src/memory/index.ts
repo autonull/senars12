@@ -12,7 +12,7 @@ export { Focus } from './focus';
 export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index';
 export { Archive, Forgetting } from './lifecycle/index';
 export { Memory } from './memory';
-export { FoldMemory, createFoldMemory } from './fold-memory';
+export { FoldMemory, createFoldMemory } from './fold';
 export type * from './ports/index';
 export {
   evictUnderPressure,

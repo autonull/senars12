@@ -5,7 +5,7 @@
  * Every admit/demote/retire is an event; rollback is one event.
  */
 
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Stamp } from '../kernel/types';
 import type { Clock, TimestampMs } from '../kernel/env';

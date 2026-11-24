@@ -11,7 +11,7 @@ import type { HabitatConfig, HabitatPack, HabitatId, HabitatKind } from './habit
 import { createHabitatPack } from './habitat';
 import { createGameHabitatRegistry, enhanceHabitatConfig } from './game-transitions';
 import type { EvaluationCertificate, EvaluationFold, FoldId } from './scorecard';
-import type { Term } from '../kernel/terms/term';
+import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 
 /** World profile types. */
