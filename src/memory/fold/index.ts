@@ -167,6 +167,7 @@ export class FoldMemory implements MemoryPorts {
   /** Current number of resident (non-archived) concepts. */
   get size(): number {
     this.#ensureProjections();
+    if (!this.#semantic) return 0;
     return this.#semantic.size;
   }
 
@@ -174,16 +175,19 @@ export class FoldMemory implements MemoryPorts {
 
   listConcepts(): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.listConcepts();
   }
 
   *conceptValues(): IterableIterator<Concept> {
     this.#ensureProjections();
+    if (!this.#semantic) return;
     yield* this.#semantic.conceptValues();
   }
 
   getConcept(term: Term): Concept | undefined {
     this.#ensureProjections();
+    if (!this.#semantic) return undefined;
     return this.#semantic.getConcept(term);
   }
 
@@ -191,6 +195,7 @@ export class FoldMemory implements MemoryPorts {
 
   addConcept(term: Term): Concept {
     this.#ensureProjections();
+    if (!this.#semantic) throw new Error('Semantic fold not initialized');
     const concept = this.#semantic.addConcept(term);
     this.#queueAppend(logConceptAdded(this.#log, term));
     return concept;
@@ -198,6 +203,7 @@ export class FoldMemory implements MemoryPorts {
 
   removeConcept(term: Term): boolean {
     this.#ensureProjections();
+    if (!this.#semantic) return false;
     const existed = this.#semantic.removeConcept(term);
     if (existed) {
       this.#queueAppend(logConceptRemoved(this.#log, term));
@@ -207,6 +213,7 @@ export class FoldMemory implements MemoryPorts {
 
   archiveConcept(concept: Concept): boolean {
     this.#ensureProjections();
+    if (!this.#semantic) return false;
     const result = this.#semantic.archiveConcept(concept);
     if (result) {
       this.#queueAppend(logConceptArchived(this.#log, concept.term));
@@ -216,6 +223,7 @@ export class FoldMemory implements MemoryPorts {
 
   clear(): void {
     this.#ensureProjections();
+    if (!this.#semantic) return;
     this.#semantic.clear();
     this.#procedural = new ProceduralFold(new Map(), new Map(), this.#clock);
     this.#revisions = [];
@@ -232,6 +240,7 @@ export class FoldMemory implements MemoryPorts {
     stamp?: Stamp
   ): boolean {
     this.#ensureProjections();
+    if (!this.#semantic || !this.#procedural) return false;
     const concept = this.#semantic.addConcept(term);
     const result = this.#procedural.addTask(term, type, truth, budget, stamp);
     if (result) {
@@ -243,10 +252,12 @@ export class FoldMemory implements MemoryPorts {
   // --- BeliefTable ---
 
   beliefs(concept: Concept): TaskData[] {
+    if (!this.#procedural) return [];
     return this.#procedural.beliefs(concept);
   }
 
   taskCount(concept: Concept): number {
+    if (!this.#procedural) return 0;
     return this.#procedural.taskCount(concept);
   }
 
@@ -254,6 +265,7 @@ export class FoldMemory implements MemoryPorts {
 
   getGoals(): Task[] {
     this.#ensureProjections();
+    if (!this.#procedural) return [];
     return this.#procedural.getGoals();
   }
 
@@ -261,11 +273,13 @@ export class FoldMemory implements MemoryPorts {
 
   getBeliefs(): Belief[] {
     this.#ensureProjections();
+    if (!this.#procedural) return [];
     return this.#procedural.getBeliefs();
   }
 
   getQuestions(): Question[] {
     this.#ensureProjections();
+    if (!this.#procedural) return [];
     return this.#procedural.getQuestions();
   }
 
@@ -276,18 +290,22 @@ export class FoldMemory implements MemoryPorts {
   }
 
   capacityPressure(): number {
+    if (!this.#semantic) return 0;
     return this.#semantic.capacityPressure();
   }
 
   pressureBreakdown(): StorePressure {
+    if (!this.#semantic) return { concepts: 0, tasks: 0, capacity: 0 };
     return this.#semantic.pressureBreakdown();
   }
 
   totals(): { totalConcepts: number; totalTasks: number } {
+    if (!this.#semantic) return { totalConcepts: 0, totalTasks: 0 };
     return this.#semantic.totals();
   }
 
   getStatistics(): MemoryStatistics {
+    if (!this.#semantic) return { totalConcepts: 0, totalTasks: 0, focusedConcepts: 0, archivedConcepts: 0, memoryPressure: 0, utilization: 0, pressureByBound: { concepts: 0, tasks: 0 }, conceptDistribution: { lowPriority: 0, mediumPriority: 0, highPriority: 0 } };
     return this.#semantic.getStatistics();
   }
 
@@ -295,36 +313,43 @@ export class FoldMemory implements MemoryPorts {
 
   queryBySymbol(symbol: string): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.queryBySymbol(symbol);
   }
 
   queryByTimeRange(start: number, end: number): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.queryByTimeRange(start, end);
   }
 
   findConcepts(pattern: string, limit = 10): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.findConcepts(pattern, limit);
   }
 
   findSimilarConcepts(term: Term, limit = 10): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.findSimilarConcepts(term, limit);
   }
 
   getRelatedConcepts(term: Term, limit = 10): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.getRelatedConcepts(term, limit);
   }
 
   // --- LinkPort ---
 
   links(): LinkPort {
+    if (!this.#semantic) throw new Error('Semantic fold not initialized');
     return this.#semantic.getLinkManager();
   }
 
   attachConceptGraph(graph: ConceptGraph): ConceptGraph {
+    if (!this.#semantic) return graph;
     this.#semantic.getLinkManager().setLayer('graph', graph as any);
     return graph;
   }
@@ -333,11 +358,13 @@ export class FoldMemory implements MemoryPorts {
     sourceTerm: Term,
     options?: { layer?: string; type?: string; minPriority?: number; maxResults?: number }
   ): any[] {
+    if (!this.#semantic) return [];
     return this.#semantic.getLinkManager().getLinks(sourceTerm, options as any);
   }
 
   getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName = 'term'): number {
     this.#ensureProjections();
+    if (!this.#semantic) return 0;
     return this.#semantic.getLinkManager().getLinkPriority(sourceTerm, targetTerm, layerName);
   }
 
@@ -347,6 +374,7 @@ export class FoldMemory implements MemoryPorts {
     options?: { layer?: string; type?: string; priority?: number }
   ): any {
     this.#ensureProjections();
+    if (!this.#semantic) return null;
     const layer = options?.layer ?? 'term';
     const priority = options?.priority ?? 1.0;
 
@@ -366,6 +394,7 @@ export class FoldMemory implements MemoryPorts {
 
   removeByTerm(sourceTerm: Term, targetTerm: Term, type?: string): boolean {
     this.#ensureProjections();
+    if (!this.#semantic) return false;
     const layer = 'term';
     const removed = this.#semantic.getLinkManager().removeByTerm(sourceTerm, targetTerm, type as any);
     if (removed) {
@@ -375,10 +404,12 @@ export class FoldMemory implements MemoryPorts {
   }
 
   removeAllLinksForTerm(term: Term): void {
+    if (!this.#semantic) return;
     this.#semantic.getLinkManager().removeAllLinksForTerm(term);
   }
 
   getLayer(name: string): any {
+    if (!this.#semantic) return undefined;
     return this.#semantic.getLinkManager().getLayer(name);
   }
 
