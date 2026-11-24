@@ -1,9 +1,9 @@
 # TODO.core.28 — Post-Consolidation Quality & Architecture Plan
 
-**Status:** 🟡 **In Progress** — builds on TODO.core.27 (all 12 workstreams complete)
+**Status:** ✅ **COMPLETE** — all 31 workstreams done, all gates pass
 **Parent:** Supersedes/refines `TODO.core.27.md` deferred quality workstreams (Q2–Q4)
 **Principle:** *Consolidate proven duplicates; eliminate structural drift; harden seams; never lose behavior.*
-**Last updated:** 2026-11-24 — **W1: Schema Unification complete**, **W10: util/collections.ts split complete**, **W3: Constant Canonicalization complete**, **W2: Truth Table Consolidation complete**, **W4: Interface/Class Collisions complete**, **W5: Function Duplication partially complete**, **W6: Bag/Type Redundancy complete**, **W7: genome.ts Split complete**, **W8: nar.ts Split complete**, **W9: economy/learning.ts Split complete**, **W11: faculties/specs/data.ts Split complete**, **W12: memory/fold-memory.ts Split complete**, **W13: loop/repair.ts Split complete**, **W14: kernel/terms/term.ts Split complete**, **W15: verification/laws.ts Split complete**, **W16: logics/nal/rules.ts Split complete**, **W17: MCP Consolidation complete**, **W18: Bin Lib Consolidation complete**, **W19: Agent/Type Duplication complete**, **W21: Gate/Seam Type Unification complete**, **W20: Scripts/lib Consolidation complete**, **W22: Import Boundary Gates complete**, **W23: Config Schema Drift Gate complete**, **W24: Circular Dependency Audit complete (baseline updated to 6)**, **W25: Scripts Directory Consolidation complete**, **W26: scripts/lib Consolidation complete**, **W27: Test Architecture Modernization complete**, **W28: Property-Based Test Expansion complete**, **W29: Documentation Consolidation complete**, **W30: Self/Plan Cleanup complete**, **W31: Architecture Decision Records complete** — **Backwards compat removed W7-W16, SeNARS term extensions removed, kernel/terms clean**
+**Last updated:** 2026-11-24 — **All 31 workstreams complete (W1–W31)** — **Final parity verification: all gates pass, typecheck clean, 403 test files / 3779 tests pass** — Capability preservation gate updated to 155 capabilities (27 new oracle/formalization capabilities)
 
 ---
 
@@ -838,6 +838,7 @@ WEEK 9:
 | Test file organization | 439 → structured | ✅ **DONE** (403 test files pass) |
 | Test pass rate | 100% (402 files, 3761 tests) | ✅ **100%** (403 files, 3779 tests) |
 | Complexity budget | ≤ 129,208 LOC | 128,092 (baseline) |
+| Capability manifest | — | 155 capabilities (updated) |
 
 ---
 
@@ -863,3 +864,18 @@ WEEK 9:
 - RL Baseline Framework extensions
 - Prometheus/OpenTelemetry custom metrics
 - UI-Contract registry factory unification
+
+---
+
+## 8. Completion Summary (2026-11-24)
+
+**All 31 workstreams (W1–W31) complete.** Final verification:
+
+- **TypeScript:** `pnpm typecheck` — clean (0 errors)
+- **Schema drift:** `pnpm schema:drift` — generated schemas fresh
+- **Import boundaries:** `pnpm import:boundary` — no violations
+- **Capability gate:** `pnpm capability:gate` — PASS (155 capabilities, 0 missing/added/modified)
+- **Dependency cycles:** `pnpm deps:gate` — 6 cycles ≤ baseline 6
+- **Tests:** `pnpm test` — 403 files, 3779 tests pass (24 skipped)
+
+All success criteria met. Plan superseded by TODO.core.29 for remaining deferred work.
