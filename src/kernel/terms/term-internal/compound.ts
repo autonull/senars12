@@ -58,22 +58,14 @@ export function isStatement(term: Term): boolean {
       term.op === TermOp.EQUIVALENCE);
 }
 
-/** Check if term is a question. */
+/** Check if term is a question (uses STATEMENT/QUESTION/GOAL punctuation). */
 export function isQuestion(term: Term): boolean {
-  return isCompound(term) &&
-    (term.op === TermOp.QUESTION_INHERITANCE ||
-      term.op === TermOp.QUESTION_SIMILARITY ||
-      term.op === TermOp.QUESTION_IMPLICATION ||
-      term.op === TermOp.QUESTION_PREDICTIVE_IMPLICATION);
+  return isCompound(term) && term.op === TermOp.QUESTION;
 }
 
-/** Check if term is a goal. */
+/** Check if term is a goal (uses STATEMENT/QUESTION/GOAL punctuation). */
 export function isGoal(term: Term): boolean {
-  return isCompound(term) &&
-    (term.op === TermOp.GOAL_INHERITANCE ||
-      term.op === TermOp.GOAL_SIMILARITY ||
-      term.op === TermOp.GOAL_IMPLICATION ||
-      term.op === TermOp.GOAL_PREDICTIVE_IMPLICATION);
+  return isCompound(term) && term.op === TermOp.GOAL;
 }
 
 /** Check if term is atomic (variable or constant). */

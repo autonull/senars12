@@ -23,17 +23,8 @@ export function getOperatorSymbol(op: TermOp): string {
     case TermOp.DISJUNCTION: return '|';
     case TermOp.NEGATION: return '-';
     case TermOp.EQUIVALENCE: return '=<=>';
-    case TermOp.QUESTION_INHERITANCE: return '?-->';
-    case TermOp.QUESTION_SIMILARITY: return '?<->';
-    case TermOp.QUESTION_IMPLICATION: return '?==>';
-    case TermOp.QUESTION_PREDICTIVE_IMPLICATION: return '?=/>';
-    case TermOp.GOAL_INHERITANCE: return '!-->';
-    case TermOp.GOAL_SIMILARITY: return '!<->';
-    case TermOp.GOAL_IMPLICATION: return '!==>';
-    case TermOp.GOAL_PREDICTIVE_IMPLICATION: return '!=/>';
-    case TermOp.SEQUENCE: return ';';
+    case TermOp.SEQUENTIAL: return ';';
     case TermOp.PARALLEL: return '||';
-    case TermOp.COMPOSITE: return '*';
     case TermOp.PRODUCT: return '#';
     case TermOp.EXTENSIONAL_IMAGE: return '^';
     case TermOp.INTENSIONAL_IMAGE: return '_';
@@ -52,14 +43,6 @@ export function getPrecedence(op: TermOp): number {
     case TermOp.INHERITANCE:
     case TermOp.SIMILARITY: return 5;
     case TermOp.NEGATION: return 6;
-    case TermOp.QUESTION_INHERITANCE:
-    case TermOp.QUESTION_SIMILARITY:
-    case TermOp.QUESTION_IMPLICATION:
-    case TermOp.QUESTION_PREDICTIVE_IMPLICATION: return 7;
-    case TermOp.GOAL_INHERITANCE:
-    case TermOp.GOAL_SIMILARITY:
-    case TermOp.GOAL_IMPLICATION:
-    case TermOp.GOAL_PREDICTIVE_IMPLICATION: return 7;
     default: return 10;
   }
 }
@@ -134,7 +117,7 @@ class NarseseParser {
   }
 
   private skipWhitespace(): void {
-    while (this.pos < this.input.length && /\s/.test(this.input[this.pos])) {
+    while (this.pos < this.input.length && /\s/.test(this.peek())) {
       this.pos++;
     }
   }
@@ -276,17 +259,9 @@ class NarseseParser {
       '|': TermOp.DISJUNCTION,
       '-': TermOp.NEGATION,
       '=<=>': TermOp.EQUIVALENCE,
-      '?-->': TermOp.QUESTION_INHERITANCE,
-      '?<->': TermOp.QUESTION_SIMILARITY,
-      '?==>': TermOp.QUESTION_IMPLICATION,
-      '?=/=>': TermOp.QUESTION_PREDICTIVE_IMPLICATION,
-      '!-->': TermOp.GOAL_INHERITANCE,
-      '!<->': TermOp.GOAL_SIMILARITY,
-      '!==>': TermOp.GOAL_IMPLICATION,
-      '!=/=>': TermOp.GOAL_PREDICTIVE_IMPLICATION,
-      ';': TermOp.SEQUENCE,
+      ';': TermOp.SEQUENTIAL,
       '||': TermOp.PARALLEL,
-      '*': TermOp.COMPOSITE,
+      '*': TermOp.PRODUCT,
       '#': TermOp.PRODUCT,
       '^': TermOp.EXTENSIONAL_IMAGE,
       '_': TermOp.INTENSIONAL_IMAGE,

@@ -9,6 +9,7 @@
 import { TermFactory, Term, VariableTerm, ConstantTerm, CompoundTerm } from './term-internal';
 import { TermOp } from './term-ops';
 import type { Frequency, Confidence, TruthLike } from '../types';
+import { fromNarsese, formatTerm } from './term-internal/canonical';
 
 /** Interning statistics. */
 export interface InternStats {
@@ -79,17 +80,17 @@ export class TermInterner {
 
   /** Get interned compound or create new. */
   compound(op: TermOp, ...args: Term[]): CompoundTerm {
-    return this.factory.compound(op, ...args);
+    return this.factory.compound(op, args);
   }
 
   /** Parse and intern a Narsese string. */
   parse(narsese: string): Term {
-    return this.factory.parse(narsese);
+    return fromNarsese(narsese) ?? this.factory.variable('parse_error');
   }
 
   /** Format a term as Narsese. */
   format(term: Term): string {
-    return this.factory.format(term);
+    return formatTerm(term);
   }
 
   /** Check equality by identity. */
@@ -99,17 +100,28 @@ export class TermInterner {
 
   /** Get term hash. */
   hash(term: Term): number {
-    return this.factory.getHash(term);
+    return term.hash;
   }
 
   /** Get term complexity. */
   complexity(term: Term): number {
-    return this.factory.getComplexity(term);
+    return term.complexity;
+  }
+
+  /** Get all interned terms. */
+  getAllTerms(): Term[] {
+    const terms: Term[] = [];
+    for (const table of this.factory['internTable'].values()) {
+      for (const term of table.values()) {
+        terms.push(term);
+      }
+    }
+    return terms;
   }
 
   /** Get interning statistics. */
   getStats(): InternStats {
-    const allTerms = this.factory.getAllTerms();
+    const allTerms = this.getAllTerms();
     const byOp: Record<string, number> = {};
     let variables = 0, constants = 0, compounds = 0;
 
@@ -124,7 +136,7 @@ export class TermInterner {
 
     // Rough memory estimate: 64 bytes per term + string data
     const memoryEstimate = allTerms.length * 64 +
-      allTerms.reduce((sum, t) => sum + JSON.stringify(t).length, 0);
+      allTerms.reduce((sum: number, t: Term) => sum + JSON.stringify(t).length, 0);
 
     return {
       totalTerms: allTerms.length,

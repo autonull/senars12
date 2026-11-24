@@ -47,12 +47,17 @@ export const variableGenerator = new VariableGenerator();
 
 /** Get most general unifier. */
 export function mgu(a: Term, b: Term): Map<string, Term> | null {
-  return unifyImpl(a, b, new Map());
+  const result = unifyImpl(a, b, {});
+  if (result.success && result.substitution) {
+    return result.substitution as unknown as Map<string, Term>;
+  }
+  return null;
 }
 
 /** Check if two terms are unifiable. */
 export function isUnifiable(a: Term, b: Term): boolean {
-  return unifyImpl(a, b, new Map()) !== null;
+  const result = unifyImpl(a, b, {});
+  return result.success;
 }
 
 /** Standardize variables apart (rename to avoid conflicts). */

@@ -80,10 +80,75 @@ export class TermFactory {
     return term as ConstantTerm;
   }
 
+  /** Convenience: create inheritance (S --> P). */
+  inheritance(subject: Term, predicate: Term): CompoundTerm {
+    return this.compound(TermOp.INHERITANCE, [subject, predicate]);
+  }
+
+  /** Convenience: create similarity (S <-> P). */
+  similarity(subject: Term, predicate: Term): CompoundTerm {
+    return this.compound(TermOp.SIMILARITY, [subject, predicate]);
+  }
+
+  /** Convenience: create implication (S ==> P). */
+  implication(antecedent: Term, consequent: Term): CompoundTerm {
+    return this.compound(TermOp.IMPLICATION, [antecedent, consequent]);
+  }
+
+  /** Convenience: create predictive implication (S =/> P). */
+  predictiveImplication(antecedent: Term, consequent: Term): CompoundTerm {
+    return this.compound(TermOp.PREDICTIVE_IMPLICATION, [antecedent, consequent]);
+  }
+
+  /** Convenience: create equivalence (S <=> P). */
+  equivalence(subject: Term, predicate: Term): CompoundTerm {
+    return this.compound(TermOp.EQUIVALENCE, [subject, predicate]);
+  }
+
+  /** Convenience: create conjunction (S & P). */
+  conjunction(...terms: Term[]): CompoundTerm {
+    return this.compound(TermOp.CONJUNCTION, terms);
+  }
+
+  /** Convenience: create disjunction (S | P). */
+  disjunction(...terms: Term[]): CompoundTerm {
+    return this.compound(TermOp.DISJUNCTION, terms);
+  }
+
+  /** Convenience: create negation (~S). */
+  negation(term: Term): CompoundTerm {
+    return this.compound(TermOp.NEGATION, [term]);
+  }
+
+  /** Convenience: create product (* S P ...). */
+  product(...terms: Term[]): CompoundTerm {
+    return this.compound(TermOp.PRODUCT, terms);
+  }
+
+  /** Convenience: create prediction (S |=> P). */
+  prediction(antecedent: Term, consequent: Term): CompoundTerm {
+    return this.compound(TermOp.PREDICTION, [antecedent, consequent]);
+  }
+
+  /** Convenience: create sequential (S ; P). */
+  sequential(first: Term, second: Term): CompoundTerm {
+    return this.compound(TermOp.SEQUENTIAL, [first, second]);
+  }
+
+  /** Convenience: create extensional image (@ S). */
+  extensionalImage(term: Term): CompoundTerm {
+    return this.compound(TermOp.EXTENSIONAL_IMAGE, [term]);
+  }
+
+  /** Convenience: create intensional image (# S). */
+  intensionalImage(term: Term): CompoundTerm {
+    return this.compound(TermOp.INTENSIONAL_IMAGE, [term]);
+  }
+
   /** Create a compound term. */
   compound(op: TermOp, args: readonly Term[]): CompoundTerm {
     if (op === TermOp.VARIABLE || op === TermOp.CONSTANT) {
-      throw new SenarsError('Invalid op for compound term', 'INVALID_TERM_OP');
+      throw new SenarsError('Invalid op for compound term', 'VALIDATION_ERROR');
     }
 
     const argKeys = args.map((a) => a.hash.toString(16)).join(',');

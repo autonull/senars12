@@ -12,6 +12,7 @@ export enum TermOp {
   INHERITANCE = '-->',
   SIMILARITY = '<->',
   IMPLICATION = '==>',
+  PREDICTIVE_IMPLICATION = '=/>' ,
   EQUIVALENCE = '<=>',
   CONJUNCTION = '&',
   DISJUNCTION = '|',
