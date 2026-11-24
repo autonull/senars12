@@ -7,7 +7,7 @@
 
 import type { Term } from '../kernel/terms/term';
 import type { Truth } from '../kernel/truth';
-import type { Task, TaskType } from '../kernel/types';
+import type { Task, TaskType, TaskBagKind } from '../kernel/types';
 import type { RNG, Clock } from '../kernel/env';
 
 /** Economy task bag kinds — extends NAR task vocabulary with economy-specific kinds. */
@@ -23,13 +23,13 @@ export const ECONOMY_TASK_BAG_KINDS = [
 export type EconomyTaskBagKind = (typeof ECONOMY_TASK_BAG_KINDS)[number];
 
 /** Economy task — the atomic unit of work in the economy. */
-export interface EconomyTask extends Task {
+export interface EconomyTask extends Omit<Task, 'kind'> {
   /** Unique task ID. */
   id: string;
   /** Term representing the task. */
   term: Term;
   /** Task kind. */
-  kind: TaskBagKind;
+  kind: EconomyTaskBagKind;
   /** Truth value. */
   truth: Truth;
   /** Utility weight. */
@@ -64,6 +64,7 @@ export const TASK_SOURCES = [
   'curriculum',
   'growth',
   'repair',
+  'faculty',
 ] as const;
 
 export type TaskSource = (typeof TASK_SOURCES)[number];
@@ -139,7 +140,7 @@ export interface Overlay {
   /** Name. */
   name: string;
   /** Weight multiplier per kind. */
-  kindWeights: Partial<Record<TaskBagKind, number>>;
+  kindWeights: Partial<Record<EconomyTaskBagKind, number>>;
   /** Weight multiplier per source. */
   sourceWeights: Partial<Record<TaskSource, number>>;
   /** Tag weights. */

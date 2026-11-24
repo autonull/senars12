@@ -48,12 +48,12 @@
 |----|------------|--------|--------|--------|--------------|
 | **W7** | **genome.ts (1,756 lines)** | Split into domain modules | ★★★★☆ | M | W1 |
 | **W8** | **nar.ts (1,251 lines)** | Extract sub-modules | ★★★★☆ | M | W2 |
-| **W9** | **economy/learning.ts (1,011 lines)** | Split by concern | ★★★★☆ | M | W2 |
+| **W9** | **economy/learning.ts (1,011 lines)** | Split by concern | ★★★★☆ | M | W2 | ✅ **DONE** |
 | **W10** | **util/collections.ts (900 lines)** | Split by domain | ★★★★☆ | S | — | ✅ **DONE** |
-| **W11** | **faculties/specs/data.ts (919 lines)** | Split by faculty domain | ★★★★☆ | M | — |
-| **W12** | **memory/fold-memory.ts (1,001 lines)** | Split by view type | ★★★★☆ | M | — |
-| **W13** | **loop/repair.ts (878 lines)** | Extract repair strategies | ★★★★☆ | M | — |
-| **W14** | **kernel/terms/term.ts (853 lines)** | Split by term operation | ★★★★☆ | M | — |
+| **W11** | **faculties/specs/data.ts (919 lines)** | Split by faculty domain | ★★★★☆ | M | — | ✅ **DONE** |
+| **W12** | **memory/fold-memory.ts (1,001 lines)** | Split by view type | ★★★★☆ | M | — | ✅ **DONE** |
+| **W13** | **loop/repair.ts (878 lines)** | Extract repair strategies | ★★★★☆ | M | — | ✅ **DONE** |
+| **W14** | **kernel/terms/term.ts (853 lines)** | Split by term operation | ★★★★☆ | M | — | ✅ **DONE** |
 | **W15** | **verification/laws.ts (674 lines)** | Split by law category | ★★★★☆ | S | W2 |
 | **W16** | **logics/nal/rules.ts (508 lines)** | Split by rule family | ★★★★☆ | S | — |
 
@@ -303,11 +303,11 @@ src/
 
 ---
 
-### W9: economy/learning.ts Decomposition (Week 3–4)
+### W9: economy/learning.ts Decomposition (Week 3–4) ✅ **DONE**
 
 **Problem:** 1,011 lines — learning + economy intertwined.
 
-**Split Plan:**
+**Completed Split:**
 ```
 src/economy/
   learning.ts            → ~200 lines (orchestration)
@@ -345,7 +345,7 @@ src/util/
 
 ### W11–W16: Additional Large File Decompositions (Week 3–4)
 
-**W11: faculties/specs/data.ts (919 lines)** — Split by faculty domain
+**W11: faculties/specs/data.ts (919 lines)** — Split by faculty domain ✅ **DONE**
 ```
 src/faculties/specs/
   data.ts → barrel
@@ -355,9 +355,10 @@ src/faculties/specs/
     perception.ts
     action.ts
     metacognition.ts
+    utils.ts
 ```
 
-**W12: memory/fold-memory.ts (1,001 lines)** — Split by view type
+**W12: memory/fold-memory.ts (1,001 lines)** — Split by view type ✅ **DONE**
 ```
 src/memory/
   fold-memory.ts → barrel
@@ -368,23 +369,26 @@ src/memory/
     procedural.ts
 ```
 
-**W13: loop/repair.ts (878 lines)** — Extract repair strategies
+**W13: loop/repair.ts (878 lines)** — Extract repair strategies ✅ **DONE**
 ```
 src/loop/
   repair.ts → barrel
   repair/
     index.ts
+    types.ts
     derivation.ts
     consistency.ts
     budget.ts
 ```
 
-**W14: kernel/terms/term.ts (853 lines)** — Split by term operation
+**W14: kernel/terms/term.ts (853 lines)** — Split by term operation ✅ **DONE**
 ```
 src/kernel/terms/
   term.ts → barrel
-  term/
+  term-internal/
     index.ts
+    types.ts
+    factory.ts
     compound.ts
     atomic.ts
     variable.ts
@@ -772,11 +776,11 @@ WEEK 2:
 WEEK 3:
   ├─ W7: genome.ts Split (needs W1) ✅ **DONE**
   ├─ W8: nar.ts Split (needs W2) ✅ **DONE**
-  ├─ W9: economy/learning.ts Split (needs W2)
-  ├─ W11: faculties/specs/data.ts Split (parallel)
-  ├─ W12: memory/fold-memory.ts Split (parallel)
-  ├─ W13: loop/repair.ts Split (parallel)
-  ├─ W14: kernel/terms/term.ts Split (parallel)
+  ├─ W9: economy/learning.ts Split (needs W2) ✅ **DONE**
+  ├─ W11: faculties/specs/data.ts Split (parallel) ✅ **DONE**
+  ├─ W12: memory/fold-memory.ts Split (parallel) ✅ **DONE**
+  ├─ W13: loop/repair.ts Split (parallel) ✅ **DONE**
+  ├─ W14: kernel/terms/term.ts Split (parallel) ✅ **DONE**
   ├─ W15: verification/laws.ts Split (needs W2)
   └─ W16: logics/nal/rules.ts Split (parallel)
 

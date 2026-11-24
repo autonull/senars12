@@ -9,7 +9,7 @@
  * This replaces the separate drive machinery with a single gradient view.
  */
 
-import type { Overlay, TaskBagKind, TaskSource, EconomyTask, SchedulerConfig } from './types';
+import type { Overlay, EconomyTaskBagKind, TaskSource, EconomyTask, SchedulerConfig } from './types';
 import type { Truth } from '../kernel/truth';
 import { calculateTaskUtility, calculateTotalUtility, KIND_UTILITY_WEIGHTS } from './utility-voi';
 import type { Clock, TimestampMs } from '../kernel/env';
@@ -37,7 +37,7 @@ export const BUILTIN_OVERLAYS = {
 interface OverlayConfig {
   id: string;
   name: string;
-  kindWeights: Partial<Record<TaskBagKind, number>>;
+  kindWeights: Partial<Record<EconomyTaskBagKind, number>>;
   sourceWeights: Partial<Record<TaskSource, number>>;
   tagWeights: Record<string, number>;
 }
@@ -132,7 +132,7 @@ export function applyOverlays(config: SchedulerConfig, overlayIds: string[]): Sc
 export function createOverlay(
   id: string,
   name: string,
-  kindWeights: Partial<Record<TaskBagKind, number>> = {},
+  kindWeights: Partial<Record<EconomyTaskBagKind, number>> = {},
   sourceWeights: Partial<Record<TaskSource, number>> = {},
   tagWeights: Record<string, number> = {},
   active = true
@@ -180,9 +180,9 @@ export function mergeOverlays(overlays: Overlay[], clock?: Clock): Overlay {
   const merged: Overlay = {
     id: 'merged-' + now,
     name: 'Merged Overlay',
-    kindWeights: {},
-    sourceWeights: {},
-    tagWeights: {},
+    kindWeights: {} as Record<EconomyTaskBagKind, number>,
+    sourceWeights: {} as Record<TaskSource, number>,
+    tagWeights: {} as Record<string, number>,
     active: true,
   };
 
@@ -190,14 +190,12 @@ export function mergeOverlays(overlays: Overlay[], clock?: Clock): Overlay {
     if (!overlay.active) continue;
 
     // Multiply weights (combine multiplicatively)
-    for (const [kind, weight] of Object.entries(overlay.kindWeights)) {
-      merged.kindWeights[kind as TaskBagKind] =
-        (merged.kindWeights[kind as TaskBagKind] ?? 1.0) * weight;
+    for (const [kind, weight] of Object.entries(overlay.kindWeights) as [EconomyTaskBagKind, number][]) {
+      merged.kindWeights[kind] = (merged.kindWeights[kind] ?? 1.0) * weight;
     }
 
-    for (const [source, weight] of Object.entries(overlay.sourceWeights)) {
-      merged.sourceWeights[source as TaskSource] =
-        (merged.sourceWeights[source as TaskSource] ?? 1.0) * weight;
+    for (const [source, weight] of Object.entries(overlay.sourceWeights) as [TaskSource, number][]) {
+      merged.sourceWeights[source] = (merged.sourceWeights[source] ?? 1.0) * weight;
     }
 
     for (const [tag, weight] of Object.entries(overlay.tagWeights)) {
@@ -231,7 +229,7 @@ export interface Drive {
   /** Weight [0,1]. */
   weight: number;
   /** Kind preferences. */
-  kindWeights: Partial<Record<TaskBagKind, number>>;
+  kindWeights: Partial<Record<EconomyTaskBagKind, number>>;
   /** Source preferences. */
   sourceWeights: Partial<Record<TaskSource, number>>;
   /** Tag preferences. */
@@ -297,7 +295,7 @@ export const DEFAULT_DRIVES: Drive[] = [
 /** Gradient view — unified representation of all drives as a single weight field. */
 export interface GradientView {
   /** Per-kind weight multipliers. */
-  kindWeights: Record<TaskBagKind, number>;
+  kindWeights: Record<EconomyTaskBagKind, number>;
   /** Per-source weight multipliers. */
   sourceWeights: Record<TaskSource, number>;
   /** Per-tag weight multipliers. */
@@ -322,12 +320,12 @@ export function computeGradientView(drives: Drive[]): GradientView {
     totalWeight += drive.weight;
 
     // Accumulate kind weights
-    for (const [kind, weight] of Object.entries(drive.kindWeights)) {
+    for (const [kind, weight] of Object.entries(drive.kindWeights) as [EconomyTaskBagKind, number][]) {
       kindWeights[kind] = (kindWeights[kind] ?? 1.0) * (1 + drive.weight * (weight - 1));
     }
 
     // Accumulate source weights
-    for (const [source, weight] of Object.entries(drive.sourceWeights)) {
+    for (const [source, weight] of Object.entries(drive.sourceWeights) as [TaskSource, number][]) {
       sourceWeights[source] = (sourceWeights[source] ?? 1.0) * (1 + drive.weight * (weight - 1));
     }
 
@@ -338,7 +336,7 @@ export function computeGradientView(drives: Drive[]): GradientView {
   }
 
   return {
-    kindWeights: kindWeights as Record<TaskBagKind, number>,
+    kindWeights: kindWeights as Record<EconomyTaskBagKind, number>,
     sourceWeights: sourceWeights as Record<TaskSource, number>,
     tagWeights,
     activeDrives,
