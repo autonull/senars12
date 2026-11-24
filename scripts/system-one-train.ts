@@ -43,7 +43,6 @@ if (!rubric) {
 
 const rows = await loadTrainingData({
   datasetPath: values.dataset,
-  sidecarPath: values.sidecar,
   headId: values.head,
 });
 if (rows.length === 0) {

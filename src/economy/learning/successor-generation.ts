@@ -167,7 +167,7 @@ function generateBeliefSuccessors(
           `${task.id}-revised-${rel.id}`,
           termFactory.compound(TermOp.CONJUNCTION, [task.term, rel.term]),
           'belief',
-          { frequency: 0.9, confidence: 0.8 },
+          { f: 0.9, c: 0.8 },
           task.weight * 0.8,
           task.source
         ),
@@ -348,7 +348,7 @@ function generatePlanSuccessors(
     if (oracleMatch) {
       successors.push({
         tasks: [
-          createTask(`${task.id}-step-${step.action}`, step.term, 'goal', { frequency: 1.0, confidence: 0.9 }, task.weight * 0.8, 'oracle'),
+          createTask(`${task.id}-step-${step.action}`, step.term, 'goal', { f: 1.0, c: 0.9 }, task.weight * 0.8, 'oracle'),
         ],
         probability: 0.3 / steps.length,
         utilityDelta: task.weight * 0.5,
@@ -364,7 +364,7 @@ function generatePlanSuccessors(
       if (facultyMatch) {
         successors.push({
           tasks: [
-            createTask(`${task.id}-step-${step.action}`, step.term, 'goal', { frequency: 1.0, confidence: 0.8 }, task.weight * 0.7, 'faculty'),
+            createTask(`${task.id}-step-${step.action}`, step.term, 'goal', { f: 1.0, c: 0.8 }, task.weight * 0.7, 'faculty'),
           ],
           probability: 0.25 / steps.length,
           utilityDelta: task.weight * 0.4,
@@ -385,21 +385,26 @@ function createTaskFactory(clock?: Clock) {
   return (id: string, term: Term, kind: EconomyTask['kind'], truth: Truth, weight: number, source: EconomyTask['source']): EconomyTask => ({
     id,
     term,
+    type: 'belief' as TaskType,
+    priority: weight,
     kind,
     truth,
     weight,
     source,
     activation: 1.0,
     createdAt: c.now(),
-    updatedAt: c.now(),
-    metadata: {},
+    lastAccessed: c.now(),
+    accessCount: 0,
+    dependencies: [],
+    derived: false,
+    tags: [],
   });
 }
 
 /** Decompose a goal term into subgoals. */
 function decomposeGoal(term: Term): Term[] {
   if (term.op === TermOp.CONJUNCTION || term.op === TermOp.SEQUENTIAL) {
-    return term.args ?? [];
+    return [...(term.args ?? [])];
   }
   return [term];
 }

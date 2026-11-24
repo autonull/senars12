@@ -6,7 +6,7 @@ import { createActionSelector, type ActionSelector } from './select';
 import { createLoopRecorder, type LoopRecorder } from './record';
 import { createSelfModelManager, type SelfModelManager } from './self-model';
 import type { ContractRegistry } from './contract';
-import { createRepairLoop, type RepairLoop } from './repair';
+import { createRepairLoop, type RepairLoop, type RepairLoopConfig, type RepairPolicy, type AnomalyDetector } from './repair';
 import {
   createEconomyState,
   createEconomyStateFromEnv,
@@ -48,7 +48,14 @@ export function createLoopContext(
   const recorder = mergedConfig.recordEnabled ? createLoopRecorder(undefined, correlationId, { clock: env.clock, ids: env.ids }) : undefined;
   const selfModel = mergedConfig.selfModelEnabled ? createSelfModelManager(undefined, { clock: env.clock }) : undefined;
   const selector = createActionSelector(undefined, { rng: env.rng, clock: env.clock });
-  const repair = mergedConfig.repairEnabled ? createRepairLoop({ clock: env.clock }) : undefined;
+  const repair = mergedConfig.repairEnabled
+    ? createRepairLoop({
+        clock: env.clock,
+        maxAttempts: 3,
+        policies: [],
+        detectors: [],
+      } satisfies RepairLoopConfig)
+    : undefined;
 
   return {
     iteration: 0,

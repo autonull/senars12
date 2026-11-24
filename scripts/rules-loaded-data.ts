@@ -28,13 +28,14 @@ import {
   RuleTableStore,
   tableArtifact,
 } from '@senars/rules';
-import { loadedDataViolations, scanSubject } from './lib/protocol/rule-table.js';
+import { loadedDataViolations } from './lib/protocol/rule-table.js';
+import { scanSubject } from './lib/analysis/index.js';
 import { report } from './lib/core/verdicts.ts';
 
 const failures: string[] = [];
 
 // ── 1 & 2: the shape of the code ───────────────────────────────────────────
-for (const violation of loadedDataViolations(scanSubject())) {
+for (const violation of loadedDataViolations(scanSubject().files)) {
   failures.push(`${violation.at} — ${violation.rule}: ${violation.detail}`);
 }
 

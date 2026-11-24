@@ -7,7 +7,7 @@
 import type { Term } from '../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
 import type { Task, TimestampMs } from '../../kernel/types';
-import type { FacultyInput, FacultyOutput } from '../../faculties/specs';
+import type { FacultyInput, FacultyOutput, FacultyContext } from '../../faculties/specs';
 import { facultyEngine } from '../../faculties/engine';
 import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../../faculties/judgment/cascade';
 import type { Clock } from '../../kernel/env';
@@ -93,7 +93,7 @@ export class RepairLoop {
         const anomalies = await detector(context);
         allAnomalies.push(...anomalies);
       } catch (error) {
-        logger.error({ err: errMsg(error) }, 'Anomaly detector failed');
+        logger.error('Anomaly detector failed', error as Error, { err: errMsg(error) });
       }
     }
 
@@ -131,7 +131,7 @@ export class RepairLoop {
     const anomalies = await this.detect(context);
     if (anomalies.length === 0) return [];
 
-    logger.info({ count: anomalies.length }, 'Anomalies detected');
+    logger.info('Anomalies detected', { count: anomalies.length });
     return this.repair(context, anomalies);
   }
 
@@ -151,7 +151,7 @@ export class RepairLoop {
     const attempts = this.#attemptCounts.get(key) ?? 0;
 
     if (attempts >= this.#config.maxAttempts) {
-      logger.warn({ anomaly: anomaly.id, attempts }, 'Max repair attempts reached');
+      logger.warn('Max repair attempts reached', { anomaly: anomaly.id, attempts });
       return [{
         action: { type: 'abort', description: 'Max attempts reached', params: {}, confidence: 1, cost: 0 },
         success: false,
@@ -184,10 +184,10 @@ export class RepairLoop {
         this.#repairHistory.push(result);
 
         if (result.success) {
-          logger.info({ anomaly: anomaly.id, action: action.type }, 'Repair succeeded');
+          logger.info('Repair succeeded', { anomaly: anomaly.id, action: action.type });
           return results;
         } else {
-          logger.warn({ anomaly: anomaly.id, action: action.type, outcome: result.outcome }, 'Repair failed');
+          logger.warn('Repair failed', { anomaly: anomaly.id, action: action.type, outcome: result.outcome });
         }
       }
     }
@@ -315,9 +315,9 @@ export class RepairLoop {
     try {
       await facultyEngine.invoke({
         faculty: 'inference',
-        primary: { premises: anomaly.suggestedRepairs },
-        context: { inferenceType: 'deduction' },
-      });
+        primary: (anomaly.suggestedRepairs[0] ?? { op: 'atom', name: 'true' }) as unknown as Term,
+        context: { metadata: { inferenceType: 'deduction' } } as FacultyContext,
+      } as FacultyInput);
       return {
         action,
         success: true,
@@ -340,9 +340,9 @@ export class RepairLoop {
     try {
       const result = await facultyEngine.invoke({
         faculty: 'retrieve.rerank',
-        primary: { query: action.params.query },
-        context: { maxResults: 5 },
-      });
+        primary: ({ op: 'atom', name: String(action.params.query) }) as unknown as Term,
+        context: { maxResults: 5 } as FacultyContext,
+      } as FacultyInput);
       return {
         action,
         success: true,
@@ -514,3 +514,13 @@ export type {
   AnomalyType,
   AnomalySeverity,
 };
+
+/** Global repair loop instance (lazily initialized). */
+let globalRepairLoop: RepairLoop | null = null;
+
+export function getRepairLoop(config: RepairLoopConfig): RepairLoop {
+  if (!globalRepairLoop) {
+    globalRepairLoop = createRepairLoop(config);
+  }
+  return globalRepairLoop;
+}

@@ -15,13 +15,13 @@
 import { escapeRegExp } from '@senars/util/text';
 import { importEdges, maskNonCode } from '../codegen/imports.js';
 import type { Verdict } from '../core/verdicts.js';
-import { lineAt, scanSubject } from '../codegen/source-scan.js';
+import { lineAt, scanSubject as scanSourceSubject } from '../codegen/source-scan.js';
 
 export { lineAt };
 
 const SCAN_ROOTS = ['nar/src', 'src'] as const;
 
-export { scanSubject };
+// scanSourceSubject is used internally but not re-exported to avoid conflict with analysis barrel
 
 export type LoadedDataViolation = Verdict;
 

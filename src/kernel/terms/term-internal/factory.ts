@@ -189,6 +189,11 @@ export class TermFactory {
     }
     return stats;
   }
+
+  /** Alias for getInternStats for compatibility. */
+  getStats(): Record<string, number> {
+    return this.getInternStats();
+  }
 }
 
 /** Global term factory instance (getter to always return current singleton). */
@@ -215,4 +220,4 @@ export const termFactory = {
   intensionalImage(term: Term) { return TermFactory.getInstance().intensionalImage(term); },
   getOrCreate(op: TermOp, args?: readonly Term[] | string, nameOrValue?: string) { return TermFactory.getInstance().getOrCreate(op, args, nameOrValue); },
   getStats() { return TermFactory.getInstance().getStats(); },
-} as TermFactory;
+};

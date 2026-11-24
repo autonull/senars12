@@ -8,6 +8,7 @@ import type { Term } from '../kernel/terms';
 import type { Truth } from '../kernel/truth';
 import type { Task } from '../kernel/types';
 import type { Clock } from '../kernel/env';
+import type { RepairLoopConfig } from './repair';
 import { IdRegistry } from '../util/registry';
 import { createLogger } from '../util/logger';
 
@@ -719,7 +720,13 @@ export async function defaultViolationHandler(
 
   // Trigger repair loop for critical violations
   if (result.severity === 'critical') {
-    const { repairLoop } = await import('./repair');
+    const { getRepairLoop } = await import('./repair');
+    const repairLoop = getRepairLoop({
+      clock: context.clock,
+      maxAttempts: 3,
+      policies: [],
+      detectors: [],
+    });
     // Would trigger repair loop tick with current context
   }
 }

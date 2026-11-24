@@ -31,7 +31,7 @@ export interface FallbackFailure {
 
 /** A rule with no declared body, and a rule whose declared body never ran. */
 export const checkFallbacks = (subjects: readonly FallbackSubject[]): readonly FallbackFailure[] =>
-  subjects.flatMap((subject) => {
+  subjects.flatMap((subject): readonly FallbackFailure[] => {
     if (!subject.hasFallback)
       return [
         {

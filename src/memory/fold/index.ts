@@ -157,7 +157,18 @@ export class FoldMemory implements MemoryPorts {
   // ============================================================================
 
   get attentionModel(): AttentionModel {
-    return this.#semantic.getFocus(); // This is a hack - need proper attention model
+    const focus = this.#semantic?.getFocus();
+    if (!focus) {
+      // Return a minimal AttentionModel implementation
+      return {
+        prime: () => 0,
+        decay: () => 0,
+        tick: () => {},
+        metadata: { name: 'fallback', description: 'Fallback attention model' },
+      };
+    }
+    // This is a hack - need proper attention model
+    return focus as unknown as AttentionModel;
   }
 
   setAttentionModel(model: AttentionModel): void {

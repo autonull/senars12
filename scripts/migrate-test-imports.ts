@@ -12,8 +12,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
-import glob from 'glob';
-const globSync = glob.sync;
+import { glob, globSync } from 'glob';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const TEST_DIR = join(ROOT, 'tests');

@@ -14,7 +14,7 @@ import {
   type HeadCandidateSpec,
 } from '@senars/lm/system-one/distill.js';
 import { createIsotonicCalibrator } from '@senars/lm/system-one/calibration.js';
-import type { CalibrationVersion } from '@senars/decision/types.js';
+import type { CalibrationVersion, RubricId } from '@senars/decision/types.js';
 
 interface DatasetRow {
   evidenceId: string;
@@ -23,7 +23,7 @@ interface DatasetRow {
   score?: number;
 }
 
-function loadCases(path: string, rubric: string): BakeOffCase[] {
+function loadCases(path: string, rubric: RubricId): BakeOffCase[] {
   const { rows } = readJsonl<DatasetRow>(path, (value) => value as DatasetRow);
   const cases = rows.filter((r) => r.rubric === rubric);
 
@@ -50,7 +50,7 @@ function main(): void {
     enabled: true,
   };
 
-  const cases = loadCases(path, candidate.headId);
+  const cases = loadCases(path, candidate.headId as RubricId);
   if (cases.length === 0) {
     console.error(`No labeled cases for rubric '${candidate.headId}' in ${path}`);
     process.exit(1);

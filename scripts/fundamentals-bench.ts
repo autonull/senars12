@@ -600,7 +600,7 @@ async function main() {
     logger.info('  Using mock LM provider for deterministic CI');
     registry = createSeNARSRegistry();
     lmService = createMockLMService({
-      generateObjectFn: async (prompt: string, _schema: any) => {
+      generateObjectFn: (async (prompt: string, _schema: unknown) => {
         // Match only the actual input (the prompt embeds few-shot examples
         // that contain the scenario sentences verbatim).
         const input = prompt.split('Translate this to Narsese tasks:').pop()?.trim() ?? prompt;
@@ -744,14 +744,14 @@ async function main() {
           questions: [],
           meta: { detectedIntent: 'chat', ambiguities: [], coreferences: [], implicitContext: [] },
         };
-      },
+      }) as <T>(prompt: string, schema: unknown) => T | Promise<T>,
       available: true,
       provider: 'mock',
       model: 'mock',
     });
   } else {
     registry = createSeNARSRegistry();
-    lmService = createLMService(registry);
+    lmService = createLMService();
     // Surface transformers.js model download/init progress (otherwise the first
     // generation silently blocks with no output while the ONNX weights load).
     if (
@@ -783,7 +783,7 @@ async function main() {
     });
     await nar.start();
     const processor = nar.getProcessor();
-    processor.setConfig?.({ recorderEnabled: true, maxRecords: 100 });
+    processor.setConfig?.({ recorderEnabled: true });
     return nar;
   }
 

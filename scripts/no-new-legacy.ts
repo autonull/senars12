@@ -12,7 +12,7 @@
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import glob from 'glob';
+import { globSync } from 'glob';
 import { ROOT } from './lib/core/root.ts';
 
 const LEGACY_PKGS = ['core', 'nar', 'io', 'metta', 'util'] as const;
@@ -21,7 +21,7 @@ const BASELINE_PATH = join(ROOT, '.github', 'legacy-file-baseline.json');
 function collectFiles(pkg: string): string[] {
   const srcDir = join(ROOT, pkg, 'src');
   if (!existsSync(srcDir)) return [];
-  return glob.sync('**/*.ts', { cwd: srcDir, absolute: false }).map((f: string) => `${pkg}/src/${f}`);
+  return globSync('**/*.ts', { cwd: srcDir, absolute: false }).map((f: string) => `${pkg}/src/${f}`);
 }
 
 function loadBaseline(): Record<string, string[]> {

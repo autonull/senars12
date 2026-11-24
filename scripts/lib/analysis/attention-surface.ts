@@ -5,7 +5,10 @@ import type { Verdict } from '../core/verdicts.js';
 const SCAN_ROOTS = ['src'] as const;
 
 /** Every production source file with its text. One reader, so gate and test cannot disagree. */
-export const scanSubject = (): SurfaceSubject => ({ files: readSubject(SCAN_ROOTS) });
+export const scanAttentionSurface = (): SurfaceSubject => ({ files: readSubject(SCAN_ROOTS) });
+
+/** @deprecated Use scanAttentionSurface instead. Kept for backward compatibility. */
+export const scanSubject = scanAttentionSurface;
 
 /**
  * The attention write surface: who may write `Concept.priority`, and what else

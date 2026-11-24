@@ -4,6 +4,7 @@
     "jsx": "react-jsx",
     "lib": ["ESNext", "esnext.temporal", "dom", "dom.iterable"],
     "types": ["node", "vitest/globals"],
+    "typeRoots": ["./types", "./node_modules/@types", "./node_modules"],
     "rootDir": ".",
     "paths": {
       "@senars/nar": ["./src/index.ts"],

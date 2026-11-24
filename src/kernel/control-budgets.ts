@@ -12,7 +12,7 @@
  * cannot drift into two budgets — §7 invariant 12.
  */
 
-import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '../budget/index';
+import { ALL_RESOURCES, BUDGET_TYPES, BUDGET_TYPES_MAP, type BudgetResource, budgetLimit } from '../budget/index';
 import type { ReasoningBudget, ConsumedBudget } from '../schemas/index';
 import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './budget-scopes';
 import type { KernelBudgetGate } from './KernelBudgetGate';
@@ -114,8 +114,8 @@ export class ControlBudgets implements ControlBudgetPort {
       const scope = this.gate.getScopeBudget(scopeId);
       if (scope) spend(scopeId, scope, scopeSpec(scopeId).consumedKey);
     }
-    for (const resource of ALL_RESOURCES)
-      spend(BUDGET_TYPES[resource], this.gate.getBudget(), resource);
+    for (const resource of ALL_RESOURCES as BudgetResource[])
+      spend(`global-${BUDGET_TYPES_MAP[resource]}`, this.gate.getBudget(), resource);
 
     return summary;
   }

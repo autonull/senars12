@@ -89,6 +89,10 @@ const narConfig = {
   maxConcepts: 10000,
   maxDerivationsPerStep: 1000,
   maxDerivationDepth: 20,
+  activationDecayRate: 0.01,
+  consolidationInterval: 1000,
+  cpuThrottleMs: 0,
+  sampleSize: 100,
 };
 
 const narConfigGridWorld = {

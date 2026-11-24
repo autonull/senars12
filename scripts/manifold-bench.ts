@@ -25,7 +25,7 @@ const directional = (text: string): Float32Array => {
     const seed = word.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 7);
     for (let i = 0; i < DIM; i++) v[i]! += Math.sin(seed * 0.1 + i);
   }
-  return l2Normalize(v);
+  return Float32Array.from(l2Normalize(v));
 };
 
 const POSITIVE = 'verified grounded factual statement consistent with prior beliefs';
@@ -54,7 +54,7 @@ const bench = async (fn: () => Promise<void>, rounds = 10): Promise<number> => {
 const main = async (): Promise<void> => {
   const cache = createEmbeddingCache({
     maxSize: 4 * CANDIDATES,
-    generator: { generate: async (text: string) => [...directional(text)] },
+    generator: { dimension: DIM, generate: async (text: string) => [...directional(text)] },
   });
 
   const candidates = Array.from({ length: CANDIDATES }, (_, i) =>

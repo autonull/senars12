@@ -69,7 +69,7 @@ export interface MetricRow {
   rule: string;
 }
 
-export interface Verdict {
+export interface BudgetVerdict {
   rows: MetricRow[];
   failed: boolean;
 }
@@ -253,7 +253,7 @@ const makePasses = (rules: BudgetConfig['rules']): Record<RuleName, (baseline: n
  * Compare a measurement against a baseline. The nine rules are data, not code,
  * so a falsification test can mutate one number and read back the row it broke.
  */
-export const compare = (budget: BudgetConfig, current: CurrentMetrics): Verdict => {
+export const compare = (budget: BudgetConfig, current: CurrentMetrics): BudgetVerdict => {
   const passes = makePasses(budget.rules);
   const rows = RULES.map(({ metric, name }): MetricRow => {
     const baseline = budget.baseline[name];

@@ -7,7 +7,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import glob from 'glob';
+import { globSync } from 'glob';
 import { importEdges } from './lib/codegen/imports.ts';
 import { ROOT } from './lib/core/root.ts';
 
@@ -28,7 +28,7 @@ for (const targetDir of TARGET_DIRS) {
   const dirPath = join(ROOT, targetDir);
   if (!existsSync(dirPath)) continue;
 
-  for (const file of glob.sync('**/*.ts', { cwd: dirPath, absolute: true })) {
+  for (const file of globSync('**/*.ts', { cwd: dirPath, absolute: true })) {
     const source = readFileSync(file, 'utf-8');
     const relPath = relative(ROOT, file);
 
