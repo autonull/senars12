@@ -14,7 +14,7 @@
 | **W2** | **Event Taxonomy** | Standardize `emitDomainEvent` names/payloads | ★★★★☆ | M | — | ✅ **DONE** |
 | **W3** | **Serialization Helpers** | CBOR/msgpack codecs, schema migration | ★★★★☆ | L | W1 | ✅ **DONE** |
 | **W4** | **RL Baseline Extensions** | Extend RLFP framework | ★★★☆☆ | M | — | ✅ **DONE** |
-| **W5** | **Custom Metrics** | Prometheus/OpenTelemetry metrics | ★★★☆☆ | M | W2 |
+| **W5** | **Custom Metrics** | Prometheus/OpenTelemetry metrics | ★★★☆☆ | M | W2 | ✅ **DONE** |
 | **W6** | **UI-Contract Registry Unification** | Single registry factory | ★★★☆☆ | S | — |
 
 ---
