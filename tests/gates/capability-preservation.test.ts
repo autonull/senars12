@@ -32,8 +32,8 @@ describe('Capability Preservation Gate', () => {
     expect(manifest.generatedAt).toBeDefined();
   });
 
-  it('should have 128 registered capabilities', () => {
-    expect(manifest.capabilities.length).toBe(128);
+  it('should have 155 registered capabilities', () => {
+    expect(manifest.capabilities.length).toBe(155);
   });
 
   it('should have all capability categories represented', () => {

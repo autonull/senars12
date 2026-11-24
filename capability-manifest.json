@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-24T17:24:26.409Z",
+  "generatedAt": "2026-11-24T21:36:32.941Z",
   "capabilities": [
     {
       "id": "faculty.grounding",
@@ -550,6 +550,22 @@
       "hash": "f28db8c4b1dfac20"
     },
     {
+      "id": "oracle.engine.metta",
+      "name": "engine.metta",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "MeTTa reasoning engine",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/metta.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6ffef9b8db31f11d"
+    },
+    {
       "id": "oracle.engine.custom",
       "name": "engine.custom",
       "category": "coordination",
@@ -564,6 +580,38 @@
       "since": "0.1.0",
       "active": true,
       "hash": "94d68fdd30f95496"
+    },
+    {
+      "id": "oracle.formalization.nlToFormal",
+      "name": "formalization.nlToFormal",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Natural language to formal translation",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/formalization.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "77fada30200807f6"
+    },
+    {
+      "id": "oracle.formalization.formalToNl",
+      "name": "formalization.formalToNl",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Formal to natural language translation",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/formalization.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a3228736af75fb64"
     },
     {
       "id": "oracle.embedding.generate",
@@ -628,6 +676,390 @@
       "since": "0.1.0",
       "active": true,
       "hash": "210f4bdcf38f83e7"
+    },
+    {
+      "id": "oracle.distillation.record",
+      "name": "distillation.record",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Record distillation data",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "84b3473551431873"
+    },
+    {
+      "id": "oracle.distillation.fitCalibration",
+      "name": "distillation.fitCalibration",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Fit calibration model",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a1b7eef91f319388"
+    },
+    {
+      "id": "oracle.distillation.bakeOff",
+      "name": "distillation.bakeOff",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run distillation bake-off",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "353b79a12e13b8c9"
+    },
+    {
+      "id": "oracle.distillation.validateHead",
+      "name": "distillation.validateHead",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Validate distilled head",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "54c11e04cea6a29b"
+    },
+    {
+      "id": "oracle.distillation.loadLock",
+      "name": "distillation.loadLock",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Load distillation lock",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d41b2e2e5c25e379"
+    },
+    {
+      "id": "oracle.distillation.applyLock",
+      "name": "distillation.applyLock",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Apply distillation lock",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e3d4f709a569c3be"
+    },
+    {
+      "id": "oracle.gbnf.generateGrammar",
+      "name": "gbnf.generateGrammar",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Generate GBNF grammar",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/gbnf.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a8dcc056a19ae05d"
+    },
+    {
+      "id": "oracle.gbnf.constrainedGenerate",
+      "name": "gbnf.constrainedGenerate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Constrained generation via GBNF",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/gbnf.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ced040d4914dac93"
+    },
+    {
+      "id": "oracle.gbnf.getActions",
+      "name": "gbnf.getActions",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Get available GBNF actions",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/gbnf.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "962a8406d3f5abce"
+    },
+    {
+      "id": "oracle.learnedHead.load",
+      "name": "learnedHead.load",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Load learned head",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/learnedHead.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "99f78f8f1b6773f5"
+    },
+    {
+      "id": "oracle.learnedHead.evaluate",
+      "name": "learnedHead.evaluate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Evaluate learned head",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/learnedHead.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e25960d34412e721"
+    },
+    {
+      "id": "oracle.learnedHead.health",
+      "name": "learnedHead.health",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Check learned head health",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/learnedHead.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9af6cdc045101cfd"
+    },
+    {
+      "id": "oracle.cascade.groundedness",
+      "name": "cascade.groundedness",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Groundedness cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "923914a4687e4f49"
+    },
+    {
+      "id": "oracle.cascade.traceGrade",
+      "name": "cascade.traceGrade",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Trace grade cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4565c48be2833ea4"
+    },
+    {
+      "id": "oracle.cascade.wakeGate",
+      "name": "cascade.wakeGate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Wake gate cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "07a30bbd0a19b6cc"
+    },
+    {
+      "id": "oracle.cascade.resourceCharge",
+      "name": "cascade.resourceCharge",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Resource charge cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "dedc3ce600025d5c"
+    },
+    {
+      "id": "oracle.creditAssignment.mcReturn",
+      "name": "creditAssignment.mcReturn",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Monte Carlo return credit assignment",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7f6a6bd2963de629"
+    },
+    {
+      "id": "oracle.creditAssignment.recordMcReturn",
+      "name": "creditAssignment.recordMcReturn",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Record Monte Carlo return",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8faf1d7c1a241f87"
+    },
+    {
+      "id": "oracle.creditAssignment.decide",
+      "name": "creditAssignment.decide",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Decide credit assignment",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "49ae55abee987adb"
+    },
+    {
+      "id": "oracle.creditAssignment.step",
+      "name": "creditAssignment.step",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Step credit assignment",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1379bb5efd3b68df"
+    },
+    {
+      "id": "oracle.creditAssignment.runEpisode",
+      "name": "creditAssignment.runEpisode",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run credit assignment episode",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a97ce59ef1c9c46b"
+    },
+    {
+      "id": "oracle.imagination.generate",
+      "name": "imagination.generate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Generate imagination",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/imagination.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "040c4f0ed5edce5d"
+    },
+    {
+      "id": "oracle.imagination.run",
+      "name": "imagination.run",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run imagination",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/imagination.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "67076bf05e0a1e1b"
+    },
+    {
+      "id": "oracle.imagination.profiles",
+      "name": "imagination.profiles",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Imagination profiles",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/imagination.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "cdd50b51adc0a5ec"
     },
     {
       "id": "oracle.self.mod.tuneKnob",
@@ -3185,6 +3617,22 @@
       "active": true,
       "hash": "f28db8c4b1dfac20"
     },
+    "oracle.engine.metta": {
+      "id": "oracle.engine.metta",
+      "name": "engine.metta",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "MeTTa reasoning engine",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/metta.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6ffef9b8db31f11d"
+    },
     "oracle.engine.custom": {
       "id": "oracle.engine.custom",
       "name": "engine.custom",
@@ -3200,6 +3648,38 @@
       "since": "0.1.0",
       "active": true,
       "hash": "94d68fdd30f95496"
+    },
+    "oracle.formalization.nlToFormal": {
+      "id": "oracle.formalization.nlToFormal",
+      "name": "formalization.nlToFormal",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Natural language to formal translation",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/formalization.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "77fada30200807f6"
+    },
+    "oracle.formalization.formalToNl": {
+      "id": "oracle.formalization.formalToNl",
+      "name": "formalization.formalToNl",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Formal to natural language translation",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/formalization.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a3228736af75fb64"
     },
     "oracle.embedding.generate": {
       "id": "oracle.embedding.generate",
@@ -3264,6 +3744,390 @@
       "since": "0.1.0",
       "active": true,
       "hash": "210f4bdcf38f83e7"
+    },
+    "oracle.distillation.record": {
+      "id": "oracle.distillation.record",
+      "name": "distillation.record",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Record distillation data",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "84b3473551431873"
+    },
+    "oracle.distillation.fitCalibration": {
+      "id": "oracle.distillation.fitCalibration",
+      "name": "distillation.fitCalibration",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Fit calibration model",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a1b7eef91f319388"
+    },
+    "oracle.distillation.bakeOff": {
+      "id": "oracle.distillation.bakeOff",
+      "name": "distillation.bakeOff",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run distillation bake-off",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "353b79a12e13b8c9"
+    },
+    "oracle.distillation.validateHead": {
+      "id": "oracle.distillation.validateHead",
+      "name": "distillation.validateHead",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Validate distilled head",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "54c11e04cea6a29b"
+    },
+    "oracle.distillation.loadLock": {
+      "id": "oracle.distillation.loadLock",
+      "name": "distillation.loadLock",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Load distillation lock",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d41b2e2e5c25e379"
+    },
+    "oracle.distillation.applyLock": {
+      "id": "oracle.distillation.applyLock",
+      "name": "distillation.applyLock",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Apply distillation lock",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/distillation.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e3d4f709a569c3be"
+    },
+    "oracle.gbnf.generateGrammar": {
+      "id": "oracle.gbnf.generateGrammar",
+      "name": "gbnf.generateGrammar",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Generate GBNF grammar",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/gbnf.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a8dcc056a19ae05d"
+    },
+    "oracle.gbnf.constrainedGenerate": {
+      "id": "oracle.gbnf.constrainedGenerate",
+      "name": "gbnf.constrainedGenerate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Constrained generation via GBNF",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/gbnf.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ced040d4914dac93"
+    },
+    "oracle.gbnf.getActions": {
+      "id": "oracle.gbnf.getActions",
+      "name": "gbnf.getActions",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Get available GBNF actions",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/gbnf.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "962a8406d3f5abce"
+    },
+    "oracle.learnedHead.load": {
+      "id": "oracle.learnedHead.load",
+      "name": "learnedHead.load",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Load learned head",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/learnedHead.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "99f78f8f1b6773f5"
+    },
+    "oracle.learnedHead.evaluate": {
+      "id": "oracle.learnedHead.evaluate",
+      "name": "learnedHead.evaluate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Evaluate learned head",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/learnedHead.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e25960d34412e721"
+    },
+    "oracle.learnedHead.health": {
+      "id": "oracle.learnedHead.health",
+      "name": "learnedHead.health",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Check learned head health",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/learnedHead.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9af6cdc045101cfd"
+    },
+    "oracle.cascade.groundedness": {
+      "id": "oracle.cascade.groundedness",
+      "name": "cascade.groundedness",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Groundedness cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "923914a4687e4f49"
+    },
+    "oracle.cascade.traceGrade": {
+      "id": "oracle.cascade.traceGrade",
+      "name": "cascade.traceGrade",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Trace grade cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4565c48be2833ea4"
+    },
+    "oracle.cascade.wakeGate": {
+      "id": "oracle.cascade.wakeGate",
+      "name": "cascade.wakeGate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Wake gate cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "07a30bbd0a19b6cc"
+    },
+    "oracle.cascade.resourceCharge": {
+      "id": "oracle.cascade.resourceCharge",
+      "name": "cascade.resourceCharge",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Resource charge cascade",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/cascade.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "dedc3ce600025d5c"
+    },
+    "oracle.creditAssignment.mcReturn": {
+      "id": "oracle.creditAssignment.mcReturn",
+      "name": "creditAssignment.mcReturn",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Monte Carlo return credit assignment",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7f6a6bd2963de629"
+    },
+    "oracle.creditAssignment.recordMcReturn": {
+      "id": "oracle.creditAssignment.recordMcReturn",
+      "name": "creditAssignment.recordMcReturn",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Record Monte Carlo return",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8faf1d7c1a241f87"
+    },
+    "oracle.creditAssignment.decide": {
+      "id": "oracle.creditAssignment.decide",
+      "name": "creditAssignment.decide",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Decide credit assignment",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "49ae55abee987adb"
+    },
+    "oracle.creditAssignment.step": {
+      "id": "oracle.creditAssignment.step",
+      "name": "creditAssignment.step",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Step credit assignment",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1379bb5efd3b68df"
+    },
+    "oracle.creditAssignment.runEpisode": {
+      "id": "oracle.creditAssignment.runEpisode",
+      "name": "creditAssignment.runEpisode",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run credit assignment episode",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/creditAssignment.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a97ce59ef1c9c46b"
+    },
+    "oracle.imagination.generate": {
+      "id": "oracle.imagination.generate",
+      "name": "imagination.generate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Generate imagination",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/imagination.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "040c4f0ed5edce5d"
+    },
+    "oracle.imagination.run": {
+      "id": "oracle.imagination.run",
+      "name": "imagination.run",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run imagination",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/imagination.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "67076bf05e0a1e1b"
+    },
+    "oracle.imagination.profiles": {
+      "id": "oracle.imagination.profiles",
+      "name": "imagination.profiles",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Imagination profiles",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/imagination.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "cdd50b51adc0a5ec"
     },
     "oracle.self.mod.tuneKnob": {
       "id": "oracle.self.mod.tuneKnob",
