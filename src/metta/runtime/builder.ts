@@ -7,16 +7,12 @@ import { MeTTaInterpreter } from '../engine/interpreter';
 import { bootstrapStdLib } from '../stdlib/index';
 import type { MeTTaAtom } from '../types/ast';
 import { DEFAULT_MEMORY_LIMIT, type MeTTaContext } from './context';
-import { FluentBuilderMixin } from '@senars/util/fluent-builder';
+import { BaseBuilder, type BuilderStepRecord } from '@senars/util/builder';
 
 /** MeTTa builder step record. */
-export interface MeTTaBuilderStep {
-  step: string;
-  present: boolean;
-  detail?: Record<string, unknown>;
-}
+export interface MeTTaBuilderStep extends BuilderStepRecord {}
 
-export class MeTTaBuilder extends FluentBuilderMixin<MeTTaRuntime, MeTTaBuilderStep>() {
+export class MeTTaBuilder extends BaseBuilder<MeTTaRuntime, MeTTaBuilderStep> {
   private config: MeTTaConfig;
   private interpreter: MeTTaInterpreter;
 

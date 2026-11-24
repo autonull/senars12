@@ -20,7 +20,7 @@ import type { EpisodicMemory } from '../memory/EpisodicMemory';
 import { withSpan } from '../otel/index';
 import type { CapabilityTier } from './profiles';
 import { resolveProfile } from './profiles';
-import { FluentBuilderMixin } from '@senars/util/fluent-builder';
+import { BaseBuilder, type BuilderStepRecord } from '@senars/util/builder';
 
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles';
 export { NAR_PROFILES, resolveProfile } from './profiles';
@@ -48,11 +48,7 @@ export interface SystemOneSpec {
   params?: Partial<SystemOneConfig>;
 }
 
-export interface BuilderStepRecord {
-  step: string;
-  present: boolean;
-  detail?: Record<string, unknown>;
-}
+// Use imported BuilderStepRecord from @senars/util/builder
 
 /** Typed failure of an inconsistent assembly spec (TODO19 F1). Re-exported so
  *  builder callers keep one import path; the class itself is declared once in
@@ -76,7 +72,7 @@ export interface WiredNAR {
  * TODO19 F1: the single assembly path for NAR-backed agents. Fluent steps
  * validate and record; a step not called ⇒ subsystem absent, never stubbed.
  */
-export class NARBuilder extends FluentBuilderMixin<WiredNAR, BuilderStepRecord>() {
+export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
   private lm?: LMService;
   private systemOne?: SystemOneSpec;
   private capabilities: CapabilitySurface = {};

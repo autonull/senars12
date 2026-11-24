@@ -10,7 +10,7 @@ import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
-import { FluentBuilderMixin } from '@senars/util/fluent-builder';
+import { BaseBuilder, type BuilderStepRecord } from '@senars/util/builder';
 
 /** Book entry. */
 export interface BookEntry {
@@ -63,11 +63,7 @@ export interface Book {
 }
 
 /** Book builder step record. */
-export interface BookBuilderStep {
-  step: string;
-  present: boolean;
-  detail?: Record<string, unknown>;
-}
+export interface BookBuilderStep extends BuilderStepRecord {}
 
 /** Compute simple hash for book integrity. */
 function computeHash(content: string): string {
@@ -80,7 +76,7 @@ function computeHash(content: string): string {
 }
 
 /** Book builder for constructing books. */
-export class BookBuilder extends FluentBuilderMixin<Book, BookBuilderStep>() {
+export class BookBuilder extends BaseBuilder<Book, BookBuilderStep> {
   private metadata: Partial<BookMetadata> = {};
   private entries: BookEntry[] = [];
   private artifactMap: Map<string, Artifact> = new Map();

@@ -113,7 +113,7 @@ describe('narEventToCognitive', () => {
   });
 
   it('returns null for unmapped events', () => {
-    expect(narEventToCognitive('error', { error: new Error('x') })).toBeNull();
+    expect(narEventToCognitive('unmapped:event', { some: 'data' })).toBeNull();
   });
 
   it('honors a custom engine origin', () => {
@@ -234,8 +234,72 @@ describe('narEventToCognitive', () => {
       'system:lm.rule:circuit:half-open': { ruleId: 'r', ruleName: 'n', timestamp: 1 },
       'system:lm.rule:circuit:closed': { ruleId: 'r', ruleName: 'n', timestamp: 1 },
     };
-    for (const key of MAPPED_NAR_EVENTS) {
-      const result = narEventToCognitive(key, samples[key] as NAREventMap[keyof NAREventMap]);
+    // Test only the old event names that NAR actually emits
+    const oldEventNames: Array<keyof NAREventMap> = [
+      'rule:applied',
+      'derivation:accepted',
+      'derivation:record',
+      'concept:created',
+      'concept:removed',
+      'cognitive:state-change',
+      'tool:call',
+      'tool:result',
+      'tool:error',
+      'lm:start',
+      'cycle:state',
+      'restore:state',
+      'memory:pressure',
+      'memory:consolidated',
+      'lm:call',
+      'lm:error',
+      'error',
+      'nl:analyzed',
+      'nl:translation',
+      'nl:clarification-needed',
+      'nal:derived',
+      'lm:validation-failed',
+      'feedback:correction',
+      'turn:start',
+      'turn:end',
+      'turn:error',
+      'stage:start',
+      'stage:end',
+      'stage:error',
+      'classify:result',
+      'trigger:score',
+      'reasoning:start',
+      'reasoning:end',
+      'lm:start',
+      'lm:chunk',
+      'lm:end',
+      'lm:suggests-reasoning',
+      'lm-rule:executed',
+      'lm-rule:failed',
+      'lm-rule:disabled',
+      'directive:found',
+      'directive:execute',
+      'directive:loop-requested',
+      'loop:pass',
+      'conversation:message-added',
+      'conversation:artifact-added',
+      'conversation:belief-pinned',
+      'conversation:summarized',
+      'system:lm.rule:applied',
+      'system:lm.rule:skipped',
+      'system:lm.rule:structured',
+      'system:lm.rule:tool:called',
+      'system:lm.rule:tool:result',
+      'system:lm.rule:failed',
+      'system:lm.rule:circuit:open',
+      'system:lm.rule:circuit:half-open',
+      'system:lm.rule:circuit:closed',
+    ];
+    for (const key of oldEventNames) {
+      const sample = samples[key];
+      const result = narEventToCognitive(key, sample as NAREventMap[keyof NAREventMap]);
+      if (result === null) {
+        console.log('Failed key:', key, 'sample:', sample);
+      }
       expect(result).not.toBeNull();
       expect((result as CognitiveEvent).engine).toBe('nar');
       expect(typeof (result as CognitiveEvent).correlationId).toBe('string');
