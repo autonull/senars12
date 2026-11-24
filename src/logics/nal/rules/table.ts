@@ -3,7 +3,7 @@ import type { NALRule } from './types';
 import { CORE_RULES } from './core-rules';
 import { COMPARISON_RULES } from './comparison-rules';
 import { STRUCTURAL_RULES } from './structural-rules';
-import { TEMPORAL_RULES } from './temporal-rules';
+import { NAL_TEMPORAL_RULES } from './temporal-rules';
 import { HIGHER_ORDER_RULES } from './higher-order-rules';
 import { VARIABLE_RULES } from './variable-rules';
 import { META_RULES } from './meta-rules';
@@ -13,7 +13,7 @@ export const NAL_RULES: NALRule[] = [
   ...CORE_RULES,
   ...COMPARISON_RULES,
   ...STRUCTURAL_RULES,
-  ...TEMPORAL_RULES,
+  ...NAL_TEMPORAL_RULES,
   ...HIGHER_ORDER_RULES,
   ...VARIABLE_RULES,
   ...META_RULES,
