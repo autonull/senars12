@@ -22,7 +22,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { CYCLE_PATH_PREFIXES } from '../../src/lm/in-cycle-inventory.js';
 import { importEdges } from './imports.js';
-import { ROOT } from './root.js';
+import { ROOT } from '../core/root.js';
 import { lineAt, sourceFiles } from './source-scan.js';
 
 const NAR_SRC = join(ROOT, 'src');

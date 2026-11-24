@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
-import { ROOT } from './root.js';
+import { ROOT } from '../core/root.js';
 
 /** Source roots analysed for circular imports by every dpdm-based gate. */
 export const DPDM_TARGETS = ['src/'];

@@ -14,7 +14,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { ROOT } from './root.js';
+import { ROOT } from '../core/root.js';
 
 /**
  * The workspace trees the complexity ratchet measures. `ui/src` is absent on

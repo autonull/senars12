@@ -33,7 +33,7 @@ import {
   Truth,
 } from '@senars/terms';
 import type { OperatorKey, Term } from '@senars/terms';
-import { ROOT } from './root.js';
+import { ROOT } from '../core/root.js';
 
 /**
  * The body of the `terms:canonical` gate: the operator table, the grammar and the

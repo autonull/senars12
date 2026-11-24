@@ -13,9 +13,9 @@
  * code*, which no amount of runtime testing can reach.
  */
 import { escapeRegExp } from '@senars/util/text';
-import { importEdges, maskNonCode } from './imports.js';
-import type { Verdict } from './verdicts.js';
-import { lineAt, scanSubject } from './source-scan.js';
+import { importEdges, maskNonCode } from '../codegen/imports.js';
+import type { Verdict } from '../core/verdicts.js';
+import { lineAt, scanSubject } from '../codegen/source-scan.js';
 
 export { lineAt };
 

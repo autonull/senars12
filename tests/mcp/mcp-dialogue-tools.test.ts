@@ -8,7 +8,7 @@ import { DialogueCapture } from '@senars/dialogue';
 import { EpisodicMemory } from '@senars/memory';
 import { dialogueDefaults } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { registerDialogueTools } from '../../src/bin/lib/mcp/mcp-dialogue-tools';
+import { registerDialogueTools } from '../../src/bin/lib/mcp';
 
 const connect = async (server: McpServer): Promise<Client> => {
   const client = new Client({ name: 'test-client', version: '0.0.1' });

@@ -25,7 +25,7 @@ import {
   scanSubject,
   surfaceViolations,
   writeSites,
-} from '../../scripts/lib/attention-surface';
+} from '../../scripts/lib/analysis/attention-surface.js';
 
 const term = (name: string) => TermBuilder.atom(name);
 const rulesOf = (violations: ReturnType<typeof surfaceViolations>) =>

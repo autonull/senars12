@@ -1,5 +1,5 @@
-import { lineAt, scanSubject as readSubject } from './source-scan.js';
-import type { Verdict } from './verdicts.js';
+import { lineAt, scanSubject as readSubject } from '../codegen/source-scan.js';
+import type { Verdict } from '../core/verdicts.js';
 
 /** The production trees the surface is declared over. */
 const SCAN_ROOTS = ['src'] as const;

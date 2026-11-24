@@ -11,7 +11,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { createNAR, createLogStore } from '@senars/agent';
 import type { ExtendedAgent } from '@senars/agent';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources';
+import { registerMCPResources } from '../../src/bin/lib/mcp';
 
 const connect = async (server: McpServer): Promise<Client> => {
   const client = new Client({ name: 'test-client', version: '0.0.1' });

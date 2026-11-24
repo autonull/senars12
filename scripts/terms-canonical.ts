@@ -18,7 +18,7 @@
  * fail — §10.1's rule, and `tests/nar/todo29a-a12.test.ts` is that test.
  */
 
-import { canonicalFormFailures } from './lib/terms-canonical.js';
+import { canonicalFormFailures } from './lib/codegen/terms-canonical.js';
 import { OPERATORS } from '@senars/terms/operators.js';
 import { TASK_REDUCERS, TERM_REDUCERS } from '@senars/terms';
 

@@ -10,15 +10,9 @@ import {
   type ToolSet,
 } from 'ai';
 import type { LMTask } from '@senars/types/llm';
+import type { ToolCall } from '@senars/types/tools';
 
-/** Local ToolCall type matching the ai SDK structure. */
-export interface ToolCall {
-  toolCallId: string;
-  toolName: string;
-  args: Record<string, unknown>;
-}
-
-export type { LanguageModel, ModelMessage, ToolSet };
+export type { LanguageModel, ModelMessage, ToolSet, ToolCall };
 
 export interface ToolError {
   toolCallId: string;

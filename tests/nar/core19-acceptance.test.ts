@@ -23,7 +23,7 @@ import { NAR } from '@senars/agent';
 import { NarEventBus } from '@senars/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runOneShot } from '../../src/bin/lib/oneshot';
-import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources';
+import { registerMCPResources } from '../../src/bin/lib/mcp';
 import { e2eNARConfig } from '../e2e/fixtures';
 
 interface Captured {

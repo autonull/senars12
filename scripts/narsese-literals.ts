@@ -41,9 +41,9 @@
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
-import { roundTrip } from './lib/narsese-literals.js';
-import { ROOT } from './lib/root.js';
-import { lineAt } from './lib/source-scan.js';
+import { roundTrip } from './lib/codegen/narsese-literals.js';
+import { ROOT } from './lib/core/root.js';
+import { lineAt } from './lib/codegen/source-scan.js';
 
 const TARGET_DIRS = ['nar/src', 'src', 'scripts', 'examples'];
 const EXTENSIONS = ['.ts', '.tsx', '.mts', '.js', '.mjs'];
@@ -54,10 +54,10 @@ const EXCLUDE_FILES = new Set([
   'scripts/control-budgets.ts',
   'scripts/fundamentals-bench.ts',
   'scripts/fuzz-narsese.ts',
-  'scripts/lib/attention-surface.ts',
-  'scripts/lib/dispatch-table.ts',
-  'scripts/lib/proposal-protocol.ts',
-  'scripts/lib/terms-canonical.ts',
+  'scripts/lib/analysis/attention-surface.ts',
+  'scripts/lib/core/dispatch-table.ts',
+  'scripts/lib/protocol/proposal-protocol.ts',
+  'scripts/lib/codegen/terms-canonical.ts',
   'scripts/narsese-literals.ts',
   'scripts/profile-scenario.ts',
   'scripts/relevance-measured.ts',

@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importEdges, maskNonCode } from '../../scripts/lib/imports';
+import { importEdges, maskNonCode } from '../../scripts/lib/codegen/imports.js';
 
 /**
  * TODO28 Bench — the layering gate sees what it claims to see.

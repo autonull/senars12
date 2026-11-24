@@ -29,8 +29,8 @@ import {
   coreLayerViolations,
   isCyclePath,
   resolveInNar,
-} from '../../scripts/lib/layer-boundary';
-import { ROOT } from '../../scripts/lib/root';
+} from '../../scripts/lib/codegen/layer-boundary.js';
+import { ROOT } from '../../scripts/lib/core/root.js';
 
 const at = (source: string, file = `${ROOT}/src/memory/embedding.ts`) =>
   coreLayerViolations(file, source);

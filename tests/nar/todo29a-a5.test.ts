@@ -50,8 +50,8 @@ import { atom } from '@senars/terms/impls/factory';
 import type { Budget, Task } from '@senars/types';
 import { createTaskWeight, createTask } from '@senars/types';
 
-import { isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary';
-import { ROOT } from '../../scripts/lib/root';
+import { isCyclePath, resolveInNar } from '../../scripts/lib/codegen/layer-boundary.js';
+import { ROOT } from '../../scripts/lib/core/root.js';
 
 /** The fake store's nominal capacity — anything, since it evicts nothing. */
 const FAKE_CAPACITY = 1000;

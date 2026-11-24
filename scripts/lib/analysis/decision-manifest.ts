@@ -30,7 +30,7 @@ import {
   DECISION_QUERIES,
 } from '@senars/decision';
 import { BUDGET_SCOPE_IDS } from '@senars/kernel';
-import { collector, type Verdict } from './verdicts.js';
+import { collector, type Verdict } from '../core/verdicts.js';
 
 /** A manifest finding, addressed by the call-site id it is about. */
 export type ManifestViolation = Verdict;

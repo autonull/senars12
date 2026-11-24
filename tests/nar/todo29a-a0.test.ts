@@ -10,8 +10,8 @@ import {
   type DiscoveredEdge,
   isTypeOnlyImport,
   lineOf,
-} from '../../scripts/lib/induction-inventory';
-import { checkSeams } from '../../scripts/lib/provider-dependency';
+} from '../../scripts/lib/codegen/induction-inventory.js';
+import { checkSeams } from '../../scripts/lib/protocol/provider-dependency.js';
 import { type WitnessList, witnessFiles, witnessHolds } from '@senars/util/index';
 
 /**

@@ -34,10 +34,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { ACCUMULATOR_LEDGER } from './accumulator-ledger.js';
-import { circularChainsAsync } from './dpdm.js';
-import { readExports } from './pkg.js';
-import { ROOT } from './root.js';
-import { productionSources, WORKSPACE_SOURCE_ROOTS } from './source-scan.js';
+import { circularChainsAsync } from '../rl/dpdm.js';
+import { readExports } from '../codegen/pkg.js';
+import { ROOT } from '../core/root.js';
+import { productionSources, WORKSPACE_SOURCE_ROOTS } from '../codegen/source-scan.js';
 
 const execFileAsync = promisify(execFile);
 

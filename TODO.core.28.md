@@ -785,13 +785,13 @@ WEEK 3:
   └─ W16: logics/nal/rules.ts Split (parallel) ✅ **DONE**
 
 WEEK 4:
-  ├─ W17: MCP Consolidation (needs W1)
-  ├─ W18: Bin Lib Consolidation (parallel)
-  ├─ W19: Agent/Type Duplication (needs W4)
-  └─ W21: Gate/Seam Type Unification (needs W4)
+  ├─ W17: MCP Consolidation (needs W1) ✅ **DONE**
+  ├─ W18: Bin Lib Consolidation (parallel) ✅ **DONE**
+  ├─ W19: Agent/Type Duplication (needs W4) ✅ **DONE**
+  └─ W21: Gate/Seam Type Unification (needs W4) ✅ **DONE**
 
 WEEK 5:
-  ├─ W20: Scripts/lib Consolidation (parallel)
+  ├─ W20: Scripts/lib Consolidation (parallel) ✅ **DONE**
   ├─ W22: Import Boundary Gates (needs W1)
   ├─ W23: Config Schema Drift Gate (needs W1)
   └─ W24: Circular Dependency Audit (needs W1, W4)

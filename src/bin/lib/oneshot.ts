@@ -27,10 +27,8 @@ export interface OneShotRequest {
   json: boolean;
 }
 
-/**
- * The grammar's one mark set (`PUNCTUATION_BY_TASK_TYPE`), read as a character
- * class — never a second `[.!?]` literal that could drift from it.
- */
+/** The grammar's one mark set (`PUNCTUATION_BY_TASK_TYPE`), read as a character
+ *  class — never a second `[.!?]` literal that could drift from it. */
 const MARKS = Object.values(PUNCTUATION_BY_TASK_TYPE).map(escapeRegExp).join('');
 const TASK_END = new RegExp(`(?<=[${MARKS}])\\s+`);
 const TRAILING_MARK = new RegExp(`([${MARKS}])\\s*$`);
@@ -76,7 +74,7 @@ export interface OneShotResult {
     truth: { f: number; c: number } | null;
     derivation: Array<{ rule: string; premises: readonly string[]; conclusion: string }> | null;
   }>;
-}
+};
 
 const toResult = (
   request: OneShotRequest,

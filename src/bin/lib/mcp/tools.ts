@@ -1,3 +1,8 @@
+/**
+ * MCP Tools — All Tool Registrations
+ * Consolidated from mcp-tools.ts + mcp-dialogue-tools.ts
+ */
+
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { ChatStreamEvent } from '../../../agent/index';
 import { withinWorkspace } from '../../../motor/index';
@@ -6,19 +11,22 @@ import { Truth } from '../../../kernel/truth';
 import type { ExtendedAgent as Agent } from '../../../agent/index';
 import { resetDemotions } from '../../../lm/index';
 import { filterFolded } from '@senars/util/text';
-import { takeLast } from '@senars/util/collections';
+import { takeLast, unique } from '@senars/util/collections';
 import { positiveInt } from '@senars/config';
 import { evaluateExpression } from '@senars/util/eval';
 import { z } from 'zod';
-import type { JobManager } from './job-manager';
-import { registerNARRegistryTools } from './mcp-bridge';
-import {
-  ANNOTATIONS,
-  createMCPResponse,
-  formatBeliefsForMCP,
-  stringifyMCP,
-} from './mcp-response';
+import type { JobManager } from './jobs';
+import { registerNARRegistryTools, ANNOTATIONS, createMCPResponse, formatBeliefsForMCP, stringifyMCP } from './core';
 import { SenarsError } from '../../../errors/senars-error';
+import type { EpisodicMemory } from '@senars/nar/memory/episodic';
+import type { DialogueCapture as DialogueCaptureType } from '../../../dialogue/index';
+import { retrospect, selectProbes } from '../../../dialogue/index';
+import { parseJsonOr } from '@senars/util/fs';
+import type { ReadOnlyLookup } from '@senars/util/collections';
+
+/* ============================================================================
+ * NAR Tools (from mcp-tools.ts)
+ * ==========================================================================*/
 
 export interface NARToolsOptions {
   jobs?: JobManager;
@@ -272,10 +280,10 @@ export function registerNARTools(
     async ({ id }) => {
       const rule = nar.getProcessor().getModelRule(id);
       if (!rule) {
-        return createMCPResponse(`LM rule not found: ${id}`, { disabled: false, id });
+        return createMCPResponse(`LM rule not found: {id}`, { disabled: false, id });
       }
       rule.disable();
-      return createMCPResponse(`Disabled LM rule: ${id}`, { disabled: true, id });
+      return createMCPResponse(`Disabled LM rule: {id}`, { disabled: true, id });
     }
   );
 
@@ -311,7 +319,7 @@ export function registerNARTools(
       const explanation = result.success
         ? stringifyMCP(result.content)
         : (result.error ?? 'Explain failed');
-      return createMCPResponse(`Explanation for ${term} (${type ?? 'belief'}): ${explanation}`, {
+      return createMCPResponse(`Explanation for {term} ({type ?? 'belief'}): {explanation}`, {
         term,
         type: type ?? 'belief',
         explanation,
@@ -341,7 +349,7 @@ export function registerNARTools(
       };
       if (goalId) {
         const goal = goalsList.find((g) => String(g.term) === goalId);
-        if (!goal) return createMCPResponse(`Unknown goal: ${goalId}`, { goalId, progress: 0 });
+        if (!goal) return createMCPResponse(`Unknown goal: {goalId}`, { goalId, progress: 0 });
         const goals = [{ goalId, progress: estimate(goalId) }];
         return createMCPResponse(stringifyMCP({ goals }), { goals });
       }
@@ -429,7 +437,7 @@ export function registerNARTools(
         }
       };
       const id = jobs.submit(kind, runFn);
-      return createMCPResponse(`Job ${id} started (${kind})`, { jobId: id });
+      return createMCPResponse(`Job {id} started ({kind})`, { jobId: id });
     }
   );
 
@@ -448,7 +456,7 @@ export function registerNARTools(
         return createMCPResponse('Job tracking not available', { error: 'jobs not available' });
       if (jobId) {
         const job = jobs.get(jobId);
-        if (!job) return createMCPResponse(`Unknown job: ${jobId}`, { error: 'unknown job id' });
+        if (!job) return createMCPResponse(`Unknown job: {jobId}`, { error: 'unknown job id' });
         return createMCPResponse(stringifyMCP(job), job as unknown as Record<string, unknown>);
       }
       return createMCPResponse(stringifyMCP({ jobs: jobs.list() }), {
@@ -458,4 +466,151 @@ export function registerNARTools(
   );
 
   registerNARRegistryTools(server, nar);
+}
+
+/* ============================================================================
+ * Dialogue Tools (from mcp-dialogue-tools.ts)
+ * ==========================================================================*/
+
+const EMPTY_GRADES: ReadOnlyLookup<string, number> = {
+  get: () => undefined,
+  has: () => false,
+  [Symbol.iterator]: () => [][Symbol.iterator](),
+};
+
+export interface DialogueToolsOptions {
+  dialogue: DialogueCaptureType;
+  /** Episodic memory backing turns/reactions — required by turns/retrospect/probes. */
+  episodic?: EpisodicMemory;
+  /** Trace grades by correlationId (for curriculum probe selection, TODO25 Phase C). */
+  traceGrades?: ReadOnlyLookup<string, number>;
+}
+
+interface TurnRow {
+  turnId: string;
+  sessionId: string;
+  seq: number;
+  grounding?: { admitted: boolean; score: number };
+  responseDigest?: string;
+}
+
+const parseTurnRow = (content: string): TurnRow | undefined => {
+  const row = parseJsonOr<Partial<TurnRow> | undefined>(content, undefined);
+  return row?.turnId && row.sessionId ? (row as TurnRow) : undefined;
+};
+
+const sessionIdOf = (episode: { metadata: unknown }): string | undefined =>
+  (episode.metadata as { sessionId?: string } | null)?.sessionId;
+
+/**
+ * TODO24 §12 extension point: MCP tool exposure of the Dialogue Flywheel so
+ * AI-agent clients can drive the self-correction loop — react to turns, list
+ * captures, run retrospectives. Thin adapter over the `DialogueCapture` class
+ * boundary (§3: the class is the API).
+ */
+export function registerDialogueTools(server: McpServer, options: DialogueToolsOptions): void {
+  const { dialogue, episodic, traceGrades } = options;
+
+  server.registerTool(
+    'dialogue_react',
+    {
+      title: 'Dialogue React',
+      description:
+        'Bind an explicit reaction (accept/correct/reject/clarify/redirect/abandon) to the most recent dialogue turn',
+      inputSchema: {
+        kind: z.enum(['accept', 'correct', 'reject', 'clarify', 'redirect', 'abandon']),
+        correction: z.string().optional(),
+      },
+      annotations: ANNOTATIONS.set,
+    },
+    async ({ kind, correction }) => {
+      const turn = dialogue.latestTurn();
+      if (!turn) return createMCPResponse('No captured turn to react to.', {});
+      if (kind === 'correct' && !correction?.trim())
+        return createMCPResponse('Correction text required for kind=correct.', {});
+      await dialogue.bindReaction(turn.turnId, kind, correction);
+      return createMCPResponse(`Reaction {kind} bound to {turn.turnId}`, {
+        turnId: turn.turnId,
+        kind,
+      });
+    }
+  );
+
+  server.registerTool(
+    'dialogue_turns',
+    {
+      title: 'Dialogue Turns',
+      description: 'List captured dialogue turns (hash-only digests)',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        limit: positiveInt.max(100).default(10),
+      },
+      outputSchema: { sessionId: z.string().nullable(), turns: z.array(z.any()) },
+      annotations: ANNOTATIONS.read,
+    },
+    async ({ sessionId, limit }) => {
+      if (!episodic) return createMCPResponse('Episodic memory not available.', { turns: [] });
+      const episodes = await episodic.getEpisodes({ type: 'dialogue', limit: 500 });
+      const session =
+        sessionId ??
+        unique(episodes.map((e) => sessionIdOf(e) ?? ''))
+          .filter(Boolean)
+          .pop();
+      const turns = episodes
+        .filter((e) => sessionIdOf(e) === session)
+        .map((e) => parseTurnRow(e.content))
+        .filter((t): t is TurnRow => t !== undefined);
+      const recent = takeLast(turns, limit);
+      return createMCPResponse(
+        recent.length === 0
+          ? 'No captured turns.'
+          : `${recent.length} turn(s) for session {session}`,
+        { sessionId: session ?? null, turns: recent }
+      );
+    }
+  );
+
+  server.registerTool(
+    'dialogue_retrospect',
+    {
+      title: 'Dialogue Retrospect',
+      description: 'Run a session-level retrospective diagnostic over captured turns and reactions',
+      inputSchema: { sessionId: z.string() },
+      outputSchema: { sessionId: z.string(), retrospective: z.any() },
+      annotations: ANNOTATIONS.run,
+    },
+    async ({ sessionId }) => {
+      if (!episodic) return createMCPResponse('Episodic memory not available.', {});
+      const retrospective = await retrospect(sessionId, episodic, { traceGrades });
+      return createMCPResponse(stringifyMCP(retrospective), { sessionId, retrospective });
+    }
+  );
+
+  server.registerTool(
+    'dialogue_probes',
+    {
+      title: 'Dialogue Probes',
+      description:
+        'Select curriculum probes from flywheel-graded data (corrected turns first, then low trace grades)',
+      inputSchema: { limit: positiveInt.max(100).default(16) },
+      outputSchema: { probes: z.array(z.any()) },
+      annotations: ANNOTATIONS.read,
+    },
+    async ({ limit }) => {
+      if (!episodic) return createMCPResponse('Episodic memory not available.', { probes: [] });
+      const probes = await selectProbes(
+        {
+          reactions: () => episodic.getEpisodes({ type: 'reaction', limit: 1000 }),
+          grades: () => traceGrades ?? EMPTY_GRADES,
+        },
+        { limit }
+      );
+      return createMCPResponse(
+        probes.length === 0
+          ? 'No probes yet (requires corrected or low-graded turns).'
+          : `{probes.length} probe(s)`,
+        { probes }
+      );
+    }
+  );
 }

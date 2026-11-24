@@ -35,15 +35,123 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '../../lm/index';
-import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
+import { createLogger, errMsg, keyedBy, mapValues, parseFlags, envSet, attempted } from '@senars/util';
 import type { HealthReport } from '@senars/types/health';
 import { LM_TASKS } from '@senars/types/llm';
 import { loadConfig } from '../../config/index';
 import { jsonMode } from '../commands/args';
-import { credentialReport } from './doctor-checks';
-import { type DerivationCost, runDerivationBenchmarks } from './benchmarks';
 
 const logger = createLogger({ scope: 'doctor' });
+
+/* ============================================================================
+ * Inlined from ./doctor-checks.ts
+ * ==========================================================================*/
+
+/** Every credential any provider may need. One list, so a key cannot be checked in
+ *  one entry point and ignored in the other. */
+const CREDENTIAL_KEYS = [
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'LM_API_KEY',
+  'TAVILY_API_KEY',
+  'BRAVE_API_KEY',
+] as const;
+
+export interface CredentialReport {
+  readonly key: string;
+  readonly present: boolean;
+}
+
+const credentialReport = (): CredentialReport[] =>
+  CREDENTIAL_KEYS.map((key) => ({ key, present: envSet(key) }));
+
+/** `KEY=set` per credential, for the one-line form. */
+const credentialSummary = (): string =>
+  credentialReport()
+    .map(({ key, present }) => `${key}=${present ? 'set' : 'unset'}`)
+    .join(' ');
+
+/** The embedded llama probe as a status line; `n/a` when it is not the provider. */
+const embeddedProbe = async (provider: string): Promise<string> => {
+  if (provider !== 'llamacpp-embedded') return 'n/a';
+  return attempted('probe', async () => {
+    const probe = await probeEmbeddedLlama();
+    return `${probe.available ? 'ok' : 'FAIL'}: ${probe.detail}`;
+  });
+};
+
+/** Whether the app config loads, as one boolean plus the reason when it does not. */
+const configValidity = async (): Promise<{ valid: boolean; error?: string }> => {
+  try {
+    await loadConfig();
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: errMsg(e) };
+  }
+};
+
+/* ============================================================================
+ * Inlined from ./benchmarks.ts
+ * ==========================================================================*/
+
+/** One ranked group of rule fires, keyed by rule and conclusion. */
+interface DerivationCost {
+  conclusion: string;
+  rule: string;
+  calls: number;
+  cpuMs: number;
+  durationMs: number;
+}
+
+/** A deterministic syllogism chain — no LM, so the run is a kernel measurement. */
+const BENCH_BELIEFS = [
+  '<a-->b>. %1.0;0.9%',
+  '<b-->c>. %1.0;0.9%',
+  '<c-->d>. %1.0;0.9%',
+  '<d-->e>. %1.0;0.9%',
+  '<e-->f>. %1.0;0.9%',
+] as const;
+const BENCH_QUESTION = '<a-->f>?';
+
+interface BenchmarkOptions {
+  cycles?: number;
+  limit?: number;
+}
+
+const runDerivationBenchmarks = async (
+  options: BenchmarkOptions = {}
+): Promise<DerivationCost[]> => {
+  const nar = createBotNAR();
+  const costs = new Map<string, DerivationCost>();
+  // Note: NAREventMap import removed - using inline type
+  const unsubscribe = nar.getSystemEventBus().on('rule:applied', (e: unknown) => {
+    const event = e as { ruleId: string; conclusion: unknown; cpuMs?: number; duration?: number };
+    const key = `${event.ruleId}\u0000${String(event.conclusion)}`;
+    const row = costs.get(key) ?? {
+      conclusion: String(event.conclusion),
+      rule: event.ruleId,
+      calls: 0,
+      cpuMs: 0,
+      durationMs: 0,
+    };
+    row.calls++;
+    row.cpuMs += event.cpuMs ?? 0;
+    row.durationMs += event.duration ?? 0;
+    costs.set(key, row);
+  });
+  try {
+    await nar.run(1);
+    for (const belief of BENCH_BELIEFS) await nar.believe(belief);
+    await nar.question(BENCH_QUESTION);
+    await nar.run(options.cycles ?? 24);
+  } finally {
+    unsubscribe();
+    await nar.dispose();
+  }
+  return [...costs.values()]
+    .sort((a, b) => b.cpuMs - a.cpuMs || b.durationMs - a.durationMs || b.calls - a.calls)
+    .slice(0, options.limit ?? 10);
+};
 
 interface Check {
   name: string;

@@ -27,11 +27,11 @@
 
 import { readFileSync } from 'node:fs';
 import { RESOURCE_CONTRACTS, type CapacitySource } from '../../src/resources/contracts.js';
-import { ACCUMULATOR_LEDGER } from './accumulator-ledger.js';
-import { maskNonCode } from './imports.js';
-import { sourceFiles } from './source-scan.js';
-import { fromRoot } from './root.js';
-import { collector, type Verdict } from './verdicts.js';
+import { ACCUMULATOR_LEDGER } from '../analysis/accumulator-ledger.js';
+import { maskNonCode } from '../codegen/imports.js';
+import { sourceFiles } from '../codegen/source-scan.js';
+import { fromRoot } from '../core/root.js';
+import { collector, type Verdict } from '../core/verdicts.js';
 
 export type ResourceViolation = Verdict;
 

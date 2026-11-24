@@ -10,8 +10,8 @@ import {
   registerNARRegistryTools,
   toolAnnotations,
   zodFromSchema,
-} from '../../src/bin/lib/mcp/mcp-bridge';
-import { registerNARTools } from '../../src/bin/lib/mcp/mcp-tools';
+  registerNARTools,
+} from '../../src/bin/lib/mcp';
 
 const makeTool = (overrides: Partial<Tool> = {}): Tool =>
   ({

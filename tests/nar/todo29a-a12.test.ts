@@ -6,7 +6,7 @@
  * makes a reducer that stops being sound a red test rather than a comment.
  */
 import fc from 'fast-check';
-import { canonicalFormFailures } from '../../scripts/lib/terms-canonical';
+import { canonicalFormFailures } from '../../scripts/lib/codegen/terms-canonical.js';
 import {
   canonicalTerm,
   TERM_REDUCERS,

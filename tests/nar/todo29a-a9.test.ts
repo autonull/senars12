@@ -20,7 +20,7 @@ import {
   replayProposalStream,
   staleAdmissions,
 } from '@senars/proposal';
-import { fromRoot } from '../../scripts/lib/root';
+import { fromRoot } from '../../scripts/lib/core/root.js';
 
 const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
 

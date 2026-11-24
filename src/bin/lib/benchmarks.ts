@@ -7,7 +7,6 @@
  * and `duration`), never simulated — D15 keeps `[]` honest and this keeps it useful.
  */
 import { createBotNAR } from '../../agent/index';
-import type { NAREventMap } from '../../agent/index';
 
 /** One ranked group of rule fires, keyed by rule and conclusion. */
 export interface DerivationCost {
@@ -40,8 +39,9 @@ export async function runDerivationBenchmarks(
 ): Promise<DerivationCost[]> {
   const nar = createBotNAR();
   const costs = new Map<string, DerivationCost>();
+  // Note: NAREventMap import removed - using inline type
   const unsubscribe = nar.getSystemEventBus().on('rule:applied', (e: unknown) => {
-    const event = e as NAREventMap['rule:applied'];
+    const event = e as { ruleId: string; conclusion: unknown; cpuMs?: number; duration?: number };
     const key = `${event.ruleId}\u0000${String(event.conclusion)}`;
     const row = costs.get(key) ?? {
       conclusion: String(event.conclusion),

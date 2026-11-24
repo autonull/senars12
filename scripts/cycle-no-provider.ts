@@ -33,8 +33,8 @@ import { PROVIDER_SEAMS } from '@senars/lm';
 import { LMRule } from '@senars/lm/rule/LMRule.js';
 import { StreamReasoner } from '@senars/stream';
 import { TermBuilder, type Truth } from '@senars/terms';
-import { checkSeams, type SeamProbe } from './lib/provider-dependency.js';
-import { report } from './lib/verdicts.js';
+import { checkSeams, type SeamProbe } from './lib/protocol/provider-dependency.js';
+import { report } from './lib/core/verdicts.js';
 
 /** A promise that never settles. The absence of a timeout is the thing under test. */
 const NEVER = <T>(): Promise<T> => new Promise<T>(() => {});

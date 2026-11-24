@@ -22,13 +22,64 @@ import {
   generateId,
 } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error';
-import { HttpGuard, rejectWithStatus } from './lib/http-guards';
 import { createAgentFromEnv } from './lib/lifecycle';
-import { JobManager } from './lib/mcp/job-manager';
-import { registerDialogueTools } from './lib/mcp/mcp-dialogue-tools';
-import { registerMCPPrompts } from './lib/mcp/mcp-prompts';
-import { registerMCPResources } from './lib/mcp/mcp-resources';
-import { registerNARTools } from './lib/mcp/mcp-tools';
+
+/* ============================================================================
+ * Inlined from ./lib/http-guards.ts
+ * ==========================================================================*/
+import { randomBytes } from 'node:crypto';
+import type { IncomingMessage } from 'node:http';
+import { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
+
+interface HttpGuardOptions {
+  apiKey?: string;
+  rateLimitPerMinute?: number;
+}
+
+class HttpGuard {
+  private readonly apiKeys = new Set<string>();
+  private readonly rateLimiter: SlidingWindowRateLimiter;
+  readonly rateLimitPerMinute: number;
+
+  constructor(options: HttpGuardOptions = {}) {
+    this.rateLimitPerMinute = options.rateLimitPerMinute ?? 30;
+    this.rateLimiter = new SlidingWindowRateLimiter({
+      limit: this.rateLimitPerMinute,
+      windowMs: 60_000,
+    });
+    this.apiKeys.add(options.apiKey ?? randomBytes(32).toString('hex'));
+  }
+
+  check(req: IncomingMessage, exemptPaths: readonly string[] = []): number | null {
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    if (exemptPaths.includes(url.pathname)) return null;
+
+    const key = (req.headers['x-api-key'] as string | undefined) ?? '';
+    if (!key || !this.apiKeys.has(key)) return 401;
+
+    return this.rateLimiter.tryAcquire(key) ? null : 429;
+  }
+
+  get activeKey(): string {
+    return this.apiKeys.values().next().value ?? '';
+  }
+}
+
+const rejectWithStatus = (
+  res: { writeHead: (code: number) => { end: (b?: string) => void } },
+  status: number
+): void => {
+  const reason =
+    status === 401 ? 'Unauthorized (missing or invalid x-api-key)' : 'Rate limit exceeded';
+  res.writeHead(status).end(reason);
+};
+import {
+  JobManager,
+  registerNARTools,
+  registerDialogueTools,
+  registerMCPResources,
+  registerMCPPrompts,
+} from './lib/mcp';
 
 const logger = createLogger({ scope: 'mcp' });
 

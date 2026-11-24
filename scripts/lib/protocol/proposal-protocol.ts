@@ -15,8 +15,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { ROOT } from './root.js';
-import type { Verdict } from './verdicts.js';
+import { ROOT } from '../core/root.js';
+import type { Verdict } from '../core/verdicts.js';
 
 export const PROTOCOL_DOC = 'docs/proposal-protocol.md';
 

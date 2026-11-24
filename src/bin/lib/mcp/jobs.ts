@@ -1,7 +1,6 @@
 /**
- * Fire-and-forget background jobs (NAR cycles, research tasks). Tracked
- * in-process with bounded history (AIKR); surfaced via `nar://jobs` and
- * the `job_status` tool.
+ * MCP Job Manager — Fire-and-Forget Background Jobs
+ * Consolidated from job-manager.ts
  */
 
 import { BoundedMap } from '@senars/util/bounded-map';

@@ -20,7 +20,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BUILTIN_DECLARATIONS } from '../../src/rules/impls/registration.js';
-import { fromRoot } from '../../scripts/lib/root.js';
+import { fromRoot } from '../../scripts/lib/core/root.js';
 
 const DIR = fromRoot('docs/readme');
 const README = fromRoot('README.md');

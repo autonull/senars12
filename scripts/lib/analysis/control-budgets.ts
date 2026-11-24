@@ -14,7 +14,7 @@
  */
 
 import { BUDGET_SCOPE_IDS, BUDGET_SCOPES } from '@senars/kernel';
-import type { Verdict } from './verdicts.js';
+import type { Verdict } from '../core/verdicts.js';
 
 export interface BudgetSpend {
   /** Repo-relative `file:line`. */

@@ -8,7 +8,7 @@ import { MemoryQuery } from '@senars/query';
 import { TermBuilder } from '@senars/terms';
 import { fixedClock, systemClock } from '@senars/utils';
 import { afterAll, describe, expect, it } from 'vitest';
-import { checkCycleBudget } from '../../scripts/lib/cycles';
+import { checkCycleBudget } from '../../scripts/lib/core/cycles.js';
 
 const NAR_DIR = join(import.meta.dirname, '../../src/');
 /**

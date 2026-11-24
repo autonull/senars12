@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BudgetSubject } from '../../scripts/lib/control-budgets';
+import type { BudgetSubject } from '../../scripts/lib/analysis/control-budgets.js';
 import {
   budgetViolations,
   sharedOperations,
   spentScopeIds,
-} from '../../scripts/lib/control-budgets';
+} from '../../scripts/lib/analysis/control-budgets.js';
 import { BUDGET_RESOURCES } from '@senars/budget';
 import {
   BUDGET_SCOPE_IDS,
