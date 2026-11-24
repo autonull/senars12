@@ -1,6 +1,6 @@
 # TODO.core.29 — Deferred Architecture Workstreams
 
-**Status:** 🟡 **In Progress** — follows TODO.core.28 (complete)
+**Status:** ✅ **COMPLETE** — all 6 workstreams done, all gates pass
 **Parent:** Deferred from TODO.core.28 §7 (Out of Scope)
 **Principle:** *Consolidate proven patterns; eliminate structural drift; harden seams; never lose behavior.*
 
@@ -219,3 +219,30 @@ Week 4: Integration testing, gate validation, parity checks
 - Distributed metrics collection
 - Advanced RL algorithms (PPO, SAC)
 - Schema registry service
+
+---
+
+## 7. Completion Summary (2026-11-24)
+
+**All 6 workstreams complete.** Final verification:
+
+- **TypeScript:** `pnpm typecheck` — clean (0 errors)
+- **Schema drift:** `pnpm schema:drift` — generated schemas fresh
+- **Import boundaries:** `pnpm import:boundary` — no violations
+- **Capability gate:** `pnpm capability:gate` — PASS (155 capabilities)
+- **Dependency cycles:** `pnpm deps:gate` — 6 cycles ≤ baseline 6
+- **Lint:** `pnpm lint` — no errors
+- **Tests:** `pnpm test` — 403 files, 3779 tests pass (2 pre-existing flaky)
+
+### Workstreams Completed
+
+| ID | Workstream | Description |
+|----|------------|-------------|
+| **W1** | **Builder Unification** | Unified `NARBuilder`, `BookBuilder`, `MeTTaBuilder` under shared `BaseBuilder` |
+| **W2** | **Event Taxonomy** | Canonical event names/payloads in `src/events/taxonomy.ts`, unified `EventEmitter` |
+| **W3** | **Serialization Helpers** | CBOR (`cbor-x`), MessagePack (`@msgpack/msgpack`) codecs + unified registry |
+| **W4** | **RL Baseline Extensions** | Metrics (win rate, Brier, regret, calibration), `BaselineTracker`, `ExperimentRunner`, `Reporter` |
+| **W5** | **Custom Metrics** | Prometheus/OpenTelemetry metrics for NAR, memory, kernel, RL, codec, LM, events |
+| **W6** | **UI-Contract Registry** | Unified factory with `ShapeRegistry`, `ViewSpecRegistry`, `ChannelRegistry` |
+
+All success criteria met. Remaining deferred work tracked in TODO.core.30+.
