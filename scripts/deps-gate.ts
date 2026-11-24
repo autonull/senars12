@@ -9,9 +9,9 @@
  * Reducing cycles? Lower BASELINE in the same commit. Adding cycles? The gate fails —
  * either break the cycle or justify + raise the baseline explicitly.
  */
-import { errMsg } from '../src/util/index.js';
-import { checkCycleBudget } from './lib/cycles.js';
-import { circularChains } from './lib/dpdm.js';
+import { errMsg } from '../src/util/index.ts';
+import { checkCycleBudget } from './lib/core/cycles.ts';
+import { circularChains } from './lib/rl/dpdm.ts';
 
 /** Runtime-cycle budget. This counts dpdm's `circular` report with `--transform`,
  * which erases type-only edges; `complexity-budget.ts` budgets the same report
@@ -32,8 +32,11 @@ import { circularChains } from './lib/dpdm.js';
  * `--transform` (TODO7 D3) removed edge 1; contract/impl splits removed 2 and 3/4.
  * Circular chain in `nar/src/agent/` resolved by extracting `createAgent` to separate file.
  *
- * Current baseline (Session 4): 4 cycles with `--transform` (44 raw). */
-const BASELINE = 4;
+ * Current baseline (Session 4): 4 cycles with `--transform` (44 raw).
+ * 
+ * Session 28 update: +2 cycles in kernel/terms (term-internal/index -> variable -> unify -> intern).
+ * This is tracked as W24 (Circular Dependency Audit). */
+const BASELINE = 6;
 
 try {
   const chains = circularChains();

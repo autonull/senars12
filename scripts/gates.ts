@@ -17,8 +17,8 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseFlags } from '@senars/util/cli';
-import { ACTIVE_GATES, missingGateScripts } from './lib/gates.js';
-import { ROOT } from './lib/root.js';
+import { ACTIVE_GATES, missingGateScripts } from './lib/core/gates.ts';
+import { ROOT } from './lib/core/root.ts';
 
 const includeSlow = parseFlags().str('--tier', '') === 'slow';
 const gates = ACTIVE_GATES.filter((gate) => includeSlow || gate.tier === 'gate');

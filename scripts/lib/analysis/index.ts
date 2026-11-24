@@ -2,8 +2,8 @@
  * Analysis Barrel — Budget and attention gates
  */
 
-export * from './attention-surface.js';
-export * from './complexity-budget.js';
-export * from './control-budgets.js';
-export * from './decision-manifest.js';
-export * from './accumulator-ledger.js';
+export * from './attention-surface.ts';
+export * from './complexity-budget.ts';
+export * from './control-budgets.ts';
+export * from './decision-manifest.ts';
+export * from './accumulator-ledger.ts';

@@ -28,10 +28,10 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { importEdges } from './lib/imports.js';
-import { entryTargets, readPackageJson } from './lib/pkg.js';
-import { ROOT } from './lib/root.js';
-import { moduleSource, sourceFiles } from './lib/source-scan.js';
+import { importEdges } from './lib/codegen/imports.ts';
+import { entryTargets, readPackageJson } from './lib/codegen/pkg.ts';
+import { ROOT } from './lib/core/root.ts';
+import { moduleSource, sourceFiles } from './lib/codegen/source-scan.ts';
 
 const PACKAGES = ['util', 'core', 'nar', 'io', 'metta'];
 

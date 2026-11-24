@@ -26,9 +26,9 @@
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { maskNonCode } from './lib/imports.js';
-import { ROOT } from './lib/root.js';
-import { ALL_SOURCE_ROOTS, lineAt, productionSources } from './lib/source-scan.js';
+import { maskNonCode } from './lib/codegen/imports.ts';
+import { ROOT } from './lib/core/root.ts';
+import { ALL_SOURCE_ROOTS, lineAt, productionSources } from './lib/codegen/source-scan.ts';
 
 /** The sites that may spell the arithmetic themselves, each with the reason. */
 const DECLARED: readonly { readonly file: string; readonly reason: string }[] = [

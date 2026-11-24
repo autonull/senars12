@@ -29,16 +29,16 @@ import {
 } from '@senars/lm';
 import { PROVIDER_SEAMS } from '@senars/lm';
 import { witnessFiles } from '@senars/util/witness';
-import { importEdges } from './lib/imports.js';
+import { importEdges } from './lib/codegen/imports.ts';
 import {
   checkInventory,
   type DiscoveredEdge,
   isTypeOnlyImport,
   lineOf,
-} from './lib/induction-inventory.js';
-import { ROOT } from './lib/root.js';
-import { sourceFiles } from './lib/source-scan.js';
-import { report } from './lib/verdicts.js';
+} from './lib/codegen/induction-inventory.ts';
+import { ROOT } from './lib/core/root.ts';
+import { sourceFiles } from './lib/codegen/source-scan.ts';
+import { report } from './lib/core/verdicts.ts';
 
 const NAR_SRC = join(ROOT, 'src');
 const LAYER_DIR = join(NAR_SRC, 'lm');

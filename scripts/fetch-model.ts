@@ -12,7 +12,7 @@ import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pct } from '@senars/util/format';
 import { getLlama, resolveModelFile } from 'node-llama-cpp';
-import { ROOT as PROJECT_ROOT } from './lib/root.js';
+import { ROOT as PROJECT_ROOT } from './lib/core/root.ts';
 
 const MODELS_DIR = join(PROJECT_ROOT, '.models');
 const CACHE_DIR = join(PROJECT_ROOT, '.cache', 'llama.cpp');

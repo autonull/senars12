@@ -19,8 +19,8 @@ import {
   scanSubject,
   surfaceViolations,
   writeSites,
-} from './lib/attention-surface.js';
-import { report } from './lib/verdicts.js';
+} from './lib/analysis/attention-surface.ts';
+import { report } from './lib/core/verdicts.ts';
 
 const subject = scanSubject();
 const sites = writeSites(subject);

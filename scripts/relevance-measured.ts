@@ -21,7 +21,7 @@
 import { createNAR } from '@senars/nar';
 import { byRelevance, relevanceScore, RELEVANCE_CONTAINMENT } from '@senars/query';
 import { termParser, Truth, type Term } from '@senars/terms';
-import { report } from './lib/verdicts.js';
+import { report } from './lib/core/verdicts.ts';
 
 const FOCUS = '(kitty-->mortal)';
 

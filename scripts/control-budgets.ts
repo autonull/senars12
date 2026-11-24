@@ -31,10 +31,10 @@ import {
   type BudgetSubject,
   budgetViolations,
   spentScopeIds,
-} from './lib/control-budgets.js';
-import { ROOT } from './lib/root.js';
-import { productionSources } from './lib/source-scan.js';
-import { report } from './lib/verdicts.js';
+} from './lib/analysis/control-budgets.ts';
+import { ROOT } from './lib/core/root.ts';
+import { productionSources } from './lib/codegen/source-scan.ts';
+import { report } from './lib/core/verdicts.ts';
 
 /** The production trees a declared bound's spend may live in. */
 const SCAN_ROOTS = ['src'] as const;

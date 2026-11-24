@@ -104,7 +104,7 @@ function zodToTs(schema: z.ZodSchema<any>, name: string, depth = 0): string {
   }
 
   if (innerSchema instanceof z.ZodEnum) {
-    const values = innerSchema._def?.values?.map((v) => `"${v}"`).join(' | ');
+    const values = innerSchema._def?.values?.map((v: string) => `"${v}"`).join(' | ');
     if (values) {
       let result = values;
       if (isOptional) result += ' | undefined';
@@ -115,7 +115,7 @@ function zodToTs(schema: z.ZodSchema<any>, name: string, depth = 0): string {
 
   // Zod v4: check for native enum via constructor name
   if (innerSchema && innerSchema.constructor && innerSchema.constructor.name === 'ZodNativeEnum' && innerSchema._def?.values) {
-    const values = Object.values(innerSchema._def.values).map((v) => `"${v}"`).join(' | ');
+    const values = Object.values(innerSchema._def.values).map((v: string) => `"${v}"`).join(' | ');
     let result = values;
     if (isOptional) result += ' | undefined';
     if (isNullable) result += ' | null';

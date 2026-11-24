@@ -33,8 +33,8 @@
  * not get a different answer.
  */
 
-import { maskNonCode } from './lib/imports.js';
-import { scanSubject } from './lib/source-scan.js';
+import { maskNonCode } from './lib/codegen/imports.ts';
+import { scanSubject } from './lib/codegen/source-scan.ts';
 
 /** The sites that may spell a boundary fragment themselves, each with the reason. */
 const DECLARED: readonly { readonly file: string; readonly reason: string }[] = [

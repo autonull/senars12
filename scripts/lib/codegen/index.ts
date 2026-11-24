@@ -2,12 +2,12 @@
  * Codegen Barrel — Source analysis and canonicalization
  */
 
-export * from './imports.js';
-export * from './induction-inventory.js';
-export * from './layer-boundary.js';
-export * from './module-closure.js';
-export * from './narsese-literals.js';
-export * from './pkg.js';
-export * from './rule-fallback.js';
-export * from './source-scan.js';
-export * from './terms-canonical.js';
+export * from './imports.ts';
+export * from './induction-inventory.ts';
+export * from './layer-boundary.ts';
+export * from './module-closure.ts';
+export * from './narsese-literals.ts';
+export * from './pkg.ts';
+export * from './rule-fallback.ts';
+export * from './source-scan.ts';
+export * from './terms-canonical.ts';

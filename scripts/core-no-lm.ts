@@ -11,8 +11,8 @@
  * It is a *scan*, not a build: the point is that a well-meaning import cannot
  * cross, and the compiler cannot see a module that was never meant to be there.
  */
-import { coreLayerRemedy, scanCoreLayer } from './lib/layer-boundary.js';
-import { report } from './lib/verdicts.js';
+import { coreLayerRemedy, scanCoreLayer } from './lib/codegen/layer-boundary.ts';
+import { report } from './lib/core/verdicts.ts';
 
 const violations = scanCoreLayer();
 report('core:no-lm', violations, { remedy: coreLayerRemedy(violations) });

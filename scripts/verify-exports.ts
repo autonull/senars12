@@ -18,8 +18,8 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { entryTargets, readPackageJson } from './lib/pkg.js';
-import { ROOT as root } from './lib/root.js';
+import { entryTargets, readPackageJson } from './lib/codegen/pkg.ts';
+import { ROOT as root } from './lib/core/root.ts';
 
 const PACKAGES = ['util', 'core', 'ui'];
 

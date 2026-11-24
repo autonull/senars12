@@ -24,7 +24,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './lib/root.js';
+import { ROOT } from './lib/core/root.ts';
 
 interface GateGroup {
   name: string;

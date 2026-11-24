@@ -16,7 +16,7 @@
 
 import { readFileSync } from 'node:fs';
 
-import { productionSources } from './lib/source-scan.js';
+import { productionSources } from './lib/codegen/source-scan.ts';
 
 const ROOTS = ['nar/src', 'src', 'core/src'] as const;
 const CONSTRUCT = /new InferenceController\(/g;

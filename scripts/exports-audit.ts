@@ -18,8 +18,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseFlags } from '@senars/util/cli';
-import { readExports } from './lib/pkg.js';
-import { ROOT } from './lib/root.js';
+import { readExports } from './lib/codegen/pkg.ts';
+import { ROOT } from './lib/core/root.ts';
 
 /** Directories scanned for consumers (relative to repo root). */
 const CONSUMER_DIRS = [

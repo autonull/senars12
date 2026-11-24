@@ -43,7 +43,7 @@ import { game2048HeuristicAction } from '../tests/nar/rl/baselines/2048.js';
 import { snakeHeuristicAction } from '../tests/nar/rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from '../tests/nar/rl/baselines/tictactoe.js';
-import { ReinforceLearner, TabularQLearner, type RLLearner } from './lib/rl-arms.js';
+import { ReinforceLearner, TabularQLearner, type RLLearner } from './lib/rl/rl-arms.ts';
 
 type Arm =
   | 'manifold'

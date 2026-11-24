@@ -26,10 +26,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { CYCLE_PATH_PREFIXES } from '@senars/lm';
-import { importEdges } from './lib/imports.js';
-import { isCyclePath, resolveInNar, scanCoreLayerSourceFiles } from './lib/layer-boundary.js';
-import { ROOT } from './lib/root.js';
-import { lineAt } from './lib/source-scan.js';
+import { importEdges } from './lib/codegen/imports.ts';
+import { isCyclePath, resolveInNar, scanCoreLayerSourceFiles } from './lib/codegen/layer-boundary.ts';
+import { ROOT } from './lib/core/root.ts';
+import { lineAt } from './lib/codegen/source-scan.ts';
 
 const FACADE = join(ROOT, 'src/memory/memory.ts');
 /** The barrel reaches the facade by re-export, so naming it is naming the facade. */

@@ -2,7 +2,7 @@
 /** §5.2 first cut: which structure maintains topK order, and at what N it matters.
  *  Run once with `pnpm exec tsx scripts/bench-topk.ts`. Numbers go to TODO30 §9. */
 import { insertByScoreDesc, selectTopN, rankBy } from '@senars/util/collections';
-import { bench } from './lib/bench.js';
+import { bench } from './lib/core/bench.ts';
 
 type Scored = { id: string; priority: number };
 const make = (n: number): Scored[] =>

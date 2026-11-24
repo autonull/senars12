@@ -2,7 +2,7 @@
 /** §5.3 first cut: which index answers similarity recall, and where admission turns quadratic.
  *  Run once with `pnpm exec tsx scripts/bench-similarity.ts`. Numbers go to TODO30 §9. */
 import { Memory, TermBuilder } from '@senars/nar';
-import { bench } from './lib/bench.js';
+import { bench } from './lib/core/bench.ts';
 
 const fill = (mem: Memory, n: number): void => {
   for (let i = 0; i < n; i++) mem.addConcept(TermBuilder.atom(`c${i}`));

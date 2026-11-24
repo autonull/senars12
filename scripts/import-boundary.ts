@@ -18,9 +18,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseFlags } from '@senars/util/cli';
-import { ROOT } from './lib/root.js';
-import { scanSubject } from './lib/source-scan.js';
-import { collector, report } from './lib/verdicts.js';
+import { ROOT } from './lib/core/root.ts';
+import { scanSubject } from './lib/codegen/source-scan.ts';
+import { collector, report } from './lib/core/verdicts.ts';
 
 /** The pure fold — no ambient I/O, no ambient entropy. */
 const FOLD_ROOTS = [

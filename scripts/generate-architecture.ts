@@ -6,8 +6,8 @@
  */
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
-import { ROOT } from './lib/root.js';
-import { excludingGenerated, sourceFiles } from './lib/source-scan.js';
+import { ROOT } from './lib/core/root.ts';
+import { excludingGenerated, sourceFiles } from './lib/codegen/source-scan.ts';
 
 const SRC = join(ROOT, 'src');
 const OUT_DIR = join(ROOT, 'docs/architecture');

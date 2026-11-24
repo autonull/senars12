@@ -8,8 +8,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import glob from 'glob';
-import { importEdges } from './lib/imports.js';
-import { ROOT } from './lib/root.js';
+import { importEdges } from './lib/codegen/imports.ts';
+import { ROOT } from './lib/core/root.ts';
 
 const LEGACY_PKGS = ['core'] as const;
 const TARGET_DIRS = ['src/surface', 'src/bin'];

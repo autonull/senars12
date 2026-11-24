@@ -14,8 +14,8 @@ import {
   REGRESSION_MESSAGE,
   readBudget,
   renderTable,
-} from './lib/complexity-budget.js';
-import { ROOT } from './lib/root.js';
+} from './lib/analysis/complexity-budget.ts';
+import { ROOT } from './lib/core/root.ts';
 
 const budgetPath = parseFlags().str('--budget', join(ROOT, 'complexity-budget.json'));
 

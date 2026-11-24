@@ -21,7 +21,7 @@ import {
   protocolViolations,
   scanProtocol,
 } from './lib/proposal-protocol.js';
-import { report } from './lib/verdicts.js';
+import { report } from './lib/core/verdicts.ts';
 
 const subject = scanProtocol();
 const violations = protocolViolations(subject);

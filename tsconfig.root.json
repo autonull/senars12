@@ -269,6 +269,6 @@
       "@senars/core/schemas/derivation-records": ["./src/schemas/derivation-records.ts"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tests", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts", "ui", "ui-contract", "ui-backend-2d", "ui-backend-fractal", "ui-shell", "src/bin"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts", "ui", "ui-contract", "ui-backend-2d", "ui-backend-fractal", "ui-shell", "src/bin", "scripts/demo-*.ts", "scripts/cycle-bench.ts", "scripts/config-generate.ts", "scripts/control-budgets.ts", "scripts/fix-util-imports.ts", "scripts/fuzz-narsese.ts"]
 }

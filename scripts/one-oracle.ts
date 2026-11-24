@@ -18,9 +18,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { parseFlags } from '@senars/util/cli';
-import { ROOT } from './lib/root.js';
-import { scanSubject } from './lib/source-scan.js';
-import { collector, report } from './lib/verdicts.js';
+import { ROOT } from './lib/core/root.ts';
+import { scanSubject } from './lib/codegen/source-scan.ts';
+import { collector, report } from './lib/core/verdicts.ts';
 
 /** The source roots to scan — everything under src/ except exempt paths. */
 const SCAN_ROOTS = ['src'] as const;

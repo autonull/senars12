@@ -12,13 +12,13 @@
  * declaration alone.
  */
 
-import { checkFallbacks, type FallbackSubject } from './lib/rule-fallback.js';
+import { checkFallbacks, type FallbackSubject } from './lib/codegen/rule-fallback.ts';
 import { LMRule } from '@senars/lm/rule/LMRule.js';
 import { ruleDefs } from '@senars/lm/rule-templates';
 import { LMRules } from '@senars/lm/rule-selectors/factory.js';
 import { TermBuilder } from '@senars/terms';
 import type { NAREventMap, NarEventBus } from '@senars/types';
-import { report } from './lib/verdicts.js';
+import { report } from './lib/core/verdicts.ts';
 
 const { atom, inheritance } = TermBuilder;
 

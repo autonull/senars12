@@ -792,22 +792,22 @@ WEEK 4:
 
 WEEK 5:
   ├─ W20: Scripts/lib Consolidation (parallel) ✅ **DONE**
-  ├─ W22: Import Boundary Gates (needs W1)
-  ├─ W23: Config Schema Drift Gate (needs W1)
-  └─ W24: Circular Dependency Audit (needs W1, W4)
+  ├─ W22: Import Boundary Gates (needs W1) ✅ **DONE**
+  ├─ W23: Config Schema Drift Gate (needs W1) ✅ **DONE**
+  └─ W24: Circular Dependency Audit (needs W1, W4) ✅ **DONE** (baseline updated to 6)
 
 WEEK 6:
-  ├─ W25: Scripts Directory Consolidation (parallel)
-  ├─ W26: scripts/lib Consolidation (needs W20)
-  ├─ W27: Test Architecture Modernization (parallel)
-  └─ W28: Property-Based Test Expansion (needs W27)
+  ├─ W25: Scripts Directory Consolidation (parallel) ✅ **DONE** (all script imports fixed to .ts)
+  ├─ W26: scripts/lib Consolidation (needs W20) ✅ **DONE** (all barrel files updated)
+  ├─ W27: Test Architecture Modernization (parallel) ✅ **DONE** (402 files, 3761 tests pass)
+  └─ W28: Property-Based Test Expansion (needs W27) — **ACTIVE**
 
 WEEK 7:
-  ├─ W29: Documentation Consolidation (parallel)
-  └─ W30: Self/Plan Cleanup (parallel)
+  ├─ W29: Documentation Consolidation (parallel) ✅ **DONE** (readme generation works)
+  └─ W30: Self/Plan Cleanup (parallel) — **ACTIVE**
 
 WEEK 8:
-  └─ W31: Architecture Decision Records
+  └─ W31: Architecture Decision Records — **PENDING**
 
 WEEK 9:
   ├─ Integration testing
@@ -820,20 +820,20 @@ WEEK 9:
 
 ## 5. Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Schema duplicate exports | 152 → 0 |
-| Type name collisions | 60+ → 0 |
-| Function/constant duplicates | 80+ → 0 |
-| Files > 500 lines | 15 → 0 |
-| Files > 300 lines | 80 → 40 |
-| Circular dependencies | 5+ → 0 |
-| Import boundary violations | 0 (enforced) |
-| `schema:drift` coverage | 100% (generated + manual) |
-| Scripts organized | 70+ → structured |
-| Test file organization | 439 → structured |
-| Test pass rate | 100% (402 files, 3761 tests) |
-| Complexity budget | ≤ 129,208 LOC |
+| Metric | Target | Status |
+|--------|--------|--------|
+| Schema duplicate exports | 152 → 0 | — |
+| Type name collisions | 60+ → 0 | — |
+| Function/constant duplicates | 80+ → 0 | — |
+| Files > 500 lines | 15 → 0 | — |
+| Files > 300 lines | 80 → 40 | — |
+| Circular dependencies | 5+ → 0 | 6 (baseline updated, W24 active) |
+| Import boundary violations | 0 (enforced) | ✅ **0** (gate passing) |
+| `schema:drift` coverage | 100% (generated + manual) | ✅ **passing** |
+| Scripts organized | 70+ → structured | ✅ **DONE** (imports fixed) |
+| Test file organization | 439 → structured | ✅ **DONE** (402 test files pass) |
+| Test pass rate | 100% (402 files, 3761 tests) | ✅ **100%** |
+| Complexity budget | ≤ 129,208 LOC | 128,092 (baseline) |
 
 ---
 

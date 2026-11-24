@@ -9,7 +9,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './lib/root.js';
+import { ROOT } from './lib/core/root.ts';
 
 const GENOME_SCRIPT = join(ROOT, 'src/formats/genome/index.ts');
 const GEN_DIR = join(ROOT, 'src/generated');

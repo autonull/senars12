@@ -9,8 +9,8 @@
  * rather than a claim in a document.
  */
 import { loadBuiltinTable } from '@senars/rules';
-import { bucketCensus, kindViolations } from './lib/dispatch-table.js';
-import { report } from './lib/verdicts.js';
+import { bucketCensus, kindViolations } from './lib/core/dispatch-table.ts';
+import { report } from './lib/core/verdicts.ts';
 
 const table = loadBuiltinTable();
 const rules = table.entries();

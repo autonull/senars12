@@ -10,8 +10,8 @@
 
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { readExports } from './lib/pkg.js';
-import { ROOT } from './lib/root.js';
+import { readExports } from './lib/codegen/pkg.ts';
+import { ROOT } from './lib/core/root.ts';
 
 const PACKAGES = ['nar', 'core', 'util', 'io', 'metta'];
 const OUT = join(ROOT, 'docs', 'api');

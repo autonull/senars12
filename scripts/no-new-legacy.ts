@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import glob from 'glob';
-import { ROOT } from './lib/root.js';
+import { ROOT } from './lib/core/root.ts';
 
 const LEGACY_PKGS = ['core', 'nar', 'io', 'metta', 'util'] as const;
 const BASELINE_PATH = join(ROOT, '.github', 'legacy-file-baseline.json');

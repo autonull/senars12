@@ -2,9 +2,9 @@
  * Core Barrel — Shared types and utilities for script gates
  */
 
-export * from './verdicts.js';
-export * from './cycles.js';
-export * from './gates.js';
-export * from './dispatch-table.js';
-export * from './bench.js';
-export * from './root.js';
+export * from './verdicts.ts';
+export * from './cycles.ts';
+export * from './gates.ts';
+export * from './dispatch-table.ts';
+export * from './bench.ts';
+export * from './root.ts';

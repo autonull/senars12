@@ -26,12 +26,12 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { importEdges } from './lib/imports.js';
-import { coreLayerRemedy, scanCoreLayer } from './lib/layer-boundary.js';
-import { readPackageJson } from './lib/pkg.js';
-import { ROOT } from './lib/root.js';
-import { lineAt, sourceFiles } from './lib/source-scan.js';
-import { report } from './lib/verdicts.js';
+import { importEdges } from './lib/codegen/imports.ts';
+import { coreLayerRemedy, scanCoreLayer } from './lib/codegen/layer-boundary.ts';
+import { readPackageJson } from './lib/codegen/pkg.ts';
+import { ROOT } from './lib/core/root.ts';
+import { lineAt, sourceFiles } from './lib/codegen/source-scan.ts';
+import { report } from './lib/core/verdicts.ts';
 
 /** Bottom of the stack first. A package may import anything at or below itself. */
 const LAYERS = ['util', 'core', 'io', 'nar', 'metta'] as const;

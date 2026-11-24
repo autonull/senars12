@@ -33,7 +33,7 @@ import { PROVIDER_SEAMS } from '@senars/lm';
 import { LMRule } from '@senars/lm/rule/LMRule.js';
 import { StreamReasoner } from '@senars/stream';
 import { TermBuilder, type Truth } from '@senars/terms';
-import { checkSeams, type SeamProbe } from './lib/protocol/provider-dependency.js';
+import { checkSeams, type SeamProbe } from './lib/protocol/provider-dependency.ts';
 import { report } from './lib/core/verdicts.js';
 
 /** A promise that never settles. The absence of a timeout is the thing under test. */
@@ -42,8 +42,8 @@ const NEVER = <T>(): Promise<T> => new Promise<T>(() => {});
 const PROBE_TIMEOUT_MS = 250;
 
 /** Whether `work` settles within the probe's deadline. */
-const completesWithin = async (work: Promise<unknown>, ms = PROBE_TIMEOUT_MS): Promise<boolean> =>
-  !(await raceDeadline(work, ms)).timedOut;
+const completesWithin = (work: Promise<unknown>, ms = PROBE_TIMEOUT_MS): Promise<boolean> =>
+  raceDeadline(work, ms).then((r) => !r.timedOut);
 
 /**
  * `LMRule.apply` over a provider that never answers. The circuit breaker wraps
@@ -63,7 +63,7 @@ const lmRuleApply = async (): Promise<SeamProbe> => {
     callTimeoutMs: PROBE_TIMEOUT_MS / 5,
   });
   const primary = inheritance(atom('a'), atom('b'));
-  const settled = await completesWithin(rule.apply(primary, primary));
+  const settled = await completesWithin(rule.apply(primary, primary) as Promise<unknown>);
   return { id: 'lm-rule-apply', entered: provider.count > 0, blocks: !settled };
 };
 
@@ -85,9 +85,10 @@ const ingressJudge = async (): Promise<SeamProbe> => {
   const settled = await completesWithin(
     gate.admit({
       rawObservation: '(a --> b)',
-      sourceQuality: 0.5,
-      baseConfidence: 0.5,
-      taskType: 'belief',
+      sourceId: 'probe',
+      sourceQuality: 'PRIMARY',
+      sensorConfidence: 0.5,
+      correlationId: 'probe-correlation',
     })
   );
   return { id: 'ingress-judge', entered, blocks: !settled };
@@ -105,7 +106,7 @@ const streamReasonerBackend = async (): Promise<SeamProbe> => {
     entered = true;
     return NEVER<Map<string, Truth>>();
   };
-  const settled = await completesWithin(reasoner.flush(backend as never));
+  const settled = await completesWithin(reasoner.flush(backend as never, 0));
   return { id: 'stream-reasoner-backend', entered, blocks: !settled };
 };
 

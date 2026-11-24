@@ -34,9 +34,9 @@ import {
   staleAdmissions,
 } from '@senars/proposal';
 import { replayCognitiveState } from '@senars/kernel';
-import { moduleClosure, specifiersOf } from './lib/module-closure.js';
-import { fromRoot } from './lib/root.js';
-import { report } from './lib/verdicts.js';
+import { moduleClosure, specifiersOf } from './lib/codegen/module-closure.ts';
+import { fromRoot } from './lib/core/root.ts';
+import { report } from './lib/core/verdicts.ts';
 
 const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
 

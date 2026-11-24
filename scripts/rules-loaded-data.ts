@@ -29,7 +29,7 @@ import {
   tableArtifact,
 } from '@senars/rules';
 import { loadedDataViolations, scanSubject } from './lib/rule-table.js';
-import { report } from './lib/verdicts.js';
+import { report } from './lib/core/verdicts.ts';
 
 const failures: string[] = [];
 
