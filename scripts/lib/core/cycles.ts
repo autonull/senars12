@@ -15,7 +15,7 @@ export type CycleVerdict =
       readonly ok: false;
       readonly reason: 'regression';
       readonly over: number;
-      readonly chains: readonly string[];
+      readonly chains: readonly string[][];
     }
   | { readonly ok: false; readonly reason: 'slack'; readonly slack: number };
 
@@ -28,7 +28,7 @@ export type CycleVerdict =
 export const checkCycleBudget = (
   count: number,
   baseline: number,
-  chains: readonly string[] = []
+  chains: readonly string[][] = []
 ): CycleVerdict => {
   if (count > baseline) {
     return {

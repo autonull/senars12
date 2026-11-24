@@ -45,6 +45,7 @@ const fallbackOf = (id: string) => {
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
 import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { createLogger } from '@senars/util/logger';
+import { errMsg } from '@senars/util';
 
 const logger = createLogger({ scope: 'fundamentals-bench' });
 
@@ -841,7 +842,8 @@ async function main() {
   if (!allPass) process.exit(1);
 }
 
-main().catch((err) => {
-  logger.error('Benchmark failed', { error: err.message, stack: err.stack });
+main().catch((err: unknown) => {
+  const error = err instanceof Error ? err : new Error(String(err));
+  logger.error('Benchmark failed', error, { message: error.message, stack: error.stack });
   process.exit(1);
 });

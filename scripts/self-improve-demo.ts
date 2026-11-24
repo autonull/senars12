@@ -138,7 +138,8 @@ async function main() {
   logger.info('\n✅ Self-Improvement Demo completed successfully!');
 }
 
-main().catch((err) => {
-  logger.error('Demo failed', { error: err.message, stack: err.stack });
+main().catch((err: unknown) => {
+  const error = err instanceof Error ? err : new Error(String(err));
+  logger.error('Demo failed', error, { message: error.message, stack: error.stack });
   process.exit(1);
 });

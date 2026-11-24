@@ -75,7 +75,7 @@ if (values.wasi) {
     console.error('WASI bundles support linear heads only (no exp in core wasm ops).');
     process.exit(1);
   }
-  const { writeHeadBundle } = await import('../nar/src/lm/system-one/wasi-head-bundle.js');
+  const { writeHeadBundle } = await import('../src/lm/system-one/wasi-head-bundle.ts');
   const wasiBundle = await writeHeadBundle(join(values.out, 'wasi'), {
     weights: model.weights,
     bias: model.bias,

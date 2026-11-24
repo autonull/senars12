@@ -51,7 +51,7 @@ function testIRCConnection() {
     config: TEST_CONFIG,
   };
 
-  const deps: ConnectionDeps = {
+  const deps: ConnectionDeps & { nar: any } = {
     nar: mockNar,
     emit,
     logger,
@@ -101,7 +101,7 @@ function testMessageCreation() {
     config: TEST_CONFIG,
   };
 
-  const deps: ConnectionDeps = { nar: mockNar, emit, logger };
+  const deps: ConnectionDeps & { nar: any } = { nar: mockNar, emit, logger };
   const connection = new IRCConnection(connectionConfig, deps);
 
   // Test creating a message
@@ -146,7 +146,7 @@ function testConnectionStates() {
     config: TEST_CONFIG,
   };
 
-  const deps: ConnectionDeps = { nar: mockNar, emit, logger };
+  const deps: ConnectionDeps & { nar: any } = { nar: mockNar, emit, logger };
   const connection = new IRCConnection(connectionConfig, deps);
 
   // Check initial state

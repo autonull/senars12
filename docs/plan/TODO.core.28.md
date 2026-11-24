@@ -814,9 +814,9 @@ WEEK 8:
   └─ Complexity budget ratchet
 
 WEEK 9:
-  ├─ Remaining gate fixes (typecheck scripts/, lint generated/schemas.ts)
+  ├─ Remaining gate fixes (typecheck scripts/, lint generated/schemas.ts) ✅ **DONE** (all script type errors fixed, generator updated)
   ├─ Flaky test resolution (core19-c1.test.ts timeout)
-  ├─ Generator fix for generated/schemas.ts import rename
+  ├─ Generator fix for generated/schemas.ts import rename ✅ **DONE** (enums.ts no longer emits duplicate TASK_PUNCTUATION)
   └─ Final parity verification
 ```
 
@@ -834,9 +834,9 @@ WEEK 9:
 | Circular dependencies | 5+ → 0 | 6 (baseline updated, W24 active) |
 | Import boundary violations | 0 (enforced) | ✅ **0** (gate passing) |
 | `schema:drift` coverage | 100% (generated + manual) | ✅ **passing** |
-| Scripts organized | 70+ → structured | ✅ **DONE** (imports fixed) |
+| Scripts organized | 70+ → structured | ✅ **DONE** (imports fixed, typecheck clean) |
 | Test file organization | 439 → structured | ✅ **DONE** (403 test files pass) |
-| Test pass rate | 100% (402 files, 3761 tests) | ✅ **100%** (403 files, 3779 tests) |
+| Test pass rate | 100% (402 files, 3761 tests) | ✅ **100%** (403 files, 3779 tests, 1 pre-existing flaky) |
 | Complexity budget | ≤ 129,208 LOC | 128,092 (baseline) |
 
 ---

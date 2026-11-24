@@ -11,11 +11,7 @@ const appConfig = await loadConfig().catch(() => null);
 const distillation = appConfig?.systemOne?.distillation;
 const datasetPath =
   process.argv[2] ?? distillation?.datasetPath ?? './data/systemone-distillation.jsonl';
-const sidecarPath = process.argv[3] ?? '.cache/systemone/vectors';
 
-const result = await JudgmentDataset.compact(datasetPath, sidecarPath);
+const result = await JudgmentDataset.compact(datasetPath);
 console.log(`Compacted ${datasetPath}:`);
 console.log(`  rows kept: ${result.kept}  duplicates/malformed dropped: ${result.dropped}`);
-console.log(
-  `  sidecar vectors kept: ${result.vectorsKept}  orphaned pruned: ${result.vectorsDropped}`
-);

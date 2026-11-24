@@ -7,10 +7,8 @@
 
 import type { Term } from '../kernel/terms';
 import type { Truth } from '../kernel/truth';
-import type { Task, TaskType, TaskBagKind } from '../kernel/types';
+import type { Task, TaskType } from '../kernel/types';
 import type { RNG, Clock } from '../kernel/env';
-
-export type { TaskBagKind } from '../kernel/types';
 
 /** Economy task bag kinds — extends NAR task vocabulary with economy-specific kinds. */
 export const ECONOMY_TASK_BAG_KINDS = [
@@ -199,7 +197,7 @@ export interface EconomyState {
   /** All tasks by ID. */
   tasks: Map<string, EconomyTask>;
   /** Task bags by kind. */
-  bags: Map<TaskBagKind, Set<string>>;
+  bags: Map<EconomyTaskBagKind, Set<string>>;
   /** Current iteration. */
   iteration: number;
   /** Total utility. */
@@ -219,7 +217,7 @@ export interface PickRecord {
   /** Task ID. */
   taskId: string;
   /** Task kind. */
-  kind: TaskBagKind;
+  kind: EconomyTaskBagKind;
   /** Iteration when picked. */
   iteration: number;
   /** Utility at pick time. */

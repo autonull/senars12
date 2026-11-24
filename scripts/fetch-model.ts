@@ -32,7 +32,7 @@ const MODEL_SPECS = {
 type SpecKey = keyof typeof MODEL_SPECS;
 
 const resolveSpec = (arg?: string): string => {
-  if (!arg || arg === 'all') return Object.values(MODEL_SPECS)[0].uri;
+  if (!arg || arg === 'all') return Object.values(MODEL_SPECS)[0]!.uri;
   const spec = MODEL_SPECS[arg as SpecKey];
   if (spec) return spec.uri;
   return arg.startsWith('hf:') || arg.startsWith('https://') ? arg : `hf:${arg}`;

@@ -21,7 +21,7 @@
  * a type is erased, so a type import is a vocabulary dependency and A2's
  * subject, not a behaviour.
  */
-import { witnessHolds } from '@senars/util/witness';
+import { witnessHolds, type WitnessList } from '@senars/util/witness';
 import { lineAt } from './source-scan.js';
 
 export interface DiscoveredEdge {

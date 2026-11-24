@@ -34,19 +34,19 @@ const GATES: Record<string, readonly string[]> = {
 };
 
 const gate = process.argv[2];
-const files = GATES[gate];
-if (!files) {
+if (!gate || !(gate in GATES)) {
   console.error(`unknown gate ${gate ?? '<none>'}; known: ${Object.keys(GATES).join(', ')}`);
   process.exit(2);
 }
+const files = GATES[gate]!;
 
 const run = (argv: readonly string[]) => {
   const result = spawnSync('pnpm', ['exec', ...argv], { stdio: 'inherit' });
   if (result.status !== 0) process.exit(result.status ?? 1);
 };
 
-const examples = files.filter((file) => file.startsWith('examples/'));
-const tests = files.filter((file) => !file.startsWith('examples/'));
+const examples = files.filter((file: string) => file.startsWith('examples/'));
+const tests = files.filter((file: string) => !file.startsWith('examples/'));
 
 run(['vitest', 'run', ...tests]);
 if (examples.length) {

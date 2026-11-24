@@ -32,7 +32,6 @@ export function generateEnums(): string[] {
   // Re-export task vocabulary types for compatibility
   lines.push('export type TASK_TYPE = TaskType;');
   lines.push('export type TASK_BAG_KIND = TaskBagKind;');
-  lines.push('export type TASK_PUNCTUATION = TaskPunctuation;');
   lines.push('export type TOLERANT_PUNCTUATION = TolerantPunctuation;');
   lines.push('');
 

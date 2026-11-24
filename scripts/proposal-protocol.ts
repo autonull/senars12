@@ -20,7 +20,7 @@ import {
   PROTOCOL_DOC,
   protocolViolations,
   scanProtocol,
-} from './lib/proposal-protocol.js';
+} from './lib/protocol/proposal-protocol.js';
 import { report } from './lib/core/verdicts.ts';
 
 const subject = scanProtocol();

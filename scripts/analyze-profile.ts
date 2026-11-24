@@ -19,12 +19,22 @@ console.log(`Analyzing: ${latestProfile}`);
 const profileData = fs.readFileSync(latestProfile);
 const profile = JSON.parse(profileData.toString());
 
-const nodes = profile.nodes || [];
+interface ProfileNode {
+  id: number;
+  callFrame: {
+    functionName?: string;
+    url?: string;
+    lineNumber?: number;
+  };
+  children?: number[];
+}
+
+const nodes: ProfileNode[] = profile.nodes || [];
 const samples = profile.samples || [];
 const timeDeltas = profile.timeDeltas || [];
 
 // Build node lookup
-const nodeMap = new Map(nodes.map((n: any) => [n.id, n]));
+const nodeMap = new Map<number, ProfileNode>(nodes.map((n) => [n.id, n]));
 
 // Count samples per node
 const sampleCounts = new Map<number, number>();

@@ -479,7 +479,7 @@ export class FoldMemory implements MemoryPorts {
   }
 
   getFocus(): Focus {
-    if (!this.#semantic) return new Focus({ clock: this.#clock });
+    if (!this.#semantic) return new Focus();
     return this.#semantic.getFocus();
   }
 

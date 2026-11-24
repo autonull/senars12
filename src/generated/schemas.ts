@@ -337,7 +337,6 @@ export type INDEPENDENCE = (typeof INDEPENDENCE)[number];
 export type ENGINE_ORIGIN = EngineOrigin;
 export type TASK_TYPE = TaskType;
 export type TASK_BAG_KIND = TaskBagKind;
-export type TASK_PUNCTUATION = TaskPunctuation;
 export type TOLERANT_PUNCTUATION = TolerantPunctuation;
 
 // ============================================================================

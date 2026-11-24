@@ -74,7 +74,9 @@ const countMatches = (source: string, regex: RegExp): { count: number; lines: nu
   const matchedLines: number[] = [];
   let count = 0;
   for (let i = 0; i < lines.length; i++) {
-    const matches = lines[i].match(new RegExp(regex.source, 'g'));
+    const line = lines[i];
+    if (!line) continue;
+    const matches = line.match(new RegExp(regex.source, 'g'));
     if (matches) {
       count += matches.length;
       matchedLines.push(i + 1); // 1-based line numbers

@@ -4,7 +4,7 @@
  * Manages activation decay, access-based boosting, and stale task removal.
  */
 
-import type { EconomyTask, AgingPolicy, TaskBagKind } from './types';
+import type { EconomyTask, AgingPolicy, EconomyTaskBagKind } from './types';
 import type { Histogram } from '@senars/util/bag';
 import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
@@ -36,7 +36,7 @@ export const defaultAgingPolicy: AgingPolicy = {
 };
 
 /** Kind-specific aging modifiers. */
-export const KIND_AGING_MODIFIERS: Record<TaskBagKind, { decayMult: number; boostMult: number; maxAgeMult: number }> = {
+export const KIND_AGING_MODIFIERS: Record<EconomyTaskBagKind, { decayMult: number; boostMult: number; maxAgeMult: number }> = {
   belief: { decayMult: 1.0, boostMult: 1.0, maxAgeMult: 1.0 },
   goal: { decayMult: 0.8, boostMult: 1.5, maxAgeMult: 2.0 }, // Goals persist longer
   skill: { decayMult: 0.5, boostMult: 2.0, maxAgeMult: 5.0 }, // Skills decay slowly
@@ -188,7 +188,7 @@ export function calculateAgedPriority(task: EconomyTask, policy: AgingPolicy = d
 /**
  * Get aging policy for a specific task kind.
  */
-export function getAgingPolicyForKind(kind: TaskBagKind, basePolicy: AgingPolicy = defaultAgingPolicy): AgingPolicy {
+export function getAgingPolicyForKind(kind: EconomyTaskBagKind, basePolicy: AgingPolicy = defaultAgingPolicy): AgingPolicy {
   const modifier = KIND_AGING_MODIFIERS[kind] ?? { decayMult: 1, boostMult: 1, maxAgeMult: 1 };
   return {
     decayRate: basePolicy.decayRate * modifier.decayMult,

@@ -24,7 +24,8 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CognitiveEventSchema, PROPOSAL_SCHEMA_VERSION } from '@senars/schemas';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal';
+import { CognitiveEventSchema, type CognitiveEvent } from '@senars/schemas/cognitive-events';
 import {
   ProposalReplayError,
   isProposalEvent,

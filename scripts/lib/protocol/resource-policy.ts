@@ -26,7 +26,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { RESOURCE_CONTRACTS, type CapacitySource } from '../../src/resources/contracts.js';
+import { RESOURCE_CONTRACTS, type CapacitySource, type ResourceContract } from '@senars/resources';
 import { ACCUMULATOR_LEDGER } from '../analysis/accumulator-ledger.js';
 import { maskNonCode } from '../codegen/imports.js';
 import { sourceFiles } from '../codegen/source-scan.js';
@@ -145,7 +145,7 @@ export const resourceViolations = async (): Promise<ResourceViolation[]> => {
   // 5 — TODO28's ledger is covered by the stronger inventory.
   for (const site of ACCUMULATOR_LEDGER) {
     const covered = RESOURCE_CONTRACTS.some(
-      (contract) => contract.owner === site.file || contract.capacity.module === site.file
+      (contract: ResourceContract) => contract.owner === site.file || contract.capacity.module === site.file
     );
     if (!covered)
       found.fail(

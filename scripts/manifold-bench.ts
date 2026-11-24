@@ -13,7 +13,7 @@ import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache.js';
 import { createManifold } from '@senars/lm/system-one/manifold.js';
 import type { JudgmentQuery } from '@senars/lm/system-one/types.js';
 import { createSystemOneBudget } from '@senars/decision';
-import { l2Normalize } from '@senars/util/collections.js';
+import { l2Normalize } from '@senars/util';
 
 const CANDIDATES = Number(process.env.BENCH_CANDIDATES ?? 100);
 const DIM = 384;

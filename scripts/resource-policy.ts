@@ -13,7 +13,7 @@
  */
 
 import { RESOURCE_CONTRACTS } from '@senars/resources';
-import { resourceViolations } from './lib/resource-policy.js';
+import { resourceViolations } from './lib/protocol/resource-policy.js';
 import { report, verdictLines } from './lib/core/verdicts.ts';
 
 const contracts = RESOURCE_CONTRACTS;

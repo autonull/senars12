@@ -62,7 +62,7 @@ const lmRuleApply = async (): Promise<SeamProbe> => {
     fallback: () => null,
     callTimeoutMs: PROBE_TIMEOUT_MS / 5,
   });
-  const primary = inheritance(atom('a'), atom('b'));
+  const primary = inheritance(atom('a'), atom('b'))!;
   const settled = await completesWithin(rule.apply(primary, primary) as Promise<unknown>);
   return { id: 'lm-rule-apply', entered: provider.count > 0, blocks: !settled };
 };

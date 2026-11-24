@@ -28,7 +28,7 @@ import {
   RuleTableStore,
   tableArtifact,
 } from '@senars/rules';
-import { loadedDataViolations, scanSubject } from './lib/rule-table.js';
+import { loadedDataViolations, scanSubject } from './lib/protocol/rule-table.js';
 import { report } from './lib/core/verdicts.ts';
 
 const failures: string[] = [];

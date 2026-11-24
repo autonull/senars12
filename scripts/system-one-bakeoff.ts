@@ -14,6 +14,7 @@ import {
   type HeadCandidateSpec,
 } from '@senars/lm/system-one/distill.js';
 import { createIsotonicCalibrator } from '@senars/lm/system-one/calibration.js';
+import type { CalibrationVersion } from '@senars/decision/types.js';
 
 interface DatasetRow {
   evidenceId: string;
@@ -26,7 +27,7 @@ function loadCases(path: string, rubric: string): BakeOffCase[] {
   const { rows } = readJsonl<DatasetRow>(path, (value) => value as DatasetRow);
   const cases = rows.filter((r) => r.rubric === rubric);
 
-  const calibrator = createIsotonicCalibrator('v2.4.1', rubric);
+  const calibrator = createIsotonicCalibrator('v2.4.1' as CalibrationVersion, rubric);
   return cases.map((r) => {
     const truth = r.score ?? 0;
     const predicted = calibrator.calibrate(truth);

@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { DerivationRecordSchema } from '@senars/core/schemas';
-import { verifyRecord } from '@senars/core/verify-derivation';
+import { verifyRecord } from '@senars/verification';
 import { z } from 'zod';
 
 const [file, ...rest] = process.argv.slice(2);

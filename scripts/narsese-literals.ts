@@ -129,6 +129,7 @@ function extractNarseseLiterals(
   for (const match of matches) {
     const literal = match[2];
     const quote = match[1];
+    if (!literal || !quote) continue;
     const index = match.index ?? 0;
     // Skip if it contains template interpolation or variables
     if (literal.includes('${') || /\$\w+/.test(literal)) continue;
@@ -147,6 +148,7 @@ function extractLegacyLiterals(
   for (const match of matches) {
     const literal = match[2];
     const quote = match[1];
+    if (!literal || !quote) continue;
     const index = match.index ?? 0;
     if (literal.includes('${') || /\$\w+/.test(literal)) continue;
     if (literal.includes('...')) continue;

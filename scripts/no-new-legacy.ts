@@ -21,7 +21,7 @@ const BASELINE_PATH = join(ROOT, '.github', 'legacy-file-baseline.json');
 function collectFiles(pkg: string): string[] {
   const srcDir = join(ROOT, pkg, 'src');
   if (!existsSync(srcDir)) return [];
-  return glob.sync('**/*.ts', { cwd: srcDir, absolute: false }).map((f) => `${pkg}/src/${f}`);
+  return glob.sync('**/*.ts', { cwd: srcDir, absolute: false }).map((f: string) => `${pkg}/src/${f}`);
 }
 
 function loadBaseline(): Record<string, string[]> {

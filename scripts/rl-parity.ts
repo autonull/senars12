@@ -123,7 +123,7 @@ function createBaseline(baselineType: BaselineType, seed: number, numArms: numbe
     case 'epsilon-greedy':
       return new EpsilonGreedy({ numArms, epsilon: 0.1, seed });
     case 'ucb':
-      return new UCB1({ numArms, seed });
+      return new UCB1({ numArms, seed, c: 2 });
     case 'qlearning':
       return new QLearning({ alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed });
     case 'sarsa':
@@ -204,7 +204,7 @@ async function runAdapterWrapped(
         stateId = `s_${state.row}_${state.col}`;
         actionIdx = baseline.selectAction(state);
         const actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
-        actionName = actionNames[actionIdx];
+        actionName = actionNames[actionIdx] ?? `unknown_${actionIdx}`;
       } else {
         // Bandit baseline doesn't need state
         actionIdx = baseline.selectAction();

@@ -10,7 +10,7 @@
  */
 import { parseArgs } from 'node:util';
 import { JudgmentDataset } from '@senars/lm/system-one/distill.js';
-import { digestRows, loadEvalSet, splitOod } from '@senars/lm/system-one/eval-set.js';
+import { digestRows, loadEvalSet, splitOod, type FrozenEvalRow } from '@senars/lm/system-one/eval-set.js';
 import {
   fitCalibrationLock,
   writeCalibrationLock,
@@ -39,8 +39,8 @@ const dataset = await JudgmentDataset.load(values.dataset);
 // in the lock (`eval` block; OOD-marked rows form the `ood` slice) —
 // deployment can then verify fit-vs-frozen drift and OOD calibration.
 const frozen = values.evalSet ? await loadEvalSet(values.evalSet) : undefined;
-let frozenSetOption: { digest: string; rows: typeof inDomain } | undefined;
-let oodSetOption: { digest: string; rows: typeof inDomain } | undefined;
+let frozenSetOption: { digest: string; rows: FrozenEvalRow[] } | undefined;
+let oodSetOption: { digest: string; rows: FrozenEvalRow[] } | undefined;
 if (frozen) {
   const { inDomain, ood } = splitOod(frozen.rows);
   frozenSetOption = {

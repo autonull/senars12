@@ -12,6 +12,8 @@ export type ExportEntry = string | ExportTarget;
 export interface PackageJson {
   name?: string;
   exports?: Record<string, ExportEntry>;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 }
 
 /** Reads a workspace package manifest, or `null` when the package is absent. */

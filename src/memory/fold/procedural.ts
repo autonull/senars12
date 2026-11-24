@@ -33,7 +33,7 @@ export class ProceduralFold {
   /** Add a task to a concept's bag. */
   addTask(
     term: Term,
-    type: 'belief' | 'goal' | 'question' | 'skill',
+    type: TaskType,
     truth?: any,
     budget?: Budget,
     stamp?: Stamp
