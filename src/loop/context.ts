@@ -48,7 +48,7 @@ export function createLoopContext(
   const recorder = mergedConfig.recordEnabled ? createLoopRecorder(undefined, correlationId, { clock: env.clock, ids: env.ids }) : undefined;
   const selfModel = mergedConfig.selfModelEnabled ? createSelfModelManager(undefined, { clock: env.clock }) : undefined;
   const selector = createActionSelector(undefined, { rng: env.rng, clock: env.clock });
-  const repair = mergedConfig.repairEnabled ? createRepairLoop(undefined, { clock: env.clock }) : undefined;
+  const repair = mergedConfig.repairEnabled ? createRepairLoop({ clock: env.clock }) : undefined;
 
   return {
     iteration: 0,

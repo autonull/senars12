@@ -123,6 +123,8 @@ export interface Task {
   readonly truth: TruthValue;
   readonly priority: number;
   readonly stamp?: Stamp;
+  readonly createdAt?: number;
+  readonly id?: string;
 }
 
 /** Create a task. */

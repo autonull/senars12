@@ -69,6 +69,8 @@ export const Truth: {
   readonly resemblance: (t1: Truth, t2: Truth) => Truth;
   readonly intersection: (t1: Truth, t2: Truth) => Truth;
   readonly union: (t1: Truth, t2: Truth) => Truth;
+  readonly conjunction: (t1: Truth, t2: Truth) => Truth;
+  readonly disjunction: (t1: Truth, t2: Truth) => Truth;
   readonly deduction: (t1: Truth, t2: Truth) => Truth;
   readonly deductionWeak: (t1: Truth, t2: Truth) => Truth | null;
   readonly induction: (t1: Truth, t2: Truth) => Truth;
@@ -143,6 +145,12 @@ export const Truth: {
 
   /** Union (disjunction): (1-(1-f1)*(1-f2), c1*c2). */
   union: (t1: Truth, t2: Truth): Truth => normalizeTruth(1 - (1 - t1.f) * (1 - t2.f), t1.c * t2.c),
+
+  /** Alias for intersection (conjunction). */
+  conjunction: (t1: Truth, t2: Truth): Truth => Truth.intersection(t1, t2),
+
+  /** Alias for union (disjunction). */
+  disjunction: (t1: Truth, t2: Truth): Truth => Truth.union(t1, t2),
 
   /** Deduction (inheritance): (f1*f2, c1*c2). */
   deduction: (t1: Truth, t2: Truth): Truth => normalizeTruth(t1.f * t2.f, t1.c * t2.c),

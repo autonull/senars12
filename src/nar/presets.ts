@@ -39,7 +39,7 @@ export interface SeNARSOptions {
   // System One configuration
   systemOne?: Partial<SystemOneConfig>;
   // MeTTa engine seam
-  metta?: import('./agent/metta-port').MettaPort;
+  metta?: import('../agent').MettaPort;
 }
 
 const MINIMAL_CONFIG: CoreConfig = {

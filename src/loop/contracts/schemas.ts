@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import type { Term } from '../../../kernel/terms';
+import type { Term } from '../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
 import { uuid, nonNegativeInt, unitInterval, nonEmpty } from '@senars/util/config';
 

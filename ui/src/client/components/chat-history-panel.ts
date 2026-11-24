@@ -2,8 +2,8 @@ import type { ChatMessage } from '@senars/core';
 import DOMPurify from 'dompurify';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators';
-import { classMap } from 'lit/directives/class-map';
-import { unsafeHTML } from 'lit/directives/unsafe-html';
+import { classMap } from 'lit/directives/class-map.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { marked } from 'marked';
 import { $chatMessages, $focusTerm, $streamingDelta, BaseComponent, send } from '../core/index';
 

@@ -7,13 +7,13 @@
 import { Term, TermOp, termInterner } from '../../kernel/terms/intern';
 import { Truth, type TruthValue } from '../../kernel/truth';
 import { createRootStamp, createDerivedStamp, type Stamp } from '../../kernel/stamp';
-import type { Logic, Codec, RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port';
+import type { Logic, LogicCodec, RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port';
 import { NAL_RULES_AST, type NALTerm, type NALPremise, type NALStepResult } from './rules-ast';
 import { NALInterpreter } from './interpreter';
 import { SenarsError } from '../../errors/senars-error';
 
 /** NAL term codec. */
-const NAL_CODEC: Codec<Term> = {
+const NAL_CODEC: LogicCodec<Term> = {
   encode: (t: Term) => t.toString(),
   decode: (s: string) => {
     try {
@@ -25,7 +25,7 @@ const NAL_CODEC: Codec<Term> = {
 };
 
 /** NAL truth codec. */
-const NAL_TRUTH_CODEC: Codec<TruthValue> = {
+const NAL_TRUTH_CODEC: LogicCodec<TruthValue> = {
   encode: (t: TruthValue) => `${t.f},${t.c}`,
   decode: (s: string) => {
     const parts = s.split(',');

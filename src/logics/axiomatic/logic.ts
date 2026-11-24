@@ -30,10 +30,10 @@ import { SymmetryDetector } from './symmetry';
 import { Term, VariableTerm, ConstantTerm, CompoundTerm, TermOp, termInterner } from '../../kernel/terms/intern';
 import { Truth, type TruthValue } from '../../kernel/truth';
 import { Stamp } from '../../kernel/stamp';
-import type { Logic, Codec, RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port';
+import type { Logic, LogicCodec, RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult } from '../port';
 
 /** Axiomatic formula codec. */
-const AXIOMATIC_CODEC: Codec<Formula> = {
+const AXIOMATIC_CODEC: LogicCodec<Formula> = {
   encode: (f: Formula) => formulaToString(f),
   decode: (s: string) => {
     try {
@@ -45,7 +45,7 @@ const AXIOMATIC_CODEC: Codec<Formula> = {
 };
 
 /** Axiomatic truth codec. */
-const AXIOMATIC_TRUTH_CODEC: Codec<TruthValue> = {
+const AXIOMATIC_TRUTH_CODEC: LogicCodec<TruthValue> = {
   encode: (t: TruthValue) => `${t.f},${t.c}`,
   decode: (s: string) => {
     const parts = s.split(',');

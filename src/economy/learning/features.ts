@@ -2,7 +2,8 @@
  * Feature Extraction — extracts numerical features from economy tasks for learning.
  */
 
-import type { EconomyTask, Truth } from '../types';
+import type { EconomyTask } from '../types';
+import type { Truth } from '../../kernel/truth';
 import type { Term } from '../../kernel/terms';
 import { TermOp } from '../../kernel/terms';
 import { flooredRatio } from '@senars/util/numeric';

@@ -297,7 +297,7 @@ async function runRepairs(
     clock: context.env.clock,
   };
 
-  return context.repair.tick(repairContext);
+  return context.repair.run(repairContext);
 }
 
 /** Appraises iteration. */

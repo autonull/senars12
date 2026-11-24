@@ -7,7 +7,7 @@
  */
 
 import type { OracleOperation, Oracle, OracleInput, OracleOutput, OracleMeta, OracleConfig, OracleStats, OracleTelemetrySink } from '../oracles/oracle';
-import type { Logic, Codec, RuleAST, Premise, StepResult } from '../logics/port';
+import type { Logic, LogicCodec, RuleAST, Premise, StepResult } from '../logics/port';
 import type { UUID, TimestampMs } from '../generated/schemas';
 import type { BudgetSlice, BudgetResource } from '../budget/budget';
 import { createOracleRegistry, type OracleRegistry } from '../oracles/oracle';

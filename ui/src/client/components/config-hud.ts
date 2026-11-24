@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators';
-import { classMap } from 'lit/directives/class-map';
+import { classMap } from 'lit/directives/class-map.js';
 import { type Debounced, debounce, getOrInsert } from '@senars/util';
 import { $config, BaseComponent, send, type UiConfig, UiConfigSchema, type Theme, type Density, type Motion } from '../core/index';
 import { configFieldFor, getConfigFields } from '../core/config-catalog';

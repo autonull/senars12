@@ -5,6 +5,6 @@
  */
 
 export * from './config';
-export * from './execution';
-export * from './io';
+export * from '../nar-execution';
+export * from '../nar-io';
 export * from './presets';

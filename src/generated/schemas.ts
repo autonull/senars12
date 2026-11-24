@@ -344,7 +344,7 @@ export type TOLERANT_PUNCTUATION = TolerantPunctuation;
 // CONSTANTS
 // ============================================================================
 
-export const TASK_PUNCTUATION = {
+export const TASK_PUNCTUATION_MAP = {
   "belief": ".",
   "goal": "!",
   "question": "?",

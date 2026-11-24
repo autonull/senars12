@@ -6,7 +6,7 @@
 
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators';
-import { classMap } from 'lit/directives/class-map';
+import { classMap } from 'lit/directives/class-map.js';
 import { estimateTokens } from '../../shared/index';
 import { BaseComponent } from '../core/base-component';
 import {

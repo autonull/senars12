@@ -12,7 +12,7 @@ import { clamp } from '@senars/util/numeric';
 export const MAX_CONFIDENCE = 0.999 as const;
 
 /** Weakening factor for confidence decay in chains. */
-export const WEAKENING_FACTOR = 10 as const;
+export const WEAKENING_FACTOR = 10;
 
 /** Gain applied when positive feedback reinforces a truth. */
 export const CONFIRM_GAIN = 1.1 as const;
@@ -60,7 +60,8 @@ export function weakenSquash(c: number, factor = WEAKENING_FACTOR): number {
  * curve they share is stated once rather than in each rule that uses it.
  */
 export function weakenConfidence(c: number, factor: number): number {
-  return clamp(weakenSquash(c, factor), 0, 1);
+  const weakened = weakenSquash(c, factor);
+  return clamp(weakened, 0, 1 as number);
 }
 
 /** Normalize a truth value to valid domain [0,1] x [0, MAX_CONFIDENCE]. */

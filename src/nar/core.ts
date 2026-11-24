@@ -85,8 +85,8 @@ import type { EmbeddingGenerator } from '../memory/embedding';
 import type { EpisodeConsolidator } from '../memory/episode-consolidator';
 import type { ProofMettaProposer } from '../meta/index';
 import { MetricsCollector } from '../metrics';
-import { NARExecution } from './execution';
-import { NARIO } from './io';
+import { NARExecution } from '../nar-execution';
+import { NARIO } from '../nar-io';
 import { NARLM } from '../nar-lm';
 import { PROPOSAL_LOG_CAPACITY } from '../proposal/lifecycle';
 import { LMProposalProducer } from '../proposal/lm-rule-producer';
@@ -150,7 +150,7 @@ export class NAR extends BaseComponent {
   #episodeConsolidator?: EpisodeConsolidator;
   /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag — created only when config opts in. */
   #miningBag?: MiningBag;
-  #sourceReputation?: import('./kernel/source-reputation').SourceReputation;
+  #sourceReputation?: import('../kernel/source-reputation').SourceReputation;
   /** Phase E: ProofMettaProposer for learning MeTTa rules from proof stream. */
   #proofMettaProposer?: ProofMettaProposer;
   /** Phase E: GovernanceResolver for self-improvement proposals (schema promotion, etc.). */
@@ -381,11 +381,11 @@ export class NAR extends BaseComponent {
       driveManager: this.driveManager,
       systemEventBus: this.systemEventBus,
       self: this.self,
-      toolGoalExecutor: async (goalTerm) => this.tools.executeToolGoal(goalTerm),
+      toolGoalExecutor: async (goalTerm: Term) => this.tools.executeToolGoal(goalTerm),
       gates: this.gates,
       budgets: this.controlBudgets,
       proposals: this.proposals,
-      onCycleEnd: async (cycleCount, config) => {
+      onCycleEnd: async (cycleCount: number, config: NARConfig) => {
         await this.maybeConsolidateLearning(cycleCount, config);
         if (++this.#cyclesSinceGateFlush >= GATE_LOG_FLUSH_CYCLES) {
           this.#cyclesSinceGateFlush = 0;
@@ -699,8 +699,8 @@ export class NAR extends BaseComponent {
     return this.processor;
   }
 
-  getPerceptionGate(): import('./kernel/KernelPerceptionGate').KernelPerceptionGate {
-    return this.gates.getPerceptionGate() as import('./kernel/KernelPerceptionGate').KernelPerceptionGate;
+  getPerceptionGate(): import('../kernel/KernelPerceptionGate').KernelPerceptionGate {
+    return this.gates.getPerceptionGate() as import('../kernel/KernelPerceptionGate').KernelPerceptionGate;
   }
 
   getExecution(): NARExecution {
@@ -747,7 +747,7 @@ export class NAR extends BaseComponent {
   }
 
   /** Lazily-owned SchemaInductor (Phase C); undefined without an LM service. */
-  getSchemaInductor(): import('./learning/schema-induction').SchemaInductor | undefined {
+  getSchemaInductor(): import('../learning/schema-induction').SchemaInductor | undefined {
     if (!this.#schemaInductor && this._lmService) {
       this.#schemaInductor = new SchemaInductor(this.memory, this._lmService, {
         rng: this.rng,
@@ -773,12 +773,12 @@ export class NAR extends BaseComponent {
   }
 
   /** Phase E (REFACTOR.todo1): attach the source-reputation track record (trust ceiling). */
-  setSourceReputation(reputation: import('./kernel/source-reputation').SourceReputation): void {
+  setSourceReputation(reputation: import('../kernel/source-reputation').SourceReputation): void {
     this.#sourceReputation = reputation;
     this.gates.setReputation(reputation);
   }
 
-  getSourceReputation(): import('./kernel/source-reputation').SourceReputation | undefined {
+  getSourceReputation(): import('../kernel/source-reputation').SourceReputation | undefined {
     return this.#sourceReputation;
   }
 
@@ -821,13 +821,13 @@ export class NAR extends BaseComponent {
 
   /** Phase E: Get JudgmentPipeline for comprehensive manifold evaluation (ADR-008). */
   getSystemOneJudgmentPipeline():
-    | import('./lm/system-one/judgment-pipeline').JudgmentPipeline
+    | import('../lm/system-one/judgment-pipeline').JudgmentPipeline
     | undefined {
     return this.systemOne.judgmentPipeline;
   }
 
   /** Get the unified decision facade (TODO23): decide/choose with provenance. */
-  getSystemOneDecider(): import('./lm/system-one/decide').Decider | undefined {
+  getSystemOneDecider(): import('../lm/system-one/decide').Decider | undefined {
     return this.systemOne.decider;
   }
 
@@ -844,13 +844,13 @@ export class NAR extends BaseComponent {
   /** CLM contrastive exemplar memory (zero-shot scoring; undefined when disabled). */
   getSystemOneContrastive(
     correlationId = 'default'
-  ): import('./lm/system-one/contrastive').ContrastiveMemory | undefined {
+  ): import('../lm/system-one/contrastive').ContrastiveMemory | undefined {
     return this.systemOne.enabled ? this.systemOne.getContrastive(correlationId) : undefined;
   }
 
   /** Refresh CLM contrastive exemplars from live state (hard negatives + calibration). */
   refreshSystemOneContrastive(
-    episodic?: import('./memory/EpisodicMemory').EpisodicMemory
+    episodic?: import('../memory').EpisodicMemory
   ): Promise<void> {
     return this.systemOne.refreshContrastive(this, episodic);
   }

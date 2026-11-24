@@ -207,8 +207,10 @@ export class SemanticFold {
     const related: Concept[] = [];
 
     for (const link of links) {
-      if (link.source === key || link.target === key) {
-        const otherKey = link.source === key ? link.target : link.source;
+      const linkSourceKey = termKey(link.sourceTerm);
+      const linkTargetKey = termKey(link.targetTerm);
+      if (linkSourceKey === key || linkTargetKey === key) {
+        const otherKey = linkSourceKey === key ? linkTargetKey : linkSourceKey;
         const targetConcept = this.#concepts.get(otherKey);
         if (targetConcept && !targetConcept.isArchived) {
           related.push(targetConcept.concept);

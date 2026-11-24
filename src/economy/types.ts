@@ -10,6 +10,8 @@ import type { Truth } from '../kernel/truth';
 import type { Task, TaskType, TaskBagKind } from '../kernel/types';
 import type { RNG, Clock } from '../kernel/env';
 
+export type { TaskBagKind } from '../kernel/types';
+
 /** Economy task bag kinds — extends NAR task vocabulary with economy-specific kinds. */
 export const ECONOMY_TASK_BAG_KINDS = [
   'belief',

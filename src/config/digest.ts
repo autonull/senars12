@@ -26,4 +26,4 @@ export const configDigest = (name: string, config: unknown): string =>
   createHash('sha256').update(JSON.stringify(stable({ name, config }))).digest('hex');
 
 /** A short form of {@link configDigest}, for logs. */
-export const shortConfigDigest = (config: unknown): string => configDigest(config).slice(0, 16);
+export const shortConfigDigest = (config: unknown): string => configDigest('', config).slice(0, 16);

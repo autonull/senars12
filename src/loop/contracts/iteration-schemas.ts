@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import type { Term } from '../../../kernel/terms';
+import type { Term } from '../../kernel/terms';
 import type { Truth, TruthValue } from '../../kernel/truth';
 import type { Task, TimestampMs } from '../../kernel/types';
 import {

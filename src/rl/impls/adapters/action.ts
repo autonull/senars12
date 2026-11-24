@@ -13,9 +13,10 @@ function mean(values: readonly number[]): number {
 function anneal(temp: number, iter: number, coolingRate = 0.995): number {
   return temp * Math.pow(coolingRate, iter);
 }
-import { type Term, TermBuilder, Truth } from '../../../index';
-import type { NAR } from '../../../nar';
-import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term';
+import { type Term, TermBuilder } from '@senars/terms';
+import { Truth } from '@senars/kernel';
+import type { NAR } from '@senars/agent';
+import { operationNameOf, operationTerm } from '@senars/terms';
 import type { QBeliefStore } from '../QBeliefStore';
 
 /**
@@ -118,7 +119,7 @@ function topPendingOperation(nar: NAR, accepts: (name: string) => boolean): stri
     .map((task) => ({ name: operationNameOf(task.term), priority: task.budget.priority }))
     .filter(
       (c): c is { name: string; priority: number } => c.name !== undefined && accepts(c.name)
-    );
+    ) as { name: string; priority: number }[];
   return maxBy(stage, (candidate) => candidate.priority)?.name;
 }
 

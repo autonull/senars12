@@ -189,7 +189,7 @@ export function calculateAgedPriority(task: EconomyTask, policy: AgingPolicy = d
  * Get aging policy for a specific task kind.
  */
 export function getAgingPolicyForKind(kind: TaskBagKind, basePolicy: AgingPolicy = defaultAgingPolicy): AgingPolicy {
-  const modifier = KIND_AGING_MODIFIERS[kind];
+  const modifier = KIND_AGING_MODIFIERS[kind] ?? { decayMult: 1, boostMult: 1, maxAgeMult: 1 };
   return {
     decayRate: basePolicy.decayRate * modifier.decayMult,
     minActivation: basePolicy.minActivation,

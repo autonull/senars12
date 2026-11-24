@@ -4,6 +4,7 @@
  */
 
 import type { NAR } from '@senars/agent';
+import type { ContrastiveMemory } from '@senars/lm/system-one';
 import { readCalibrationLockOrNull } from '@senars/lm/system-one';
 import { flooredRatio } from '@senars/util/numeric';
 import { pct } from '@senars/util/format';
@@ -33,7 +34,7 @@ export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame |
     size: 0,
   };
 
-  const contrastive = nar.getSystemOneContrastive?.();
+  const contrastive = nar.getSystemOneContrastive?.() as ContrastiveMemory | undefined;
   const cStats = Object.entries(contrastive?.stats() ?? {});
   const totals = cStats.reduce(
     (a, [, s]) => ({ p: a.p + s.positives, n: a.n + s.negatives, c: a.c + (s.calibrated ? 1 : 0) }),

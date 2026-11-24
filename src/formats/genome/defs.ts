@@ -165,7 +165,7 @@ export const Defs = {
 
   // Derived constants (objects, maps) - declared once
   constants: {
-    TASK_PUNCTUATION: {
+    TASK_PUNCTUATION_MAP: {
       belief: '.',
       goal: '!',
       question: '?',

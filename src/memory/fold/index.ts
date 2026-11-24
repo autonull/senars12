@@ -85,8 +85,8 @@ export class FoldMemory implements MemoryPorts {
   readonly #config: ResolvedMemoryConfig & { embeddingGenerator?: EmbeddingGenerator };
   readonly #clock: () => number;
 
-  #semantic: SemanticFold;
-  #procedural: ProceduralFold;
+  #semantic: SemanticFold | undefined;
+  #procedural: ProceduralFold | undefined;
   #revisions: any[] = [];
   #archiveLog: any[] = [];
   #lastProjectionTs = 0;
@@ -383,10 +383,12 @@ export class FoldMemory implements MemoryPorts {
   }
 
   setLayer(name: string, layer: any): void {
+    if (!this.#semantic) return;
     this.#semantic.getLinkManager().setLayer(name, layer);
   }
 
   applyDecay(decayRate?: number): void {
+    if (!this.#semantic) return;
     this.#semantic.getLinkManager().applyDecay(decayRate);
   }
 
@@ -399,6 +401,7 @@ export class FoldMemory implements MemoryPorts {
     if (this.#cyclesSinceConsolidation >= this.#config.consolidationInterval) {
       this.#cyclesSinceConsolidation = 0;
 
+      if (!this.#semantic) return;
       this.#semantic.getLinkManager().applyDecay();
       this.#applyForgetting();
       this.#semantic.getFocus().clearFocus();
@@ -412,33 +415,40 @@ export class FoldMemory implements MemoryPorts {
 
   topConcepts(limit: number): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.topConcepts(limit);
   }
 
   sampleWindow(windowSize: number, rng: RandomSource): Concept[] {
     this.#ensureProjections();
+    if (!this.#semantic) return [];
     return this.#semantic.sampleWindow(windowSize, rng);
   }
 
   // --- Additional Memory methods ---
 
   getEmbeddingIndex(): any {
+    if (!this.#semantic) return {};
     return this.#semantic.getEmbeddingIndex();
   }
 
   getAssociativeMemories(): any {
+    if (!this.#semantic) return {};
     return this.#semantic.getAssociativeMemories();
   }
 
   getLinkManager(): LinkManager {
+    if (!this.#semantic) throw new Error('Semantic fold not initialized');
     return this.#semantic.getLinkManager();
   }
 
   getFocusConcepts(): Concept[] {
+    if (!this.#semantic) return [];
     return this.#semantic.getFocusConcepts();
   }
 
   getFocus(): Focus {
+    if (!this.#semantic) return new Focus({ clock: this.#clock });
     return this.#semantic.getFocus();
   }
 
@@ -457,15 +467,18 @@ export class FoldMemory implements MemoryPorts {
   }
 
   findDenseClusters(minStrength: number, maxClusters: number): Concept[][] {
+    if (!this.#semantic) return [];
     return this.#semantic.findDenseClusters(minStrength, maxClusters);
   }
 
   removeConceptsMatching(pattern: string): number {
     this.#ensureProjections();
+    if (!this.#semantic) return 0;
     return this.#semantic.removeConceptsMatching(pattern);
   }
 
   checkHealth(): MemoryHealth {
+    if (!this.#semantic) return { isHealthy: true, pressureLevel: 0, consolidationNeeded: false, forgettingNeeded: false, recommendations: [] };
     return this.#semantic.checkHealth();
   }
 
@@ -480,6 +493,7 @@ export class FoldMemory implements MemoryPorts {
   // --- Private helpers ---
 
   #applyForgetting(): void {
+    if (!this.#semantic) return;
     const victim = (this.#semantic.getLinkManager() as any).selectVictim?.(this.listConcepts());
     if (victim) {
       this.removeConcept(victim.term);

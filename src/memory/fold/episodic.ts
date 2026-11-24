@@ -90,14 +90,14 @@ interface FoldEpisode extends Episode {
 }
 
 /** Concept projection derived from the log. */
-interface ConceptProjection {
+export interface ConceptProjection {
   concept: Concept;
   lastSeen: number;
   isArchived: boolean;
 }
 
 /** Task projection derived from the log. */
-interface TaskProjection {
+export interface TaskProjection {
   conceptTerm: string;
   task: TaskData;
   admittedAt: number;

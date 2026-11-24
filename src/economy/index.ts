@@ -10,6 +10,7 @@ export * from './utility-voi';
 export * from './learning/';
 export * from './overlays-drives';
 export * from './aging';
+export type { PickRecord } from './types';
 
 import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types';
 import type { Env } from '../kernel/env';

@@ -1,7 +1,7 @@
 import { SeededRNG } from '@senars/util/random';
-import { Truth } from '../../../index';
-import type { NAR } from '../../../nar';
-import { TermBuilder } from '../../../terms/index';
+import { Truth } from '@senars/kernel';
+import type { NAR } from '@senars/agent';
+import { TermBuilder } from '@senars/terms';
 import { rewardBeliefTerm } from '../reward-term';
 import { SenarsError } from '../../../errors/senars-error';
 

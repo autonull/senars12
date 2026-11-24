@@ -4,11 +4,11 @@
  * This file collects all faculty specs into a single array for registration.
  */
 
-import type { FacultySpec } from '../specs';
+import type { FacultySpec } from '../../specs';
 import { groundingSpec, perceiveFormalizeSpec } from './perception';
-import { inferenceSpec, abductionSpec, inductionSpec, analogySpec, revisionSpec } from './judgment';
-import { planningSpec, evaluationSpec, communicationSpec, governanceSpec } from './action';
-import { proposeActionSpec, proposeHypothesisSpec, proposeRepairSpec, proposePlanSpec, proposeSkillSpec } from './metacognition';
+import { inferenceSpec, abductionSpec, inductionSpec, analogySpec, revisionSpec, evaluationSpec, proposeHypothesisSpec } from './judgment';
+import { planningSpec, proposeActionSpec, proposePlanSpec } from './action';
+import { communicationSpec, governanceSpec, proposeRepairSpec, proposeSkillSpec } from './metacognition';
 
 /** The 20 core faculty specifications, in registration order. */
 export const CORE_FACULTIES: FacultySpec[] = [

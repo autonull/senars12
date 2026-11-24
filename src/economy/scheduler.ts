@@ -19,6 +19,7 @@ import {
   type Overlay,
   type AgingPolicy,
   type Successor,
+  type PickRecord,
   ECONOMY_TASK_BAG_KINDS as TASK_BAG_KINDS,
   ECONOMY_EVENTS,
   defaultSchedulerConfig,
@@ -27,14 +28,6 @@ import { calculateTotalUtility, calculateTaskUtility } from './utility-voi';
 import type { Truth } from '../kernel/truth';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
-
-/** Task pick record for fairness tracking. */
-interface PickRecord {
-  taskId: string;
-  kind: TaskBagKind;
-  iteration: number;
-  utility: number;
-}
 
 /** Scheduler result. */
 export interface SchedulerResult {

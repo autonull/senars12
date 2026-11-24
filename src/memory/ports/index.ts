@@ -33,6 +33,7 @@ export type {
   SymbolIndex,
   LinkPort,
   MemoryClock,
+  MemoryHealth,
 } from './memory-ports';
 
 export type { AttentionOwner } from './attention-ports';

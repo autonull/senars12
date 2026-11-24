@@ -93,3 +93,17 @@ export interface LinkPort {
 export interface MemoryClock {
   consolidate(opts?: { cycleCount?: number }): void;
 }
+
+/** Memory health check result. */
+export interface MemoryHealth {
+  /** Whether memory is healthy. */
+  isHealthy: boolean;
+  /** Current pressure level (0-1). */
+  pressureLevel: number;
+  /** Whether consolidation is needed. */
+  consolidationNeeded: boolean;
+  /** Whether forgetting is needed. */
+  forgettingNeeded: boolean;
+  /** Recommendations for improvement. */
+  recommendations: string[];
+}

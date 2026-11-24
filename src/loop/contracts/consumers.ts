@@ -16,7 +16,7 @@ import type {
   AnyContract,
   ContractType,
 } from './schemas';
-import type { Term } from '../../../kernel/terms';
+import type { Term } from '../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
 import { SenarsError } from '../../errors/senars-error';
 

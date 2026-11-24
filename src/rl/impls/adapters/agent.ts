@@ -1,8 +1,8 @@
 import { toolOk } from '@senars/types/engine';
-import { type Term, TermBuilder } from '../../../index';
-import type { NAR } from '../../../nar';
-import { operationTerm } from '../../../terms/impls/operation-term';
-import type { RandomSource } from '../../../types/primitives';
+import { type Term, TermBuilder } from '@senars/terms';
+import type { NAR } from '@senars/agent';
+import { operationTerm } from '@senars/terms';
+import type { RandomSource } from '@senars/util/random';
 import type { QBeliefStore } from '../QBeliefStore';
 import { RewardBeliefAdapter } from '../RewardBeliefAdapter';
 import {

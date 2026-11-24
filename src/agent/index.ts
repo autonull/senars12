@@ -49,7 +49,6 @@ export type {
   CognitiveEvent,
   TermSymbol,
   Task,
-  TaskType,
   TruthType,
   Source,
   Hash,
@@ -90,8 +89,26 @@ export { ok, err, isOk, isErr, map, mapErr, flatMap, unwrapOrThrow, attempt, att
 export { SenarsError, ConfigurationError, OperationError, ValidationError, type ErrorCode } from '../errors/index';
 export { ProposalBag } from '../meta/index';
 export { resolveBagSlot, bagSlotErrors } from '../bag/index';
-export { TASK_BAG_KINDS, TASK_TYPES, TOLERANT_PUNCTUATIONS, taskTypeForPunctuation, TASK_PUNCTUATION, TASK_PUNCTUATIONS, TaskTypeSchema, FormalizationCandidateSchema, FormalizationBatchSchema, ProposalSchema, PROPOSAL_KINDS } from '../schemas/index';
-export { DETECTED_INTENTS, DetectedIntentSchema } from '../schemas/index';
+export {
+  TASK_BAG_KINDS,
+  TASK_TYPES,
+  TOLERANT_PUNCTUATIONS,
+  taskTypeForPunctuation,
+  TASK_PUNCTUATIONS,
+  TaskTypeSchema,
+  FormalizationCandidateSchema,
+  FormalizationBatchSchema,
+  ProposalSchema,
+  PROPOSAL_KINDS,
+} from '../schemas/index';
+export type {
+  TaskType,
+  TaskBagKind,
+  TaskPunctuation,
+  TolerantPunctuation,
+} from '../schemas/index';
+export { DETECTED_INTENTS } from '../schemas/index';
+export { DetectedIntentSchema } from '../schemas/index';
 export { ChatMessage, NarConceptNode, GraphNodeDataView } from '../protocol/index';
 export { CognitiveRegistry, createDefaultRegistry } from '../cognitive/index';
 export { verifyRecord } from '../verification/index';

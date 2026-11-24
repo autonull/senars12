@@ -4,7 +4,7 @@
  * Detects anomalies, diagnoses root causes, and applies repairs.
  */
 
-import type { Term } from '../../../kernel/terms';
+import type { Term } from '../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
 import type { Task, TimestampMs } from '../../kernel/types';
 import type { FacultyInput, FacultyOutput } from '../../faculties/specs';
@@ -214,7 +214,7 @@ export class RepairLoop {
         case 'abort':
           return await this.#abortAction(context, action, timestamp);
         case 'verify_premises':
-          return await this.#verifyPremisesAction(context, action, timestamp);
+          return await this.#verifyPremisesAction(context, action, anomaly, timestamp);
         case 'retrieve_context':
           return await this.#retrieveContextAction(context, action, timestamp);
         case 'escalate':
@@ -309,7 +309,7 @@ export class RepairLoop {
     };
   }
 
-  async #verifyPremisesAction(context: RepairContext, action: RepairAction, timestamp: number): Promise<RepairResult> {
+  async #verifyPremisesAction(context: RepairContext, action: RepairAction, anomaly: Anomaly, timestamp: number): Promise<RepairResult> {
     // Use faculty engine to verify premises
     try {
       await facultyEngine.invoke({
@@ -404,7 +404,7 @@ export const repairLoop = createRepairLoop();
 /** Detect stalled iterations. */
 export const stallDetector: AnomalyDetector = async (context): Promise<Anomaly[]> => {
   const anomalies: Anomaly[] = [];
-  const recentIterations = context.recentTasks.filter((t) => t.createdAt > context.clock.now() - 60000);
+  const recentIterations = context.recentTasks.filter((t) => (t.createdAt ?? 0) > context.clock.now() - 60000);
 
   if (recentIterations.length < 2 && context.iteration > 5) {
     anomalies.push({

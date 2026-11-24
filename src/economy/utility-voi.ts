@@ -8,7 +8,7 @@
  * and updating beliefs.
  */
 
-import type { EconomyTask, TaskUtility, TaskVoI, Successor, Overlay, SchedulerConfig, TaskBagKind, TaskSource } from './types';
+import type { EconomyTask, TaskUtility, TaskVoI, Successor, Overlay, SchedulerConfig, EconomyTaskBagKind, TaskSource } from './types';
 import type { Truth } from '../kernel/truth';
 import type { Clock } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
@@ -576,7 +576,7 @@ export interface AnswerabilityFeatures {
   /** Truth confidence. */
   truthConfidence: number;
   /** Task kind one-hot. */
-  taskKind: Record<TaskBagKind, number>;
+  taskKind: Record<EconomyTaskBagKind, number>;
   /** Task age (normalized). */
   ageNormalized: number;
   /** Access count (normalized). */
@@ -608,7 +608,7 @@ export function extractAnswerabilityFeatures(
     }
   }
 
-  const taskKind: Record<TaskBagKind, number> = {
+  const taskKind: Record<EconomyTaskBagKind, number> = {
     belief: 0,
     goal: 0,
     skill: 0,
@@ -639,9 +639,9 @@ export function predictAnswerability(
   logit += model.featureWeights.has_oracle ?? 0 * features.hasOracle;
   logit += model.featureWeights.has_faculty ?? 0 * features.hasFaculty;
   logit += model.featureWeights.truth_confidence ?? 0 * features.truthConfidence;
-  logit += model.featureWeights.task_kind_goal ?? 0 * features.taskKind.goal;
-  logit += model.featureWeights.task_kind_belief ?? 0 * features.taskKind.belief;
-  logit += model.featureWeights.task_kind_skill ?? 0 * features.taskKind.skill;
+  logit += model.featureWeights.task_kind_goal ?? 0 * (features.taskKind.goal ?? 0);
+  logit += model.featureWeights.task_kind_belief ?? 0 * (features.taskKind.belief ?? 0);
+  logit += model.featureWeights.task_kind_skill ?? 0 * (features.taskKind.skill ?? 0);
 
   // Sigmoid
   return sigmoid(logit);
@@ -670,9 +670,9 @@ export function trainAnswerabilityModel(
     model.featureWeights.has_oracle = (model.featureWeights.has_oracle ?? 0) + learningRate * grad * features.hasOracle;
     model.featureWeights.has_faculty = (model.featureWeights.has_faculty ?? 0) + learningRate * grad * features.hasFaculty;
     model.featureWeights.truth_confidence = (model.featureWeights.truth_confidence ?? 0) + learningRate * grad * features.truthConfidence;
-    model.featureWeights.task_kind_goal = (model.featureWeights.task_kind_goal ?? 0) + learningRate * grad * features.taskKind.goal;
-    model.featureWeights.task_kind_belief = (model.featureWeights.task_kind_belief ?? 0) + learningRate * grad * features.taskKind.belief;
-    model.featureWeights.task_kind_skill = (model.featureWeights.task_kind_skill ?? 0) + learningRate * grad * features.taskKind.skill;
+    model.featureWeights.task_kind_goal = (model.featureWeights.task_kind_goal ?? 0) + learningRate * grad * (features.taskKind.goal ?? 0);
+    model.featureWeights.task_kind_belief = (model.featureWeights.task_kind_belief ?? 0) + learningRate * grad * (features.taskKind.belief ?? 0);
+    model.featureWeights.task_kind_skill = (model.featureWeights.task_kind_skill ?? 0) + learningRate * grad * (features.taskKind.skill ?? 0);
 
     model.samples++;
   }

@@ -1,6 +1,6 @@
 import { css, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { property, state } from 'lit/decorators';
-import { html as staticHtml, unsafeStatic } from 'lit/static-html';
+import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { defineSurface, SurfaceComponent, type SurfaceState } from './surface';
 import { $selectedNodeId, $viewSelection } from './store';
 import { viewAdapterFor } from './view-adapter';
