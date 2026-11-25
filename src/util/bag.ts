@@ -165,6 +165,11 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   #sortedCache: T[] | null = null;
   #sortedDirty = true;
 
+  // Incremental tracking for O(1) eviction
+  #minPriorityEntry: InternalEntry<T> | null = null;
+  #oldestEntry: InternalEntry<T> | null = null;
+  #lruEntry: InternalEntry<T> | null = null;
+
   #invalidateCache(): void {
     this.#sortedDirty = true;
     this.#sortedCache = null;
@@ -178,6 +183,85 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       this.#sortedDirty = false;
     }
     return this.#sortedCache!;
+  }
+
+  #updateMinPriority(entry: InternalEntry<T>, isNew = false): void {
+    if (this.#minPriorityEntry === null || entry._currentPriority < this.#minPriorityEntry._currentPriority) {
+      this.#minPriorityEntry = entry;
+    } else if (!isNew && this.#minPriorityEntry._currentPriority !== entry._currentPriority) {
+      // The min was updated, may need to rescan if this was the min
+      if (this.#minPriorityEntry === entry) {
+        this.#recomputeMinPriority();
+      }
+    }
+  }
+
+  #recomputeMinPriority(): void {
+    let min: InternalEntry<T> | null = null;
+    for (const entry of this.#items.values()) {
+      if (min === null || entry._currentPriority < min._currentPriority) {
+        min = entry;
+      }
+    }
+    this.#minPriorityEntry = min;
+  }
+
+  #updateOldest(entry: InternalEntry<T>, isNew = false): void {
+    if (this.#oldestEntry === null || entry._insertedAt < this.#oldestEntry._insertedAt) {
+      this.#oldestEntry = entry;
+    } else if (!isNew && this.#oldestEntry._insertedAt !== entry._insertedAt) {
+      if (this.#oldestEntry === entry) {
+        this.#recomputeOldest();
+      }
+    }
+  }
+
+  #recomputeOldest(): void {
+    let oldest: InternalEntry<T> | null = null;
+    for (const entry of this.#items.values()) {
+      if (oldest === null || entry._insertedAt < oldest._insertedAt) {
+        oldest = entry;
+      }
+    }
+    this.#oldestEntry = oldest;
+  }
+
+  #updateLRU(entry: InternalEntry<T>, isNew = false): void {
+    if (this.#lruEntry === null || entry._lastAccessedAt < this.#lruEntry._lastAccessedAt) {
+      this.#lruEntry = entry;
+    } else if (!isNew && this.#lruEntry._lastAccessedAt !== entry._lastAccessedAt) {
+      if (this.#lruEntry === entry) {
+        this.#recomputeLRU();
+      }
+    }
+  }
+
+  #recomputeLRU(): void {
+    let lru: InternalEntry<T> | null = null;
+    for (const entry of this.#items.values()) {
+      if (lru === null || entry._lastAccessedAt < lru._lastAccessedAt) {
+        lru = entry;
+      }
+    }
+    this.#lruEntry = lru;
+  }
+
+  #removeTracking(entry: InternalEntry<T>): void {
+    if (this.#minPriorityEntry === entry) this.#recomputeMinPriority();
+    if (this.#oldestEntry === entry) this.#recomputeOldest();
+    if (this.#lruEntry === entry) this.#recomputeLRU();
+  }
+
+  #updateTrackingOnAdd(entry: InternalEntry<T>): void {
+    this.#updateMinPriority(entry, true);
+    this.#updateOldest(entry, true);
+    this.#updateLRU(entry, true);
+  }
+
+  #updateTrackingOnUpdate(entry: InternalEntry<T>): void {
+    this.#updateMinPriority(entry);
+    this.#updateOldest(entry);
+    this.#updateLRU(entry);
   }
 
   constructor(options: BagOptions) {
@@ -237,17 +321,16 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (this.#items.size >= this.capacity) {
       // For 'priority' strategy, only admit if new item beats the lowest (strictly)
       if (this.#evictStrategy === 'priority') {
-        let minPriority = Infinity;
-        for (const e of this.#items.values()) {
-          if (e._currentPriority < minPriority) minPriority = e._currentPriority;
+        if (this.#minPriorityEntry !== null && item.priority < this.#minPriorityEntry._currentPriority) {
+          return false;
         }
-        if (item.priority < minPriority) return false;
       }
       const evicted = this.#evict();
       if (!evicted) return false;
     }
 
     this.#items.set(item.id, entry);
+    this.#updateTrackingOnAdd(entry);
     this.#version++;
     this.#invalidateCache();
     this.#updatePressure();
@@ -255,8 +338,10 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   }
 
   remove(id: string): boolean {
+    const entry = this.#items.get(id);
     const result = this.#items.delete(id);
     if (result) {
+      if (entry) this.#removeTracking(entry);
       this.#version++;
       this.#invalidateCache();
       this.#updatePressure();
@@ -269,6 +354,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     for (const [id, entry] of this.#items) {
       if (predicate(entry._item)) {
         this.#items.delete(id);
+        this.#removeTracking(entry);
         count++;
       }
     }
@@ -292,6 +378,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         _item: entry._item,
       };
       this.#items.set(id, updated);
+      this.#updateLRU(updated);
       return entry._item;
     }
     return undefined;
@@ -326,24 +413,23 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       _item: entry._item,
     };
     this.#items.set(id, updated);
+    this.#updateTrackingOnUpdate(updated);
     this.#version++;
     this.#invalidateCache();
     return true;
   }
 
   setEvictStrategy(strategy: EvictStrategy): void {
-    // Can't change strategy on frozen object, but we can track it
-    // For now, just validate
     if (!['priority', 'fifo', 'lru', 'random'].includes(strategy)) {
       throw new SenarsError(`Invalid evict strategy: ${strategy}`, 'VALIDATION_ERROR', { strategy });
     }
-    // Strategy change would require re-sorting; log warning
     logger.warn(`Evict strategy change to ${strategy} not fully supported on live bag`);
   }
 
   decay(): void {
     if (this.#decayRate <= 0 && this.#forgetRate <= 0) return;
     const now = this.#clock();
+    let hasChanges = false;
     for (const [id, entry] of this.#items) {
       const ageSeconds = (now - entry._insertedAt) / 1000;
       const decay = this.#decayRate * ageSeconds;
@@ -352,19 +438,29 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       const newPriority = Math.max(0, originalPriority - decay - forget);
       if (newPriority <= 0) {
         this.#items.delete(id);
-      } else {
-        this.#items.set(id, { ...entry, _currentPriority: newPriority, priority: newPriority });
+        this.#removeTracking(entry);
+        hasChanges = true;
+      } else if (newPriority !== entry._currentPriority) {
+        const updated: InternalEntry<T> = {
+          ...entry,
+          _currentPriority: newPriority,
+          priority: newPriority,
+        };
+        this.#items.set(id, updated);
+        this.#updateTrackingOnUpdate(updated);
+        hasChanges = true;
       }
     }
-    this.#version++;
-    this.#invalidateCache();
-    this.#updatePressure();
+    if (hasChanges) {
+      this.#version++;
+      this.#invalidateCache();
+      this.#updatePressure();
+    }
   }
 
   sample(count: number): T[] {
     const items = this.#ensureSorted();
     if (items.length <= count) return items;
-    // Priority-proportional sampling (roulette wheel without replacement)
     return weightedSample(items, count, (item) => item.priority, this.#rng);
   }
 
@@ -392,7 +488,6 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   /** Get the highest-priority item without removing it. */
   peek(): T | undefined {
     if (this.#items.size === 0) return undefined;
-    // Use cached sorted array if available, otherwise scan
     if (!this.#sortedDirty && this.#sortedCache && this.#sortedCache.length > 0) {
       return this.#sortedCache[0];
     }
@@ -434,12 +529,13 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
   clear(): void {
     this.#items.clear();
+    this.#minPriorityEntry = null;
+    this.#oldestEntry = null;
+    this.#lruEntry = null;
     this.#version++;
     this.#invalidateCache();
     this.#updatePressure();
   }
-
-  
 
   /** Evict one item using the given strategy (or current strategy if not provided). */
   evict(strategy?: EvictStrategy): boolean {
@@ -461,32 +557,20 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
     switch (this.#evictStrategy) {
       case 'priority': {
-        let minPriority = Infinity;
-        for (const [id, entry] of this.#items) {
-          if (entry._currentPriority < minPriority) {
-            minPriority = entry._currentPriority;
-            victimId = id;
-          }
+        if (this.#minPriorityEntry !== null) {
+          victimId = this.#minPriorityEntry.id;
         }
         break;
       }
       case 'fifo': {
-        let oldest = Infinity;
-        for (const [id, entry] of this.#items) {
-          if (entry._insertedAt < oldest) {
-            oldest = entry._insertedAt;
-            victimId = id;
-          }
+        if (this.#oldestEntry !== null) {
+          victimId = this.#oldestEntry.id;
         }
         break;
       }
       case 'lru': {
-        let oldestAccess = Infinity;
-        for (const [id, entry] of this.#items) {
-          if (entry._lastAccessedAt < oldestAccess) {
-            oldestAccess = entry._lastAccessedAt;
-            victimId = id;
-          }
+        if (this.#lruEntry !== null) {
+          victimId = this.#lruEntry.id;
         }
         break;
       }
@@ -498,7 +582,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     }
 
     if (victimId) {
+      const entry = this.#items.get(victimId);
       this.#items.delete(victimId);
+      if (entry) this.#removeTracking(entry);
       this.#version++;
       this.#invalidateCache();
       return true;

@@ -9,8 +9,7 @@
  * - Redundant operator elimination
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm, TermVisitor } from './intern';
-import { getArgs } from './term-internal/compound';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, getArgs } from './intern';
 
 /** Canonical term representation. */
 export interface CanonicalTerm {
@@ -68,153 +67,55 @@ const ASSOCIATIVE_OPS = new Set([
 
 /**
  * Convert a term to canonical form.
+ * Single-pass normalization + de Bruijn conversion + hashing.
  */
 export function canonicalize(term: Term, options: Partial<CanonicalOptions> = {}): CanonicalTerm {
   const opts = { ...defaultCanonicalOptions, ...options };
 
-  // Step 1: Full normalization pipeline (implication, associative flattening, commutative sorting, double negation)
-  let normalized = normalizeTermPipeline(term, opts);
-
-  // Step 2: Convert to de Bruijn indices
-  const { debruijn, freeVars } = toDebrTerm(normalized);
-
-  // Step 3: Compute structural hash
-  const hash = hashDebrTerm(debruijn);
-
-  return { hash, debruijn, freeVars };
-}
-
-/**
- * Normalize a term according to canonicalization rules.
- */
-function normalizeTerm(term: Term, options: CanonicalOptions): Term {
-  return mapTerm(term, t => {
-    if (t.op !== TermOp.NEGATION) return t;
-    const args = getArgs(t);
-    if (!args || args.length === 0) return t;
-    const firstArg = args[0]!;
-
-    // Eliminate double negation: ~~A -> A
-    if (options.eliminateDoubleNegation && firstArg.op === TermOp.NEGATION) {
-      const innerArgs = getArgs(firstArg);
-      if (innerArgs && innerArgs.length > 0) {
-        return innerArgs[0]!;
-      }
-    }
-    return t;
-  });
-}
-
-/**
- * Flatten associative operators: (A & B) & C -> A & B & C
- */
-function flattenAssociative(term: Term, options: CanonicalOptions): Term {
-  if (!options.flattenAssociative) return term;
-
-  return mapTerm(term, t => {
-    if (!ASSOCIATIVE_OPS.has(t.op)) return t;
-
-    const compound = t as CompoundTerm;
-    const flattened: Term[] = [];
-
-    const collect = (arg: Term) => {
-      if (arg.op === t.op) {
-        for (const a of (arg as CompoundTerm).args) collect(a);
-      } else {
-        flattened.push(arg);
-      }
-    };
-
-    for (const arg of compound.args) collect(arg);
-
-    if (flattened.length === compound.args.length) return t;
-
-    // Sort if commutative
-    if (options.sortCommutative && COMMUTATIVE_OPS.has(t.op)) {
-      flattened.sort((a, b) => termInterner.hash(a) - termInterner.hash(b));
-    }
-
-    return termInterner.compound(t.op, ...flattened);
-  });
-}
-
-/**
- * Sort commutative arguments.
- */
-function sortCommutative(term: Term, options: CanonicalOptions): Term {
-  if (!options.sortCommutative) return term;
-
-  return mapTerm(term, t => {
-    if (!COMMUTATIVE_OPS.has(t.op)) return t;
-    const args = getArgs(t);
-    if (!args || args.length <= 1) return t;
-
-    const sorted = [...args].sort((a, b) => termInterner.hash(a) - termInterner.hash(b));
-
-    // Check if already sorted
-    let same = true;
-    for (let i = 0; i < args.length; i++) {
-      if (args[i] !== sorted[i]) { same = false; break; }
-    }
-    if (same) return t;
-
-    return termInterner.compound(t.op, ...sorted);
-  });
-}
-
-/**
- * Normalize implication: A ==> B becomes ~A | B
- * Normalize equivalence: A <=> B becomes (A ==> B) & (B ==> A)
- */
-function normalizeImplication(term: Term, options: CanonicalOptions): Term {
-  if (!options.normalizeImplication) return term;
-
-  return mapTerm(term, t => {
-    const args = getArgs(t);
-    if (!args) return t;
-
-    if (t.op === TermOp.IMPLICATION) {
-      const antecedent = args[0]!;
-      const consequent = args[1]!;
-      return termInterner.disjunction(
-        termInterner.negation(antecedent),
-        consequent
-      );
-    }
-    if (t.op === TermOp.EQUIVALENCE) {
-      const left = args[0]!;
-      const right = args[1]!;
-      return termInterner.conjunction(
-        termInterner.implication(left, right),
-        termInterner.implication(right, left)
-      );
-    }
-    return t;
-  });
-}
-
-/**
- * Full normalization pipeline.
- */
-function normalizeTermPipeline(term: Term, options: CanonicalOptions): Term {
-  let result = term;
-  result = normalizeImplication(result, options);
-  result = flattenAssociative(result, options);
-  result = sortCommutative(result, options);
-  result = normalizeTerm(result, options); // Double negation after other transforms
-  return result;
-}
-
-/**
- * Convert to de Bruijn representation.
- * Bound variables become indices; free variables keep names.
- */
-function toDebrTerm(term: Term): { debruijn: DebrTerm; freeVars: string[] } {
+  // Single-pass: normalize and convert to de Bruijn simultaneously
   const boundVars = new Map<VariableTerm, number>();
   const freeVars: string[] = [];
-  let nextIndex = 0;
 
-  const convert = (t: Term): DebrTerm => {
+  const normalizeAndConvert = (t: Term): DebrTerm => {
+    // Handle implication/equivalence normalization first
+    if (opts.normalizeImplication) {
+      const args = getArgs(t);
+      if (args) {
+        if (t.op === TermOp.IMPLICATION) {
+          // A ==> B becomes ~A | B
+          const antecedent = args[0]!;
+          const consequent = args[1]!;
+          const negAntecedent = termInterner.negation(antecedent);
+          const disjunction = termInterner.disjunction(negAntecedent, consequent);
+          return normalizeAndConvert(disjunction);
+        }
+        if (t.op === TermOp.EQUIVALENCE) {
+          // A <=> B becomes (A ==> B) & (B ==> A)
+          const left = args[0]!;
+          const right = args[1]!;
+          const impl1 = termInterner.implication(left, right);
+          const impl2 = termInterner.implication(right, left);
+          const conjunction = termInterner.conjunction(impl1, impl2);
+          return normalizeAndConvert(conjunction);
+        }
+      }
+    }
+
+    // Handle double negation elimination
+    if (opts.eliminateDoubleNegation && t.op === TermOp.NEGATION) {
+      const args = getArgs(t);
+      if (args && args.length > 0) {
+        const firstArg = args[0]!;
+        if (firstArg.op === TermOp.NEGATION) {
+          const innerArgs = getArgs(firstArg);
+          if (innerArgs && innerArgs.length > 0) {
+            return normalizeAndConvert(innerArgs[0]!);
+          }
+        }
+      }
+    }
+
+    // Handle variables
     if (t.op === TermOp.VARIABLE) {
       const vt = t as VariableTerm;
       const idx = boundVars.get(vt);
@@ -224,23 +125,50 @@ function toDebrTerm(term: Term): { debruijn: DebrTerm; freeVars: string[] } {
       // Free variable
       const freeIdx = freeVars.indexOf(vt.name);
       if (freeIdx >= 0) {
-        return { type: 'var', index: -(freeIdx + 1) }; // Negative for free vars
+        return { type: 'var', index: -(freeIdx + 1) };
       }
       freeVars.push(vt.name);
       return { type: 'var', index: -freeVars.length };
     }
+
+    // Handle constants
     if (t.op === TermOp.CONSTANT) {
       return { type: 'const', value: (t as ConstantTerm).value };
     }
+
+    // Handle compounds
     const ct = t as CompoundTerm;
-    // Handle binders (forall, exists, lambda) - for now treat all as non-binding
-    // In a full implementation, we'd detect quantifiers and push/pop boundVars
-    const args = ct.args.map(convert);
-    return { type: 'compound', op: ct.op, args };
+    let args = ct.args;
+
+    // Flatten associative operators
+    if (opts.flattenAssociative && ASSOCIATIVE_OPS.has(ct.op)) {
+      const flattened: Term[] = [];
+      const collect = (arg: Term) => {
+        if (arg.op === ct.op) {
+          for (const a of (arg as CompoundTerm).args) collect(a);
+        } else {
+          flattened.push(arg);
+        }
+      };
+      for (const arg of args) collect(arg);
+      args = flattened;
+    }
+
+    // Sort commutative arguments
+    if (opts.sortCommutative && COMMUTATIVE_OPS.has(ct.op) && args.length > 1) {
+      args = [...args].sort((a, b) => termInterner.hash(a) - termInterner.hash(b));
+    }
+
+    // Recursively convert arguments
+    const debruijnArgs = args.map(normalizeAndConvert);
+
+    return { type: 'compound', op: ct.op, args: debruijnArgs };
   };
 
-  const debruijn = convert(term);
-  return { debruijn, freeVars };
+  const debruijn = normalizeAndConvert(term);
+  const hash = hashDebrTerm(debruijn);
+
+  return { hash, debruijn, freeVars };
 }
 
 /**

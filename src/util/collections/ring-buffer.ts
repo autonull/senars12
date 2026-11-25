@@ -54,24 +54,28 @@ export type OverflowPolicy = 'drop-oldest' | 'refuse';
 /**
  * Bounded FIFO — the single AIKR ring behind every bounded log (revision history,
  * decision logs, execution history, reward history) and every bounded queue (thread
- * mailboxes). O(1) amortized: one `shift()` per push.
+ * mailboxes). True O(1) push/shift via circular buffer.
  */
 export class BoundedRing<T> implements BoundedContainer<T> {
-  readonly #items: T[] = [];
+  readonly #buffer: (T | undefined)[];
+  #head = 0;
+  #tail = 0;
+  #size = 0;
 
   constructor(
     readonly capacity: number,
     readonly overflow: OverflowPolicy = 'drop-oldest'
   ) {
     if (capacity < 1) throw new RangeError(`BoundedRing capacity must be ≥1, got ${capacity}`);
+    this.#buffer = new Array(capacity);
   }
 
   size(): number {
-    return this.#items.length;
+    return this.#size;
   }
 
   pressure(): number {
-    return occupancy(this.size(), this.capacity);
+    return occupancy(this.#size, this.capacity);
   }
 
   /**
@@ -81,8 +85,22 @@ export class BoundedRing<T> implements BoundedContainer<T> {
    * what it lost reads one return value.
    */
   push(item: T): T | undefined {
-    if (this.overflow === 'refuse' && this.#items.length >= this.capacity) return item;
-    return pushCapped(this.#items, item, this.capacity);
+    if (this.overflow === 'refuse' && this.#size >= this.capacity) return item;
+
+    let displaced: T | undefined;
+    if (this.#size === this.capacity) {
+      // Buffer full: overwrite oldest (at head)
+      displaced = this.#buffer[this.#head]!;
+      this.#buffer[this.#head] = item;
+      this.#head = (this.#head + 1) % this.capacity;
+      this.#tail = (this.#tail + 1) % this.capacity;
+    } else {
+      // Room available
+      this.#buffer[this.#tail] = item;
+      this.#tail = (this.#tail + 1) % this.capacity;
+      this.#size++;
+    }
+    return displaced;
   }
 
   /**
@@ -91,52 +109,85 @@ export class BoundedRing<T> implements BoundedContainer<T> {
    * admitted, because that policy pays for admission with an eviction.
    */
   tryPush(item: T): boolean {
-    if (this.overflow === 'refuse' && this.#items.length >= this.capacity) return false;
+    if (this.overflow === 'refuse' && this.#size >= this.capacity) return false;
     this.push(item);
     return true;
   }
 
   /** Remove and return the oldest item — the dequeue half of {@link push}. */
   shift(): T | undefined {
-    return this.#items.shift();
+    if (this.#size === 0) return undefined;
+    const item = this.#buffer[this.#head]!;
+    this.#buffer[this.#head] = undefined;
+    this.#head = (this.#head + 1) % this.capacity;
+    this.#size--;
+    return item;
   }
 
   clear(): void {
-    this.#items.length = 0;
+    if (this.#size > 0) {
+      for (let i = 0; i < this.#size; i++) {
+        const idx = (this.#head + i) % this.capacity;
+        this.#buffer[idx] = undefined;
+      }
+      this.#head = 0;
+      this.#tail = 0;
+      this.#size = 0;
+    }
   }
 
   first(): T | undefined {
-    return this.#items[0];
+    return this.#size > 0 ? this.#buffer[this.#head] : undefined;
   }
 
   last(): T | undefined {
-    return this.#items.at(-1);
+    return this.#size > 0 ? this.#buffer[(this.#tail - 1 + this.capacity) % this.capacity] : undefined;
   }
 
   /** The most recent `n` items, oldest first. */
   tail(n = this.capacity): T[] {
-    return takeLast(this.#items, n);
+    const count = Math.min(n, this.#size);
+    if (count === 0) return [];
+    const result = new Array(count);
+    for (let i = 0; i < count; i++) {
+      const idx = (this.#tail - count + i + this.capacity) % this.capacity;
+      result[i] = this.#buffer[idx]!;
+    }
+    return result;
   }
 
   toArray(): T[] {
-    return [...this.#items];
+    const result = new Array(this.#size);
+    for (let i = 0; i < this.#size; i++) {
+      result[i] = this.#buffer[(this.#head + i) % this.capacity]!;
+    }
+    return result;
   }
 
   filter(predicate: (item: T) => boolean): T[] {
-    return this.#items.filter(predicate);
+    const result: T[] = [];
+    for (let i = 0; i < this.#size; i++) {
+      const item = this.#buffer[(this.#head + i) % this.capacity]!;
+      if (predicate(item)) result.push(item);
+    }
+    return result;
   }
 
   reduce<A>(accumulator: (acc: A, item: T) => A, initial: A): A {
-    return this.#items.reduce(accumulator, initial);
+    let acc = initial;
+    for (let i = 0; i < this.#size; i++) {
+      acc = accumulator(acc, this.#buffer[(this.#head + i) % this.capacity]!);
+    }
+    return acc;
   }
 
   /**
-   * Oldest first, live. A ring that exposes `reduce` but not iteration is a
-   * container every collection primitive has to be re-fed from `toArray()` —
-   * so the bounded-log sites either copied or took the whole ring to count it.
+   * Oldest first, live.
    */
   *[Symbol.iterator](): IterableIterator<T> {
-    yield* this.#items;
+    for (let i = 0; i < this.#size; i++) {
+      yield this.#buffer[(this.#head + i) % this.capacity]!;
+    }
   }
 }
 
