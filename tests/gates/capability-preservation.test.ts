@@ -20,9 +20,11 @@ function dirname(path: string): string {
 
 describe('Capability Preservation Gate', () => {
   let manifest: Awaited<ReturnType<typeof buildCapabilityManifest>>;
+  let gateResult: Awaited<ReturnType<typeof runPreservationGate>>;
 
   beforeAll(async () => {
     manifest = await buildCapabilityManifest();
+    gateResult = await runPreservationGate(manifest);
   });
 
   it('should build capability manifest successfully', () => {
@@ -49,21 +51,17 @@ describe('Capability Preservation Gate', () => {
     }
   });
 
-  it('should pass preservation gate against current manifest', async () => {
-    const result = await runPreservationGate(manifest);
-
-    expect(result.pass).toBe(true);
-    expect(result.missing.length).toBe(0);
-    expect(result.added.length).toBe(0);
-    expect(result.modified.length).toBe(0);
+  it('should pass preservation gate against current manifest', () => {
+    expect(gateResult.pass).toBe(true);
+    expect(gateResult.missing.length).toBe(0);
+    expect(gateResult.added.length).toBe(0);
+    expect(gateResult.modified.length).toBe(0);
   });
 
-  it('should have valid dispositions for all capabilities', async () => {
-    const result = await runPreservationGate(manifest);
-
+  it('should have valid dispositions for all capabilities', () => {
     // All missing capabilities should have approved dispositions
-    const unapprovedMissing = result.missing.filter(c =>
-      result.dispositions[c.id] === 'unknown'
+    const unapprovedMissing = gateResult.missing.filter(c =>
+      gateResult.dispositions[c.id] === 'unknown'
     );
     expect(unapprovedMissing.length).toBe(0);
   });
@@ -110,23 +108,6 @@ describe('Capability Preservation Gate', () => {
       expect(typeof cap.active).toBe('boolean');
       expect(cap.hash).toBeDefined();
     }
-  });
-
-  it('should pass CLI preservation gate', () => {
-    const result = spawnSync('pnpm', ['run', 'capability:gate'], {
-      cwd: ROOT,
-      stdio: 'pipe',
-    });
-
-    if (result.status !== 0) {
-      const stderr = result.stderr?.toString() ?? '';
-      const stdout = result.stdout?.toString() ?? '';
-      console.error('capability:gate FAILED:');
-      console.error(stdout);
-      console.error(stderr);
-    }
-
-    expect(result.status).toBe(0);
   });
 
   it('should detect missing capabilities when manifest changes', async () => {

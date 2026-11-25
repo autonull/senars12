@@ -21,22 +21,26 @@ function dirname(path: string): string {
 }
 
 describe('Import Boundary Gate', () => {
-  it('should pass import-boundary check', () => {
-    const result = spawnSync('pnpm', ['run', 'import:boundary'], {
+  let importBoundaryResult: ReturnType<typeof spawnSync>;
+
+  beforeAll(() => {
+    importBoundaryResult = spawnSync('pnpm', ['run', 'import:boundary'], {
       cwd: ROOT,
       stdio: 'pipe',
     });
+  });
 
+  it('should pass import-boundary check', () => {
     // The script exits with 0 on success, non-zero on violations
-    if (result.status !== 0) {
-      const stderr = result.stderr?.toString() ?? '';
-      const stdout = result.stdout?.toString() ?? '';
+    if (importBoundaryResult.status !== 0) {
+      const stderr = importBoundaryResult.stderr?.toString() ?? '';
+      const stdout = importBoundaryResult.stdout?.toString() ?? '';
       console.error('import:boundary FAILED:');
       console.error(stdout);
       console.error(stderr);
     }
 
-    expect(result.status).toBe(0);
+    expect(importBoundaryResult.status).toBe(0);
   });
 
   it('should have a baseline file', () => {
@@ -50,11 +54,6 @@ describe('Import Boundary Gate', () => {
   it('should not have new violations since baseline', () => {
     // This is implicitly tested by the import:boundary script
     // which compares current violations against the baseline
-    const result = spawnSync('pnpm', ['run', 'import:boundary'], {
-      cwd: ROOT,
-      stdio: 'pipe',
-    });
-
-    expect(result.status).toBe(0);
+    expect(importBoundaryResult.status).toBe(0);
   });
 });

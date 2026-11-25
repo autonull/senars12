@@ -21,46 +21,38 @@ function dirname(path: string): string {
 }
 
 describe('Schema Drift Gate', () => {
-  let generatedFiles: string[] = [];
+  let genomeResult: ReturnType<typeof spawnSync>;
+  let gitStatusResult: ReturnType<typeof spawnSync>;
 
   beforeAll(() => {
-    // Ensure we start clean - just verify directory exists
-    if (existsSync(GEN_DIR)) {
-      // Don't clean - we want to test against committed files
+    // Run genome generator once
+    genomeResult = spawnSync('tsx', [GENOME_SCRIPT], { cwd: ROOT, stdio: 'pipe' });
+
+    // Check git status once
+    if (existsSync('.git')) {
+      gitStatusResult = spawnSync('git', ['status', '--porcelain', GEN_DIR], {
+        cwd: ROOT,
+        stdio: 'pipe',
+      });
     }
   });
 
-  afterAll(() => {
-    // Cleanup generated files if any
-  });
-
   it('should generate genome without errors', () => {
-    const result = spawnSync('tsx', [GENOME_SCRIPT], { cwd: ROOT, stdio: 'pipe' });
-    expect(result.status).toBe(0);
+    expect(genomeResult.status).toBe(0);
   });
 
   it('should not have drifted generated artifacts', () => {
-    // Run the genome generator first
-    const genResult = spawnSync('tsx', [GENOME_SCRIPT], { cwd: ROOT, stdio: 'pipe' });
-    expect(genResult.status).toBe(0);
-
-    // Check for changes in generated directory
-    if (!existsSync('.git')) {
+    if (!gitStatusResult) {
       // Not a git repo, skip drift check
       return;
     }
 
-    const result = spawnSync('git', ['status', '--porcelain', GEN_DIR], {
-      cwd: ROOT,
-      stdio: 'pipe',
-    });
-
-    if (result.status !== 0) {
+    if (gitStatusResult.status !== 0) {
       // git command failed, skip
       return;
     }
 
-    const output = result.stdout?.toString() ?? '';
+    const output = gitStatusResult.stdout?.toString() ?? '';
     const changed: string[] = [];
 
     for (const line of output.trim().split('\n')) {
@@ -82,8 +74,7 @@ describe('Schema Drift Gate', () => {
   });
 
   it('should produce valid TypeScript types', () => {
-    const result = spawnSync('tsx', [GENOME_SCRIPT], { cwd: ROOT, stdio: 'pipe' });
-    expect(result.status).toBe(0);
+    expect(genomeResult.status).toBe(0);
 
     // Check that generated files exist and are valid TS
     const schemasFile = join(GEN_DIR, 'schemas.ts');
@@ -95,8 +86,7 @@ describe('Schema Drift Gate', () => {
   });
 
   it('should produce valid JSON Schema for MCP surface', () => {
-    const result = spawnSync('tsx', [GENOME_SCRIPT], { cwd: ROOT, stdio: 'pipe' });
-    expect(result.status).toBe(0);
+    expect(genomeResult.status).toBe(0);
 
     const jsonSchemaDir = join(GEN_DIR, 'json-schema');
     expect(existsSync(jsonSchemaDir)).toBe(true);
