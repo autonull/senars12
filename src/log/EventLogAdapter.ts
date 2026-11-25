@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import type { LogStore } from './store';
-import { createLogStore } from './store';
+import { createLogStore, createInMemoryLogStore } from './store';
 import type {
   LogEntry,
   CognitiveEvent,
@@ -254,7 +254,7 @@ export function createLogStoreEventLogFromStore(store: LogStore): LogStoreEventL
 
 export class InMemoryEventLog extends LogStoreEventLog {
   constructor() {
-    const store = createLogStore();
+    const store = createInMemoryLogStore();
     super(store);
     // Open the store synchronously for compatibility
     store.open().catch(() => {});

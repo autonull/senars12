@@ -1,5 +1,5 @@
 import { Agent, isDurableEvent, recalledEventTypes, LogStoreEventLog } from '@senars/agent';
-import { createLogStore } from '@senars/log';
+import { createInMemoryLogStore } from '@senars/log';
 import { mintCognitiveEvent } from '@senars/agent';
 import { NAREngine } from '@senars/agent';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
@@ -19,7 +19,7 @@ import { rmSync } from 'node:fs';
  */
 
 const startedAgent = async (): Promise<{ agent: Agent; log: LogStoreEventLog; nar: NAREngine['nar'] }> => {
-  const log = new LogStoreEventLog(createLogStore({ syncOnAppend: false }));
+  const log = new LogStoreEventLog(createInMemoryLogStore());
   await log.store.open();
   const agent = new Agent({ id: 'core19-c1', log });
   const engine = new NAREngine(undefined, (event) => agent.emitCognitive(event));

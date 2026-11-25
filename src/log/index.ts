@@ -14,5 +14,5 @@ export type {
 } from './events';
 export { LogStoreEventLog, InMemoryEventLog } from './EventLogAdapter';
 export { createLogStoreEventLog, createLogStoreEventLogFromStore } from './EventLogAdapter';
-export { createLogStore } from './store';
+export { createLogStore, createInMemoryLogStore, InMemoryLogStore } from './store';
 export { replayTaskAdmissions } from './EventLogPersistence';

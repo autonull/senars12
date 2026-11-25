@@ -305,3 +305,132 @@ export class LogStore {
 export const createLogStore = (config?: Partial<LogStoreConfig>): LogStore => {
   return new LogStore(config);
 };
+
+/**
+ * In-memory LogStore implementation for testing.
+ * Stores all data in memory without filesystem I/O.
+ */
+export class InMemoryLogStore extends LogStore {
+  private memorySegments: Buffer[] = [];
+  private memoryIndex: IndexEntry[] = [];
+  private memorySeq = 0;
+  private memoryClosed = false;
+
+  constructor() {
+    // Call parent with minimal config, but we'll override the methods
+    super({ dir: ':memory:', syncOnAppend: false });
+    // Unregister from finalization since we don't need it
+    logStoreFinalization.unregister(this);
+  }
+
+  override async open(): Promise<void> {
+    if (this.memoryClosed && this.memorySegments.length > 0) {
+      return;
+    }
+    this.memoryClosed = false;
+    // Initialize with one empty segment
+    if (this.memorySegments.length === 0) {
+      this.memorySegments.push(Buffer.alloc(0));
+    }
+  }
+
+  override async append(event: CognitiveEvent, options: { parents?: UUID[]; ts?: TimestampMs } = {}): Promise<number> {
+    if (this.memoryClosed) throw new SenarsError('Log store is closed', 'VALIDATION_ERROR', { storeDir: ':memory:' });
+
+    const entryBase = createLogEntry(event, options);
+    const seq = ++this.memorySeq;
+    const id = crypto.randomUUID();
+    const hash = hashEntry(entryBase);
+
+    const entry: LogEntry = { ...entryBase, seq, id, hash };
+    const line = JSON.stringify(entry) + '\n';
+    const buffer = Buffer.from(line, 'utf-8');
+
+    // Append to current segment
+    const currentSegment = this.memorySegments[this.memorySegments.length - 1];
+    const newSegment = Buffer.concat([currentSegment, buffer]);
+    this.memorySegments[this.memorySegments.length - 1] = newSegment;
+
+    this.memoryIndex.push({
+      seq,
+      id,
+      ts: entry.ts,
+      offset: currentSegment.length,
+      length: buffer.length,
+      segment: this.memorySegments.length - 1,
+    });
+
+    // No sync needed for in-memory
+    // Check rotation (simplified - just create new segment if over size)
+    if (newSegment.length >= this.config.segmentSize || this.memoryIndex.length >= this.config.maxEntriesPerSegment) {
+      this.memorySegments.push(Buffer.alloc(0));
+    }
+
+    return seq;
+  }
+
+  override async read(seq: number): Promise<LogEntry | null> {
+    const idx = this.memoryIndex.find((e) => e.seq === seq);
+    if (!idx) return null;
+
+    const segment = this.memorySegments[idx.segment];
+    if (!segment) return null;
+
+    const buffer = segment.subarray(idx.offset, idx.offset + idx.length);
+    const line = buffer.toString('utf-8').trim();
+    return JSON.parse(line) as LogEntry;
+  }
+
+  override async readRange(start: number, end: number): Promise<LogEntry[]> {
+    const results: LogEntry[] = [];
+    for (let seq = start; seq <= end; seq++) {
+      const entry = await this.read(seq);
+      if (entry) results.push(entry);
+    }
+    return results;
+  }
+
+  override async query(options: { fromSeq?: number; toSeq?: number; limit?: number; types?: string[] } = {}): Promise<LogEntry[]> {
+    const { fromSeq = 1, toSeq = this.memorySeq, limit = 1000, types } = options;
+    const results: LogEntry[] = [];
+    for (let seq = fromSeq; seq <= toSeq && results.length < limit; seq++) {
+      const entry = await this.read(seq);
+      if (entry && (!types || types.includes(entry.type))) {
+        results.push(entry);
+      }
+    }
+    return results;
+  }
+
+  override getFirstSeq(): number {
+    return this.memoryIndex[0]?.seq ?? 1;
+  }
+
+  override getLastSeq(): number {
+    return this.memorySeq;
+  }
+
+  override async close(): Promise<void> {
+    if (this.memoryClosed) return;
+    this.memoryClosed = true;
+    this.memorySegments = [];
+    this.memoryIndex = [];
+    this.memorySeq = 0;
+  }
+
+  override getStats(): { segments: number; entries: number; size: number; currentSeq: number } {
+    return {
+      segments: this.memorySegments.length,
+      entries: this.memoryIndex.length,
+      size: this.memorySegments.reduce((sum, s) => sum + s.length, 0),
+      currentSeq: this.memorySeq,
+    };
+  }
+}
+
+/**
+ * Create an in-memory log store for testing.
+ */
+export const createInMemoryLogStore = (): InMemoryLogStore => {
+  return new InMemoryLogStore();
+};

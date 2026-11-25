@@ -164,7 +164,7 @@ export { BaseComponent } from './agent/Lifecycle';
 
 // Log
 export { LogStoreEventLog, InMemoryEventLog, createLogStoreEventLog, createLogStoreEventLogFromStore } from './log/index';
-export { createLogStore, type LogStore } from './log/store';
+export { createLogStore, createInMemoryLogStore, type LogStore, InMemoryLogStore } from './log/store';
 
 // Terms
 export {
