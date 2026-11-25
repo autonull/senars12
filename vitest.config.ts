@@ -13,30 +13,6 @@ const normalizeImportsPlugin = {
   },
 };
 
-// Debug plugin to trace import resolution
-const debugResolverPlugin = {
-  name: 'debug-resolver',
-  enforce: 'pre' as const,
-  resolveId(id, importer) {
-    if (id.includes('llamacpp') || id.includes('ui-contract') || id.includes('in-memory-session-manager') || id.includes('unify')) {
-      console.log('[DEBUG] Resolving:', id, 'from', importer);
-    }
-    return null;
-  },
-};
-
-// Debug plugin to trace transform errors
-const debugTransformPlugin = {
-  name: 'debug-transform',
-  enforce: 'post' as const,
-  transform(code, id) {
-    if (id.includes('llamacpp')) {
-      console.log('[DEBUG] Transforming:', id);
-    }
-    return null;
-  },
-};
-
 // Minimal explicit aliases only — tsconfigPaths handles the rest via tsconfig.root.json paths
 const aliases = [
   // Non-standard mappings (don't follow @senars/pkg/* -> ./src/pkg/* pattern)
@@ -664,10 +640,8 @@ const aliases = [
   { find: 'lit/static-html', replacement: path.resolve(__dirname, './ui/node_modules/lit/static-html.js') },
 ];
 
-console.log('Vitest aliases loaded:', aliases.length);
-
 export default defineConfig({
-  plugins: [normalizeImportsPlugin, debugResolverPlugin, debugTransformPlugin],
+  plugins: [normalizeImportsPlugin],
   resolve: {
     alias: aliases,
     tsconfigPaths: true,
@@ -700,11 +674,11 @@ export default defineConfig({
     ],
     setupFiles: ['./tests/setup/vitest-setup.ts'],
     testTimeout: 15000,
-    teardownTimeout: 5000,
+    teardownTimeout: 10000,
     coverage: { provider: 'v8', reporter: ['text', 'json', 'html'] },
     // Forks pool for E2E (native modules); threads for unit tests (shared module cache).
     pool: process.env.VITEST_E2E ? 'forks' : 'threads',
-    maxConcurrency: 16,
+    maxConcurrency: 8,
     // Isolation only for E2E; unit tests share module cache to avoid 354x import overhead.
     isolate: !!process.env.VITEST_E2E,
     // Cache transformed modules on disk; reuse across reruns/cold starts.
