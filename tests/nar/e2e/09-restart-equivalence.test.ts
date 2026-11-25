@@ -4,6 +4,7 @@ import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createSeNARSRegistry } from '@senars/lm';
 import { createLMService } from '@senars/lm/lm-service';
+import { createLogStore } from '@senars/log';
 
 const testStateDir = join(process.cwd(), '.cache', 'test-restart-equivalence');
 
@@ -42,6 +43,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
   test('restart with persisted state reconstructs identical committed state', async () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
+    const logStore = createLogStore({ dir: testStateDir, syncOnAppend: false });
 
     // NAR 1: create, add beliefs, run cycles, stop (saves state)
     const nar1 = createNAR({
@@ -50,6 +52,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
       persistState: true,
       statePath: testStateDir,
       maxConcepts: 1000,
+      logStore,
     });
 
     await nar1.start();
@@ -97,6 +100,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
   test('restart at capacity stresses eviction and archive paths', async () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
+    const logStore = createLogStore({ dir: testStateDir, syncOnAppend: false });
 
     const nar1 = createNAR({
       providerRegistry: registry,
@@ -104,6 +108,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
       persistState: true,
       statePath: testStateDir,
       maxConcepts: 50, // small capacity to trigger eviction
+      logStore,
     });
 
     await nar1.start();
@@ -141,6 +146,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
   test('restart with maxTasks pressure', { timeout: 60000 }, async () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
+    const logStore = createLogStore({ dir: testStateDir, syncOnAppend: false });
 
     const nar1 = createNAR({
       providerRegistry: registry,
@@ -148,6 +154,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
       persistState: true,
       statePath: testStateDir,
       maxConcepts: 100,
+      logStore,
     });
 
     await nar1.start();
