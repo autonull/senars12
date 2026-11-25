@@ -59,27 +59,3 @@ export function isUnifiable(a: Term, b: Term): boolean {
   const result = unifyImpl(a, b, {});
   return result.success;
 }
-
-/** Standardize variables apart (rename to avoid conflicts). */
-export function standardizeApart(term: Term, prefix = '_'): Term {
-  const generator = new VariableGenerator(prefix);
-  const mapping = new Map<string, string>();
-
-  function rename(t: Term): Term {
-    if (t.op === TermOp.VARIABLE) {
-      const newName = mapping.get(t.name) ?? (() => {
-        const n = generator.fresh().name;
-        mapping.set(t.name, n);
-        return n;
-      })();
-      return { ...t, name: newName };
-    }
-    if (t.op === TermOp.CONSTANT) return t;
-
-    const newArgs = t.args.map(rename);
-    if (newArgs === t.args) return t;
-    return { ...t, args: newArgs };
-  }
-
-  return rename(term);
-}
