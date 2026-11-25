@@ -38,23 +38,6 @@ export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './e
 export { NarEventBus } from './events';
 
 // Re-export utility types/functions from @senars/util (single source of truth)
-export type {
-  Err,
-  Ok,
-  Result,
-} from '@senars/util/result';
-export {
-  attempt,
-  attemptAsync,
-  err,
-  flatMap,
-  getOrElse,
-  isErr,
-  isOk,
-  map,
-  ok,
-  unwrapOrThrow,
-} from '@senars/util/result';
 export {
   ConfigurationError,
   OperationError,
