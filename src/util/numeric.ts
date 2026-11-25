@@ -268,14 +268,24 @@ export const nearlyEqual = (a: number, b: number, eps = Number.EPSILON * 8): boo
 
 /** The max is a loop, not `Math.max(...values)`: the spread is a call-arity limit. */
 export const softmax = (values: readonly number[]): number[] => {
-  if (values.length === 0) return [];
+  const n = values.length;
+  if (n === 0) return [];
   let max = Number.NEGATIVE_INFINITY;
-  for (const value of values) if (value > max) max = value;
-  const exps = values.map((v) => Math.exp(v - max));
-  // One denominator, not one per element: recomputing it inside the map made
-  // this quadratic, and it runs over a whole bag on every selection.
-  const total = sumBy(exps);
-  return exps.map((e) => safeRatio(e, total));
+  for (let i = 0; i < n; i++) {
+    const v = values[i]!;
+    if (v > max) max = v;
+  }
+  const exps = new Array<number>(n);
+  let total = 0;
+  for (let i = 0; i < n; i++) {
+    const e = Math.exp(values[i]! - max);
+    exps[i] = e;
+    total += e;
+  }
+  for (let i = 0; i < n; i++) {
+    exps[i] = safeRatio(exps[i]!, total);
+  }
+  return exps;
 };
 
 /**
@@ -286,8 +296,30 @@ export const softmaxWeights = <T>(
   items: readonly T[],
   scoreOf: (item: T) => number
 ): Array<{ item: T; weight: number }> => {
-  const exps = softmax(items.map(scoreOf));
-  return items.map((item, i) => ({ item, weight: exps[i]! }));
+  const n = items.length;
+  if (n === 0) return [];
+  // First pass: compute scores and find max
+  let max = Number.NEGATIVE_INFINITY;
+  const scores = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    const s = scoreOf(items[i]!);
+    scores[i] = s;
+    if (s > max) max = s;
+  }
+  // Second pass: compute exps and total
+  const exps = new Array<number>(n);
+  let total = 0;
+  for (let i = 0; i < n; i++) {
+    const e = Math.exp(scores[i]! - max);
+    exps[i] = e;
+    total += e;
+  }
+  // Third pass: build result with normalized weights
+  const result: Array<{ item: T; weight: number }> = new Array(n);
+  for (let i = 0; i < n; i++) {
+    result[i] = { item: items[i]!, weight: safeRatio(exps[i]!, total) };
+  }
+  return result;
 };
 
 /**
