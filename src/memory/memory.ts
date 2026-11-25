@@ -386,12 +386,21 @@ export class Memory implements MemoryPorts {
    */
   sampleWindow(windowSize: number, rng: RandomSource): Concept[] {
     if (windowSize <= 0) return [];
-    // `toSorted` by the same key: `sortBy` wraps every entry in a `{item, key}` pair and
-    // calls the key once per element *and* per comparison, so ranking cost C wrapper
-    // objects and ~C log C closure calls per window.
-    const sorted = this.residentEntries().toSorted((a, b) => b.value.priority - a.value.priority);
-    const start = sorted.length > windowSize ? nextInt(rng, sorted.length - windowSize + 1) : 0;
-    return sorted.slice(start, start + windowSize).map((entry) => entry.value);
+    const entries = this.residentEntries();
+    const len = entries.length;
+    if (len === 0) return [];
+    if (len <= windowSize) return entries.map((e) => e.value);
+
+    // Extract concepts to array and sort by priority descending.
+    // This avoids the TermMapEntry wrapper and closure overhead from toSorted().
+    const concepts = new Array(len);
+    for (let i = 0; i < len; i++) {
+      concepts[i] = entries[i]!.value;
+    }
+    concepts.sort((a, b) => b.priority - a.priority);
+
+    const start = nextInt(rng, len - windowSize + 1);
+    return concepts.slice(start, start + windowSize);
   }
 
   consolidate(opts?: { cycleCount?: number }): void {
