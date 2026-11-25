@@ -117,6 +117,8 @@ export interface Bag<T extends BagItem> {
   remove(id: string): boolean;
   /** Remove all items matching a predicate. */
   removeAll(predicate: (item: T) => boolean): number;
+  /** Alias for removeAll. */
+  removeMany(predicate: (item: T) => boolean): number;
   /** Get an item by id. */
   get(id: string): T | undefined;
   /** Get all items as array, sorted by priority descending. */
@@ -167,12 +169,15 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
   // Incremental tracking for O(1) eviction
   #minPriorityEntry: InternalEntry<T> | null = null;
+  // O(1) peek cache - tracks the max priority entry
+  #peekCache: InternalEntry<T> | null = null;
   #oldestEntry: InternalEntry<T> | null = null;
   #lruEntry: InternalEntry<T> | null = null;
 
   #invalidateCache(): void {
     this.#sortedDirty = true;
     this.#sortedCache = null;
+    this.#peekCache = null;
   }
 
   #ensureSorted(): T[] {
@@ -256,12 +261,20 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.#updateMinPriority(entry, true);
     this.#updateOldest(entry, true);
     this.#updateLRU(entry, true);
+    this.#updatePeekCache(entry);
   }
 
   #updateTrackingOnUpdate(entry: InternalEntry<T>): void {
     this.#updateMinPriority(entry);
     this.#updateOldest(entry);
     this.#updateLRU(entry);
+    this.#updatePeekCache(entry);
+  }
+
+  #updatePeekCache(entry: InternalEntry<T>): void {
+    if (this.#peekCache === null || entry._currentPriority > this.#peekCache._currentPriority) {
+      this.#peekCache = entry;
+    }
   }
 
   constructor(options: BagOptions) {
@@ -341,7 +354,12 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     const entry = this.#items.get(id);
     const result = this.#items.delete(id);
     if (result) {
-      if (entry) this.#removeTracking(entry);
+      if (entry) {
+        this.#removeTracking(entry);
+        if (this.#peekCache === entry) {
+          this.#peekCache = null;
+        }
+      }
       this.#version++;
       this.#invalidateCache();
       this.#updatePressure();
@@ -351,19 +369,28 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
   removeAll(predicate: (item: T) => boolean): number {
     let count = 0;
+    let peekInvalidated = false;
     for (const [id, entry] of this.#items) {
       if (predicate(entry._item)) {
         this.#items.delete(id);
         this.#removeTracking(entry);
+        if (this.#peekCache === entry) {
+          peekInvalidated = true;
+        }
         count++;
       }
     }
     if (count > 0) {
+      if (peekInvalidated) this.#peekCache = null;
       this.#version++;
       this.#invalidateCache();
       this.#updatePressure();
     }
     return count;
+  }
+
+  removeMany(predicate: (item: T) => boolean): number {
+    return this.removeAll(predicate);
   }
 
   get(id: string): T | undefined {
@@ -415,7 +442,8 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.#items.set(id, updated);
     this.#updateTrackingOnUpdate(updated);
     this.#version++;
-    this.#invalidateCache();
+    this.#sortedDirty = true;
+    this.#sortedCache = null;
     return true;
   }
 
@@ -430,6 +458,8 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (this.#decayRate <= 0 && this.#forgetRate <= 0) return;
     const now = this.#clock();
     let hasChanges = false;
+    let newPeekEntry: InternalEntry<T> | null = null;
+
     for (const [id, entry] of this.#items) {
       const ageSeconds = (now - entry._insertedAt) / 1000;
       const decay = this.#decayRate * ageSeconds;
@@ -441,20 +471,26 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         this.#removeTracking(entry);
         hasChanges = true;
       } else if (newPriority !== entry._currentPriority) {
-        const updated: InternalEntry<T> = {
-          ...entry,
-          _currentPriority: newPriority,
-          priority: newPriority,
-        };
-        this.#items.set(id, updated);
-        this.#updateTrackingOnUpdate(updated);
+        entry._currentPriority = newPriority;
+        entry.priority = newPriority;
+        if (newPeekEntry === null || newPriority > newPeekEntry._currentPriority) {
+          newPeekEntry = entry;
+        } else if (newPeekEntry === null || entry._currentPriority > newPeekEntry._currentPriority) {
+          newPeekEntry = entry;
+        }
         hasChanges = true;
+      } else if (newPeekEntry === null || entry._currentPriority > newPeekEntry._currentPriority) {
+        newPeekEntry = entry;
       }
     }
+
     if (hasChanges) {
+      this.#peekCache = newPeekEntry;
       this.#version++;
       this.#invalidateCache();
       this.#updatePressure();
+    } else if (newPeekEntry !== null) {
+      this.#peekCache = newPeekEntry;
     }
   }
 
@@ -488,6 +524,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   /** Get the highest-priority item without removing it. */
   peek(): T | undefined {
     if (this.#items.size === 0) return undefined;
+    if (this.#peekCache !== null) {
+      return this.#peekCache._item;
+    }
     if (!this.#sortedDirty && this.#sortedCache && this.#sortedCache.length > 0) {
       return this.#sortedCache[0];
     }
@@ -499,6 +538,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         bestEntry = entry;
       }
     }
+    this.#peekCache = bestEntry;
     return bestEntry?._item;
   }
 
@@ -532,6 +572,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.#minPriorityEntry = null;
     this.#oldestEntry = null;
     this.#lruEntry = null;
+    this.#peekCache = null;
     this.#version++;
     this.#invalidateCache();
     this.#updatePressure();
@@ -584,7 +625,12 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (victimId) {
       const entry = this.#items.get(victimId);
       this.#items.delete(victimId);
-      if (entry) this.#removeTracking(entry);
+      if (entry) {
+        this.#removeTracking(entry);
+        if (this.#peekCache === entry) {
+          this.#peekCache = null;
+        }
+      }
       this.#version++;
       this.#invalidateCache();
       return true;
