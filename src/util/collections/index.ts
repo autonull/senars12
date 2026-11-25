@@ -17,6 +17,10 @@ export {
   chunk,
 } from './ring-buffer';
 
+export {
+  BoundedMap,
+} from '../bounded-map';
+
 export type {
   ReadOnlyLookup,
   BoundedContainer,
@@ -24,6 +28,10 @@ export type {
   KeyedSetStore,
   OverflowPolicy,
 } from './ring-buffer';
+
+export type {
+  BoundedMapOptions,
+} from '../bounded-map';
 
 export {
   getOrInsert,

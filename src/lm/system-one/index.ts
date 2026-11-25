@@ -37,7 +37,18 @@ export * from './resource-gate';
 export * from './rule-adapter';
 export * from './seed';
 export * from './trace-grader';
-export * from './train';
+export { actionFeatures, ACTION_FEATURE_SEED, GAME_FEATURE_SEED } from './features';
+export { parseActionFromInstruction } from './features';
+export { loadTrainingData } from './data-loading';
+export { solveLinearSystem } from './linear-algebra';
+export { trainHead } from './head-training';
+export { bakeOffSharedHead } from './bakeoff';
+export {
+  exportArtifacts,
+  writeHeadArtifacts,
+  loadHeadArtifacts,
+} from './head-artifacts';
+export { TrainedLinearHead } from './trained-head';
 export * from './types';
 export * from './verify';
 export * from './wake-gate';
