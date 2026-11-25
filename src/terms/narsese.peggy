@@ -58,15 +58,17 @@ TruthValue
     }
 
 Term "term"
-  = Statement
+  = Variable
+  / StringLiteral
+  / ImagePlaceholder
   / CompactInheritance
   / NegationTerm
   / DeltaTerm
   / CompoundTerm
-  / Set
-  / Variable
-  / ImagePlaceholder
+  / OperationTerm
   / AtomicTerm
+  / Set
+  / Statement
 
 // The callee in `f(x, y)`. Colons are allowed because an operation name is an
 // atom in every other position, and `profile:test` has to name the same atom
@@ -96,6 +98,15 @@ DeltaTerm
 ImagePlaceholder
   = "\\" { return options.termFactory.atom('\\'); }
   / "/" { return options.termFactory.atom('/'); }
+
+OperationTerm
+  = operator:OperationAtomicTerm "(" _ components:TermList? _ ")" {
+      const args = components || [];
+      return options.termFactory.operation(
+        operator,
+        args.length === 1 ? args[0] : options.termFactory.product(...args)
+      );
+    }
 
 CompoundTerm
   = "(" _ "--" _ term:Term _ ")" {
