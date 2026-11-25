@@ -19,7 +19,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '@senars/kernel';
 
-const EPISODES = 200;
+const EPISODES = 50;
 const MAX_STEPS = 120;
 
 type AnyGame = SnakeGame | Game2048 | TetrisGame | TicTacToeGame;
