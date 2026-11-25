@@ -180,22 +180,24 @@ export const foldTerm = <T>(term: Term, fn: (acc: T, t: Term) => T, initial: T):
 };
 
 /** Deepest nesting below the root; a bare atom has depth 0. */
-export const termDepth = (term: Term): number => {
-  let max = 0;
-  walkTerms(term, (_t, depth) => {
-    max = Math.max(max, depth);
+export const termDepth = (term: Term): number =>
+  memoFact(term, 'depth', (t) => {
+    let max = 0;
+    walkTerms(t, (_u, depth) => {
+      max = Math.max(max, depth);
+    });
+    return max;
   });
-  return max;
-};
 
 /** Node count including the root. */
-export const termSize = (term: Term): number => {
-  let n = 0;
-  walkTerms(term, () => {
-    n++;
+export const termSize = (term: Term): number =>
+  memoFact(term, 'size', (t) => {
+    let n = 0;
+    walkTerms(t, () => {
+      n++;
+    });
+    return n;
   });
-  return n;
-};
 
 /**
  * Terms are interned by `TermFactory`, so structurally equal terms are the same
@@ -220,6 +222,8 @@ interface TermFacts {
   variable?: boolean;
   repeatedArgs?: boolean;
   negatedPair?: boolean;
+  depth?: number;
+  size?: number;
 }
 
 type FactValue = TermFacts[keyof TermFacts];
