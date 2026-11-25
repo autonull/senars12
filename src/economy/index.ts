@@ -13,8 +13,6 @@ export * from './aging';
 export type { PickRecord } from './types';
 
 import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types';
-import type { Env } from '../kernel/env';
-import type { Clock, RNG } from '../kernel/env';
 import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging';
 import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility-voi';
 import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './learning/';
@@ -24,6 +22,8 @@ import { createTimePressureOverlay, createLearningOverlay, createMaintenanceOver
 import { getDriveContribution, type Drive, type DriveType, DEFAULT_DRIVES } from './overlays-drives';
 import {
   createInitialState,
+  createEconomyState,
+  createEconomyStateFromEnv,
   addTask,
   removeTask,
   updateTask,
@@ -36,25 +36,8 @@ import {
   getStats,
   getPickHistory,
   setSeed,
+  defaultEconomyState,
   type SchedulerResult,
   type FairnessCheck,
   type FairnessViolation,
 } from './scheduler';
-
-/** Create initial economy state from config. */
-export function createEconomyState(config?: Partial<SchedulerConfig>): EconomyState {
-  return createInitialState(config);
-}
-
-/** Create initial economy state from Env. */
-export function createEconomyStateFromEnv(env: Env, config?: Partial<SchedulerConfig>): EconomyState {
-  return createInitialState({
-    ...config,
-    rng: env.rng,
-    clock: env.clock,
-    seed: config?.seed,
-  });
-}
-
-/** Default economy state. */
-export const defaultEconomyState = createInitialState();
