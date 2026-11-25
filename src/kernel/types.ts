@@ -58,20 +58,11 @@ export interface Stamp {
   readonly evidence: number;
 }
 
-/** Soft squash function for confidence weakening. */
-export function softSquash(c: number, factor = 10): number {
-  return c / (1 + c * factor);
-}
-
-/** Convert confidence to weight (evidence count). */
-export function confidenceToWeight(c: number): number {
-  return c === 1 ? Infinity : c / (1 - c);
-}
-
-/** Convert weight to confidence. */
-export function weightToConfidence(w: number): number {
-  return w === Infinity ? 1 : w / (1 + w);
-}
+import {
+  confidenceToWeight,
+  weightToConfidence,
+  weakenSquash as softSquash,
+} from './truth-constants';
 
 /** Parse truth literal from string. */
 export function parseTruthLiteral(s: string): { f: number; c: number } | null {
