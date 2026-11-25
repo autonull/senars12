@@ -81,9 +81,6 @@ export {
   toSchemaTruth,
   fromSchemaTruth,
   parseTruthLiteral,
-  formatTruth,
-  formatSchemaTruth,
-  serializeTruth,
 } from './types';
 
 export {

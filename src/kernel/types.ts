@@ -58,32 +58,11 @@ export interface Stamp {
   readonly evidence: number;
 }
 
-import {
-  confidenceToWeight,
-  weightToConfidence,
-  weakenSquash as softSquash,
-} from './truth-constants';
-
 /** Parse truth literal from string. */
 export function parseTruthLiteral(s: string): { f: number; c: number } | null {
   const match = /%([\d.]+);([\d.]+)%/.exec(s);
   if (!match) return null;
   return { f: parseFloat(match[1]!), c: parseFloat(match[2]!) };
-}
-
-/** Format truth as string (internal format). */
-export function formatTruth(t: TruthValue, digits = 2): string {
-  return `%${t.f.toFixed(digits)};${t.c.toFixed(digits)}%`;
-}
-
-/** Format truth as string (schema format). */
-export function formatSchemaTruth(t: TruthValueSchema, digits = 2): string {
-  return `%${t.frequency.toFixed(digits)};${t.confidence.toFixed(digits)}%`;
-}
-
-/** Serialize truth. */
-export function serializeTruth(t: TruthValue): string {
-  return formatTruth(t);
 }
 
 /** Task type enumeration. */
