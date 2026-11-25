@@ -136,25 +136,47 @@ function selectBest<T, K>(
   if (n <= 0) return [];
   const kept: T[] = [];
   const keys: K[] = [];
-  for (const item of items) {
-    if (!eligible(item)) continue;
-    const k = key(item);
-    if (kept.length === n) {
-      if (!better(k, keys[n - 1]!)) continue;
-      kept[n - 1] = item;
-      keys[n - 1] = k;
-    } else {
-      kept.push(item);
-      keys.push(k);
+
+  // Fast path: when eligible is always true, avoid function call overhead
+  const hasFilter = eligible !== (() => true) && eligible.length > 0;
+
+  if (hasFilter) {
+    for (const item of items) {
+      if (!eligible(item)) continue;
+      const k = key(item);
+      insertOrBubble(kept, keys, item, k, n, better);
     }
-    let i = kept.length - 1;
-    while (i > 0 && better(k, keys[i - 1]!)) {
-      kept[i] = kept[i - 1]!;
-      keys[i] = keys[i - 1]!;
-      i--;
+  } else {
+    for (const item of items) {
+      const k = key(item);
+      insertOrBubble(kept, keys, item, k, n, better);
     }
-    kept[i] = item;
-    keys[i] = k;
   }
   return kept;
+}
+
+function insertOrBubble<T, K>(
+  kept: T[],
+  keys: K[],
+  item: T,
+  k: K,
+  n: number,
+  better: (candidate: K, incumbent: K) => boolean
+): void {
+  if (kept.length === n) {
+    if (!better(k, keys[n - 1]!)) return;
+    kept[n - 1] = item;
+    keys[n - 1] = k;
+  } else {
+    kept.push(item);
+    keys.push(k);
+  }
+  let i = kept.length - 1;
+  while (i > 0 && better(k, keys[i - 1]!)) {
+    kept[i] = kept[i - 1]!;
+    keys[i] = keys[i - 1]!;
+    i--;
+  }
+  kept[i] = item;
+  keys[i] = k;
 }

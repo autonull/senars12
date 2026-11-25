@@ -162,8 +162,15 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
    * an array of the whole map per iteration, on every cache scan and layer sweep.
    */
   *#liveEntries(): Generator<[K, V]> {
+    if (this.#neverExpires) {
+      for (const [key, entry] of this.#entries) {
+        yield [key, entry.value];
+      }
+      return;
+    }
+    const now = this.#now();
     for (const [key, entry] of this.#entries) {
-      if (this.#expired(entry)) this.evict(key);
+      if (entry.expiresAt <= now) this.evict(key);
       else yield [key, entry.value];
     }
   }
