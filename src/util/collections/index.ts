@@ -23,7 +23,6 @@ export type {
   KeyedStore,
   KeyedSetStore,
   OverflowPolicy,
-  ContainerStats,
 } from './ring-buffer';
 
 export {
@@ -82,3 +81,5 @@ export {
 export {
   containerStats,
 } from './stats';
+
+export type { ContainerStats } from './stats';

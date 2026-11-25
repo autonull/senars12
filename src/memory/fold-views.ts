@@ -628,16 +628,21 @@ function createAnalyzer<T>(
   };
 }
 
-/** Capabilities analyzer fold view. */
-export interface CapabilitiesAnalyzerData {
-  capabilityUsage: Map<string, number>;
-  coverage: number;
+/** Analyzer definition for data-driven registration. */
+interface AnalyzerDef<T> {
+  name: string;
+  initialData: T;
+  emptyData: T;
+  rebuild: (data: T, log: Episode[]) => void;
 }
-export const createCapabilitiesAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<CapabilitiesAnalyzerData>(
-    'CapabilitiesAnalyzer',
-    { capabilityUsage: new Map(), coverage: 0 },
-    (data, log) => {
+
+/** All analyzer definitions — single source of truth for analyzer views. */
+const ANALYZER_DEFS = [
+  {
+    name: 'CapabilitiesAnalyzer',
+    initialData: { capabilityUsage: new Map<string, number>(), coverage: 0 } as { capabilityUsage: Map<string, number>; coverage: number },
+    emptyData: { capabilityUsage: new Map<string, number>(), coverage: 0 },
+    rebuild: (data: { capabilityUsage: Map<string, number>; coverage: number }, log: Episode[]) => {
       data.capabilityUsage.clear();
       let totalCapabilities = 0;
       for (const episode of log) {
@@ -649,19 +654,12 @@ export const createCapabilitiesAnalyzerView = (getLog: () => Episode[]) =>
       }
       data.coverage = totalCapabilities > 0 ? totalCapabilities / log.length : 0;
     },
-    { capabilityUsage: new Map(), coverage: 0 },
-    getLog
-  );
-
-/** Constants analyzer fold view. */
-export interface ConstantsAnalyzerData {
-  constantValues: Map<string, { value: unknown; count: number }>;
-}
-export const createConstantsAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<ConstantsAnalyzerData>(
-    'ConstantsAnalyzer',
-    { constantValues: new Map() },
-    (data, log) => {
+  },
+  {
+    name: 'ConstantsAnalyzer',
+    initialData: { constantValues: new Map<string, { value: unknown; count: number }>() },
+    emptyData: { constantValues: new Map<string, { value: unknown; count: number }>() },
+    rebuild: (data: { constantValues: Map<string, { value: unknown; count: number }> }, log: Episode[]) => {
       data.constantValues.clear();
       for (const episode of log) {
         const constants = episode.metadata?.constants as Record<string, unknown> ?? {};
@@ -672,38 +670,24 @@ export const createConstantsAnalyzerView = (getLog: () => Episode[]) =>
         }
       }
     },
-    { constantValues: new Map() },
-    getLog
-  );
-
-/** Corrections analyzer fold view. */
-export interface CorrectionsAnalyzerData {
-  corrections: Array<{ from: string; to: string; confidence: number }>;
-}
-export const createCorrectionsAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<CorrectionsAnalyzerData>(
-    'CorrectionsAnalyzer',
-    { corrections: [] },
-    (data, log) => {
+  },
+  {
+    name: 'CorrectionsAnalyzer',
+    initialData: { corrections: [] as Array<{ from: string; to: string; confidence: number }> },
+    emptyData: { corrections: [] as Array<{ from: string; to: string; confidence: number }> },
+    rebuild: (data: { corrections: Array<{ from: string; to: string; confidence: number }> }, log: Episode[]) => {
       data.corrections = [];
       for (const episode of log) {
         const correction = episode.metadata?.correction as { from: string; to: string; confidence: number } | undefined;
         if (correction) data.corrections.push(correction);
       }
     },
-    { corrections: [] },
-    getLog
-  );
-
-/** Performance analyzer fold view. */
-export interface PerformanceAnalyzerData {
-  metrics: Map<string, { mean: number; count: number }>;
-}
-export const createPerformanceAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<PerformanceAnalyzerData>(
-    'PerformanceAnalyzer',
-    { metrics: new Map() },
-    (data, log) => {
+  },
+  {
+    name: 'PerformanceAnalyzer',
+    initialData: { metrics: new Map<string, { mean: number; count: number }>() },
+    emptyData: { metrics: new Map<string, { mean: number; count: number }>() },
+    rebuild: (data: { metrics: Map<string, { mean: number; count: number }> }, log: Episode[]) => {
       data.metrics.clear();
       for (const episode of log) {
         const metrics = episode.metadata as Record<string, number> ?? {};
@@ -715,55 +699,33 @@ export const createPerformanceAnalyzerView = (getLog: () => Episode[]) =>
         }
       }
     },
-    { metrics: new Map() },
-    getLog
-  );
-
-/** Quality analyzer fold view. */
-export interface QualityAnalyzerData {
-  qualityScores: number[];
-  meanQuality: number;
-}
-export const createQualityAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<QualityAnalyzerData>(
-    'QualityAnalyzer',
-    { qualityScores: [], meanQuality: 0 },
-    (data, log) => {
+  },
+  {
+    name: 'QualityAnalyzer',
+    initialData: { qualityScores: [] as number[], meanQuality: 0 },
+    emptyData: { qualityScores: [] as number[], meanQuality: 0 },
+    rebuild: (data: { qualityScores: number[]; meanQuality: number }, log: Episode[]) => {
       data.qualityScores = log.map(e => (e.metadata?.quality as number) ?? 0).filter(q => q > 0);
       data.meanQuality = data.qualityScores.length > 0 ? data.qualityScores.reduce((a, b) => a + b, 0) / data.qualityScores.length : 0;
     },
-    { qualityScores: [], meanQuality: 0 },
-    getLog
-  );
-
-/** Reasoning patterns analyzer fold view. */
-export interface ReasoningPatternsAnalyzerData {
-  patterns: Map<string, number>;
-}
-export const createReasoningPatternsAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<ReasoningPatternsAnalyzerData>(
-    'ReasoningPatternsAnalyzer',
-    { patterns: new Map() },
-    (data, log) => {
+  },
+  {
+    name: 'ReasoningPatternsAnalyzer',
+    initialData: { patterns: new Map<string, number>() },
+    emptyData: { patterns: new Map<string, number>() },
+    rebuild: (data: { patterns: Map<string, number> }, log: Episode[]) => {
       data.patterns.clear();
       for (const episode of log) {
         const pattern = episode.metadata?.reasoningPattern as string | undefined;
         if (pattern) data.patterns.set(pattern, (data.patterns.get(pattern) ?? 0) + 1);
       }
     },
-    { patterns: new Map() },
-    getLog
-  );
-
-/** Resources analyzer fold view. */
-export interface ResourcesAnalyzerData {
-  resourceUsage: Map<string, { mean: number; peak: number; count: number }>;
-}
-export const createResourcesAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<ResourcesAnalyzerData>(
-    'ResourcesAnalyzer',
-    { resourceUsage: new Map() },
-    (data, log) => {
+  },
+  {
+    name: 'ResourcesAnalyzer',
+    initialData: { resourceUsage: new Map<string, { mean: number; peak: number; count: number }>() },
+    emptyData: { resourceUsage: new Map<string, { mean: number; peak: number; count: number }>() },
+    rebuild: (data: { resourceUsage: Map<string, { mean: number; peak: number; count: number }> }, log: Episode[]) => {
       data.resourceUsage.clear();
       for (const episode of log) {
         const resources = episode.metadata?.resources as Record<string, number> ?? {};
@@ -776,20 +738,12 @@ export const createResourcesAnalyzerView = (getLog: () => Episode[]) =>
         }
       }
     },
-    { resourceUsage: new Map() },
-    getLog
-  );
-
-/** Term patterns analyzer fold view. */
-export interface TermPatternsAnalyzerData {
-  termFrequency: Map<string, number>;
-  coOccurrence: Map<string, Map<string, number>>;
-}
-export const createTermPatternsAnalyzerView = (getLog: () => Episode[]) =>
-  createAnalyzer<TermPatternsAnalyzerData>(
-    'TermPatternsAnalyzer',
-    { termFrequency: new Map(), coOccurrence: new Map() },
-    (data, log) => {
+  },
+  {
+    name: 'TermPatternsAnalyzer',
+    initialData: { termFrequency: new Map<string, number>(), coOccurrence: new Map<string, Map<string, number>>() },
+    emptyData: { termFrequency: new Map<string, number>(), coOccurrence: new Map<string, Map<string, number>>() },
+    rebuild: (data: { termFrequency: Map<string, number>; coOccurrence: Map<string, Map<string, number>> }, log: Episode[]) => {
       data.termFrequency.clear();
       data.coOccurrence.clear();
       for (const episode of log) {
@@ -804,9 +758,41 @@ export const createTermPatternsAnalyzerView = (getLog: () => Episode[]) =>
         }
       }
     },
-    { termFrequency: new Map(), coOccurrence: new Map() },
-    getLog
-  );
+  },
+] as const satisfies readonly AnalyzerDef<any>[];
+
+/** Generated analyzer view creators — one per definition. */
+export interface CapabilitiesAnalyzerData { capabilityUsage: Map<string, number>; coverage: number; }
+export const createCapabilitiesAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[0].name, ANALYZER_DEFS[0].initialData, ANALYZER_DEFS[0].rebuild, ANALYZER_DEFS[0].emptyData, getLog);
+
+export interface ConstantsAnalyzerData { constantValues: Map<string, { value: unknown; count: number }>; }
+export const createConstantsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[1].name, ANALYZER_DEFS[1].initialData, ANALYZER_DEFS[1].rebuild, ANALYZER_DEFS[1].emptyData, getLog);
+
+export interface CorrectionsAnalyzerData { corrections: Array<{ from: string; to: string; confidence: number }>; }
+export const createCorrectionsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[2].name, ANALYZER_DEFS[2].initialData, ANALYZER_DEFS[2].rebuild, ANALYZER_DEFS[2].emptyData, getLog);
+
+export interface PerformanceAnalyzerData { metrics: Map<string, { mean: number; count: number }>; }
+export const createPerformanceAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[3].name, ANALYZER_DEFS[3].initialData, ANALYZER_DEFS[3].rebuild, ANALYZER_DEFS[3].emptyData, getLog);
+
+export interface QualityAnalyzerData { qualityScores: number[]; meanQuality: number; }
+export const createQualityAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[4].name, ANALYZER_DEFS[4].initialData, ANALYZER_DEFS[4].rebuild, ANALYZER_DEFS[4].emptyData, getLog);
+
+export interface ReasoningPatternsAnalyzerData { patterns: Map<string, number>; }
+export const createReasoningPatternsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[5].name, ANALYZER_DEFS[5].initialData, ANALYZER_DEFS[5].rebuild, ANALYZER_DEFS[5].emptyData, getLog);
+
+export interface ResourcesAnalyzerData { resourceUsage: Map<string, { mean: number; peak: number; count: number }>; }
+export const createResourcesAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[6].name, ANALYZER_DEFS[6].initialData, ANALYZER_DEFS[6].rebuild, ANALYZER_DEFS[6].emptyData, getLog);
+
+export interface TermPatternsAnalyzerData { termFrequency: Map<string, number>; coOccurrence: Map<string, Map<string, number>>; }
+export const createTermPatternsAnalyzerView = (getLog: () => Episode[]) =>
+  createAnalyzer(ANALYZER_DEFS[7].name, ANALYZER_DEFS[7].initialData, ANALYZER_DEFS[7].rebuild, ANALYZER_DEFS[7].emptyData, getLog);
 
 /** Registry of all fold views using KeyedRegistry. */
 import { KeyedRegistry } from '../util/keyed-collection';
@@ -862,6 +848,18 @@ export class FoldViewRegistry {
 }
 
 /** Create a complete fold view registry with all standard views. */
+/** Map analyzer name to its creator function. */
+const ANALYZER_CREATORS: Record<string, (getLog: () => Episode[]) => AnalyzerFoldView<any>> = {
+  CapabilitiesAnalyzer: createCapabilitiesAnalyzerView,
+  ConstantsAnalyzer: createConstantsAnalyzerView,
+  CorrectionsAnalyzer: createCorrectionsAnalyzerView,
+  PerformanceAnalyzer: createPerformanceAnalyzerView,
+  QualityAnalyzer: createQualityAnalyzerView,
+  ReasoningPatternsAnalyzer: createReasoningPatternsAnalyzerView,
+  ResourcesAnalyzer: createResourcesAnalyzerView,
+  TermPatternsAnalyzer: createTermPatternsAnalyzerView,
+};
+
 export function createFoldViewRegistry(
   getLog: () => Episode[],
   embeddingGenerator: any
@@ -873,14 +871,12 @@ export function createFoldViewRegistry(
   registry.register(createAssociativeMemoryView(getLog));
   registry.register(createEmbeddingLayerView(getLog, embeddingGenerator));
   registry.register(createEpisodeConsolidatorView(getLog));
-  registry.register(createCapabilitiesAnalyzerView(getLog));
-  registry.register(createConstantsAnalyzerView(getLog));
-  registry.register(createCorrectionsAnalyzerView(getLog));
-  registry.register(createPerformanceAnalyzerView(getLog));
-  registry.register(createQualityAnalyzerView(getLog));
-  registry.register(createReasoningPatternsAnalyzerView(getLog));
-  registry.register(createResourcesAnalyzerView(getLog));
-  registry.register(createTermPatternsAnalyzerView(getLog));
+  
+  // Register all analyzer views from the single source of truth
+  for (const def of ANALYZER_DEFS) {
+    const creator = ANALYZER_CREATORS[def.name];
+    if (creator) registry.register(creator(getLog));
+  }
   
   return registry;
 }
