@@ -75,10 +75,6 @@ export * from './origins';
 /** @public Engine contract and identifiers. */
 export * from '../types/engine';
 
-// Tool outcome
-/** @public The one tool outcome shape and its two constructors. */
-export * from '../types/engine';
-
 // Episodic memory
 /** @public Episodic memory contracts. */
 export * from '../types/episodic-memory';

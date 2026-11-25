@@ -51,22 +51,22 @@ export const agentOptionsSchema = z
 export type ValidatedAgentOptions = z.infer<typeof agentOptionsSchema>;
 
 /** @public Structured Zod failure — one shape for every untrusted-boundary parse. */
-export class SchemaValidationError extends SenarsError {
+export class ZodValidationError extends SenarsError {
   constructor(
     readonly label: string,
     readonly issues: z.core.$ZodIssue[]
   ) {
     super(`Invalid ${label}: ${formatIssues(issues)}`, 'VALIDATION_ERROR', { label, issues });
-    this.name = 'SchemaValidationError';
+    this.name = 'ZodValidationError';
   }
 }
 
-/** @public Parse `input` or throw a `SchemaValidationError` carrying the flattened issue list. */
+/** @public Parse `input` or throw a `ZodValidationError` carrying the flattened issue list. */
 export const parseOrThrow = <S extends z.ZodType>(
   schema: S,
   label: string,
   input: unknown,
-  ErrorType: new (label: string, issues: z.core.$ZodIssue[]) => Error = SchemaValidationError
+  ErrorType: new (label: string, issues: z.core.$ZodIssue[]) => Error = ZodValidationError
 ): z.output<S> => {
   const result = schema.safeParse(input);
   if (!result.success) throw new ErrorType(label, result.error.issues);

@@ -175,6 +175,7 @@ const importToAlias: Record<string, string> = {
   'SENARS_ENV_MAP': '@senars/util/config',
   'PRESSURE': '@senars/util/config',
   'isTruthy': '@senars/util/config',
+  'ZodValidationError': '@senars/util/config',
   'SchemaValidationError': '@senars/util/config',
   'agentOptionsSchema': '@senars/util/config',
   'contextOptsSchema': '@senars/util/config',
