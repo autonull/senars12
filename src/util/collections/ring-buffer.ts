@@ -1,24 +1,6 @@
 import { occupancy } from '../numeric';
 import { SenarsError } from '../../errors/senars-error';
 
-// Re-exports from set-map for backward compatibility
-export {
-  getOrInsert,
-  accumulate,
-  incrementCount,
-  addToSet,
-  removeFromSet,
-  lastByKey,
-  unique,
-  uniqueBy,
-  flatUnique,
-  removeBy,
-  removeLastBy,
-} from './set-map';
-
-// Re-export ContainerStats from stats for backward compatibility
-export type { ContainerStats } from './stats';
-
 /**
  * The read surface every consumer of a keyed container needs and no more —
  * `Map`, `BoundedMap`, and any bounded projection all satisfy it, so a caller
