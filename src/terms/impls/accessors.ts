@@ -230,12 +230,13 @@ type FactValue = TermFacts[keyof TermFacts];
 
 const factsCache = new WeakMap<Term, TermFacts>();
 
-/** Hoisted so `factsOf` allocates nothing on a hit: `getOrInsert` takes its
- *  factory as an argument, and a factory written at the call site is built on
- *  every call even when it is never invoked. */
-const emptyFacts = (): TermFacts => ({});
-
-const factsOf = (term: Term): TermFacts => getOrInsert(factsCache, term, emptyFacts);
+const factsOf = (term: Term): TermFacts => {
+  let facts = factsCache.get(term);
+  if (facts !== undefined) return facts;
+  facts = {};
+  factsCache.set(term, facts);
+  return facts;
+};
 
 /**
  * Read a lazily-derived fact, deriving it on the first ask and keeping it for

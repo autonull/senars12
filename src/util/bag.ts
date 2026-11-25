@@ -167,6 +167,11 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   #sortedCache: T[] | null = null;
   #sortedDirty = true;
 
+  // Cached prefix sums for fast weighted sampling
+  #sampleCacheVersion = 0;
+  #prefixSums: number[] | null = null;
+  #prefixSumItems: T[] | null = null;
+
   // Incremental tracking for O(1) eviction
   #minPriorityEntry: InternalEntry<T> | null = null;
   // O(1) peek cache - tracks the max priority entry
@@ -178,6 +183,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.#sortedDirty = true;
     this.#sortedCache = null;
     this.#peekCache = null;
+    this.#sampleCacheVersion = 0;
+    this.#prefixSums = null;
+    this.#prefixSumItems = null;
   }
 
   #ensureSorted(): T[] {
@@ -475,11 +483,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         entry.priority = newPriority;
         if (newPeekEntry === null || newPriority > newPeekEntry._currentPriority) {
           newPeekEntry = entry;
-        } else if (newPeekEntry === null || entry._currentPriority > newPeekEntry._currentPriority) {
-          newPeekEntry = entry;
         }
         hasChanges = true;
-      } else if (newPeekEntry === null || entry._currentPriority > newPeekEntry._currentPriority) {
+      } else if (newPeekEntry === null || newPriority > newPeekEntry._currentPriority) {
         newPeekEntry = entry;
       }
     }
@@ -497,7 +503,57 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   sample(count: number): T[] {
     const items = this.#ensureSorted();
     if (items.length <= count) return items;
-    return weightedSample(items, count, (item) => item.priority, this.#rng);
+
+    // Build or reuse prefix sums for O(log n) per draw
+    if (this.#sampleCacheVersion !== this.#version || this.#prefixSums === null) {
+      const validItems: T[] = [];
+      const prefixSums: number[] = [];
+      let sum = 0;
+      for (const item of items) {
+        const p = item.priority;
+        if (p > 0) {
+          validItems.push(item);
+          sum += p;
+          prefixSums.push(sum);
+        }
+      }
+      this.#prefixSumItems = validItems;
+      this.#prefixSums = prefixSums;
+      this.#sampleCacheVersion = this.#version;
+    }
+
+    const validItems = this.#prefixSumItems!;
+    const prefixSums = this.#prefixSums!;
+    if (validItems.length === 0) return [];
+
+    // Binary search sampling without replacement
+    const n = validItems.length;
+    const picked: T[] = [];
+    const drawn = new Uint8Array(n); // 0 = available, 1 = drawn
+
+    for (let draw = 0; draw < count && draw < n; draw++) {
+      const total = prefixSums[n - 1];
+      let roll = this.#rng() * total;
+
+      // Binary search for the index
+      let lo = 0;
+      let hi = n - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (prefixSums[mid] < roll) lo = mid + 1;
+        else hi = mid;
+      }
+      let idx = lo;
+
+      // Find next available (not drawn) item
+      while (idx < n && drawn[idx]) idx++;
+      if (idx >= n) break; // No more available items
+
+      drawn[idx] = 1;
+      picked.push(validItems[idx]);
+    }
+
+    return picked;
   }
 
   /** Get all items as array (alias for all()). */
