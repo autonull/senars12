@@ -176,7 +176,6 @@ const importToAlias: Record<string, string> = {
   'PRESSURE': '@senars/util/config',
   'isTruthy': '@senars/util/config',
   'ZodValidationError': '@senars/util/config',
-  'SchemaValidationError': '@senars/util/config',
   'agentOptionsSchema': '@senars/util/config',
   'contextOptsSchema': '@senars/util/config',
   'CACHE_DIR': '@senars/util/config',

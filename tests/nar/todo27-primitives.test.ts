@@ -9,7 +9,7 @@ import {
   occupancy,
   parseNarseseTruth,
   parseTruthLiteral,
-  SchemaValidationError,
+  ZodValidationError,
   serializeTruth,
   weightedPick,
   weightedSampleBy,
@@ -144,7 +144,7 @@ describe('Bench 115 — one rendering of a schema failure', () => {
     const rendered = formatIssues(parsed.error.issues);
     expect(rendered).toBe('retries: Too small: expected number to be >=1');
 
-    expect(new SchemaValidationError('agent-options', parsed.error.issues).message).toBe(
+    expect(new ZodValidationError('agent-options', parsed.error.issues).message).toBe(
       `Invalid agent-options: ${rendered}`
     );
   });

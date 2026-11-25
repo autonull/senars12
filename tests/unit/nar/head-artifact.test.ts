@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { SchemaValidationError } from '@senars/utils';
+import { ZodValidationError } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import {
   actionFeatures,
@@ -105,7 +105,7 @@ describe('head artifacts', () => {
     const corrupt = async (mutate: (config: Record<string, unknown>) => unknown) => {
       writeFileSync(configPath, JSON.stringify(mutate(JSON.parse(pristine)), null, 2));
       await expect(loadHeadArtifacts(outDir, bundle.modelDigest)).rejects.toThrow(
-        SchemaValidationError
+        ZodValidationError
       );
     };
 

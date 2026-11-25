@@ -10,7 +10,6 @@ export { readEnvOverrides, SENARS_ENV_MAP, envBool, envCsv, envFirst, envInt, en
 export { CACHE_DIR, cachePath } from './paths';
 export { PRESSURE } from './pressure';
 export { contextOptsSchema, agentOptionsSchema, ZodValidationError, parseOrThrow, validatorFor } from './validation';
-export { ZodValidationError as SchemaValidationError } from './validation';
 export type { AppConfig, BotConfig, BotProfile, LmConfig, NarCoreConfig } from './schema';
 export { appConfigSchema } from './schema';
 export { botConfigSchema } from './schema';

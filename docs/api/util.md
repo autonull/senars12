@@ -50,7 +50,7 @@
 
 - `readEnvOverrides`
 
-- `SchemaValidationError`
+- `ZodValidationError`
 
 - `SENARS_ENV_MAP`
 
@@ -860,7 +860,7 @@
 
 - `parseOrThrow`
 
-- `SchemaValidationError`
+- `ZodValidationError`
 
 - `type ValidatedAgentOptions`
 
