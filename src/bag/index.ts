@@ -10,7 +10,7 @@ export type {
   CyclesBudget,
   RandomSource,
 } from '../util/bag';
-export { PriorityBag, HistogramImpl } from '../util/bag';
+export { PriorityBag } from '../util/bag';
 export type { BagSlotParams, ResolvedBagSlot } from './registration';
 export { bagSlotErrors, resolveBagSlot } from './registration';
 export type { InternalEntry } from './types';

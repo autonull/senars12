@@ -166,6 +166,18 @@ export const shuffleInPlace = <T>(items: T[], rng: RandomSource): T[] => {
   return items;
 };
 
+/** Partial Fisher–Yates shuffle — only shuffle the first `count` elements.
+ *  Useful when only a small sample is needed from a large array. O(count) instead of O(n). */
+export const partialShuffleInPlace = <T>(items: T[], count: number, rng: RandomSource): T[] => {
+  const n = items.length;
+  const effectiveCount = Math.min(count, n);
+  for (let i = n - 1; i >= n - effectiveCount; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [items[i], items[j]] = [items[j]!, items[i]!];
+  }
+  return items;
+};
+
 /** Fill `out` with `[-1, 1)` draws from `seededStream` — the deterministic
  *  feature-block expansion behind per-action embeddings. A zero seed falls back
  *  to 1, matching the historical guard against a stuck all-zero stream. */
@@ -260,13 +272,52 @@ export const weightedSampleBy = <T>(
   count: number,
   rng: RandomSource
 ): T[] => {
-  const pool = entries.filter((entry) => entry.weight > 0);
-  // All-zero weights carry no information — fall back to source order.
-  if (pool.length === 0) return entries.slice(0, count).map((entry) => entry.item);
-  const picked: T[] = [];
-  for (let draw = 0; draw < count && pool.length > 0; draw++) {
-    const index = weightedScan(pool.length, (i) => pool[i]!.weight, rng);
-    picked.push(pool.splice(index, 1)[0]!.item);
+  const n = entries.length;
+  if (n === 0 || count === 0) return [];
+
+  // Find valid (weight > 0) entries and their indices
+  const validIndices: number[] = [];
+  let totalWeight = 0;
+  for (let i = 0; i < n; i++) {
+    const w = entries[i]!.weight;
+    if (w > 0) {
+      validIndices.push(i);
+      totalWeight += w;
+    }
   }
+
+  // All-zero weights carry no information — fall back to source order.
+  if (validIndices.length === 0) {
+    return entries.slice(0, count).map((entry) => entry.item);
+  }
+
+  // Use reservoir sampling approach: pick indices without replacement
+  // by swapping picked elements to the end of validIndices
+  const picked: T[] = [];
+  let remaining = validIndices.length;
+
+  for (let draw = 0; draw < count && remaining > 0; draw++) {
+    // Compute prefix sums for weighted selection over remaining valid items
+    let roll = rng() * totalWeight;
+    let selectedPos = 0;
+    for (let i = 0; i < remaining; i++) {
+      const idx = validIndices[i]!;
+      const w = entries[idx]!.weight;
+      roll -= w;
+      if (roll <= 0) {
+        selectedPos = i;
+        break;
+      }
+    }
+
+    const selectedIdx = validIndices[selectedPos]!;
+    picked.push(entries[selectedIdx]!.item);
+    totalWeight -= entries[selectedIdx]!.weight;
+
+    // Swap selected with last remaining and shrink
+    validIndices[selectedPos] = validIndices[remaining - 1]!;
+    remaining--;
+  }
+
   return picked;
 };

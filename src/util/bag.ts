@@ -149,53 +149,6 @@ export interface Bag<T extends BagItem> {
   clear(): void;
 }
 
-/** Histogram implementation. */
-export class HistogramImpl implements Histogram {
-  readonly edges: number[];
-  readonly counts: number[];
-  total = 0;
-  min = Infinity;
-  max = -Infinity;
-  mean = 0;
-  private sum = 0;
-
-  constructor(bucketCount = 100) {
-    this.edges = new Array(bucketCount + 1).fill(0);
-    this.counts = new Array(bucketCount).fill(0);
-  }
-
-  record(value: number): void {
-    this.total++;
-    this.sum += value;
-    this.mean = this.sum / this.total;
-    this.min = Math.min(this.min, value);
-    this.max = Math.max(this.max, value);
-  }
-
-  percentile(p: number): number {
-    if (this.total === 0) return 0;
-    const target = this.total * p;
-    let cumulative = 0;
-    for (let i = 0; i < this.counts.length; i++) {
-      cumulative += this.counts[i]!;
-      if (cumulative >= target) {
-        return this.edges[i]! + (this.edges[i + 1]! - this.edges[i]!) * ((target - cumulative + this.counts[i]!) / this.counts[i]!);
-      }
-    }
-    return this.max;
-  }
-
-  clear(): void {
-    this.edges.fill(0);
-    this.counts.fill(0);
-    this.total = 0;
-    this.min = Infinity;
-    this.max = -Infinity;
-    this.mean = 0;
-    this.sum = 0;
-  }
-}
-
 /** Bounded priority bag — the one implementation. */
 export class PriorityBag<T extends BagItem> implements Bag<T> {
   readonly id: string;
@@ -209,6 +162,23 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   #items = new Map<string, InternalEntry<T>>();
   #pressure: PressureLevel = 'normal';
   #version = 0;
+  #sortedCache: T[] | null = null;
+  #sortedDirty = true;
+
+  #invalidateCache(): void {
+    this.#sortedDirty = true;
+    this.#sortedCache = null;
+  }
+
+  #ensureSorted(): T[] {
+    if (this.#sortedDirty) {
+      this.#sortedCache = Array.from(this.#items.values())
+        .sort((a, b) => b._currentPriority - a._currentPriority)
+        .map((entry) => entry._item);
+      this.#sortedDirty = false;
+    }
+    return this.#sortedCache!;
+  }
 
   constructor(options: BagOptions) {
     if (!options.capacity || options.capacity <= 0) {
@@ -279,14 +249,18 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
     this.#items.set(item.id, entry);
     this.#version++;
+    this.#invalidateCache();
     this.#updatePressure();
     return true;
   }
 
   remove(id: string): boolean {
     const result = this.#items.delete(id);
-    if (result) this.#version++;
-    this.#updatePressure();
+    if (result) {
+      this.#version++;
+      this.#invalidateCache();
+      this.#updatePressure();
+    }
     return result;
   }
 
@@ -300,6 +274,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     }
     if (count > 0) {
       this.#version++;
+      this.#invalidateCache();
       this.#updatePressure();
     }
     return count;
@@ -323,9 +298,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   }
 
   all(): T[] {
-    return Array.from(this.#items.values())
-      .sort((a, b) => b._currentPriority - a._currentPriority)
-      .map((entry) => entry._item);
+    return this.#ensureSorted();
   }
 
   values(): IterableIterator<T> {
@@ -354,6 +327,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     };
     this.#items.set(id, updated);
     this.#version++;
+    this.#invalidateCache();
     return true;
   }
 
@@ -383,11 +357,12 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       }
     }
     this.#version++;
+    this.#invalidateCache();
     this.#updatePressure();
   }
 
   sample(count: number): T[] {
-    const items = this.all();
+    const items = this.#ensureSorted();
     if (items.length <= count) return items;
     // Priority-proportional sampling (roulette wheel without replacement)
     return weightedSample(items, count, (item) => item.priority, this.#rng);
@@ -417,6 +392,10 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   /** Get the highest-priority item without removing it. */
   peek(): T | undefined {
     if (this.#items.size === 0) return undefined;
+    // Use cached sorted array if available, otherwise scan
+    if (!this.#sortedDirty && this.#sortedCache && this.#sortedCache.length > 0) {
+      return this.#sortedCache[0];
+    }
     let bestEntry: InternalEntry<T> | null = null;
     let bestPriority = -Infinity;
     for (const entry of this.#items.values()) {
@@ -456,6 +435,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   clear(): void {
     this.#items.clear();
     this.#version++;
+    this.#invalidateCache();
     this.#updatePressure();
   }
 
@@ -520,6 +500,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (victimId) {
       this.#items.delete(victimId);
       this.#version++;
+      this.#invalidateCache();
       return true;
     }
     return false;
