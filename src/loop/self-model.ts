@@ -8,6 +8,7 @@ import type { Task, TaskType, TimestampMs } from '../kernel/types';
 import type { Truth } from '../kernel/truth';
 import type { LoopAppraisal } from './appraise';
 import type { Clock } from '../kernel/env';
+import { clamp01 } from '@senars/util/numeric';
 
 /** Self-model aspects. */
 export const SELF_MODEL_ASPECTS = [
@@ -341,7 +342,7 @@ export class SelfModelManager {
   updateGoalProgress(goalId: string, progress: number, status?: GoalModel['status']): void {
     const goal = this.model.goals.find(g => g.id === goalId);
     if (goal) {
-      goal.progress = Math.max(0, Math.min(1, progress));
+      goal.progress = clamp01(progress);
       if (status) goal.status = status;
     }
   }

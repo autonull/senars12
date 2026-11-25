@@ -7,6 +7,7 @@
 
 import { Frequency, Confidence, TruthValue, TruthLike } from '../kernel/types';
 import type { Logic } from './port';
+import { clamp01 } from '@senars/util/numeric';
 
 /** Fuzzy truth value extends standard truth with membership degree. */
 export interface FuzzyTruth extends TruthValue {
@@ -48,8 +49,8 @@ export const FuzzyTruth = {
 
 /** Create fuzzy truth value. */
 export function createFuzzyTruth(membership: number, uncertainty: number): FuzzyTruth {
-  const m = Math.max(0, Math.min(1, membership));
-  const u = Math.max(0, Math.min(1, uncertainty));
+  const m = clamp01(membership);
+  const u = clamp01(uncertainty);
   return {
     f: m,
     c: 1 - u,

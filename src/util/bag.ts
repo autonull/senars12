@@ -117,13 +117,11 @@ export interface Bag<T extends BagItem> {
   remove(id: string): boolean;
   /** Remove all items matching a predicate. */
   removeAll(predicate: (item: T) => boolean): number;
-  /** Alias for removeAll. */
-  removeMany(predicate: (item: T) => boolean): number;
   /** Get an item by id. */
   get(id: string): T | undefined;
-  /** Get all items as array. */
+  /** Get all items as array, sorted by priority descending. */
   all(): T[];
-  /** Alias for all(). */
+  /** Get all items as array (alias for all()). */
   toArray(): T[];
   /** Get all items as iterator. */
   values(): IterableIterator<T>;
@@ -137,7 +135,7 @@ export interface Bag<T extends BagItem> {
   evict(strategy?: EvictStrategy): boolean;
   /** Decay all priorities by the configured rate. */
   decay(): void;
-  /** Sample items from the bag. */
+  /** Sample items from the bag (priority-proportional). */
   sample(count: number): T[];
   /** Get the highest-priority item without removing it. */
   peek(): T | undefined;
@@ -395,33 +393,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     return weightedSample(items, count, (item) => item.priority, this.#rng);
   }
 
-  onPressure(listener: PressureListener): () => void {
-    const existing = this.#onPressure;
-    this.#onPressure = (t) => {
-      existing?.(t);
-      listener(t);
-    };
-    return () => {
-      if (this.#onPressure === listener) {
-        this.#onPressure = undefined;
-      } else if (this.#onPressure) {
-        // Can't easily remove chained listener without more infrastructure
-      }
-    };
-  }
-
-  clear(): void {
-    this.#items.clear();
-    this.#version++;
-    this.#updatePressure();
-  }
-
-  /** Alias for removeAll. */
-  removeMany(predicate: (item: T) => boolean): number {
-    return this.removeAll(predicate);
-  }
-
-  /** Alias for all(). */
+  /** Get all items as array (alias for all()). */
   toArray(): T[] {
     return this.all();
   }
@@ -440,19 +412,6 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
           : { done: false, value: [result.value[1]._item, result.value[1]._currentPriority] };
       },
     };
-  }
-
-  /** Evict one item using the given strategy (or current strategy if not provided). */
-  evict(strategy?: EvictStrategy): boolean {
-    const originalStrategy = this.#evictStrategy;
-    if (strategy) {
-      this.#evictStrategy = strategy;
-    }
-    const result = this.#evict();
-    if (strategy) {
-      this.#evictStrategy = originalStrategy;
-    }
-    return result;
   }
 
   /** Get the highest-priority item without removing it. */
@@ -477,6 +436,42 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       }
     }
     return undefined;
+  }
+
+  onPressure(listener: PressureListener): () => void {
+    const existing = this.#onPressure;
+    this.#onPressure = (t) => {
+      existing?.(t);
+      listener(t);
+    };
+    return () => {
+      if (this.#onPressure === listener) {
+        this.#onPressure = undefined;
+      } else if (this.#onPressure) {
+        // Can't easily remove chained listener without more infrastructure
+      }
+    };
+  }
+
+  clear(): void {
+    this.#items.clear();
+    this.#version++;
+    this.#updatePressure();
+  }
+
+  
+
+  /** Evict one item using the given strategy (or current strategy if not provided). */
+  evict(strategy?: EvictStrategy): boolean {
+    const originalStrategy = this.#evictStrategy;
+    if (strategy) {
+      this.#evictStrategy = strategy;
+    }
+    const result = this.#evict();
+    if (strategy) {
+      this.#evictStrategy = originalStrategy;
+    }
+    return result;
   }
 
   #evict(): boolean {

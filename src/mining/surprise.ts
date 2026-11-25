@@ -8,6 +8,7 @@ import type { Term } from '../kernel/terms';
 import type { TruthValue } from '../kernel/truth';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
+import { clamp01 } from '@senars/util/numeric';
 
 /** Surprise type. */
 export const SURPRISE_TYPES = [
@@ -256,7 +257,7 @@ export class SurpriseDetector {
     const avgVariance = (freqVariance + confVariance) / 2;
 
     // Lower variance = higher confidence
-    return Math.max(0, Math.min(1, 1 - avgVariance * 4));
+    return clamp01(1 - avgVariance * 4);
   }
 
   /** Compute variance. */

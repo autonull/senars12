@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import type { Term } from '../../kernel/terms';
 import type { Truth } from '../../kernel/truth';
+import { clamp01 } from '@senars/util/numeric';
 import {
   CandidateSchema,
   JudgmentSchema,
@@ -158,8 +159,8 @@ export function createJudgment(options: CreateJudgmentOptions): Judgment {
   return {
     id: uuidv4(),
     candidateId: options.candidateId,
-    score: Math.max(0, Math.min(1, options.score)),
-    confidence: Math.max(0, Math.min(1, options.confidence)),
+    score: clamp01(options.score),
+    confidence: clamp01(options.confidence),
     details: options.details ?? {},
     faculty: options.faculty,
     timestamp: now(),
@@ -245,7 +246,7 @@ export function createConflict(options: CreateConflictOptions): Conflict {
     id: uuidv4(),
     candidateIds: options.candidateIds,
     type: options.type,
-    severity: Math.max(0, Math.min(1, options.severity)),
+    severity: clamp01(options.severity),
     description: options.description,
     detectedAt: now(),
     resolutions,
@@ -463,7 +464,7 @@ export function createVerdict(options: CreateVerdictOptions): Verdict {
     id: uuidv4(),
     candidateId: options.candidateId,
     value: options.value,
-    confidence: Math.max(0, Math.min(1, options.confidence)),
+    confidence: clamp01(options.confidence),
     reasoning: options.reasoning,
     evidence: options.evidence ?? [],
     deliberationDepth: options.deliberationDepth ?? 0,

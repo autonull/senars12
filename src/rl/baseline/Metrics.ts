@@ -6,6 +6,7 @@
  */
 
 import type { BaselineArmConfig } from '../baselines';
+import { clamp01 } from '@senars/util/numeric';
 
 /** Configuration for metric computation. */
 export interface MetricsConfig {
@@ -175,12 +176,12 @@ export function computeArmMetrics(
   const [rewardCILower, rewardCIUpper] = meanCI(rewards, config.confidenceLevel);
   const [winRateCILower, winRateCIUpper] = proportionCI(wins, totalEpisodes, config.confidenceLevel);
   const bs = brierScore(
-    rewards.map(r => Math.max(0, Math.min(1, r))), // Normalize rewards to [0,1] for Brier
+    rewards.map(r => clamp01(r)), // Normalize rewards to [0,1] for Brier
     rewards.map(r => r > 0 ? 1 : 0)
   );
   const reg = cumulativeRegret(rewards, optimalReward);
   const cal = calibrationError(
-    rewards.map(r => Math.max(0, Math.min(1, r))),
+    rewards.map(r => clamp01(r)),
     rewards.map(r => r > 0 ? 1 : 0)
   );
 

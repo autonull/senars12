@@ -14,6 +14,7 @@ import type { Truth } from '../kernel/truth';
 import { calculateTaskUtility, calculateTotalUtility, KIND_UTILITY_WEIGHTS } from './utility-voi';
 import type { Clock, TimestampMs } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
+import { clamp01 } from '@senars/util/numeric';
 
 // ============================================================================
 // Overlays
@@ -455,7 +456,7 @@ export function updateDrivesFromOutcomes(
     }
 
     // Update weight (constrained to [0,1])
-    const newWeight = Math.max(0, Math.min(1, drive.weight + learningRate * gradient));
+    const newWeight = clamp01(drive.weight + learningRate * gradient);
 
     return { ...drive, weight: newWeight };
   });
