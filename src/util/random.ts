@@ -178,6 +178,23 @@ export const partialShuffleInPlace = <T>(items: T[], count: number, rng: RandomS
   return items;
 };
 
+/** Per-dimension buffer pool for deterministic feature vectors. */
+const featurePools = new Map<number, Float32Array[]>();
+
+/** Acquire a buffer from the pool or allocate a new one. */
+function acquireFeatureBuffer(dim: number): Float32Array {
+  const pool = featurePools.get(dim) ?? [];
+  if (pool.length > 0) return pool.pop()!;
+  return new Float32Array(dim);
+}
+
+/** Release a buffer back to the pool. */
+function releaseFeatureBuffer(dim: number, buffer: Float32Array): void {
+  const pool = featurePools.get(dim) ?? [];
+  pool.push(buffer);
+  featurePools.set(dim, pool);
+}
+
 /** Fill `out` with `[-1, 1)` draws from `seededStream` — the deterministic
  *  feature-block expansion behind per-action embeddings. A zero seed falls back
  *  to 1, matching the historical guard against a stuck all-zero stream. */
@@ -185,6 +202,17 @@ export const fillSeededUnitRange = (out: Float32Array, seed: number): Float32Arr
   const next = seededStream(seed || 1).next;
   for (let i = 0; i < out.length; i++) out[i] = next() * 2 - 1;
   return out;
+};
+
+/** Pooled version of `fillSeededUnitRange` — acquires buffer from pool. */
+export const fillSeededUnitRangePooled = (dim: number, seed: number): Float32Array => {
+  const out = acquireFeatureBuffer(dim);
+  return fillSeededUnitRange(out, seed);
+};
+
+/** Release a pooled buffer back to the pool. */
+export const releaseFeatureVector = (vec: Float32Array): void => {
+  releaseFeatureBuffer(vec.length, vec);
 };
 
 /**

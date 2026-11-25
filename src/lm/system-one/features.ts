@@ -3,7 +3,7 @@
  * Deterministic per-action/game feature blocks via seeded hashing.
  */
 
-import { fillSeededUnitRange } from '@senars/util/random';
+import { fillSeededUnitRangePooled, releaseFeatureVector } from '@senars/util/random';
 import { seededStringHash } from '@senars/util/hash';
 
 /** Action-block seed. Distinct from the game block's so the two never collide. */
@@ -14,14 +14,18 @@ export const GAME_FEATURE_SEED = 0x85ebca6b;
 
 /**
  * Deterministic per-action feature block so one head can score (state, action) pairs.
+ * Uses pooled buffers to avoid allocation per call.
  */
 export function actionFeatures(
   action: string,
   dim: number,
   seed = ACTION_FEATURE_SEED
 ): Float32Array {
-  return fillSeededUnitRange(new Float32Array(dim), seededStringHash(action, seed ^ dim));
+  return fillSeededUnitRangePooled(dim, seededStringHash(action, seed ^ dim));
 }
+
+/** Release a pooled feature vector back to the pool. */
+export { releaseFeatureVector };
 
 /** Parse the action name from a judgment instruction string. */
 export function parseActionFromInstruction(instruction: string): string {

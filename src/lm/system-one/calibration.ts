@@ -107,6 +107,9 @@ export function createIsotonicCalibrator(
   let fitted = initialPoints.length > 0 && initialPoints.some((p) => p.observed !== p.predicted);
   /** ECE depends on nothing but `points`, and every reader asks per batch. */
   let cachedECE: number | null = null;
+  /** Track if points have actually changed (new real labels or count) to skip rebuild. */
+  let pointsVersion = 0;
+  let lastRebuildVersion = -1;
 
   function rebuild(): void {
     cachedECE = null;
@@ -121,6 +124,7 @@ export function createIsotonicCalibrator(
     const observed = sorted.map((p) => p.observed);
     const weights = sorted.map((p) => p.weight);
     isotonicMap = poolAdjacentViolators(sortedPredicted, observed, weights);
+    lastRebuildVersion = pointsVersion;
   }
 
   rebuild();
@@ -155,9 +159,14 @@ export function createIsotonicCalibrator(
       if (hasRealLabels) {
         fitted = true;
       }
+      const oldLength = points.length;
       points.push(...newPoints);
       trimCapped(points, CALIBRATION_POINT_CAP);
-      rebuild();
+      // Only rebuild if points actually changed (new real labels or count changed)
+      if (hasRealLabels || points.length !== oldLength) {
+        pointsVersion++;
+        rebuild();
+      }
     },
 
     getECE(): number {
