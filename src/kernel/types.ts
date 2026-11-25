@@ -58,13 +58,6 @@ export interface Stamp {
   readonly evidence: number;
 }
 
-/** Parse truth literal from string. */
-export function parseTruthLiteral(s: string): { f: number; c: number } | null {
-  const match = /%([\d.]+);([\d.]+)%/.exec(s);
-  if (!match) return null;
-  return { f: parseFloat(match[1]!), c: parseFloat(match[2]!) };
-}
-
 /** Task type enumeration. */
 export enum TaskType {
   BELIEF = 'belief',

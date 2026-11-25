@@ -80,7 +80,6 @@ export {
   type TruthValueSchema,
   toSchemaTruth,
   fromSchemaTruth,
-  parseTruthLiteral,
 } from './types';
 
 export {
