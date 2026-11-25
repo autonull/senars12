@@ -101,6 +101,10 @@ export interface InferenceRule {
 /** Step executor: applies rules to generate steps. */
 export class StepExecutor {
   private rules = new Map<RuleId, InferenceRule>();
+  // Cached rule lists by arity for fast lookup
+  private rulesByArity = new Map<number, InferenceRule[]>();
+  // Cached rule lists by category
+  private rulesByCategory = new Map<RuleCategory, InferenceRule[]>();
   private seq = 0;
   private clock: Clock;
 
@@ -111,11 +115,37 @@ export class StepExecutor {
   /** Register a rule. */
   registerRule(rule: InferenceRule): void {
     this.rules.set(rule.id, rule);
+    this.#invalidateCaches();
   }
 
   /** Unregister a rule. */
   unregisterRule(id: RuleId): boolean {
-    return this.rules.delete(id);
+    const result = this.rules.delete(id);
+    if (result) this.#invalidateCaches();
+    return result;
+  }
+
+  #invalidateCaches(): void {
+    this.rulesByArity.clear();
+    this.rulesByCategory.clear();
+  }
+
+  #getRulesByArity(arity: number): InferenceRule[] {
+    let cached = this.rulesByArity.get(arity);
+    if (!cached) {
+      cached = Array.from(this.rules.values()).filter(r => r.arity === arity);
+      this.rulesByArity.set(arity, cached);
+    }
+    return cached;
+  }
+
+  #getRulesByCategory(category: RuleCategory): InferenceRule[] {
+    let cached = this.rulesByCategory.get(category);
+    if (!cached) {
+      cached = Array.from(this.rules.values()).filter(r => r.category === category);
+      this.rulesByCategory.set(category, cached);
+    }
+    return cached;
   }
 
   /** Get a rule by ID. */
@@ -130,7 +160,7 @@ export class StepExecutor {
 
   /** Get rules by category. */
   getRulesByCategory(category: RuleCategory): InferenceRule[] {
-    return Array.from(this.rules.values()).filter(r => r.category === category);
+    return this.#getRulesByCategory(category);
   }
 
   /** Execute a single rule on premises. */
@@ -230,8 +260,21 @@ export class StepExecutor {
     const results: StepResult[] = [];
     const { categories, limit = 100 } = options;
 
-    for (const rule of this.rules.values()) {
-      if (categories && !categories.includes(rule.category)) continue;
+    // Determine which rules to check
+    let candidateRules: InferenceRule[];
+    if (categories && categories.length === 1) {
+      candidateRules = this.#getRulesByCategory(categories[0]!);
+    } else {
+      candidateRules = Array.from(this.rules.values());
+      if (categories) {
+        candidateRules = candidateRules.filter(r => categories.includes(r.category));
+      }
+    }
+
+    // Filter by arity matching premises
+    candidateRules = candidateRules.filter(r => r.arity === premises.length);
+
+    for (const rule of candidateRules) {
       if (results.length >= limit) break;
 
       const result = this.executeRule(rule.id, premises);
@@ -252,25 +295,35 @@ export class StepExecutor {
     const { maxPairs = 1000, categories } = options;
     const results: StepResult[] = [];
 
-    // Convert to premises
+    // Convert to premises once
     const premises: Premise[] = bagEntries.map(e => ({
       term: e.term,
       truth: e.truth,
       stamp: e.stamp,
     }));
 
+    // Pre-filter binary rules
+    let binaryRules = this.#getRulesByArity(2);
+    if (categories) {
+      binaryRules = binaryRules.filter(r => categories.includes(r.category));
+    }
+    if (binaryRules.length === 0) return results;
+
     // Try all pairs
     let pairs = 0;
-    for (let i = 0; i < premises.length && pairs < maxPairs; i++) {
-      for (let j = i + 1; j < premises.length && pairs < maxPairs; j++) {
+    const n = premises.length;
+
+    for (let i = 0; i < n && pairs < maxPairs; i++) {
+      const pi = premises[i]!;
+      for (let j = i + 1; j < n && pairs < maxPairs; j++) {
         pairs++;
-        const pi = premises[i]!;
         const pj = premises[j]!;
         const pairPremises: Premise[] = [pi, pj];
 
-        for (const rule of this.rules.values()) {
-          if (categories && !categories.includes(rule.category)) continue;
-          if (rule.arity !== 2) continue;
+        // Check each binary rule
+        for (const rule of binaryRules) {
+          // Fast arity check already done, check condition
+          if (!rule.condition(pairPremises)) continue;
 
           const result = this.executeRule(rule.id, pairPremises);
           if (result) results.push(result);
@@ -503,11 +556,11 @@ function isSimilarity(term: Term): boolean {
 }
 
 function getSubject(term: Term): Term {
-  return (term as any).args[0];
+  return term.args[0]!;
 }
 
 function getPredicate(term: Term): Term {
-  return (term as any).args[1];
+  return term.args[1]!;
 }
 
 function termsEqual(a: Term, b: Term): boolean {
