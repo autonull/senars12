@@ -52,7 +52,7 @@ import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime
 import { recordEmbeddingCacheEvent } from '../metrics/prometheus';
 import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex';
 import type { Reflex } from '../reflex/Reflex';
-import type { NARConfig } from './config';
+import type { NARConfig } from '../nar/config';
 
 /**
  * System One runtime (extracted from NAR — M2): owns the Tier-1 manifold,

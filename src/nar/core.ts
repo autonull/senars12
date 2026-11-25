@@ -34,7 +34,7 @@ import type { CognitiveParameters } from '../config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../config/cognitive-parameters';
 import type { ParameterLedger } from '../config/parameter-ledger';
 import { createBootstrapTasks, DriveManager } from '../drives';
-import { type NARConfig, resolveRng, rngBoundaryPort, validateNarConfig } from '../facade/config';
+import { type NARConfig, resolveRng, rngBoundaryPort, validateNarConfig } from './config';
 import { type GameAttachOptions, GameManager } from '../facade/games';
 import {
   askNaturalLanguage,
@@ -130,7 +130,7 @@ export type {
   SystemOneConfig,
   SystemOneFileConfig,
   SystemOneRuntimeConfig,
-} from '../facade/config';
+} from './config';
 export { NarEventBus } from '../types/events';
 
 export class NAR extends BaseComponent {

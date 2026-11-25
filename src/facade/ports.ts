@@ -24,7 +24,7 @@ import type { MiningBag } from '../lm/system-one/hard-negatives';
 import type { ProofMettaProposer } from '../meta/index';
 import type { QueryAPI } from '../query/api';
 import type { LMService } from '../lm/lm-service';
-import type { NARConfig } from './config';
+import type { NARConfig } from '../nar/config';
 import type { TaskType, TruthType, Task } from '../types';
 import type { NARExecution } from '../nar-execution';
 import type { GateRegistry } from '../kernel/GateRegistry';

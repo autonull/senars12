@@ -7,4 +7,4 @@
 export * from './config';
 export * from '../nar-execution';
 export * from '../nar-io';
-export * from './presets';
+export * from '../nar-presets';

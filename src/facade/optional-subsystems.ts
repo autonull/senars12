@@ -11,7 +11,7 @@ import { EpisodeConsolidator } from '../memory/episode-consolidator';
 import { ProofMettaProposer } from '../meta/index';
 // NARConfig, not NAR — importing the class here would close a type-only cycle
 // back to nar.ts, which `deps:gate` erases but the complexity ledger counts.
-import type { NARConfig } from './config';
+import type { NARConfig } from '../nar/config';
 import { RLFPLearner } from '../rlfp';
 import type { RandomSource } from '../types/primitives';
 

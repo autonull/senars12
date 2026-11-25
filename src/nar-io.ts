@@ -10,7 +10,7 @@ import { makeId } from '@senars/util/id';
 import { writeJsonFile } from '@senars/util/fs';
 import type { EventBus } from '@senars/util/events';
 import type { CognitiveParameters } from './config/cognitive-parameters';
-import type { NARConfig } from './facade/config';
+import type { NARConfig } from './nar/config';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
 import { ExternalRewardGate } from './kernel/KernelRewardGate';
 import { seedTruth } from './lm/system-one/seed';

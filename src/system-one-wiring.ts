@@ -17,7 +17,7 @@ import { createSystemOneBudget } from './lm/system-one/types';
 import { SystemOneIngressJudge } from './lm/system-one/ingress-judge';
 import type { JudgmentProposition, JudgmentQuery } from './lm/system-one/types';
 import { SystemOneRuntime } from './facade/system-one';
-import type { NARConfig } from './facade/config';
+import type { NARConfig } from './nar/config';
 import type { KernelBudgetGate } from './kernel/KernelBudgetGate';
 import type { SourceReputation } from './kernel/source-reputation';
 import type { LMService } from './lm/lm-service';

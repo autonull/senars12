@@ -8,7 +8,7 @@ import type { EventBus as NarEventBus } from '@senars/events';
 import type { CognitiveController } from './cognitive';
 import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites';
 import type { DriveManager } from './drives';
-import type { NARConfig } from './facade/config';
+import type { NARConfig } from './nar/config';
 import { DECISION_DERIVATIONS_SCOPE } from './kernel/budget-scopes';
 import { ControlBudgets } from './kernel/control-budgets';
 import type { GateRegistry } from './kernel/GateRegistry';
