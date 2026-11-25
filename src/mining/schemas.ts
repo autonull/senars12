@@ -319,8 +319,3 @@ export interface LogEntry {
   /** Event type. */
   eventType: string;
 }
-
-/** Create a schema miner. */
-export function createSchemaMiner(config?: MiningConfig, clock?: Clock, rng?: RNG): SchemaMiner {
-  return new SchemaMiner(config, clock, rng);
-}

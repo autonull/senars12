@@ -84,13 +84,13 @@ export function escapeConstant(value: string): string {
   return `'${value.replace(/'/g, "\\'")}'`;
 }
 
-/** Get operator symbol for a TermOp. */
-export function getOperatorSymbol(op: TermOp): string {
+/** Get operator symbol for a TermOp (internal). */
+function getOperatorSymbol(op: TermOp): string {
   return OPERATOR_SYMBOLS[op] ?? '';
 }
 
-/** Get precedence for a TermOp. */
-export function getPrecedence(op: TermOp): number {
+/** Get precedence for a TermOp (internal). */
+function getPrecedence(op: TermOp): number {
   return PRECEDENCE[op] ?? 0;
 }
 
