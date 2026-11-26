@@ -20,7 +20,7 @@ import { selectTopN } from '@senars/util/collections';
 import { formatNarseseTruth } from '@senars/types/truth';
 import { runEntrypoint } from './lib/fatal-error';
 import { mettaPort } from './lib/metta';
-import { createDiagnosticNAR, readPersistedState, formatBytes, fileInfo, loadDiagnosticConfig } from './lib/diagnostics';
+import { readPersistedState, loadDiagnosticConfig } from './lib/diagnostics';
 
 const logger = createLogger({ scope: 'self-report' });
 
@@ -52,13 +52,32 @@ async function main() {
   logger.info(divider(50));
 
   // Create minimal NAR to query state
-  const { nar, dispose } = await createDiagnosticNAR({ withLM: true, maxConcepts: 1000 });
+  const registry = createSeNARSRegistry();
+  const lmService = createLMService();
+
+  const nar = (
+    await new NARBuilder()
+      .withLM(lmService)
+      .withMetta(mettaPort())
+      .withCapabilities({
+        self: { enabled: true },
+        rlfp: { enabled: true },
+        lmRules: { enabled: true },
+      })
+      .withNarConfig({
+        providerRegistry: registry,
+        enableTools: true,
+        maxConcepts: 1000,
+        persistState: false,
+      })
+      .build()
+  ).nar;
 
   await initializeSelfConcept(nar);
   await initializeMetaReasoning(nar);
   registerMetaRules(nar.getProcessor().getTable());
 
-  await nar.start();
+  // NAR is already started by agent creation in NARBuilder.build()
 
   // Run a few cycles to generate state
   for (let i = 0; i < 5; i++) {
@@ -220,7 +239,7 @@ async function main() {
     console.log(`  Pending Tasks: ${persisted.pendingTasks}`);
   }
 
-  await dispose();
+  await nar.dispose();
   console.log('\n' + divider(50));
   console.log('✅ Self-report complete');
 }
