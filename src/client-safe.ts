@@ -123,7 +123,6 @@ export {
 } from './eval/index';
 
 // Memory
-export { PriorityBag as MemoryPriorityBag, createBag as createMemoryBag, type Bag as MemoryBag, type BagItem as MemoryBagItem, type BagOptions as MemoryBagOptions } from './bag/index';
 export { Concept, Memory } from './memory/index';
 export type { ConceptTaskType, MemoryConfig } from './memory/index';
 export { EpisodicMemory } from './memory/EpisodicMemory';

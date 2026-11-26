@@ -65,7 +65,7 @@ export interface InternalEntry<T extends BagItem> extends BagItem {
   readonly _insertedAt: number;
   readonly _lastAccessedAt: number;
   readonly _accessCount: number;
-  readonly _currentPriority: number;
+  _currentPriority: number;
   /** The original item, preserving methods and non-enumerable properties. */
   readonly _item: T;
 }
@@ -530,17 +530,17 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     const n = validItems.length;
     const picked: T[] = [];
     const drawn = new Uint8Array(n); // 0 = available, 1 = drawn
+    const total = prefixSums[n - 1]!;
 
     for (let draw = 0; draw < count && draw < n; draw++) {
-      const total = prefixSums[n - 1];
-      let roll = this.#rng() * total;
+      const roll = this.#rng() * total;
 
       // Binary search for the index
       let lo = 0;
       let hi = n - 1;
       while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if (prefixSums[mid] < roll) lo = mid + 1;
+        if (prefixSums[mid]! < roll) lo = mid + 1;
         else hi = mid;
       }
       let idx = lo;
@@ -550,7 +550,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       if (idx >= n) break; // No more available items
 
       drawn[idx] = 1;
-      picked.push(validItems[idx]);
+      picked.push(validItems[idx]!);
     }
 
     return picked;

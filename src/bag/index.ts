@@ -1,3 +1,20 @@
+import { emitDomainEvent } from '../agent/event-sink';
+import { DOMAIN_EVENTS } from '../events';
+import {
+  PriorityBag,
+  type Bag,
+  type BagItem,
+  type BagOptions,
+  type PressureTransition,
+  type EvictStrategy,
+  type Histogram,
+  type PressureLevel,
+  type PressureListener,
+  type CyclesBudget,
+  type RandomSource,
+} from '../util/bag';
+
+export { PriorityBag };
 export type {
   Bag,
   BagItem,
@@ -10,14 +27,10 @@ export type {
   CyclesBudget,
   RandomSource,
 } from '../util/bag';
-export { PriorityBag } from '../util/bag';
+
 export type { BagSlotParams, ResolvedBagSlot } from './registration';
 export { bagSlotErrors, resolveBagSlot } from './registration';
 export type { InternalEntry } from './types';
-
-import { emitDomainEvent } from '../agent/event-sink';
-import { DOMAIN_EVENTS } from '../events';
-import { PriorityBag, type Bag, type BagOptions, type BagItem, type PressureTransition } from '../util/bag';
 
 /** Announce pressure transitions as domain events. */
 const announcePressure = ({

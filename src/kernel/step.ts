@@ -5,7 +5,7 @@
  * with truth computation, stamp derivation, and metadata.
  */
 
-import { Term } from './terms/intern';
+import { Term, CompoundTerm } from './terms/intern';
 import { Stamp } from './stamp';
 import type { TruthValue } from './types';
 import type { TruthOp } from './truth';
@@ -375,7 +375,7 @@ function registerBuiltinRules(executor: StepExecutor): void {
     buildConclusion: (premises) => {
       const m = premises[0]!;
       const n = premises[1]!;
-      return createInheritance(getSubject(m.term), getPredicate(n.term));
+      return createInheritance(getSubject(m.term as CompoundTerm), getPredicate(n.term as CompoundTerm));
     },
   });
 
@@ -398,7 +398,7 @@ function registerBuiltinRules(executor: StepExecutor): void {
     buildConclusion: (premises) => {
       const m = premises[0]!;
       const n = premises[1]!;
-      return createInheritance(getSubject(m.term), getSubject(n.term));
+      return createInheritance(getSubject(m.term as CompoundTerm), getSubject(n.term as CompoundTerm));
     },
   });
 
@@ -421,7 +421,7 @@ function registerBuiltinRules(executor: StepExecutor): void {
     buildConclusion: (premises) => {
       const m = premises[0]!;
       const n = premises[1]!;
-      return createInheritance(getPredicate(m.term), getPredicate(n.term));
+      return createInheritance(getPredicate(m.term as CompoundTerm), getPredicate(n.term as CompoundTerm));
     },
   });
 
@@ -452,10 +452,10 @@ function registerBuiltinRules(executor: StepExecutor): void {
   ) => (premises: Premise[]) => {
     const m = premises[0]!;
     const n = premises[1]!;
-    const s1 = getSubject(m.term);
-    const s2 = getSubject(n.term);
-    const p1 = getPredicate(m.term);
-    const p2 = getPredicate(n.term);
+    const s1 = getSubject(m.term as CompoundTerm);
+    const s2 = getSubject(n.term as CompoundTerm);
+    const p1 = getPredicate(m.term as CompoundTerm);
+    const p2 = getPredicate(n.term as CompoundTerm);
     return createRelation(createProduct(s1, s2), createProduct(p1, p2));
   };
 
@@ -504,7 +504,7 @@ function registerBuiltinRules(executor: StepExecutor): void {
     buildConclusion: (premises) => {
       const m = premises[0]!;
       const n = premises[1]!;
-      return createSimilarity(getSubject(m.term), getSubject(n.term));
+      return createSimilarity(getSubject(m.term as CompoundTerm), getSubject(n.term as CompoundTerm));
     },
   });
 
@@ -547,19 +547,19 @@ function registerBuiltinRules(executor: StepExecutor): void {
 }
 
 /** Term helpers for rule conditions. */
-function isInheritance(term: Term): boolean {
+function isInheritance(term: Term): term is CompoundTerm {
   return term.op === '-->';
 }
 
-function isSimilarity(term: Term): boolean {
+function isSimilarity(term: Term): term is CompoundTerm {
   return term.op === '<->';
 }
 
-function getSubject(term: Term): Term {
+function getSubject(term: CompoundTerm): Term {
   return term.args[0]!;
 }
 
-function getPredicate(term: Term): Term {
+function getPredicate(term: CompoundTerm): Term {
   return term.args[1]!;
 }
 

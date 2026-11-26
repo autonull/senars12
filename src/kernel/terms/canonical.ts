@@ -9,7 +9,8 @@
  * - Redundant operator elimination
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, getArgs } from './intern';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner } from './intern';
+import { getArgs } from './term-internal/compound';
 
 /** Canonical term representation. */
 export interface CanonicalTerm {

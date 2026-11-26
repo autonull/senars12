@@ -70,7 +70,7 @@ const logStoreFinalization = new FinalizationRegistry<{ store: LogStore }>(({ st
  * Append-only log store with segment rotation and indexing.
  */
 export class LogStore {
-  private config: LogStoreConfig;
+  protected config: LogStoreConfig;
   private segments: SegmentHandle[] = [];
   private index: IndexEntry[] = [];
   private currentSeq = 0;
@@ -347,7 +347,7 @@ export class InMemoryLogStore extends LogStore {
     const buffer = Buffer.from(line, 'utf-8');
 
     // Append to current segment
-    const currentSegment = this.memorySegments[this.memorySegments.length - 1];
+    const currentSegment = this.memorySegments[this.memorySegments.length - 1]!;
     const newSegment = Buffer.concat([currentSegment, buffer]);
     this.memorySegments[this.memorySegments.length - 1] = newSegment;
 
@@ -390,12 +390,12 @@ export class InMemoryLogStore extends LogStore {
     return results;
   }
 
-  override async query(options: { fromSeq?: number; toSeq?: number; limit?: number; types?: string[] } = {}): Promise<LogEntry[]> {
+  async query(options: { fromSeq?: number; toSeq?: number; limit?: number; types?: string[] } = {}): Promise<LogEntry[]> {
     const { fromSeq = 1, toSeq = this.memorySeq, limit = 1000, types } = options;
     const results: LogEntry[] = [];
     for (let seq = fromSeq; seq <= toSeq && results.length < limit; seq++) {
       const entry = await this.read(seq);
-      if (entry && (!types || types.includes(entry.type))) {
+      if (entry && (!types || types.includes(entry.event.type))) {
         results.push(entry);
       }
     }

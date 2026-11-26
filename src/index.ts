@@ -33,10 +33,6 @@ export * from './eval/index';
 /** Unified AIKR priority bag substrate. @public */
 export * from './bag/index';
 
-// Bag slot resolution
-/** Bag slot resolution and validation. @public */
-export { resolveBagSlot, bagSlotErrors, type BagSlotParams, type ResolvedBagSlot } from './bag/index';
-
 // State persistence
 /** The persisted consistency boundary, readable without starting a NAR. @public */
 export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from './state/persisted';
@@ -62,7 +58,6 @@ export { BaseComponent } from './agent/Lifecycle';
 // Log
 /** Event log adapter over LogStore. @public */
 export * from './log/index';
-export { createLogStore, type LogStore } from './log/store';
 
 // LLM Service
 /** LLM service + factory/mock. @public */
@@ -72,16 +67,16 @@ export { MiningBag } from './lm/system-one/hard-negatives';
 
 // Episodic Memory
 /** Episodic memory store. @public */
-export { EpisodicMemory } from './memory/EpisodicMemory';
-export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory';
+export { EpisodicMemory } from './memory/index';
+export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/index';
 
 // Phase B (REFACTOR.todo2): episodic memory consolidation as an AIKR process
 export type {
   ConsolidationResult,
   EpisodeConsolidatorOptions,
-} from './memory/episode-consolidator';
+} from './memory/index';
 /** Episodic memory consolidation process (AIKR bag pattern; consumer: NAR + integrators). @public */
-export { EpisodeConsolidator, symbolicSummary } from './memory/episode-consolidator';
+export { EpisodeConsolidator, symbolicSummary } from './memory/index';
 
 // Memory (core)
 export type { ConceptTaskType, MemoryConfig } from './memory/index';
@@ -106,13 +101,7 @@ export { NARLM } from './nar-lm';
 /** Kernel construction presets (tests/benches). @public */
 export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-presets';
 
-// NL Translation
-/** Natural-language translation schemas. @public */
-export * from './nl/schemas';
-
 // Rules
-/** Rule type definitions. @public */
-export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index';
 /** Rule registry + indexing. @public */
 /** Synchronous rule processor. @public */
 /** Standard NAL rule set. @public */
@@ -126,15 +115,6 @@ export * from './self/index';
 // Task
 /** Task scheduling/queuing. @public */
 export { TaskManager } from './task/index';
-
-// Terms - Stamp
-export type { SerializedStamp } from './terms/impls/Stamp';
-/** Term temporal stamp. @public */
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp';
-
-// Terms - Truth
-/** Truth-value algebra. @public */
-export { isTruthEqual, Truth } from './terms/impls/Truth';
 
 // Terms
 /** Term construction + (de)serialization helpers. @public */
@@ -205,7 +185,6 @@ export * from './drives/index';
 
 // Protocol types (for UI compatibility with @senars/core)
 export * from './protocol/index';
-export { builtinLensSpecs } from './protocol/lens-schema';
 export type { Agent } from './agent/index';
 export type { CognitiveEvent } from './schemas/cognitive-events';
 

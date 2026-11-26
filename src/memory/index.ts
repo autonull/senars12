@@ -33,6 +33,7 @@ export { LINK_LAYER, type KnownLinkLayer } from './links/types';
 export { Layer } from './links/Layer';
 export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative';
 export { EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from './episode-consolidator';
+export type { EpisodeConsolidatorOptions } from './episode-consolidator';
 export { consolidateEpisodes } from './retrieval-verified';
 export * from './fold-views';
 export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index';
