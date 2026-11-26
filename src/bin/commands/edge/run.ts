@@ -9,8 +9,10 @@
 import { createAgentFromEnv, runAgent } from '../../lib/lifecycle';
 import { readAppEnvConfig } from '../../lib/env-config';
 import { runEntrypoint } from '../../lib/fatal-error';
-import { runCLI, standardSections, profileHelpSection, maybeStartWebUI, type CommonFlags, type HelpSection, getProfileRegistry } from '../../lib/cli-utils';
+import { maybeStartWebUI } from '../../lib/entrypoint-base';
+import { standardSections, profileHelpSection, type CommonFlags, type HelpSection, getProfileRegistry } from '../../lib/cli-utils';
 import { createLogger } from '@senars/util/logger';
+import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
 const logger = createLogger({ scope: 'edge:run' });
 
@@ -65,43 +67,37 @@ export async function runEdgeWorker(config: EdgeWorkerConfig = {}): Promise<void
   }
 }
 
-/** Help sections for the edge worker. */
-export const sections: HelpSection[] = [
-  standardSections.usage('senars edge run', 'Run edge worker (zero-LM, WASM-only)'),
-  profileHelpSection(
-    ['device', 'logic', 'coprocessor'].map((p) => ({ kind: p, name: p, description: 'Zero-LM profile' }))
-  ),
-  {
-    title: 'Options',
-    lines: [
-      '-p, --profile <kind>     Select profile: device | logic | coprocessor (default: device)',
-      '--web-ui                 Enable Web UI',
-      '--port <number>          Web UI port (default: 8765)',
-      '-v, --version            Show version',
-      '--verbose                Verbose output',
-      '--quiet                  Suppress non-error output',
-    ],
-  },
-  standardSections.examples([
+export const sections = createCommandModule({
+  name: 'edge run',
+  description: 'Run edge worker (zero-LM, WASM-only)',
+  usage: 'senars edge run [options]',
+  sections: [
+    profileHelpSection(
+      ['device', 'logic', 'coprocessor'].map((p) => ({ kind: p, name: p, description: 'Zero-LM profile' }))
+    ),
+    { lines: ['-p, --profile <kind>     Select profile: device | logic | coprocessor (default: device)', '--web-ui                 Enable Web UI', '--port <number>          Web UI port (default: 8765)', '-v, --version            Show version', '--verbose                Verbose output', '--quiet                  Suppress non-error output'] },
+  ],
+  examples: [
     'senars edge run',
     'senars edge run --profile logic --web-ui --port 3000',
     'npx senars edge run --profile coprocessor',
-  ]),
-];
+  ],
+}, async (flags: CommonFlags, positional: string[], rawFlags): Promise<void> => {
+  await handleErrors(async () => {
+    const config: EdgeWorkerConfig = {
+      profile: (flagHelpers.str(rawFlags, '--profile', flags.profile as string) as EdgeWorkerConfig['profile']) ?? 'device',
+      enableWebUI: flags.webUI,
+      webUIPort: flags.webUIPort,
+    };
 
-export async function main(flags: CommonFlags): Promise<void> {
-  const config: EdgeWorkerConfig = {
-    profile: (flags.profile as EdgeWorkerConfig['profile']) ?? 'device',
-    enableWebUI: flags.webUI,
-    webUIPort: flags.webUIPort,
-  };
+    await runEdgeWorker(config);
+  }, flags, 'edge run');
+});
 
-  await runEdgeWorker(config);
-}
-
-export const edgeRunModule: CommandModule = { main, sections };
+export const edgeRunModule: CommandModule = { main: sections.main, sections: sections.sections };
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(sections.main, { sections: sections.sections, version: '0.0.0' });
 }
