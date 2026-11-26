@@ -4,12 +4,12 @@
  * Extracted from startPlayground in senars-commands.ts
  */
 
-import { getProfileRegistry, getGenomeRegistry } from '../../lib/cli-utils';
+import { getProfileRegistry, getGenomeRegistry, profileHelpSection } from '../../lib/cli-utils';
 import { createAgentFromEnv, runAgent } from '../../lib/lifecycle';
 import { readAppEnvConfig } from '../../lib/env-config';
 import { maybeStartWebUI } from '../../lib/entrypoint-base';
 import { runEntrypoint } from '../../lib/fatal-error';
-import { runCLI, standardSections, profileHelpSection, type CommonFlags, type HelpSection } from '../../lib/cli-utils';
+import { runCLI, standardSections, type CommonFlags, type HelpSection } from '../../lib/cli-utils';
 import { createLogger } from '@senars/util/logger';
 import type { CommandModule } from '../../lib/cli';
 
