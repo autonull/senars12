@@ -1,6 +1,6 @@
 /** Show captured dialogue turns */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import { tokenize } from '../args';
 import { finiteOr } from '@senars/util/numeric';
 import { unique } from '@senars/util/collections';

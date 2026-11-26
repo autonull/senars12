@@ -6,17 +6,21 @@
  * Device profile imports zero LM.
  */
 
-import { createProfileRegistry, type ProfileConfig, PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
-import { createGenomeRegistry, type GenomeSchema } from '../genome/index';
+import { createProfileRegistry, PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
+import { createGenomeRegistry } from '../genome/index';
 import { createGeneratedMCPServer, type GeneratedMCPServerConfig } from '../surface/mcp/generated-server';
 import { z } from 'zod';
 import { readAppEnvConfig } from './lib/env-config';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
-import { intBetween, nonNegativeInt, unitInterval } from '../config/boundary';
+import { intBetween, unitInterval } from '../config/boundary';
+import { runEntrypoint } from './lib/fatal-error';
+import { runCLI, buildHelp, standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI } from './lib/cli-utils';
+import { createLogger } from '@senars/util/logger';
 
-/** CLI arguments schema. */
+const logger = createLogger({ scope: 'senars' });
+
+/** CLI arguments schema for non-standard flags. */
 const CLISchema = z.object({
-  profile: z.enum(PROFILE_KINDS).optional(),
   listProfiles: z.boolean().optional(),
   listPacks: z.boolean().optional(),
   mcp: z.boolean().optional(),
@@ -24,72 +28,55 @@ const CLISchema = z.object({
   playground: z.boolean().optional(),
   generate: z.string().optional(),
   schema: z.string().optional(),
-  help: z.boolean().optional(),
 });
 
-/** Parse CLI args. */
-function parseArgs(argv: string[]): z.infer<typeof CLISchema> {
-  const args: Record<string, unknown> = {};
+/** Build help sections dynamically from profile registry. */
+function buildHelpSections(): ReturnType<typeof standardSections.usage> & { sections: any[] } {
+  const registry = createProfileRegistry();
+  const profiles = registry.getAll();
+  const profileInfos = profiles.map((p) => ({ kind: p.kind, name: p.name, description: p.description }));
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2);
-      const nextArg = argv[i + 1];
-      if (nextArg && !nextArg.startsWith('--')) {
-        args[key] = nextArg;
-        i++;
-      } else {
-        args[key] = true;
-      }
-    }
-  }
+  const sections = [
+    standardSections.usage('senars', 'SeNARS — The Fold: One deterministic fold over one log'),
+    profileHelpSection(profileInfos),
+    {
+      title: 'MCP Server',
+      lines: [
+        '--mcp                  Start MCP server (stdio by default)',
+        '--mcp-port <port>      Start MCP server on HTTP port',
+      ],
+    },
+    {
+      title: 'Playground',
+      lines: ['--playground           Start interactive playground'],
+    },
+    {
+      title: 'Generation',
+      lines: [
+        '--generate <schema-id> Generate artifacts for schema',
+        '--schema <schema-id>   Show schema details',
+      ],
+    },
+    {
+      title: 'Listing',
+      lines: [
+        '--list-profiles        List available profiles',
+        '--list-packs           List available domain packs',
+      ],
+    },
+    standardSections.examples([
+      'senars --profile logic',
+      'senars --profile agent --mcp',
+      'senars --profile device --playground',
+      'senars --generate my-schema',
+      'npx senars --profile coprocessor',
+    ]),
+  ];
 
-  // Convert string values
-  if (args.profile) args.profile = String(args.profile);
-  if (args.mcpPort) args.mcpPort = parseInt(String(args.mcpPort), 10);
-  if (args.generate) args.generate = String(args.generate);
-  if (args.schema) args.schema = String(args.schema);
-
-  return CLISchema.parse(args);
+  return { sections };
 }
 
-/** Show help. */
-function showHelp(): void {
-  console.log(`
-SeNARS — The Fold: One deterministic fold over one log
-
-Usage: senars [options]
-
-Profiles:
-  --profile <kind>       Select profile: logic | coprocessor | agent | device
-  --list-profiles        List available profiles
-  --list-packs           List available domain packs
-
-MCP Server:
-  --mcp                  Start MCP server (stdio by default)
-  --mcp-port <port>      Start MCP server on HTTP port
-
-Playground:
-  --playground           Start interactive playground
-
-Generation:
-  --generate <schema-id> Generate artifacts for schema
-  --schema <schema-id>   Show schema details
-
-General:
-  --help                 Show this help
-
-Examples:
-  senars --profile logic
-  senars --profile agent --mcp
-  senars --profile device --playground
-  senars --generate my-schema
-  npx senars --profile coprocessor
-`);
-}
-
-/** List profiles. */
+/** List profiles using registry. */
 function listProfiles(): void {
   const registry = createProfileRegistry();
   const profiles = registry.getAll();
@@ -125,7 +112,7 @@ async function startMCPServer(port?: number): Promise<void> {
   const genome = createGenomeRegistry();
   const profiles = createProfileRegistry();
 
-  // Register some example schemas
+  // Register example schemas
   genome.register({
     id: 'task',
     name: 'Task',
@@ -169,7 +156,6 @@ async function startMCPServer(port?: number): Promise<void> {
   const server = createGeneratedMCPServer(config);
 
   if (port) {
-    // HTTP server implementation would go here
     console.log(`MCP server starting on http://localhost:${port}`);
     console.log('HTTP transport not yet implemented - use stdio mode');
   } else {
@@ -178,7 +164,7 @@ async function startMCPServer(port?: number): Promise<void> {
   }
 }
 
-/** Start playground. */
+/** Start playground REPL. */
 async function startPlayground(profileKind?: string): Promise<void> {
   console.log('\n🎮 SeNARS Playground\n');
 
@@ -198,13 +184,13 @@ async function startPlayground(profileKind?: string): Promise<void> {
   console.log(`Packs: ${profile.packs.join(', ')}`);
   console.log('');
 
-  // Import readline for REPL
   const readline = await import('node:readline/promises');
   const { stdin: input, stdout: output } = process;
-
   const rl = readline.createInterface({ input, output });
 
   console.log('Type "help" for commands, "exit" to quit.\n');
+
+  const genome = createGenomeRegistry();
 
   while (true) {
     const line = await rl.question('senars> ');
@@ -245,7 +231,6 @@ Commands:
     }
 
     if (trimmed === 'genome') {
-      const genome = createGenomeRegistry();
       console.log('\nRegistered schemas:');
       for (const s of genome.getAll()) {
         console.log(`  ${s.id}: ${s.name}`);
@@ -263,7 +248,6 @@ Commands:
     if (trimmed.startsWith('agent ')) {
       const inputText = trimmed.slice(6).trim();
       console.log(`[Agent] Processing: ${inputText}`);
-      // Would run agent cycle here
       console.log('[Agent] Response: (not yet implemented)');
       continue;
     }
@@ -271,7 +255,6 @@ Commands:
     if (trimmed.startsWith('logic ')) {
       const narsese = trimmed.slice(6).trim();
       console.log(`[Logic] Proving: ${narsese}`);
-      // Would run logic prover here
       console.log('[Logic] Result: (not yet implemented)');
       continue;
     }
@@ -286,17 +269,16 @@ Commands:
 /** Generate schema artifacts. */
 async function generateSchema(schemaId: string): Promise<void> {
   const genome = createGenomeRegistry();
-
-  // Check if schema exists
   const schema = genome.get(schemaId);
+
   if (!schema) {
     console.log(`Schema not found: ${schemaId}`);
-    console.log('Available schemas:', genome.getAll().map(s => s.id).join(', '));
+    console.log('Available schemas:', genome.getAll().map((s) => s.id).join(', '));
     return;
   }
 
   console.log(`Generating artifacts for: ${schema.name} (${schema.id})`);
-  const artifacts = await genome.generate(schemaId);
+  await genome.generate(schemaId);
   console.log('Generated:');
   console.log(`  - ${schema.id}.types.ts`);
   console.log(`  - ${schema.id}.log-codec.ts`);
@@ -308,7 +290,7 @@ async function generateSchema(schemaId: string): Promise<void> {
 }
 
 /** Show schema details. */
-function showSchema(schemaId: string): void {
+async function showSchema(schemaId: string): Promise<void> {
   const genome = createGenomeRegistry();
   const schema = genome.get(schemaId);
 
@@ -330,53 +312,13 @@ function showSchema(schemaId: string): void {
     console.log(`Elicitation: ${schema.elicitation.title}`);
   }
 
-  // Show JSON schema
-  const artifacts = genome.generate(schemaId);
+  const artifacts = await genome.generate(schemaId);
   console.log('\nJSON Schema:');
-  console.log(JSON.stringify(artifacts.then(a => a.jsonSchema), null, 2));
+  console.log(JSON.stringify(artifacts.jsonSchema, null, 2));
 }
 
-/** Main entry point. */
-async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
-
-  if (args.help) {
-    showHelp();
-    return;
-  }
-
-  if (args.listProfiles) {
-    listProfiles();
-    return;
-  }
-
-  if (args.listPacks) {
-    listPacks();
-    return;
-  }
-
-  if (args.generate) {
-    await generateSchema(args.generate);
-    return;
-  }
-
-  if (args.schema) {
-    showSchema(args.schema);
-    return;
-  }
-
-  if (args.mcp) {
-    await startMCPServer(args.mcpPort);
-    return;
-  }
-
-  if (args.playground) {
-    await startPlayground(args.profile);
-    return;
-  }
-
-  // Default: run agent with profile
-  const profileKind = args.profile ?? 'agent';
+/** Default: run agent with profile. */
+async function runAgentMode(profileKind: string): Promise<void> {
   const registry = createProfileRegistry();
   const profile = registry.get(profileKind);
 
@@ -389,7 +331,7 @@ async function main(): Promise<void> {
 
   if (profile.requiresLM) {
     const envConfig = readAppEnvConfig();
-    if (!envConfig.lmApiKey && !envConfig.lmEndpoint) {
+    if (!envConfig.enableWebUI) {
       console.warn('Warning: Profile requires LM but no LM configured. Set LM_API_KEY or LM_ENDPOINT.');
     }
   }
@@ -397,17 +339,77 @@ async function main(): Promise<void> {
   const { agent } = await createAgentFromEnv({ narConfig: { maxConcepts: 100 } });
   await runAgent(agent);
 
-  if (readAppEnvConfig().enableWebUI) {
-    const { startAgentUI } = await import('../../ui/src/server/index');
-    await startAgentUI(agent as never)
-      .then(() => console.log('UI at http://localhost:8765'))
-      .catch((err: unknown) => console.error('Web UI failed to start', err));
-  } else {
-    console.log('SeNARS running (no UI; set ENABLE_WEB_UI=true to serve one).');
-  }
+  await maybeStartWebUI(agent, readAppEnvConfig().enableWebUI, undefined, logger);
 }
 
-main().catch(err => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+/** Main entry point. */
+async function main(): Promise<void> {
+  const { sections } = buildHelpSections();
+  const { parseFlags } = await import('@senars/util/cli');
+  const flags = parseCommonFlags(parseFlags());
+
+  // Parse custom flags
+  const argv = process.argv.slice(2);
+  const customArgs: Record<string, unknown> = {};
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2);
+      const nextArg = argv[i + 1];
+      if (nextArg && !nextArg.startsWith('--')) {
+        customArgs[key] = nextArg;
+        i++;
+      } else {
+        customArgs[key] = true;
+      }
+    }
+  }
+
+  // Convert string values
+  if (customArgs.mcpPort) customArgs.mcpPort = parseInt(String(customArgs.mcpPort), 10);
+  if (customArgs.generate) customArgs.generate = String(customArgs.generate);
+  if (customArgs.schema) customArgs.schema = String(customArgs.schema);
+
+  const parsed = CLISchema.parse(customArgs);
+
+  if (flags.help) {
+    showHelpAndExit(sections);
+  }
+
+  if (parsed.listProfiles) {
+    listProfiles();
+    return;
+  }
+
+  if (parsed.listPacks) {
+    listPacks();
+    return;
+  }
+
+  if (parsed.generate) {
+    await generateSchema(parsed.generate);
+    return;
+  }
+
+  if (parsed.schema) {
+    await showSchema(parsed.schema);
+    return;
+  }
+
+  if (parsed.mcp) {
+    await startMCPServer(parsed.mcpPort);
+    return;
+  }
+
+  if (parsed.playground) {
+    await startPlayground(flags.profile);
+    return;
+  }
+
+  // Default: run agent with profile
+  const profileKind = flags.profile ?? 'agent';
+  await runAgentMode(profileKind);
+}
+
+runEntrypoint(main);

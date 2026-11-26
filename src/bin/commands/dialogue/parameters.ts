@@ -1,6 +1,6 @@
 /** Show the parameter change ledger */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import { OutcomeLinker } from '@senars/config';
 import { episodeQualitySurface } from '@senars/query';
 import type { BotRuntime } from '../context';

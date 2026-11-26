@@ -1,7 +1,7 @@
 /** Ingest retrospective lessons as self-beliefs */
 
-import { cmd } from '../cli';
-import { SenarsError } from '../../errors/senars-error';
+import { cmd } from '@senars/cli';
+import { SenarsError } from '@senars/errors';
 import { errMsg } from '@senars/util/error';
 import type { BotRuntime } from '../context';
 

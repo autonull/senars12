@@ -7,14 +7,16 @@
  * no Python. Single-file bundle with vendored .wasm modules.
  */
 
-import { createProfileRegistry, type ProfileConfig } from '../profiles/index';
-import { createGenomeRegistry } from '../genome/index';
+import { createProfileRegistry } from '../profiles/index';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
 import { readAppEnvConfig } from './lib/env-config';
+import { runEntrypoint } from './lib/fatal-error';
+import { runCLI, buildHelp, standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI } from './lib/cli-utils';
+import { createLogger } from '@senars/util/logger';
 
-/**
- * Edge worker configuration.
- */
+const logger = createLogger({ scope: 'edge-worker' });
+
+/** Edge worker configuration. */
 export interface EdgeWorkerConfig {
   /** Profile to use (default: 'device'). */
   profile?: 'device' | 'logic' | 'coprocessor';
@@ -22,8 +24,6 @@ export interface EdgeWorkerConfig {
   enableWebUI?: boolean;
   /** Port for Web UI if enabled (default: 8765). */
   webUIPort?: number;
-  /** Custom Env overrides. */
-  envOverrides?: Record<string, unknown>;
 }
 
 /**
@@ -61,51 +61,46 @@ export async function runEdgeWorker(config: EdgeWorkerConfig = {}): Promise<void
   await runAgent(agent);
 
   if (config.enableWebUI) {
-    const { startAgentUI } = await import('../../ui/src/server/index');
-    await startAgentUI(agent as never, { port: config.webUIPort ?? 8765 })
-      .then(() => console.log(`Web UI at http://localhost:${config.webUIPort ?? 8765}`))
-      .catch((err: unknown) => console.error('Web UI failed to start', err));
+    await maybeStartWebUI(agent, true, config.webUIPort ?? 8765, logger);
   } else {
     console.log('SeNARS Edge Worker running (no UI).');
   }
 }
 
-/**
- * CLI entry point for edge worker.
- */
+/** Main CLI entry point. */
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
+  const { parseFlags } = await import('@senars/util/cli');
+  const flags = parseCommonFlags(parseFlags());
+  const profiles = ['device', 'logic', 'coprocessor'] as const;
+
+  const sections = [
+    standardSections.usage('senars-edge', 'SeNARS Edge Worker — Zero-LM, WASM-only deployment'),
+    profileHelpSection(profiles.map((p) => ({ kind: p, name: p, description: 'Zero-LM profile' }))),
+    {
+      title: 'Options',
+      lines: [
+        '--web-ui             Enable Web UI',
+        '--port <number>      Web UI port (default: 8765)',
+      ],
+    },
+    standardSections.examples([
+      'senars-edge',
+      'senars-edge --profile logic --web-ui --port 3000',
+      'npx senars-edge --profile coprocessor',
+    ]),
+  ];
+
+  if (flags.help) {
+    showHelpAndExit(sections);
+  }
 
   const config: EdgeWorkerConfig = {
-    profile: args.includes('--profile') ? args[args.indexOf('--profile') + 1] as any : 'device',
-    enableWebUI: args.includes('--web-ui'),
-    webUIPort: args.includes('--port') ? parseInt(args[args.indexOf('--port') + 1], 10) : 8765,
+    profile: (flags.profile as EdgeWorkerConfig['profile']) ?? 'device',
+    enableWebUI: flags.webUI,
+    webUIPort: flags.webUIPort,
   };
-
-  if (args.includes('--help')) {
-    console.log(`
-SeNARS Edge Worker — Zero-LM, WASM-only deployment
-
-Usage: senars-edge [options]
-
-Options:
-  --profile <kind>     Profile: device | logic | coprocessor (default: device)
-  --web-ui             Enable Web UI
-  --port <number>      Web UI port (default: 8765)
-  --help               Show this help
-
-Examples:
-  senars-edge
-  senars-edge --profile logic --web-ui --port 3000
-  npx senars-edge --profile coprocessor
-`);
-    return;
-  }
 
   await runEdgeWorker(config);
 }
 
-main().catch(err => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+runEntrypoint(main);

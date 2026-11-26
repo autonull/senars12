@@ -1,6 +1,6 @@
 /** Manifold health */
 
-import { attempted, cmd } from '../cli';
+import { attempted, cmd } from '@senars/cli';
 import type { BotRuntime } from '../context';
 
 export const manifoldCommand = cmd(

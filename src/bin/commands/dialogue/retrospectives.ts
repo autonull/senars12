@@ -1,6 +1,6 @@
 /** List past retrospectives */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import { finiteOr } from '@senars/util/numeric';
 import type { BotRuntime } from '../context';
 

@@ -1,7 +1,8 @@
 /** Show dispatcher routing decision for a task: .route <task> [--verbose] */
 
 import { createSystemOneBudget, specToQuery, HEAD_SPECS, rubricOf, type ScoreDistribution } from '@senars/lm/system-one';
-import { attempted, cmd, flagsOf } from '../cli';
+import { attempted, cmd } from '@senars/cli';
+import { flagsOf } from '../args';
 import type { BotRuntime } from '../context';
 
 export const routeCommand = cmd(

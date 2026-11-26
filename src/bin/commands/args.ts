@@ -5,6 +5,8 @@ import { parseEnvValue } from '@senars/util/config';
 import { parseFlags, type Flags, jsonMode } from '@senars/util/cli';
 import { splitWords } from '@senars/util/text';
 
+export { jsonMode };
+
 /** Split a command tail into positional tokens; an empty tail yields no tokens. */
 export const tokenize = (args = ''): string[] => splitWords(args);
 

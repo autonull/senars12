@@ -11,11 +11,11 @@ export {
   textContents,
   registerJsonResource,
   ANNOTATIONS,
-  MCPStructuredContent,
   zodFromSchema,
   toolAnnotations,
   registerNARRegistryTools,
 } from './core';
+export type { MCPStructuredContent } from './core';
 
 // Tools: all tool registrations (NAR + Dialogue)
 export {

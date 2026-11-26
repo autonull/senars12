@@ -1,6 +1,6 @@
 /** Show lessons extracted from retrospectives + formalized corrections */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import type { BotRuntime } from '../context';
 
 export const lessonsCommand = cmd(

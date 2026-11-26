@@ -1,6 +1,7 @@
 /** Reflex control: .reflex list|manifold on|off|lm on|off|budget <cycles>|arms <n> */
 
-import { cmd, dispatchSub, positiveArg } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub, positiveArg } from '../args';
 import { reflexesOf, type ReflexView } from '@senars/cli/conversation-game';
 import { makeToggleReflex, type ToggleReflexSpec } from './types';
 import type { BotRuntime } from '../context';

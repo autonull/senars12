@@ -1,6 +1,6 @@
 /** Bind a reaction to the last turn */
 
-import { attempted, cmd } from '../cli';
+import { attempted, cmd } from '@senars/cli';
 import { tokenize } from '../args';
 import { REACTION_SET, REACTION_USAGE, isCorrection } from './constants';
 import type { BotRuntime } from '../context';

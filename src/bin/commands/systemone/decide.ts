@@ -1,8 +1,10 @@
 /** Unified decision (heads + contrastive + router): .decide <input> [--rubrics a,b,c] */
 
-import { asRubricId, DEFAULT_DECIDE_RUBRICS } from './constants';
+import { asRubricId } from '@senars/decision';
+import { DEFAULT_DECIDE_RUBRICS } from './constants';
 import { createSystemOneBudget, evaluateQuery } from '@senars/lm/system-one';
-import { attempted, cmd, flagsOf } from '../cli';
+import { attempted, cmd } from '@senars/cli';
+import { flagsOf } from '../args';
 import type { BotRuntime } from '../context';
 
 export const decideCommand = cmd(

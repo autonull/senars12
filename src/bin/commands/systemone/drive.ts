@@ -1,6 +1,7 @@
 /** Drive stimulation: .drive stimulate <name> [intensity] */
 
-import { cmd, dispatchSub } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub } from '../args';
 import { finiteOr } from '@senars/util/numeric';
 import type { SelfMetaView } from './types';
 import type { BotRuntime } from '../context';

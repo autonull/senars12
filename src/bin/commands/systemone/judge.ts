@@ -2,7 +2,8 @@
 
 import { asRubricId } from '@senars/decision';
 import { createSystemOneBudget, evaluateQuery } from '@senars/lm/system-one';
-import { attempted, cmd, flagsOf } from '../cli';
+import { attempted, cmd } from '@senars/cli';
+import { flagsOf } from '../args';
 import type { BotRuntime } from '../context';
 
 export const judgeCommand = cmd(

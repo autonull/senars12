@@ -1,6 +1,7 @@
 /** Cortex control: .cortex on|off|status|model <id>|grammar <narsese|json> */
 
-import { cmd, dispatchSub, flagsOf } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub, flagsOf } from '../args';
 import type { BotRuntime } from '../context';
 
 export const cortexCommand = cmd(

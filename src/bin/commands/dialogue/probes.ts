@@ -1,6 +1,6 @@
 /** Show curriculum probes selected from flywheel-graded data */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import { systemOneOf } from '../context';
 import type { BotRuntime } from '../context';
 

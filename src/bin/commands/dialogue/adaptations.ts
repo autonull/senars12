@@ -1,6 +1,6 @@
 /** Show retrospective-driven strategy adaptations */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import type { BotRuntime } from '../context';
 
 export const adaptationsCommand = cmd(

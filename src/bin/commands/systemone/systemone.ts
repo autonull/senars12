@@ -1,6 +1,8 @@
 /** System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set */
 
-import { attempted, cmd, type SubHandler, dispatchSub } from '../cli';
+import { attempted, cmd } from '@senars/cli';
+import type { SubHandler } from '../args';
+import { dispatchSub } from '../args';
 import type { BotRuntime } from '../context';
 import {
   formatSystemOneCortex,

@@ -1,7 +1,8 @@
 /** System One config: .s1-config show|set <path> <value>|save|reload */
 
 import { envStrOr } from '@senars/util/config';
-import { cmd, dispatchSub, coerce, setPath } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub, coerce, setPath } from '../args';
 import { reloadAppConfig } from '../config';
 import { writeJsonFile } from '@senars/util/fs';
 import type { BotRuntime } from '../context';

@@ -1,6 +1,7 @@
 /** Groundedness gate: .ground on|off|status|threshold <0-1> */
 
-import { cmd, dispatchSub, onOff, ratioArg } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub, onOff, ratioArg } from '../args';
 import type { BotRuntime } from '../context';
 
 export const groundCommand = cmd(

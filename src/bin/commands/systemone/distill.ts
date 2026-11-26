@@ -2,7 +2,7 @@
 
 import { existsSync, statSync } from 'node:fs';
 import { formatBytes } from '@senars/util/format';
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import { datasetPathOf } from './constants';
 import type { BotRuntime } from '../context';
 

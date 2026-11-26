@@ -1,6 +1,7 @@
 /** Provisional cache: .provisional status|flush */
 
-import { cmd, dispatchSub } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub } from '../args';
 import type { BotRuntime } from '../context';
 
 export const provisionalCommand = cmd(

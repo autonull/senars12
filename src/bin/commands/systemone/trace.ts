@@ -1,6 +1,7 @@
 /** Trace grader: .trace on|off|status|sample <0-1>|dataset */
 
-import { cmd, dispatchSub, onOff, ratioArg } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub, onOff, ratioArg } from '../args';
 import { incrementCount } from '@senars/util/collections';
 import { systemOneOf } from '../context';
 import type { BotRuntime } from '../context';

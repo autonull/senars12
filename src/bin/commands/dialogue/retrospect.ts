@@ -1,6 +1,6 @@
 /** Run a retrospective */
 
-import { cmd } from '../cli';
+import { cmd } from '@senars/cli';
 import { unique } from '@senars/util/collections';
 import { runSessionRetrospective } from './retrospective';
 import type { BotRuntime } from '../context';

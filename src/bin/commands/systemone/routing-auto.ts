@@ -1,6 +1,7 @@
 /** Dispatcher auto-routing: .routing-auto on|off|status|policy <conservative|balanced|aggressive> */
 
-import { cmd, dispatchSub, onOff } from '../cli';
+import { cmd } from '@senars/cli';
+import { dispatchSub, onOff } from '../args';
 import type { BotRuntime } from '../context';
 
 const POLICIES = ['conservative', 'balanced', 'aggressive'] as const;
