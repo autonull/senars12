@@ -7,7 +7,15 @@
  *   senars config validate                    # validate default config path
  *   senars config validate --config path.json # validate specific config file
  *   senars config validate --json             # output machine-readable JSON
+ *
+ * @deprecated Use `senars config validate` instead. This entry point will be removed in a future version.
  */
+
+import { createLogger } from '@senars/util/logger';
+
+// Deprecation warning
+const logger = createLogger({ scope: 'config-validate' });
+logger.warn('DEPRECATION: `senars config validate` (standalone) is deprecated. Use `senars config validate` via the unified CLI instead.');
 
 import { resolveLMConfig, resolveLMSettings } from '@senars/lm';
 import { errMsg } from '@senars/util/error';

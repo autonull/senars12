@@ -5,14 +5,16 @@
  *
  * Usage: senars self-report
  *        pnpm exec tsx src/bin/self-report.ts
+ *
+ * @deprecated Use `senars self-report` instead. This entry point will be removed in a future version.
  */
 
+import { createLogger } from '@senars/util/logger';
 import { NARBuilder } from '@senars/agent';
 import { createLMService, createSeNARSRegistry } from '@senars/lm';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/rules';
 import { operationNameOf } from '@senars/terms';
 import { initializeSelfConcept } from '@senars/tools';
-import { createLogger } from '@senars/util/logger';
 import { divider, bar } from '@senars/util/format';
 import { mean } from '@senars/util/numeric';
 import { pct } from '@senars/util/format';
@@ -23,7 +25,9 @@ import { mettaPort } from './lib/metta';
 import { readPersistedState, loadDiagnosticConfig } from './lib/diagnostics';
 import { runCLI, standardSections, type CommonFlags, type HelpSection } from './lib/cli-utils';
 
+// Deprecation warning
 const logger = createLogger({ scope: 'self-report' });
+logger.warn('DEPRECATION: `senars self-report` (standalone) is deprecated. Use `senars self-report` via the unified CLI instead.');
 
 function formatDrives(drives: Record<string, number>): string {
   const lines = [];

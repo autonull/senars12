@@ -11,8 +11,16 @@
  *   senars logic convert '<input>' --to narsese|json|prolog|tptp
  *
  * Exit code is 0 for a positive result, 1 otherwise. Output is JSON, so the
- * command is usable from a script and from any MCP client.
+ * command is usable from a script and from from any MCP client.
+ *
+ * @deprecated Use `senars logic` instead. This entry point will be removed in a future version.
  */
+
+import { createLogger } from '@senars/util/logger';
+
+// Deprecation warning
+const logger = createLogger({ scope: 'logic' });
+logger.warn('DEPRECATION: `senars logic` (standalone) is deprecated. Use `senars logic` via the unified CLI instead.');
 
 import { readFileSync } from 'node:fs';
 import type { Formula } from '../logics/axiomatic/ast';

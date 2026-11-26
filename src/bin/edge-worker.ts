@@ -5,15 +5,20 @@
  * A minimal, zero-LM worker that runs the device profile with
  * WASM-compatible oracles only. No containers, no external binaries,
  * no Python. Single-file bundle with vendored .wasm modules.
+ *
+ * @deprecated Use `senars edge run` instead. This entry point will be removed in a future version.
  */
+
+import { createLogger } from '@senars/util/logger';
+
+// Deprecation warning
+const logger = createLogger({ scope: 'edge-worker' });
+logger.warn('DEPRECATION: `senars-edge` is deprecated. Use `senars edge run` instead.');
 
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
 import { readAppEnvConfig } from './lib/env-config';
 import { runEntrypoint } from './lib/fatal-error';
 import { runCLI, standardSections, profileHelpSection, maybeStartWebUI, type CommonFlags, type HelpSection, getProfileRegistry } from './lib/cli-utils';
-import { createLogger } from '@senars/util/logger';
-
-const logger = createLogger({ scope: 'edge-worker' });
 
 /** Edge worker configuration. */
 export interface EdgeWorkerConfig {

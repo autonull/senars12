@@ -89,6 +89,7 @@ async function buildRootHelpSections(): Promise<HelpSection[]> {
         '  wasm-bundle           Generate WASM bundle',
         '  self-report           Print cognitive state',
         '  imagine               Run imagine pipeline',
+        '  completion            Generate shell completions',
       ],
     },
     standardSections.examples([
@@ -416,6 +417,10 @@ async function registerAllCommands(): Promise<void> {
   const pluginPublishMain = pluginPublishMod.main;
   const pluginPublishSections = pluginPublishMod.sections;
 
+  const completionMod = await import('./completion');
+  const completionMain = completionMod.main;
+  const completionSections = completionMod.sections;
+
   logger = createLogger({ scope: 'senars' });
 
   registerCommand('run', {
@@ -618,6 +623,9 @@ async function registerAllCommands(): Promise<void> {
 
   // plugin publish
   registerCommand('plugin publish', { main: pluginPublishMain, sections: pluginPublishSections });
+
+  // completion
+  registerCommand('completion', { main: completionMain, sections: completionSections });
 
   // wasm-bundle
   registerCommand('wasm-bundle', createStubCommand('wasm-bundle', 'https://github.com/senars/senars/issues/XXX'));

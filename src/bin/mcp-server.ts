@@ -3,12 +3,14 @@
  * MCP Server CLI Entry Point
  * Runs the SeNARS MCP Server with NAR tools registered
  * Supports stdio, SSE, and Streamable HTTP transports
+ *
+ * @deprecated Use `senars serve mcp` instead. This entry point will be removed in a future version.
  */
 
-import { DialogueCapture } from '../dialogue/index';
 import { createLogger, envStr, parseFlags, setupGracefulShutdown } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error';
 import { createAgentFromEnv } from './lib/lifecycle';
+import { DialogueCapture } from '../dialogue/index';
 import {
   createMcpServer,
   HttpGuard,
@@ -26,7 +28,9 @@ import {
   registerMCPPrompts,
 } from './lib/mcp';
 
-const logger = createLogger({ scope: 'mcp' });
+// Deprecation warning
+const logger = createLogger({ scope: 'mcp-server' });
+logger.warn('DEPRECATION: `senars-mcp` is deprecated. Use `senars serve mcp` instead.');
 
 const server = createMcpServer();
 const flags = parseFlags();

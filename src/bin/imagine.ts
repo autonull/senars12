@@ -2,7 +2,15 @@
 /**
  * NAR Imagine CLI - Cognitive Treadmill & Scenario Generation
  * Usage: senars imagine --profile induction --seed 42
+ *
+ * @deprecated Use `senars imagine` or `senars demo imagine` instead. This entry point will be removed in a future version.
  */
+
+import { createLogger } from '@senars/util/logger';
+
+// Deprecation warning
+const logger = createLogger({ scope: 'imagine' });
+logger.warn('DEPRECATION: `senars imagine` (standalone) is deprecated. Use `senars demo imagine` or `senars imagine` via the unified CLI instead.');
 
 import type { NAR } from '@senars/agent';
 import { createNAR } from '@senars/agent';

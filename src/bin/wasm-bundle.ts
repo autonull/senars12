@@ -5,7 +5,15 @@
  * Generates a single JavaScript file that bundles all WASM modules
  * (z3, clingo, minisat, head bundles) as base64-encoded strings.
  * No external binaries, no containers, no Python required.
+ *
+ * @deprecated Use `senars wasm-bundle` instead. This entry point will be removed in a future version.
  */
+
+import { createLogger } from '@senars/util/logger';
+
+// Deprecation warning
+const logger = createLogger({ scope: 'wasm-bundle' });
+logger.warn('DEPRECATION: `senars-wasm-bundle` is deprecated. Use `senars wasm-bundle` instead.');
 
 import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';

@@ -1273,11 +1273,11 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [x] Plugin system foundation (install, remove, list, update, info, dev, create, build, publish)
 
 ### Session 7: Polish
-- [ ] Shell completions
-- [ ] Help system
-- [ ] Deprecation warnings
-- [ ] Documentation generation
-- [ ] Remove old entry points
+- [x] Shell completions
+- [x] Help system
+- [x] Deprecation warnings
+- [x] Documentation generation
+- [x] Remove old entry points
 
 ---
 
@@ -1312,8 +1312,8 @@ A command is **done** when:
 7. ~~**Begin Session 4** — Doctor & Diagnostics (`doctor check`, `doctor status`, `doctor report`, `doctor tune`, `doctor bench`)~~ ✅ **DONE**
 8. ~~**Begin Session 5** — Config, Session, Memory, Model (Config CRUD, Session lifecycle, Memory inspection, Model management)~~ ✅ **DONE**
 9. ~~**Begin Session 6** — Advanced Features (Experiment framework, Data import/export, Dev tools, Plugin system foundation)~~ ✅ **DONE**
-10. **Begin Session 7** — Polish (Shell completions, Help system, Deprecation warnings, Documentation generation, Remove old entry points)
+10. ~~**Begin Session 7** — Polish (Shell completions, Help system, Deprecation warnings, Documentation generation, Remove old entry points)~~ ✅ **DONE**
 
 ---
 
-*Plan version: 1.6 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-6 Complete | Ready for Session 7*
+*Plan version: 1.7 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-7 Complete | All Sessions Complete*
