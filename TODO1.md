@@ -1261,10 +1261,10 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [x] `senars doctor bench` (extract)
 
 ### Session 5: Config, Session, Memory, Model
-- [ ] Config CRUD commands
-- [ ] Session lifecycle
-- [ ] Memory inspection
-- [ ] Model management
+- [x] Config CRUD commands (validate, get, set, list)
+- [x] Session lifecycle (start, stop, list)
+- [x] Memory inspection (inspect, export, import)
+- [x] Model management (list, pull, remove)
 
 ### Session 6: Advanced Features
 - [ ] Experiment framework
@@ -1310,8 +1310,9 @@ A command is **done** when:
 5. ~~**Begin Session 2** — Core Execution (`serve mcp`, `serve http`, `serve ws`, `edge run`, `logic`)~~ ✅ **DONE**
 6. ~~**Begin Session 3** — Demo Subsystem (`demo playground`, `demo arcade`, `demo imagine`, `demo benchmark`)~~ ✅ **DONE**
 7. ~~**Begin Session 4** — Doctor & Diagnostics (`doctor check`, `doctor status`, `doctor report`, `doctor tune`, `doctor bench`)~~ ✅ **DONE**
-8. **Begin Session 5** — Config, Session, Memory, Model (Config CRUD, Session lifecycle, Memory inspection, Model management)
+8. ~~**Begin Session 5** — Config, Session, Memory, Model (Config CRUD, Session lifecycle, Memory inspection, Model management)~~ ✅ **DONE**
+9. **Begin Session 6** — Advanced Features (Experiment framework, Data import/export, Dev tools, Plugin system foundation)
 
 ---
 
-*Plan version: 1.4 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-4 Complete | Ready for Session 5*
+*Plan version: 1.5 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-5 Complete | Ready for Session 6*

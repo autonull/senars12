@@ -205,6 +205,58 @@ async function registerAllCommands(): Promise<void> {
   const doctorBenchMain = doctorBenchMod.main;
   const doctorBenchSections = doctorBenchMod.sections;
 
+  const configValidateMod = await import('./commands/config/validate');
+  const configValidateMain = configValidateMod.main;
+  const configValidateSections = configValidateMod.sections;
+
+  const configGetMod = await import('./commands/config/get');
+  const configGetMain = configGetMod.main;
+  const configGetSections = configGetMod.sections;
+
+  const configSetMod = await import('./commands/config/set');
+  const configSetMain = configSetMod.main;
+  const configSetSections = configSetMod.sections;
+
+  const configListMod = await import('./commands/config/list');
+  const configListMain = configListMod.main;
+  const configListSections = configListMod.sections;
+
+  const sessionStartMod = await import('./commands/session/start');
+  const sessionStartMain = sessionStartMod.main;
+  const sessionStartSections = sessionStartMod.sections;
+
+  const sessionStopMod = await import('./commands/session/stop');
+  const sessionStopMain = sessionStopMod.main;
+  const sessionStopSections = sessionStopMod.sections;
+
+  const sessionListMod = await import('./commands/session/list');
+  const sessionListMain = sessionListMod.main;
+  const sessionListSections = sessionListMod.sections;
+
+  const memoryInspectMod = await import('./commands/memory/inspect');
+  const memoryInspectMain = memoryInspectMod.main;
+  const memoryInspectSections = memoryInspectMod.sections;
+
+  const memoryExportMod = await import('./commands/memory/export');
+  const memoryExportMain = memoryExportMod.main;
+  const memoryExportSections = memoryExportMod.sections;
+
+  const memoryImportMod = await import('./commands/memory/import');
+  const memoryImportMain = memoryImportMod.main;
+  const memoryImportSections = memoryImportMod.sections;
+
+  const modelListMod = await import('./commands/model/list');
+  const modelListMain = modelListMod.main;
+  const modelListSections = modelListMod.sections;
+
+  const modelPullMod = await import('./commands/model/pull');
+  const modelPullMain = modelPullMod.main;
+  const modelPullSections = modelPullMod.sections;
+
+  const modelRemoveMod = await import('./commands/model/remove');
+  const modelRemoveMain = modelRemoveMod.main;
+  const modelRemoveSections = modelRemoveMod.sections;
+
   logger = createLogger({ scope: 'senars' });
 
   registerCommand('run', {
@@ -277,43 +329,43 @@ async function registerAllCommands(): Promise<void> {
   registerCommand('doctor bench', { main: doctorBenchMain, sections: doctorBenchSections });
 
   // config validate
-  registerCommand('config validate', createStubCommand('config validate', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('config validate', { main: configValidateMain, sections: configValidateSections });
 
   // config get
-  registerCommand('config get', createStubCommand('config get', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('config get', { main: configGetMain, sections: configGetSections });
 
   // config set
-  registerCommand('config set', createStubCommand('config set', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('config set', { main: configSetMain, sections: configSetSections });
 
   // config list
-  registerCommand('config list', createStubCommand('config list', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('config list', { main: configListMain, sections: configListSections });
 
   // session start
-  registerCommand('session start', createStubCommand('session start', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('session start', { main: sessionStartMain, sections: sessionStartSections });
 
   // session stop
-  registerCommand('session stop', createStubCommand('session stop', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('session stop', { main: sessionStopMain, sections: sessionStopSections });
 
   // session list
-  registerCommand('session list', createStubCommand('session list', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('session list', { main: sessionListMain, sections: sessionListSections });
 
   // memory inspect
-  registerCommand('memory inspect', createStubCommand('memory inspect', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('memory inspect', { main: memoryInspectMain, sections: memoryInspectSections });
 
   // memory export
-  registerCommand('memory export', createStubCommand('memory export', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('memory export', { main: memoryExportMain, sections: memoryExportSections });
 
   // memory import
-  registerCommand('memory import', createStubCommand('memory import', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('memory import', { main: memoryImportMain, sections: memoryImportSections });
 
   // model list
-  registerCommand('model list', createStubCommand('model list', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('model list', { main: modelListMain, sections: modelListSections });
 
   // model pull
-  registerCommand('model pull', createStubCommand('model pull', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('model pull', { main: modelPullMain, sections: modelPullSections });
 
   // model remove
-  registerCommand('model remove', createStubCommand('model remove', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('model remove', { main: modelRemoveMain, sections: modelRemoveSections });
 
   // wasm-bundle
   registerCommand('wasm-bundle', createStubCommand('wasm-bundle', 'https://github.com/senars/senars/issues/XXX'));
