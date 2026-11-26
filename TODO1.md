@@ -1233,11 +1233,11 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [ ] Review `src/bin/lib/entrypoint-base.ts` — understand entry point patterns
 
 ### Session 1: Command Router & Core Structure
-- [ ] Create `src/bin/lib/cli.ts` with command registry
-- [ ] Create `src/bin/senars.ts` as thin router
-- [ ] Implement `senars run` (merge senars default + bot)
-- [ ] Implement stubs for all 18 top-level commands
-- [ ] Verify `senars --help` shows full taxonomy
+- [x] Create `src/bin/lib/cli.ts` with command registry
+- [x] Create `src/bin/senars.ts` as thin router
+- [x] Implement `senars run` (merge senars default + bot)
+- [x] Implement stubs for all 18 top-level commands
+- [x] Verify `senars --help` shows full taxonomy
 
 ### Session 2: Core Execution
 - [ ] `senars serve mcp` (extract from mcp-server.ts)
@@ -1306,8 +1306,9 @@ A command is **done** when:
 1. **Approve this plan** — Review with stakeholders
 2. **Create GitHub Project** — Track phases as milestones
 3. **Set up CI** — Add benchmark, accessibility, contract tests
-4. **Begin Session 1** — Command router implementation
+4. ~~**Begin Session 1** — Command router implementation~~ ✅ **DONE**
+5. **Begin Session 2** — Core Execution (`serve mcp`, `serve http`, `serve ws`, `edge run`, `logic`)
 
 ---
 
-*Plan version: 1.0 | Created: 2026-11-26 | Ready for implementation*
+*Plan version: 1.1 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1 Complete | Ready for Session 2*

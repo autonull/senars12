@@ -4,40 +4,19 @@
  *
  * Profiles as data: logic, coprocessor, agent, device (+ domain packs).
  * Device profile imports zero LM.
+ *
+ * All subcommands are registered in src/bin/lib/cli.ts via registerCommand().
+ * This file is now a thin router that dispatches to the command registry.
  */
 
-import { z } from 'zod';
-import { PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
-import { standardSections, runCLI, profileHelpSection, showHelpAndExit, getProfileRegistry, type CommonFlags, type HelpSection } from './lib/cli-utils';
 import { runEntrypoint } from './lib/fatal-error';
-import { createAgentFromEnv, runAgent } from './lib/lifecycle';
-import { readAppEnvConfig } from './lib/env-config';
-import { maybeStartWebUI } from './lib/entrypoint-base';
-import {
-  listProfiles,
-  listPacks,
-  startMCPServer,
-  startPlayground,
-  generateSchema,
-  showSchema,
-} from './lib/senars-commands';
-import { createLogger } from '@senars/util/logger';
-
-const logger = createLogger({ scope: 'senars' });
-
-/** CLI arguments schema for non-standard flags. */
-const CLISchema = z.object({
-  listProfiles: z.boolean().optional(),
-  listPacks: z.boolean().optional(),
-  mcp: z.boolean().optional(),
-  mcpPort: z.number().optional(),
-  playground: z.boolean().optional(),
-  generate: z.string().optional(),
-  schema: z.string().optional(),
-});
+import { dispatch, registerCommand, createStubCommand } from './lib/cli';
+import { getProfileRegistry, profileHelpSection, standardSections, type HelpSection } from './lib/cli-utils';
+import { startPlayground, startMCPServer, generateSchema, showSchema } from './lib/senars-commands';
+import { listProfiles as listProfilesCmd, listPacks as listPacksCmd } from './lib/senars-commands';
 
 /** Build help sections dynamically from profile registry (lazy). */
-async function buildHelpSections(): Promise<HelpSection[]> {
+async function buildRootHelpSections(): Promise<HelpSection[]> {
   const registry = await getProfileRegistry();
   const profiles = registry.getAll();
   const profileInfos = profiles.map((p) => ({ kind: p.kind, name: p.name, description: p.description }));
@@ -46,43 +25,55 @@ async function buildHelpSections(): Promise<HelpSection[]> {
     standardSections.usage('senars', 'SeNARS — The Fold: One deterministic fold over one log'),
     profileHelpSection(profileInfos),
     {
-      title: 'MCP Server',
+      title: 'Commands',
       lines: [
-        '--mcp                  Start MCP server (stdio by default)',
-        '--mcp-port <port>      Start MCP server on HTTP port',
-      ],
-    },
-    {
-      title: 'Playground',
-      lines: ['--playground           Start interactive playground'],
-    },
-    {
-      title: 'Generation',
-      lines: [
-        '--generate <schema-id> Generate artifacts for schema',
-        '--schema <schema-id>   Show schema details',
-      ],
-    },
-    {
-      title: 'Listing',
-      lines: [
-        '--list-profiles        List available profiles',
-        '--list-packs           List available domain packs',
+        '  run                   Run agent with profile (default)',
+        '  serve mcp             Start MCP server',
+        '  serve http            Start HTTP server',
+        '  serve ws              Start WebSocket server',
+        '  edge run              Run edge worker',
+        '  logic                 Logic tool commands',
+        '  demo playground       Start interactive playground',
+        '  demo arcade           Start demo arcade',
+        '  demo imagine          Run imagine demo',
+        '  demo benchmark        Run benchmarks',
+        '  doctor check          Run health checks',
+        '  doctor status         Show system status',
+        '  doctor report         Generate diagnostic report',
+        '  doctor tune           Run tuning',
+        '  doctor bench          Run benchmarks',
+        '  config validate       Validate configuration',
+        '  config get            Get config value',
+        '  config set            Set config value',
+        '  config list           List config',
+        '  session start         Start session',
+        '  session stop          Stop session',
+        '  session list          List sessions',
+        '  memory inspect        Inspect memory',
+        '  memory export         Export memory',
+        '  memory import         Import memory',
+        '  model list            List models',
+        '  model pull            Pull model',
+        '  model remove          Remove model',
+        '  wasm-bundle           Generate WASM bundle',
+        '  self-report           Print cognitive state',
+        '  imagine               Run imagine pipeline',
       ],
     },
     standardSections.examples([
-      'senars --profile logic',
-      'senars --profile agent --mcp',
-      'senars --profile device --playground',
-      'senars --generate my-schema',
-      'npx senars --profile coprocessor',
+      'senars run --profile agent',
+      'senars run --profile logic',
+      'senars serve mcp --port 3000',
+      'senars logic prove "<program>" "<goal>"',
+      'senars demo playground',
+      'senars doctor check',
+      'senars config validate',
     ]),
   ];
 }
 
 /** Parse custom flags (kebab-case to camelCase for Zod schema). */
-function parseCustomFlags(): Record<string, unknown> {
-  const argv = process.argv.slice(2);
+function parseCustomFlags(argv: string[]): Record<string, unknown> {
   const customArgs: Record<string, unknown> = {};
 
   for (let i = 0; i < argv.length; i++) {
@@ -103,7 +94,7 @@ function parseCustomFlags(): Record<string, unknown> {
   if (customArgs.generate) customArgs.generate = String(customArgs.generate);
   if (customArgs.schema) customArgs.schema = String(customArgs.schema);
 
-  return CLISchema.parse(customArgs);
+  return customArgs;
 }
 
 /** Run agent with profile (default mode). */
@@ -119,71 +110,259 @@ async function runAgentMode(profileKind: string): Promise<void> {
   console.log(`Starting SeNARS with profile: ${profile.name} (${profile.kind})`);
 
   if (profile.requiresLM) {
+    const { readAppEnvConfig } = await import('./lib/env-config');
     const envConfig = readAppEnvConfig();
     if (!envConfig.enableWebUI) {
       console.warn('Warning: Profile requires LM but no LM configured. Set LM_API_KEY or LM_ENDPOINT.');
     }
   }
 
+  const { createAgentFromEnv, runAgent } = await import('./lib/lifecycle');
+  const { maybeStartWebUI } = await import('./lib/entrypoint-base');
+  const { readAppEnvConfig } = await import('./lib/env-config');
+  const { createLogger } = await import('@senars/util/logger');
+
+  const logger = createLogger({ scope: 'senars' });
   const { agent } = await createAgentFromEnv({ narConfig: { maxConcepts: 100 } });
   await runAgent(agent);
   await maybeStartWebUI(agent, readAppEnvConfig().enableWebUI, undefined, logger);
 }
 
-/** Main entry point using shared CLI utilities. */
-async function main(flags: CommonFlags): Promise<void> {
-  const sections = await buildHelpSections();
-  const parsed = parseCustomFlags();
+/** Register all commands. */
+async function registerAllCommands(): Promise<void> {
+  const { createAgentFromEnv, runAgent } = await import('./lib/lifecycle');
+  const { maybeStartWebUI } = await import('./lib/entrypoint-base');
+  const { readAppEnvConfig } = await import('./lib/env-config');
+  const { createLogger } = await import('@senars/util/logger');
+  const { standardSections: stdSections } = await import('./lib/cli-utils');
 
-  if (flags.help) {
+  const logger = createLogger({ scope: 'senars' });
+
+  registerCommand('run', {
+    main: async (flags) => {
+      const profileKind = flags.profile ?? 'agent';
+      await runAgentMode(profileKind);
+    },
+    sections: [
+      stdSections.usage('senars run', 'Run agent with profile (default command)'),
+      {
+        title: 'Options',
+        lines: [
+          '-p, --profile <kind>     Select profile: logic | coprocessor | agent | device (default: agent)',
+          '--web-ui                 Enable Web UI',
+          '--port <number>          Web UI port (default: 8765)',
+          '-v, --version            Show version',
+          '--verbose                Verbose output',
+          '--quiet                  Suppress non-error output',
+          '-h, --help               Show this help',
+        ],
+      },
+      stdSections.examples([
+        'senars run',
+        'senars run --profile logic',
+        'senars run --profile agent --web-ui --port 3000',
+      ]),
+    ],
+  });
+
+  // serve mcp
+  registerCommand('serve mcp', createStubCommand('serve mcp', 'https://github.com/senars/senars/issues/XXX'));
+
+  // serve http
+  registerCommand('serve http', createStubCommand('serve http', 'https://github.com/senars/senars/issues/XXX'));
+
+  // serve ws
+  registerCommand('serve ws', createStubCommand('serve ws', 'https://github.com/senars/senars/issues/XXX'));
+
+  // edge run
+  registerCommand('edge run', createStubCommand('edge run', 'https://github.com/senars/senars/issues/XXX'));
+
+  // logic
+  registerCommand('logic', createStubCommand('logic', 'https://github.com/senars/senars/issues/XXX'));
+
+  // demo playground
+  registerCommand('demo playground', {
+    main: async (flags) => {
+      await startPlayground(flags.profile);
+    },
+    sections: [
+      stdSections.usage('senars demo playground', 'Start interactive playground'),
+      {
+        title: 'Options',
+        lines: [
+          '-p, --profile <kind>     Select profile (default: device)',
+          '--web-ui                 Enable Web UI',
+          '--port <number>          Web UI port (default: 8765)',
+          '-v, --version            Show version',
+          '--verbose                Verbose output',
+          '--quiet                  Suppress non-error output',
+          '-h, --help               Show this help',
+        ],
+      },
+      stdSections.examples([
+        'senars demo playground',
+        'senars demo playground --profile logic --web-ui',
+      ]),
+    ],
+  });
+
+  // demo arcade
+  registerCommand('demo arcade', createStubCommand('demo arcade', 'https://github.com/senars/senars/issues/XXX'));
+
+  // demo imagine
+  registerCommand('demo imagine', createStubCommand('demo imagine', 'https://github.com/senars/senars/issues/XXX'));
+
+  // demo benchmark
+  registerCommand('demo benchmark', createStubCommand('demo benchmark', 'https://github.com/senars/senars/issues/XXX'));
+
+  // doctor check
+  registerCommand('doctor check', createStubCommand('doctor check', 'https://github.com/senars/senars/issues/XXX'));
+
+  // doctor status
+  registerCommand('doctor status', createStubCommand('doctor status', 'https://github.com/senars/senars/issues/XXX'));
+
+  // doctor report
+  registerCommand('doctor report', createStubCommand('doctor report', 'https://github.com/senars/senars/issues/XXX'));
+
+  // doctor tune
+  registerCommand('doctor tune', createStubCommand('doctor tune', 'https://github.com/senars/senars/issues/XXX'));
+
+  // doctor bench
+  registerCommand('doctor bench', createStubCommand('doctor bench', 'https://github.com/senars/senars/issues/XXX'));
+
+  // config validate
+  registerCommand('config validate', createStubCommand('config validate', 'https://github.com/senars/senars/issues/XXX'));
+
+  // config get
+  registerCommand('config get', createStubCommand('config get', 'https://github.com/senars/senars/issues/XXX'));
+
+  // config set
+  registerCommand('config set', createStubCommand('config set', 'https://github.com/senars/senars/issues/XXX'));
+
+  // config list
+  registerCommand('config list', createStubCommand('config list', 'https://github.com/senars/senars/issues/XXX'));
+
+  // session start
+  registerCommand('session start', createStubCommand('session start', 'https://github.com/senars/senars/issues/XXX'));
+
+  // session stop
+  registerCommand('session stop', createStubCommand('session stop', 'https://github.com/senars/senars/issues/XXX'));
+
+  // session list
+  registerCommand('session list', createStubCommand('session list', 'https://github.com/senars/senars/issues/XXX'));
+
+  // memory inspect
+  registerCommand('memory inspect', createStubCommand('memory inspect', 'https://github.com/senars/senars/issues/XXX'));
+
+  // memory export
+  registerCommand('memory export', createStubCommand('memory export', 'https://github.com/senars/senars/issues/XXX'));
+
+  // memory import
+  registerCommand('memory import', createStubCommand('memory import', 'https://github.com/senars/senars/issues/XXX'));
+
+  // model list
+  registerCommand('model list', createStubCommand('model list', 'https://github.com/senars/senars/issues/XXX'));
+
+  // model pull
+  registerCommand('model pull', createStubCommand('model pull', 'https://github.com/senars/senars/issues/XXX'));
+
+  // model remove
+  registerCommand('model remove', createStubCommand('model remove', 'https://github.com/senars/senars/issues/XXX'));
+
+  // wasm-bundle
+  registerCommand('wasm-bundle', createStubCommand('wasm-bundle', 'https://github.com/senars/senars/issues/XXX'));
+
+  // self-report
+  registerCommand('self-report', createStubCommand('self-report', 'https://github.com/senars/senars/issues/XXX'));
+
+  // imagine
+  registerCommand('imagine', createStubCommand('imagine', 'https://github.com/senars/senars/issues/XXX'));
+}
+
+/** Main entry point. */
+async function main(): Promise<void> {
+  await registerAllCommands();
+
+  const argv = process.argv.slice(2);
+
+  // Skip `--` separator if present (from pnpm/npm)
+  const cleanArgv = argv[0] === '--' ? argv.slice(1) : argv;
+
+  // If no subcommand and no flags that imply default behavior, show help
+  const hasSubcommand = cleanArgv.length > 0 && !cleanArgv[0].startsWith('--');
+  const hasProfileFlag = cleanArgv.includes('--profile') || cleanArgv.includes('-p');
+  const hasMCPFlag = cleanArgv.includes('--mcp');
+  const hasPlaygroundFlag = cleanArgv.includes('--playground');
+  const hasListProfiles = cleanArgv.includes('--list-profiles');
+  const hasListPacks = cleanArgv.includes('--list-packs');
+  const hasGenerate = cleanArgv.some((a) => a.startsWith('--generate'));
+  const hasSchema = cleanArgv.some((a) => a.startsWith('--schema'));
+
+  // Handle global --help and --version ONLY when no subcommand
+  if (!hasSubcommand && (cleanArgv.includes('--help') || cleanArgv.includes('-h'))) {
+    const sections = await buildRootHelpSections();
+    const { showHelpAndExit } = await import('./lib/cli-utils');
     showHelpAndExit(sections);
   }
 
-  if (parsed.listProfiles) {
-    await listProfiles();
+  if (!hasSubcommand && (cleanArgv.includes('--version') || cleanArgv.includes('-v'))) {
+    const { getVersion } = await import('./lib/cli-utils');
+    console.log(getVersion());
+    process.exit(0);
+  }
+
+  if (!hasSubcommand && !hasProfileFlag && !hasMCPFlag && !hasPlaygroundFlag && !hasListProfiles && !hasListPacks && !hasGenerate && !hasSchema) {
+    const sections = await buildRootHelpSections();
+    const { showHelpAndExit } = await import('./lib/cli-utils');
+    showHelpAndExit(sections);
+  }
+
+  // Handle legacy flags for backward compatibility (only when no subcommand)
+  if (!hasSubcommand) {
+    const customFlags = parseCustomFlags(cleanArgv);
+
+    if (customFlags.listProfiles) {
+      await listProfilesCmd();
+      return;
+    }
+
+    if (customFlags.listPacks) {
+      listPacksCmd();
+      return;
+    }
+
+    if (customFlags.generate) {
+      await generateSchema(String(customFlags.generate));
+      return;
+    }
+
+    if (customFlags.schema) {
+      await showSchema(String(customFlags.schema));
+      return;
+    }
+
+    if (customFlags.mcp) {
+      await startMCPServer(typeof customFlags.mcpPort === 'number' ? customFlags.mcpPort : undefined);
+      return;
+    }
+
+    if (customFlags.playground) {
+      const { parseCommonFlags } = await import('./lib/cli-utils');
+      const { parseFlags } = await import('@senars/util/cli');
+      const flags = parseFlags(cleanArgv);
+      const common = parseCommonFlags(flags);
+      await startPlayground(common.profile);
+      return;
+    }
+
+    // Default: run agent with profile
+    const profileKind = customFlags.profile as string ?? 'agent';
+    await runAgentMode(profileKind);
     return;
   }
 
-  if (parsed.listPacks) {
-    listPacks();
-    return;
-  }
-
-  if (parsed.generate) {
-    await generateSchema(parsed.generate);
-    return;
-  }
-
-  if (parsed.schema) {
-    await showSchema(parsed.schema);
-    return;
-  }
-
-  if (parsed.mcp) {
-    await startMCPServer(parsed.mcpPort);
-    return;
-  }
-
-  if (parsed.playground) {
-    await startPlayground(flags.profile);
-    return;
-  }
-
-  // Default: run agent with profile
-  const profileKind = flags.profile ?? 'agent';
-  await runAgentMode(profileKind);
+  // Dispatch to registered command (handles subcommand --help/--version internally)
+  await dispatch(cleanArgv);
 }
 
-// Pre-build sections for runCLI's help check
-let _cachedSections: HelpSection[] | null = null;
-async function getCachedSections(): Promise<HelpSection[]> {
-  if (!_cachedSections) {
-    _cachedSections = await buildHelpSections();
-  }
-  return _cachedSections;
-}
-
-runEntrypoint(async () => {
-  const sections = await getCachedSections();
-  await runCLI(main, { sections, version: '0.0.0' });
-});
+runEntrypoint(main);
