@@ -2,62 +2,50 @@
  * `senars session stop` — Stop a session.
  */
 
-import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
-import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommonFlags } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-import { createLogger, parseFlags, jsonMode } from '@senars/util';
+import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
-const logger = createLogger({ scope: 'session:stop' });
-
-export const sections: HelpSection[] = [
-  standardSections.usage('senars session stop', 'Stop a session'),
-  {
-    title: 'Arguments',
-    lines: [
-      '<session-id>           Session ID to stop',
-    ],
-  },
-  {
-    title: 'Options',
-    lines: [
-      '--json                 Output machine-readable JSON',
-    ],
-  },
-  standardSections.examples([
+export const sections = createCommandModule({
+  name: 'session stop',
+  description: 'Stop a session',
+  usage: 'senars session stop <session-id> [options]',
+  sections: [
+    { lines: ['<session-id>           Session ID to stop'] },
+    { lines: ['--json                 Output machine-readable JSON'] },
+  ],
+  examples: [
     'senars session stop abc123',
     'senars session stop abc123 --json',
-  ]),
-];
+  ],
+}, async (flags: CommonFlags, positional: string[], rawFlags): Promise<void> => {
+  await handleErrors(async () => {
+    const jsonOutput = flagHelpers.jsonMode(rawFlags);
+    const sessionId = positional[0];
 
-export async function main(flags: CommonFlags, positional: string[]): Promise<void> {
-  const argv = parseFlags();
-  const jsonOutput = jsonMode(argv);
-  const sessionId = positional[0];
+    if (!sessionId) {
+      console.error('Error: <session-id> argument required');
+      process.exit(1);
+    }
 
-  if (!sessionId) {
-    console.error('Error: <session-id> argument required');
-    process.exit(1);
-  }
+    // This is a stub - session persistence would need to be implemented
+    const output = {
+      sessionId,
+      stoppedAt: new Date().toISOString(),
+      status: 'completed',
+    };
 
-  // This is a stub - session persistence would need to be implemented
-  const output = {
-    sessionId,
-    stoppedAt: new Date().toISOString(),
-    status: 'completed',
-  };
+    if (jsonOutput) {
+      console.log(JSON.stringify(output, null, 2));
+    } else {
+      console.log(`Session stopped: ${sessionId}`);
+    }
+  }, flags, 'session stop');
+});
 
-  if (jsonOutput) {
-    console.log(JSON.stringify(output, null, 2));
-  } else {
-    console.log(`Session stopped: ${sessionId}`);
-  }
-}
-
-export const sessionStopModule: CommandModule = {
-  main,
-  sections,
-};
+export const sessionStopModule: CommandModule = { main: sections.main, sections: sections.sections };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runCLI(main, { sections, version: '0.0.0' });
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(sections.main, { sections: sections.sections, version: '0.0.0' });
 }
