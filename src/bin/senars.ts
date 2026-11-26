@@ -131,33 +131,19 @@ function parseCustomFlags(argv: string[]): Record<string, unknown> {
 
 /** Run agent with profile (default mode). */
 async function runAgentMode(profileKind: string): Promise<void> {
-  const registry = await getProfileRegistry();
-  const profile = registry.get(profileKind);
-
-  if (!profile) {
-    console.error(`Unknown profile: ${profileKind}`);
-    process.exit(1);
-  }
-
-  console.log(`Starting SeNARS with profile: ${profile.name} (${profile.kind})`);
-
-  if (profile.requiresLM) {
-    const { readAppEnvConfig } = await import('./lib/env-config');
-    const envConfig = readAppEnvConfig();
-    if (!envConfig.enableWebUI) {
-      console.warn('Warning: Profile requires LM but no LM configured. Set LM_API_KEY or LM_ENDPOINT.');
-    }
-  }
-
-  const { createAgentFromEnv, runAgent } = await import('./lib/lifecycle');
-  const { maybeStartWebUI } = await import('./lib/entrypoint-base');
-  const { readAppEnvConfig } = await import('./lib/env-config');
-  const { createLogger } = await import('@senars/util/logger');
-
-  const logger = createLogger({ scope: 'senars' });
-  const { agent } = await createAgentFromEnv({ narConfig: { maxConcepts: 100 } });
-  await runAgent(agent);
-  await maybeStartWebUI(agent, readAppEnvConfig().enableWebUI, undefined, logger);
+  const { runModule } = await import('./commands/run');
+  // Create flags object compatible with runModule.main
+  const flags = {
+    help: false,
+    json: false,
+    version: false,
+    profile: profileKind,
+    webUI: false,
+    webUIPort: undefined,
+    verbose: false,
+    quiet: false,
+  };
+  await runModule.main(flags);
 }
 
 /** Register all commands. */
