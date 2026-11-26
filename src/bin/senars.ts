@@ -30,8 +30,8 @@ const CLISchema = z.object({
   schema: z.string().optional(),
 });
 
-/** Build help sections dynamically from profile registry. */
-function buildHelpSections(): ReturnType<typeof standardSections.usage> & { sections: any[] } {
+/** Build help sections dynamically from profile registry (lazy). */
+function buildHelpSections(): { sections: any[] } {
   const registry = createProfileRegistry();
   const profiles = registry.getAll();
   const profileInfos = profiles.map((p) => ({ kind: p.kind, name: p.name, description: p.description }));
@@ -348,14 +348,16 @@ async function main(): Promise<void> {
   const { parseFlags } = await import('@senars/util/cli');
   const flags = parseCommonFlags(parseFlags());
 
-  // Parse custom flags
+  // Parse custom flags (convert kebab-case to camelCase for Zod schema)
   const argv = process.argv.slice(2);
   const customArgs: Record<string, unknown> = {};
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg.startsWith('--')) {
-      const key = arg.slice(2);
+      let key = arg.slice(2);
+      // Convert kebab-case to camelCase
+      key = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
       const nextArg = argv[i + 1];
       if (nextArg && !nextArg.startsWith('--')) {
         customArgs[key] = nextArg;
