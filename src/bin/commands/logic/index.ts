@@ -16,8 +16,8 @@ import { parseFlags } from '../../../util/cli';
 import { check, convert, counterexample, model, prove, type ConvertTarget } from '../../../logic/commands';
 import type { CommandResult } from '../../../logic/verdict';
 import type { Formula } from '../../../logics/axiomatic/ast';
-import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
-import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommonFlags } from '../../lib/cli-utils';
+import { runCLI, standardSections, type HelpSection } from '../../lib/cli-utils';
 import { runEntrypoint } from '../../lib/fatal-error';
 import type { CommandModule } from '../../lib/cli';
 

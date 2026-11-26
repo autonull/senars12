@@ -2,28 +2,15 @@
  * `senars lm` — LM management commands.
  */
 
+import { runEntrypoint } from '../../lib/fatal-error';
+import { standardSections, type HelpSection } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-import { registerCommand } from '../../lib/cli';
-import { createStubCommand } from '../../lib/cli';
+import { createStubModule } from '../../lib/command-base';
 
-// Register lm subcommands as stubs for now
-registerCommand('lm', createStubCommand('lm', 'https://github.com/senars/senars/issues/XXX'));
+export const lmModule: CommandModule = createStubModule('lm', 'https://github.com/senars/senars/issues/XXX');
 
-export const lmModule: CommandModule = {
-  main: async () => {
-    console.error('Usage: senars lm [options]');
-    process.exit(1);
-  },
-  sections: [
-    {
-      title: 'Usage',
-      lines: ['senars lm [options]'],
-    },
-    {
-      title: 'Options',
-      lines: [
-        '--help    Show help',
-      ],
-    },
-  ],
-};
+// Allow direct execution for testing
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(lmModule.main, { sections: lmModule.sections, version: '0.0.0' });
+}

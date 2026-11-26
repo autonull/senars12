@@ -104,14 +104,23 @@ async function runAgentMode(profileKind: string): Promise<void> {
 
 /** Register all commands from manifest. */
 async function registerAllCommands(): Promise<void> {
+  // Resolve module paths relative to this file's directory
+  const baseDir = import.meta.dirname;
+  const resolvedManifest = commandManifest.map((entry) => ({
+    ...entry,
+    resolvedPath: new URL(entry.modulePath, `file://${baseDir}/`).href,
+  }));
+
   // Import all command modules in parallel
-  const imports = await Promise.all(
-    commandManifest.map((entry) => import(entry.modulePath))
-  );
+  const imports: any[] = [];
+  for (const entry of resolvedManifest) {
+    const mod = await import(entry.resolvedPath);
+    imports.push(mod);
+  }
 
   // Register top-level commands
-  for (let i = 0; i < commandManifest.length; i++) {
-    const entry = commandManifest[i];
+  for (let i = 0; i < resolvedManifest.length; i++) {
+    const entry = resolvedManifest[i];
     const module = imports[i];
     // Find the exported CommandModule (usually named *Module)
     const moduleKey = Object.keys(module).find((k) => k.endsWith('Module')) ?? 'default';

@@ -2,28 +2,15 @@
  * `senars connection` — Connection management commands.
  */
 
+import { runEntrypoint } from '../../lib/fatal-error';
+import { standardSections, type HelpSection } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-import { registerCommand } from '../../lib/cli';
-import { createStubCommand } from '../../lib/cli';
+import { createStubModule } from '../../lib/command-base';
 
-// Register connection subcommands as stubs for now
-registerCommand('connection', createStubCommand('connection', 'https://github.com/senars/senars/issues/XXX'));
+export const connectionModule: CommandModule = createStubModule('connection', 'https://github.com/senars/senars/issues/XXX');
 
-export const connectionModule: CommandModule = {
-  main: async () => {
-    console.error('Usage: senars connection [options]');
-    process.exit(1);
-  },
-  sections: [
-    {
-      title: 'Usage',
-      lines: ['senars connection [options]'],
-    },
-    {
-      title: 'Options',
-      lines: [
-        '--help    Show help',
-      ],
-    },
-  ],
-};
+// Allow direct execution for testing
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(connectionModule.main, { sections: connectionModule.sections, version: '0.0.0' });
+}

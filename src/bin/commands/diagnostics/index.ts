@@ -2,28 +2,15 @@
  * `senars diagnostics` — Diagnostics commands.
  */
 
+import { runEntrypoint } from '../../lib/fatal-error';
+import { standardSections, type HelpSection } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-import { registerCommand } from '../../lib/cli';
-import { createStubCommand } from '../../lib/cli';
+import { createStubModule } from '../../lib/command-base';
 
-// Register diagnostics subcommands as stubs for now
-registerCommand('diagnostics', createStubCommand('diagnostics', 'https://github.com/senars/senars/issues/XXX'));
+export const diagnosticsModule: CommandModule = createStubModule('diagnostics', 'https://github.com/senars/senars/issues/XXX');
 
-export const diagnosticsModule: CommandModule = {
-  main: async () => {
-    console.error('Usage: senars diagnostics [options]');
-    process.exit(1);
-  },
-  sections: [
-    {
-      title: 'Usage',
-      lines: ['senars diagnostics [options]'],
-    },
-    {
-      title: 'Options',
-      lines: [
-        '--help    Show help',
-      ],
-    },
-  ],
-};
+// Allow direct execution for testing
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(diagnosticsModule.main, { sections: diagnosticsModule.sections, version: '0.0.0' });
+}
