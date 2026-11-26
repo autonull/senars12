@@ -5,92 +5,49 @@
  * Profiles as data: logic, coprocessor, agent, device (+ domain packs).
  * Device profile imports zero LM.
  *
- * All subcommands are registered in src/bin/lib/cli.ts via registerCommand().
- * This file is now a thin router that dispatches to the command registry.
+ * All subcommands are registered via command manifest.
+ * This file is a thin router that dispatches to the command registry.
  */
 
 import { runEntrypoint } from './lib/fatal-error';
-import { dispatch, registerCommand } from './lib/cli';
-import { getProfileRegistry, profileHelpSection, standardSections, type HelpSection } from './lib/cli-utils';
+import { dispatch, registerCommand, getCommand, listCommands } from './lib/cli';
+import { getProfileRegistry, profileHelpSection, standardSections, type HelpSection, parseCommonFlags, runCLI } from './lib/cli-utils';
 import { startPlayground, startMCPServer, generateSchema, showSchema } from './lib/senars-commands';
 import { listProfiles as listProfilesCmd, listPacks as listPacksCmd } from './lib/senars-commands';
+import { commandManifest } from './commands/manifest';
 
-/** Build help sections dynamically from profile registry (lazy). */
+/** Build help sections dynamically from profile registry and command manifest. */
 async function buildRootHelpSections(): Promise<HelpSection[]> {
   const registry = await getProfileRegistry();
   const profiles = registry.getAll();
   const profileInfos = profiles.map((p) => ({ kind: p.kind, name: p.name, description: p.description }));
+
+  // Build command lines from manifest + registered subcommands
+  const commandLines: string[] = [];
+  for (const entry of commandManifest) {
+    const mod = getCommand(entry.name);
+    const desc = mod?.sections[0]?.lines[0]?.replace(/^  /, '') ?? entry.description;
+    commandLines.push(`  ${entry.name.padEnd(20)} ${desc}`);
+  }
+
+  // Add subcommands for known groups
+  const subcommandGroups = ['serve', 'doctor', 'config', 'session', 'memory', 'model', 'experiment', 'data', 'dev', 'plugin', 'demo'];
+  for (const group of subcommandGroups) {
+    const mod = getCommand(group);
+    if (mod?.subcommands) {
+      for (const [name, subMod] of mod.subcommands) {
+        const desc = subMod.sections[0]?.lines[0]?.replace(/^  /, '') ?? '';
+        commandLines.push(`  ${group} ${name.padEnd(18)} ${desc}`);
+      }
+    }
+  }
 
   return [
     standardSections.usage('senars', 'SeNARS — The Fold: One deterministic fold over one log'),
     profileHelpSection(profileInfos),
     {
       title: 'Commands',
-      lines: [
-        '  run                   Run agent with profile (default)',
-        '  serve mcp             Start MCP server',
-        '  serve http            Start HTTP server',
-        '  serve ws              Start WebSocket server',
-        '  edge run              Run edge worker',
-        '  logic                 Logic tool commands',
-        '  demo playground       Start interactive playground',
-        '  demo arcade           Start demo arcade',
-        '  demo imagine          Run imagine demo',
-        '  demo benchmark        Run benchmarks',
-        '  doctor check          Run health checks',
-        '  doctor status         Show system status',
-        '  doctor report         Generate diagnostic report',
-        '  doctor tune           Run tuning',
-        '  doctor bench          Run benchmarks',
-        '  config validate       Validate configuration',
-        '  config get            Get config value',
-        '  config set            Set config value',
-        '  config list           List config',
-        '  session start         Start session',
-        '  session stop          Stop session',
-        '  session list          List sessions',
-        '  memory inspect        Inspect memory',
-        '  memory export         Export memory',
-        '  memory import         Import memory',
-        '  model list            List models',
-        '  model pull            Pull model',
-        '  model remove          Remove model',
-        '  experiment run        Run experiment',
-        '  experiment list       List experiments',
-        '  experiment show       Show experiment details',
-        '  experiment compare    Compare experiments',
-        '  experiment analyze    Analyze experiment results',
-        '  experiment sweep      Parameter sweep experiment',
-        '  experiment notebook   Export to Jupyter notebook',
-        '  data import           Import data',
-        '  data export           Export data',
-        '  data transform        Transform data',
-        '  data generate         Generate synthetic data',
-        '  data validate         Validate data integrity',
-        '  dev repl              Developer REPL',
-        '  dev debug             Debug running agent',
-        '  dev profile           CPU/memory profiling',
-        '  dev trace             Trace execution',
-        '  dev inspect           Inspect internal state',
-        '  dev benchmark         Microbenchmarks',
-        '  dev test              Run tests',
-        '  dev lint              Lint code',
-        '  dev typecheck         TypeScript check',
-        '  dev generate          Generate code',
-        '  plugin install        Install plugin',
-        '  plugin remove         Remove plugin',
-        '  plugin list           List plugins',
-        '  plugin update         Update plugin',
-        '  plugin info           Show plugin info',
-        '  plugin dev            Plugin development mode',
-        '  plugin create         Create plugin from template',
-        '  plugin build          Build plugin for distribution',
-        '  plugin publish        Publish plugin to registry',
-        '  wasm-bundle           Generate WASM bundle',
-        '  self-report           Print cognitive state',
-        '  imagine               Run imagine pipeline',
-        '  completion            Generate shell completions',
-      ],
+      lines: commandLines.length > 0 ? commandLines : ['  (no commands registered)'],
     },
     standardSections.examples([
       'senars run --profile agent',
@@ -132,7 +89,6 @@ function parseCustomFlags(argv: string[]): Record<string, unknown> {
 /** Run agent with profile (default mode). */
 async function runAgentMode(profileKind: string): Promise<void> {
   const { runModule } = await import('./commands/run');
-  // Create flags object compatible with runModule.main
   const flags = {
     help: false,
     json: false,
@@ -146,100 +102,33 @@ async function runAgentMode(profileKind: string): Promise<void> {
   await runModule.main(flags);
 }
 
-/** Register all commands. */
+/** Register all commands from manifest. */
 async function registerAllCommands(): Promise<void> {
-  // Import command modules lazily to avoid circular dependencies
-  const [
-    { runModule },
-    { serveModule },
-    { logicModule },
-    { demoModule },
-    { doctorModule },
-    { configModule },
-    { sessionModule },
-    { memoryModule },
-    { modelModule },
-    { experimentModule },
-    { dataModule },
-    { devModule },
-    { pluginModule },
-    { edgeModule },
-    { systemOneModule },
-    { profileModule },
-    { lmModule },
-    { connectionModule },
-    { dialogueModule },
-    { diagnosticsModule },
-    { runtimeModule },
-    { wasmBundleModule },
-    { selfReportModule },
-    { imagineModule },
-    { completionModule },
-  ] = await Promise.all([
-    import('./commands/run'),
-    import('./commands/serve'),
-    import('./commands/logic'),
-    import('./commands/demo'),
-    import('./commands/doctor'),
-    import('./commands/config/index'),
-    import('./commands/session'),
-    import('./commands/memory'),
-    import('./commands/model'),
-    import('./commands/experiment'),
-    import('./commands/data'),
-    import('./commands/dev'),
-    import('./commands/plugin'),
-    import('./commands/edge'),
-    import('./commands/systemone'),
-    import('./commands/profile'),
-    import('./commands/lm'),
-    import('./commands/connection'),
-    import('./commands/dialogue'),
-    import('./commands/diagnostics'),
-    import('./commands/runtime'),
-    import('./commands/wasm-bundle'),
-    import('./commands/self-report'),
-    import('./commands/imagine'),
-    import('./commands/completion'),
-  ]);
+  // Import all command modules in parallel
+  const imports = await Promise.all(
+    commandManifest.map((entry) => import(entry.modulePath))
+  );
 
   // Register top-level commands
-  registerCommand('run', runModule);
-  registerCommand('serve', serveModule);
-  registerCommand('logic', logicModule);
-  registerCommand('demo', demoModule);
-  registerCommand('doctor', doctorModule);
-  registerCommand('config', configModule);
-  registerCommand('session', sessionModule);
-  registerCommand('memory', memoryModule);
-  registerCommand('model', modelModule);
-  registerCommand('experiment', experimentModule);
-  registerCommand('data', dataModule);
-  registerCommand('dev', devModule);
-  registerCommand('plugin', pluginModule);
-  registerCommand('edge', edgeModule);
-  registerCommand('systemone', systemOneModule);
-  registerCommand('profile', profileModule);
-  registerCommand('lm', lmModule);
-  registerCommand('connection', connectionModule);
-  registerCommand('dialogue', dialogueModule);
-  registerCommand('diagnostics', diagnosticsModule);
-  registerCommand('runtime', runtimeModule);
-
-  // Stub commands (now in separate files)
-  registerCommand('wasm-bundle', wasmBundleModule);
-  registerCommand('self-report', selfReportModule);
-  registerCommand('imagine', imagineModule);
-  registerCommand('completion', completionModule);
+  for (let i = 0; i < commandManifest.length; i++) {
+    const entry = commandManifest[i];
+    const module = imports[i];
+    // Find the exported CommandModule (usually named *Module)
+    const moduleKey = Object.keys(module).find((k) => k.endsWith('Module')) ?? 'default';
+    const commandModule = module[moduleKey];
+    if (commandModule) {
+      registerCommand(entry.name, commandModule);
+    }
+  }
 }
 
 /** Main entry point. */
 async function main(): Promise<void> {
   await registerAllCommands();
+
   const argv = process.argv.slice(2);
-  // Skip `--` separator if present (from pnpm/npm)
   const cleanArgv = argv[0] === '--' ? argv.slice(1) : argv;
-  // If no subcommand and no flags that imply default behavior, show help
+
   const hasSubcommand = cleanArgv.length > 0 && !cleanArgv[0].startsWith('--');
   const hasProfileFlag = cleanArgv.includes('--profile') || cleanArgv.includes('-p');
   const hasMCPFlag = cleanArgv.includes('--mcp');
@@ -248,6 +137,7 @@ async function main(): Promise<void> {
   const hasListPacks = cleanArgv.includes('--list-packs');
   const hasGenerate = cleanArgv.some((a) => a.startsWith('--generate'));
   const hasSchema = cleanArgv.some((a) => a.startsWith('--schema'));
+
   // Handle global --help and --version ONLY when no subcommand
   if (!hasSubcommand && (cleanArgv.includes('--help') || cleanArgv.includes('-h'))) {
     const sections = await buildRootHelpSections();
@@ -264,6 +154,7 @@ async function main(): Promise<void> {
     const { showHelpAndExit } = await import('./lib/cli-utils');
     showHelpAndExit(sections);
   }
+
   // Handle legacy flags for backward compatibility (only when no subcommand)
   if (!hasSubcommand) {
     const customFlags = parseCustomFlags(cleanArgv);
@@ -288,7 +179,6 @@ async function main(): Promise<void> {
       return;
     }
     if (customFlags.playground) {
-      const { parseCommonFlags } = await import('./lib/cli-utils');
       const { parseFlags } = await import('@senars/util/cli');
       const flags = parseFlags(cleanArgv);
       const common = parseCommonFlags(flags);
@@ -296,11 +186,13 @@ async function main(): Promise<void> {
       return;
     }
     // Default: run agent with profile
-    const profileKind = customFlags.profile as string ?? 'agent';
+    const profileKind = (customFlags.profile as string) ?? 'agent';
     await runAgentMode(profileKind);
     return;
   }
+
   // Dispatch to registered command (handles subcommand --help/--version internally)
   await dispatch(cleanArgv);
 }
+
 runEntrypoint(main);

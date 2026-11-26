@@ -2,38 +2,30 @@
  * `senars config list` — List configuration (show effective config).
  */
 
-import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
-import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommonFlags } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
 import { loadConfig } from '../../../config/index';
-import { createLogger, parseFlags, jsonMode } from '@senars/util';
+import { errMsg } from '@senars/util/error';
+import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
-const logger = createLogger({ scope: 'config:list' });
-
-export const sections: HelpSection[] = [
-  standardSections.usage('senars config list', 'List effective configuration'),
-  {
-    title: 'Options',
-    lines: [
-      '--config <path>        Path to config file (default: senars.config.json)',
-      '--json                 Output machine-readable JSON',
-      '--section <name>       Show only specific section (profile, lm, routing, systemOne, backends)',
-    ],
-  },
-  standardSections.examples([
+export const sections = createCommandModule({
+  name: 'config list',
+  description: 'List effective configuration',
+  usage: 'senars config list',
+  sections: [
+    { lines: ['--config <path>        Path to config file (default: senars.config.json)', '--json                 Output machine-readable JSON', '--section <name>       Show only specific section (profile, lm, routing, systemOne, backends)'] },
+  ],
+  examples: [
     'senars config list',
     'senars config list --json',
     'senars config list --section lm',
-  ]),
-];
+  ],
+}, async (flags: CommonFlags, positional: string[], rawFlags): Promise<void> => {
+  await handleErrors(async () => {
+    const jsonOutput = flagHelpers.jsonMode(rawFlags);
+    const configPath = flagHelpers.str(rawFlags, '--config', 'senars.config.json');
+    const section = flagHelpers.str(rawFlags, '--section', '');
 
-export async function main(flags: CommonFlags): Promise<void> {
-  const argv = parseFlags();
-  const jsonOutput = jsonMode(argv);
-  const configPath = argv.str('--config', 'senars.config.json');
-  const section = argv.str('--section');
-
-  try {
     const config = await loadConfig(configPath);
 
     let output: Record<string, unknown> = {
@@ -60,14 +52,8 @@ export async function main(flags: CommonFlags): Promise<void> {
       printSection('System One', output.systemOne);
       printSection('Backends', output.backends);
     }
-  } catch (e) {
-    const { errMsg } = await import('@senars/util/error');
-    const result = { error: errMsg(e) };
-    if (jsonOutput) console.log(JSON.stringify(result, null, 2));
-    else console.error('Error:', errMsg(e));
-    process.exit(1);
-  }
-}
+  }, flags, 'config list');
+});
 
 function printSection(title: string, data: unknown): void {
   console.log(`--- ${title} ---`);
@@ -79,11 +65,9 @@ function printSection(title: string, data: unknown): void {
   console.log('');
 }
 
-export const configListModule: CommandModule = {
-  main,
-  sections,
-};
+export const configListModule: CommandModule = { main: sections.main, sections: sections.sections };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runCLI(main, { sections, version: '0.0.0' });
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(sections.main, { sections: sections.sections, version: '0.0.0' });
 }

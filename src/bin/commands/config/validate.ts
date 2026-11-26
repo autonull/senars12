@@ -2,37 +2,29 @@
  * `senars config validate` — Validate configuration file.
  */
 
-import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
-import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommonFlags } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
 import { loadConfig } from '../../../config/index';
-import { createLogger, parseFlags, jsonMode, errMsg } from '@senars/util';
+import { errMsg } from '@senars/util/error';
+import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
-const logger = createLogger({ scope: 'config:validate' });
-
-export const sections: HelpSection[] = [
-  standardSections.usage('senars config validate', 'Validate configuration file'),
-  {
-    title: 'Options',
-    lines: [
-      '--config <path>        Path to config file (default: senars.config.json)',
-      '--json                 Output machine-readable JSON',
-      '--schema <version>     Schema version to validate against',
-    ],
-  },
-  standardSections.examples([
+export const sections = createCommandModule({
+  name: 'config validate',
+  description: 'Validate configuration file',
+  usage: 'senars config validate',
+  sections: [
+    { lines: ['--config <path>        Path to config file (default: senars.config.json)', '--json                 Output machine-readable JSON', '--schema <version>     Schema version to validate against'] },
+  ],
+  examples: [
     'senars config validate',
     'senars config validate --config ./custom.config.json',
     'senars config validate --json',
-  ]),
-];
+  ],
+}, async (flags: CommonFlags, positional: string[], rawFlags): Promise<void> => {
+  await handleErrors(async () => {
+    const jsonOutput = flagHelpers.jsonMode(rawFlags);
+    const configPath = flagHelpers.str(rawFlags, '--config', 'senars.config.json');
 
-export async function main(flags: CommonFlags): Promise<void> {
-  const argv = parseFlags();
-  const jsonOutput = jsonMode(argv);
-  const configPath = argv.str('--config', 'senars.config.json');
-
-  try {
     const config = await loadConfig(configPath);
     const result = {
       valid: true,
@@ -53,22 +45,12 @@ export async function main(flags: CommonFlags): Promise<void> {
       console.log(`  NAR Backend: ${config.backends?.nar?.enabled ? 'enabled' : 'disabled'}`);
       console.log(`  System One: ${config.systemOne?.enabled ? 'enabled' : 'disabled'}`);
     }
-  } catch (e) {
-    const result = { valid: false, error: errMsg(e) };
-    if (jsonOutput) {
-      console.log(JSON.stringify(result, null, 2));
-    } else {
-      console.error('✗ Configuration invalid:', errMsg(e));
-    }
-    process.exit(1);
-  }
-}
+  }, flags, 'config validate');
+});
 
-export const configValidateModule: CommandModule = {
-  main,
-  sections,
-};
+export const configValidateModule: CommandModule = { main: sections.main, sections: sections.sections };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runCLI(main, { sections, version: '0.0.0' });
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(sections.main, { sections: sections.sections, version: '0.0.0' });
 }
