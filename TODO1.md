@@ -1254,11 +1254,11 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [x] Add `--visualize`, `--explain`, `--live` flags (added to playground and imagine)
 
 ### Session 4: Doctor & Diagnostics
-- [ ] `senars doctor check` (merge)
-- [ ] `senars doctor status` (extract)
-- [ ] `senars doctor report` (extract)
-- [ ] `senars doctor tune` (extract)
-- [ ] `senars doctor bench` (extract)
+- [x] `senars doctor check` (merge)
+- [x] `senars doctor status` (extract)
+- [x] `senars doctor report` (extract)
+- [x] `senars doctor tune` (extract)
+- [x] `senars doctor bench` (extract)
 
 ### Session 5: Config, Session, Memory, Model
 - [ ] Config CRUD commands
@@ -1309,8 +1309,9 @@ A command is **done** when:
 4. ~~**Begin Session 1** — Command router implementation~~ ✅ **DONE**
 5. ~~**Begin Session 2** — Core Execution (`serve mcp`, `serve http`, `serve ws`, `edge run`, `logic`)~~ ✅ **DONE**
 6. ~~**Begin Session 3** — Demo Subsystem (`demo playground`, `demo arcade`, `demo imagine`, `demo benchmark`)~~ ✅ **DONE**
-7. **Begin Session 4** — Doctor & Diagnostics (`doctor check`, `doctor status`, `doctor report`, `doctor tune`, `doctor bench`)
+7. ~~**Begin Session 4** — Doctor & Diagnostics (`doctor check`, `doctor status`, `doctor report`, `doctor tune`, `doctor bench`)~~ ✅ **DONE**
+8. **Begin Session 5** — Config, Session, Memory, Model (Config CRUD, Session lifecycle, Memory inspection, Model management)
 
 ---
 
-*Plan version: 1.3 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-3 Complete | Ready for Session 4*
+*Plan version: 1.4 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-4 Complete | Ready for Session 5*

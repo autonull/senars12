@@ -185,6 +185,26 @@ async function registerAllCommands(): Promise<void> {
   demoBenchmarkMain = demoBenchmarkMod.main;
   demoBenchmarkSections = demoBenchmarkMod.sections;
 
+  const doctorCheckMod = await import('./commands/doctor/check');
+  const doctorCheckMain = doctorCheckMod.main;
+  const doctorCheckSections = doctorCheckMod.sections;
+
+  const doctorStatusMod = await import('./commands/doctor/status');
+  const doctorStatusMain = doctorStatusMod.main;
+  const doctorStatusSections = doctorStatusMod.sections;
+
+  const doctorReportMod = await import('./commands/doctor/report');
+  const doctorReportMain = doctorReportMod.main;
+  const doctorReportSections = doctorReportMod.sections;
+
+  const doctorTuneMod = await import('./commands/doctor/tune');
+  const doctorTuneMain = doctorTuneMod.main;
+  const doctorTuneSections = doctorTuneMod.sections;
+
+  const doctorBenchMod = await import('./commands/doctor/bench');
+  const doctorBenchMain = doctorBenchMod.main;
+  const doctorBenchSections = doctorBenchMod.sections;
+
   logger = createLogger({ scope: 'senars' });
 
   registerCommand('run', {
@@ -242,19 +262,19 @@ async function registerAllCommands(): Promise<void> {
   registerCommand('demo benchmark', { main: demoBenchmarkMain, sections: demoBenchmarkSections });
 
   // doctor check
-  registerCommand('doctor check', createStubCommand('doctor check', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('doctor check', { main: doctorCheckMain, sections: doctorCheckSections });
 
   // doctor status
-  registerCommand('doctor status', createStubCommand('doctor status', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('doctor status', { main: doctorStatusMain, sections: doctorStatusSections });
 
   // doctor report
-  registerCommand('doctor report', createStubCommand('doctor report', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('doctor report', { main: doctorReportMain, sections: doctorReportSections });
 
   // doctor tune
-  registerCommand('doctor tune', createStubCommand('doctor tune', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('doctor tune', { main: doctorTuneMain, sections: doctorTuneSections });
 
   // doctor bench
-  registerCommand('doctor bench', createStubCommand('doctor bench', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('doctor bench', { main: doctorBenchMain, sections: doctorBenchSections });
 
   // config validate
   registerCommand('config validate', createStubCommand('config validate', 'https://github.com/senars/senars/issues/XXX'));
