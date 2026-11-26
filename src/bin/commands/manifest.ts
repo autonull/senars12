@@ -23,7 +23,7 @@ export const commandManifest: CommandManifestEntry[] = [
   { name: 'doctor', modulePath: './commands/doctor/index', description: 'Health check and diagnostic commands' },
   { name: 'config', modulePath: './commands/config/index', description: 'Configuration commands (validate, get, set, list)' },
   { name: 'session', modulePath: './commands/session', description: 'Session management commands' },
-  { name: 'memory', modulePath: './commands/memory', description: 'Memory commands (inspect, export, import)' },
+  { name: 'memory', modulePath: './commands/memory/index', description: 'Memory commands (inspect, export, import)' },
   { name: 'model', modulePath: './commands/model', description: 'Model commands (list, pull, remove)' },
   { name: 'experiment', modulePath: './commands/experiment/index', description: 'Experiment commands (run, list, show, compare, analyze, sweep, notebook)' },
   { name: 'data', modulePath: './commands/data/index', description: 'Data commands (import, export, transform, generate, validate)' },
