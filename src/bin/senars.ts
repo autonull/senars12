@@ -6,15 +6,14 @@
  * Device profile imports zero LM.
  */
 
-import { createProfileRegistry, PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
-import { createGenomeRegistry } from '../genome/index';
+import { PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
 import { createGeneratedMCPServer, type GeneratedMCPServerConfig } from '../surface/mcp/generated-server';
 import { z } from 'zod';
 import { readAppEnvConfig } from './lib/env-config';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
 import { intBetween, unitInterval } from '../config/boundary';
 import { runEntrypoint } from './lib/fatal-error';
-import { runCLI, buildHelp, standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI } from './lib/cli-utils';
+import { runCLI, standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI, formatProfileList, formatPackList, getProfileRegistry, getGenomeRegistry, registerDefaultMCPSchemas } from './lib/cli-utils';
 import { createLogger } from '@senars/util/logger';
 
 const logger = createLogger({ scope: 'senars' });
@@ -31,8 +30,8 @@ const CLISchema = z.object({
 });
 
 /** Build help sections dynamically from profile registry (lazy). */
-function buildHelpSections(): { sections: any[] } {
-  const registry = createProfileRegistry();
+async function buildHelpSections(): Promise<{ sections: any[] }> {
+  const registry = await getProfileRegistry();
   const profiles = registry.getAll();
   const profileInfos = profiles.map((p) => ({ kind: p.kind, name: p.name, description: p.description }));
 
@@ -77,20 +76,12 @@ function buildHelpSections(): { sections: any[] } {
 }
 
 /** List profiles using registry. */
-function listProfiles(): void {
-  const registry = createProfileRegistry();
+async function listProfiles(): Promise<void> {
+  const registry = await getProfileRegistry();
   const profiles = registry.getAll();
 
   console.log('\nAvailable Profiles:\n');
-  for (const profile of profiles) {
-    console.log(`  ${profile.kind.padEnd(12)} ${profile.name}`);
-    console.log(`    ${profile.description}`);
-    console.log(`    LM Required: ${profile.requiresLM ? 'Yes' : 'No'}`);
-    console.log(`    Faculties: ${profile.faculties.join(', ')}`);
-    console.log(`    Oracles: ${profile.oracles.join(', ')}`);
-    console.log(`    Packs: ${profile.packs.join(', ')}`);
-    console.log('');
-  }
+  console.log(formatProfileList(profiles));
 }
 
 /** List domain packs. */
@@ -98,47 +89,16 @@ function listPacks(): void {
   const packs = getAllDomainPacks();
 
   console.log('\nAvailable Domain Packs:\n');
-  for (const [key, pack] of Object.entries(packs)) {
-    console.log(`  ${key.padEnd(20)} ${pack.name}`);
-    console.log(`    ${pack.description}`);
-    console.log(`    Faculties: ${pack.faculties.join(', ')}`);
-    console.log(`    Oracles: ${pack.oracles.join(', ')}`);
-    console.log('');
-  }
+  console.log(formatPackList(packs));
 }
 
 /** Start MCP server. */
 async function startMCPServer(port?: number): Promise<void> {
-  const genome = createGenomeRegistry();
-  const profiles = createProfileRegistry();
+  const genome = await getGenomeRegistry();
+  const profiles = await getProfileRegistry();
 
   // Register example schemas
-  genome.register({
-    id: 'task',
-    name: 'Task',
-    schema: z.object({
-      id: z.string(),
-      description: z.string(),
-      priority: intBetween(0, 10),
-      tags: z.array(z.string()).optional(),
-    }),
-    description: 'A task to execute',
-    mcpTool: { name: 'task.create', description: 'Create a task', handler: 'handleTaskCreate' },
-    elicitation: { title: 'Create Task', description: 'Enter task details' },
-  });
-
-  genome.register({
-    id: 'belief',
-    name: 'Belief',
-    schema: z.object({
-      term: z.string(),
-      truth: z.object({ f: unitInterval, c: unitInterval }),
-      tags: z.array(z.string()).optional(),
-    }),
-    description: 'A belief statement',
-    mcpTool: { name: 'belief.add', description: 'Add a belief', handler: 'handleBeliefAdd' },
-    elicitation: { title: 'Add Belief', description: 'Enter belief details' },
-  });
+  await registerDefaultMCPSchemas(genome);
 
   const config: GeneratedMCPServerConfig = {
     name: 'senars',
@@ -168,7 +128,7 @@ async function startMCPServer(port?: number): Promise<void> {
 async function startPlayground(profileKind?: string): Promise<void> {
   console.log('\n🎮 SeNARS Playground\n');
 
-  const registry = createProfileRegistry();
+  const registry = await getProfileRegistry();
   const profile = profileKind ? registry.get(profileKind) : registry.get('agent');
 
   if (!profile) {
@@ -344,7 +304,7 @@ async function runAgentMode(profileKind: string): Promise<void> {
 
 /** Main entry point. */
 async function main(): Promise<void> {
-  const { sections } = buildHelpSections();
+  const { sections } = await buildHelpSections();
   const { parseFlags } = await import('@senars/util/cli');
   const flags = parseCommonFlags(parseFlags());
 

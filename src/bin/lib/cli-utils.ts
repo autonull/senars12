@@ -102,3 +102,76 @@ export function profileHelpSection(profiles: Array<{ kind: string; name: string;
     ],
   };
 }
+
+/** Memoized registry accessors to avoid repeated instantiation. */
+let _profileRegistry: ReturnType<typeof import('../../profiles/index').createProfileRegistry> | null = null;
+let _genomeRegistry: ReturnType<typeof import('../../genome/index').createGenomeRegistry> | null = null;
+
+export function getProfileRegistry() {
+  if (!_profileRegistry) {
+    _profileRegistry = import('../../profiles/index').then(m => m.createProfileRegistry());
+  }
+  return _profileRegistry;
+}
+
+export function getGenomeRegistry() {
+  if (!_genomeRegistry) {
+    _genomeRegistry = import('../../genome/index').then(m => m.createGenomeRegistry());
+  }
+  return _genomeRegistry;
+}
+
+/** Format a list of profiles for console output. */
+export function formatProfileList(profiles: Array<{ kind: string; name: string; description: string; requiresLM: boolean; faculties: string[]; oracles: string[]; packs: string[] }>): string {
+  return profiles.map(p =>
+    `  ${p.kind.padEnd(12)} ${p.name}\n` +
+    `    ${p.description}\n` +
+    `    LM Required: ${p.requiresLM ? 'Yes' : 'No'}\n` +
+    `    Faculties: ${p.faculties.join(', ')}\n` +
+    `    Oracles: ${p.oracles.join(', ')}\n` +
+    `    Packs: ${p.packs.join(', ')}`
+  ).join('\n\n');
+}
+
+/** Format a list of domain packs for console output. */
+export function formatPackList(packs: Record<string, { name: string; description: string; faculties: string[]; oracles: string[] }>): string {
+  return Object.entries(packs).map(([key, pack]) =>
+    `  ${key.padEnd(20)} ${pack.name}\n` +
+    `    ${pack.description}\n` +
+    `    Faculties: ${pack.faculties.join(', ')}\n` +
+    `    Oracles: ${pack.oracles.join(', ')}`
+  ).join('\n\n');
+}
+
+/** Shared schema registration for MCP server. */
+export async function registerDefaultMCPSchemas(genome: Awaited<ReturnType<typeof getGenomeRegistry>>): Promise<void> {
+  const { z } = await import('zod');
+  const { intBetween, unitInterval } = await import('../../config/boundary');
+  
+  genome.register({
+    id: 'task',
+    name: 'Task',
+    schema: z.object({
+      id: z.string(),
+      description: z.string(),
+      priority: intBetween(0, 10),
+      tags: z.array(z.string()).optional(),
+    }),
+    description: 'A task to execute',
+    mcpTool: { name: 'task.create', description: 'Create a task', handler: 'handleTaskCreate' },
+    elicitation: { title: 'Create Task', description: 'Enter task details' },
+  });
+
+  genome.register({
+    id: 'belief',
+    name: 'Belief',
+    schema: z.object({
+      term: z.string(),
+      truth: z.object({ f: unitInterval, c: unitInterval }),
+      tags: z.array(z.string()).optional(),
+    }),
+    description: 'A belief statement',
+    mcpTool: { name: 'belief.add', description: 'Add a belief', handler: 'handleBeliefAdd' },
+    elicitation: { title: 'Add Belief', description: 'Enter belief details' },
+  });
+}
