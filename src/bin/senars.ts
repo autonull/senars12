@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import { PROFILE_KINDS, getAllDomainPacks } from '../profiles/index';
-import { standardSections, parseCommonFlags, runCLI, profileHelpSection, showHelpAndExit, getProfileRegistry } from './lib/cli-utils';
+import { standardSections, runCLI, profileHelpSection, showHelpAndExit, getProfileRegistry, type CommonFlags, type HelpSection } from './lib/cli-utils';
 import { runEntrypoint } from './lib/fatal-error';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
 import { readAppEnvConfig } from './lib/env-config';
@@ -37,49 +37,47 @@ const CLISchema = z.object({
 });
 
 /** Build help sections dynamically from profile registry (lazy). */
-async function buildHelpSections() {
+async function buildHelpSections(): Promise<HelpSection[]> {
   const registry = await getProfileRegistry();
   const profiles = registry.getAll();
   const profileInfos = profiles.map((p) => ({ kind: p.kind, name: p.name, description: p.description }));
 
-  return {
-    sections: [
-      standardSections.usage('senars', 'SeNARS — The Fold: One deterministic fold over one log'),
-      profileHelpSection(profileInfos),
-      {
-        title: 'MCP Server',
-        lines: [
-          '--mcp                  Start MCP server (stdio by default)',
-          '--mcp-port <port>      Start MCP server on HTTP port',
-        ],
-      },
-      {
-        title: 'Playground',
-        lines: ['--playground           Start interactive playground'],
-      },
-      {
-        title: 'Generation',
-        lines: [
-          '--generate <schema-id> Generate artifacts for schema',
-          '--schema <schema-id>   Show schema details',
-        ],
-      },
-      {
-        title: 'Listing',
-        lines: [
-          '--list-profiles        List available profiles',
-          '--list-packs           List available domain packs',
-        ],
-      },
-      standardSections.examples([
-        'senars --profile logic',
-        'senars --profile agent --mcp',
-        'senars --profile device --playground',
-        'senars --generate my-schema',
-        'npx senars --profile coprocessor',
-      ]),
-    ],
-  };
+  return [
+    standardSections.usage('senars', 'SeNARS — The Fold: One deterministic fold over one log'),
+    profileHelpSection(profileInfos),
+    {
+      title: 'MCP Server',
+      lines: [
+        '--mcp                  Start MCP server (stdio by default)',
+        '--mcp-port <port>      Start MCP server on HTTP port',
+      ],
+    },
+    {
+      title: 'Playground',
+      lines: ['--playground           Start interactive playground'],
+    },
+    {
+      title: 'Generation',
+      lines: [
+        '--generate <schema-id> Generate artifacts for schema',
+        '--schema <schema-id>   Show schema details',
+      ],
+    },
+    {
+      title: 'Listing',
+      lines: [
+        '--list-profiles        List available profiles',
+        '--list-packs           List available domain packs',
+      ],
+    },
+    standardSections.examples([
+      'senars --profile logic',
+      'senars --profile agent --mcp',
+      'senars --profile device --playground',
+      'senars --generate my-schema',
+      'npx senars --profile coprocessor',
+    ]),
+  ];
 }
 
 /** Parse custom flags (kebab-case to camelCase for Zod schema). */
@@ -132,11 +130,9 @@ async function runAgentMode(profileKind: string): Promise<void> {
   await maybeStartWebUI(agent, readAppEnvConfig().enableWebUI, undefined, logger);
 }
 
-/** Main entry point. */
-async function main(): Promise<void> {
-  const { sections } = await buildHelpSections();
-  const { parseFlags } = await import('@senars/util/cli');
-  const flags = parseCommonFlags(parseFlags());
+/** Main entry point using shared CLI utilities. */
+async function main(flags: CommonFlags): Promise<void> {
+  const sections = await buildHelpSections();
   const parsed = parseCustomFlags();
 
   if (flags.help) {
@@ -178,4 +174,16 @@ async function main(): Promise<void> {
   await runAgentMode(profileKind);
 }
 
-runEntrypoint(main);
+// Pre-build sections for runCLI's help check
+let _cachedSections: HelpSection[] | null = null;
+async function getCachedSections(): Promise<HelpSection[]> {
+  if (!_cachedSections) {
+    _cachedSections = await buildHelpSections();
+  }
+  return _cachedSections;
+}
+
+runEntrypoint(async () => {
+  const sections = await getCachedSections();
+  await runCLI(main, { sections, version: '0.0.0' });
+});

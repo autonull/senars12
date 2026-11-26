@@ -3,7 +3,7 @@
 /**
  * Self-Report CLI — Pretty-print cognitive state summary
  *
- * Usage: nar self-report
+ * Usage: senars self-report
  *        pnpm exec tsx src/bin/self-report.ts
  */
 
@@ -21,6 +21,7 @@ import { formatNarseseTruth } from '@senars/types/truth';
 import { runEntrypoint } from './lib/fatal-error';
 import { mettaPort } from './lib/metta';
 import { readPersistedState, loadDiagnosticConfig } from './lib/diagnostics';
+import { runCLI, standardSections, type CommonFlags, type HelpSection } from './lib/cli-utils';
 
 const logger = createLogger({ scope: 'self-report' });
 
@@ -47,7 +48,25 @@ function formatAikrPressure(pressure: 'unknown' | 'low' | 'medium' | 'high'): st
   return `${colors[pressure]} ${pressure.toUpperCase()}`;
 }
 
-async function main() {
+const sections: HelpSection[] = [
+  standardSections.usage('senars self-report', 'Pretty-print cognitive state summary'),
+  {
+    title: 'Options',
+    lines: [
+      '--full                   Include contradiction analysis',
+      '-v, --version            Show version',
+      '--verbose                Verbose output',
+      '--quiet                  Suppress non-error output',
+      '-h, --help               Show this help',
+    ],
+  },
+  standardSections.examples([
+    'senars self-report',
+    'senars self-report --full',
+  ]),
+];
+
+async function main(flags: CommonFlags): Promise<void> {
   logger.info('📊 SeNARS Self-Report');
   logger.info(divider(50));
 
@@ -244,4 +263,4 @@ async function main() {
   console.log('✅ Self-report complete');
 }
 
-runEntrypoint(main);
+runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));

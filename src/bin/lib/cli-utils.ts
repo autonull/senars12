@@ -21,9 +21,12 @@ export function buildHelp(sections: HelpSection[]): string {
 export interface CommonFlags {
   help: boolean;
   json: boolean;
+  version: boolean;
   profile?: string;
   webUI: boolean;
   webUIPort?: number;
+  verbose: boolean;
+  quiet: boolean;
 }
 
 /** Parse common flags used by multiple entry points. */
@@ -31,9 +34,12 @@ export function parseCommonFlags(flags: Flags): CommonFlags {
   return {
     help: flags.has('--help', '-h'),
     json: flags.has('--json'),
+    version: flags.has('--version', '-v'),
     profile: flags.str('--profile', flags.str('-p', '')) || undefined,
     webUI: flags.has('--web-ui', '--webui'),
     webUIPort: flags.num('--port', flags.num('-P', 0)) || undefined,
+    verbose: flags.has('--verbose'),
+    quiet: flags.has('--quiet'),
   };
 }
 
@@ -41,6 +47,18 @@ export function parseCommonFlags(flags: Flags): CommonFlags {
 export function showHelpAndExit(sections: HelpSection[], code = 0): never {
   console.log(buildHelp(sections));
   process.exit(code);
+}
+
+/** Get package version from package.json. */
+export function getVersion(): string {
+  try {
+    const { readFileSync } = require('node:fs');
+    const { join } = require('node:path');
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8'));
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
 }
 
 /** Standard entry point sections. */
@@ -58,10 +76,15 @@ export const standardSections = {
 /** Run a CLI command with standard error handling. */
 export async function runCLI<T>(
   main: (flags: CommonFlags, positional: string[]) => Promise<T>,
-  options: { sections: HelpSection[]; positionalName?: string } = { sections: [] }
+  options: { sections: HelpSection[]; positionalName?: string; version?: string } = { sections: [] }
 ): Promise<T> {
   const flags = parseFlags();
   const common = parseCommonFlags(flags);
+
+  if (common.version) {
+    console.log(options.version ?? getVersion());
+    process.exit(0);
+  }
 
   if (common.help) {
     showHelpAndExit(options.sections);
@@ -70,7 +93,9 @@ export async function runCLI<T>(
   try {
     return await main(common, flags.positional);
   } catch (err) {
-    console.error(common.json ? JSON.stringify({ error: String(err) }) : `Error: ${err}`);
+    if (!common.quiet) {
+      console.error(common.json ? JSON.stringify({ error: String(err) }) : `Error: ${err}`);
+    }
     process.exit(1);
   }
 }

@@ -11,18 +11,13 @@
 
 import { resolveLMConfig, resolveLMSettings } from '@senars/lm';
 import { errMsg } from '@senars/util/error';
-import { parseFlags, jsonMode } from '@senars/util/cli';
 import { appConfigSchema, loadConfig } from '@senars/config';
 import { runEntrypoint } from './lib/fatal-error';
+import { runCLI, standardSections, type CommonFlags, type HelpSection } from './lib/cli-utils';
 
 interface ValidateOptions {
   configPath?: string;
   jsonOutput: boolean;
-}
-
-function parseArgs(): ValidateOptions {
-  const { has, str } = parseFlags();
-  return { configPath: str('--config', '').trim() || undefined, jsonOutput: jsonMode() };
 }
 
 interface ValidationResult {
@@ -36,8 +31,32 @@ interface ValidationResult {
   effectiveConfig?: unknown;
 }
 
-async function main(): Promise<void> {
-  const { configPath, jsonOutput } = parseArgs();
+const sections: HelpSection[] = [
+  standardSections.usage('senars config validate', 'Validate senars.config.json against the schema'),
+  {
+    title: 'Options',
+    lines: [
+      '--config <path>          Validate specific config file (default: auto-discover)',
+      '--json                   Output machine-readable JSON',
+      '-v, --version            Show version',
+      '--verbose                Verbose output',
+      '--quiet                  Suppress non-error output',
+      '-h, --help               Show this help',
+    ],
+  },
+  standardSections.examples([
+    'senars config validate',
+    'senars config validate --config ./my-config.json',
+    'senars config validate --json',
+  ]),
+];
+
+async function main(flags: CommonFlags): Promise<void> {
+  const { parseFlags } = await import('@senars/util/cli');
+  const imgFlags = parseFlags();
+
+  const configPath = imgFlags.str('--config', '').trim() || undefined;
+  const jsonOutput = flags.json || imgFlags.has('--json');
 
   const result: ValidationResult = {
     valid: false,
@@ -107,4 +126,4 @@ async function main(): Promise<void> {
   }
 }
 
-runEntrypoint(main);
+runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));

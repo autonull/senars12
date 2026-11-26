@@ -11,6 +11,8 @@ import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { glob } from 'glob';
+import { runEntrypoint } from './lib/fatal-error';
+import { runCLI, standardSections, type CommonFlags, type HelpSection } from './lib/cli-utils';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -153,45 +155,38 @@ export async function generateWasmBundle(
   console.log(`  Modules: ${modules.filter(m => m.required || true).length} total, ${modules.length} configured`);
 }
 
-/**
- * CLI entry point.
- */
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
+const sections: HelpSection[] = [
+  standardSections.usage('senars wasm-bundle', 'Single-file WASM Bundle Generator'),
+  {
+    title: 'Options',
+    lines: [
+      '--output <path>          Output file path (default: dist/wasm-bundle.js)',
+      '--include <ids>          Comma-separated module IDs to include (default: z3,clingo,minisat)',
+      '-v, --version            Show version',
+      '--verbose                Verbose output',
+      '--quiet                  Suppress non-error output',
+      '-h, --help               Show this help',
+    ],
+  },
+  standardSections.examples([
+    'senars wasm-bundle',
+    'senars wasm-bundle --output dist/edge-wasm.js --include z3,clingo',
+  ]),
+];
 
-  if (args.includes('--help')) {
-    console.log(`
-WASM Bundle Generator
+async function main(flags: CommonFlags): Promise<void> {
+  const { parseFlags } = await import('@senars/util/cli');
+  const args = parseFlags();
 
-Usage: pnpm wasm:bundle [options]
-
-Options:
-  --output <path>      Output file path (default: dist/wasm-bundle.js)
-  --include <ids>      Comma-separated module IDs to include (default: z3,clingo,minisat)
-  --help               Show this help
-
-Examples:
-  pnpm wasm:bundle
-  pnpm wasm:bundle --output dist/edge-wasm.js --include z3,clingo
-`);
-    return;
-  }
-
-  const outputIndex = args.indexOf('--output');
-  const includeIndex = args.indexOf('--include');
-
-  const outputPath = outputIndex >= 0 ? args[outputIndex + 1] : 'dist/wasm-bundle';
-  const includeIds = includeIndex >= 0 ? args[includeIndex + 1].split(',') : undefined;
+  const outputPath = args.str('--output', 'dist/wasm-bundle');
+  const includeIds = args.str('--include', '').split(',').filter(Boolean);
 
   let modules = DEFAULT_WASM_MODULES;
-  if (includeIds) {
+  if (includeIds.length > 0) {
     modules = DEFAULT_WASM_MODULES.filter(m => includeIds.includes(m.id));
   }
 
   await generateWasmBundle(modules, outputPath);
 }
 
-main().catch(err => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
