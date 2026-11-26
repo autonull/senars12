@@ -136,6 +136,10 @@ async function registerAllCommands(): Promise<void> {
   let serveWsMain: any, serveWsSections: any;
   let edgeRunMain: any, edgeRunSections: any;
   let logicMain: any, logicSections: any;
+  let demoPlaygroundMain: any, demoPlaygroundSections: any;
+  let demoArcadeMain: any, demoArcadeSections: any;
+  let demoImagineMain: any, demoImagineSections: any;
+  let demoBenchmarkMain: any, demoBenchmarkSections: any;
   let logger: any;
   
   const { createAgentFromEnv, runAgent } = await import('./lib/lifecycle');
@@ -164,6 +168,22 @@ async function registerAllCommands(): Promise<void> {
   const logicMod = await import('./commands/logic');
   logicMain = logicMod.main;
   logicSections = logicMod.sections;
+
+  const demoPlaygroundMod = await import('./commands/demo/playground');
+  demoPlaygroundMain = demoPlaygroundMod.main;
+  demoPlaygroundSections = demoPlaygroundMod.sections;
+
+  const demoArcadeMod = await import('./commands/demo/arcade');
+  demoArcadeMain = demoArcadeMod.main;
+  demoArcadeSections = demoArcadeMod.sections;
+
+  const demoImagineMod = await import('./commands/demo/imagine');
+  demoImagineMain = demoImagineMod.main;
+  demoImagineSections = demoImagineMod.sections;
+
+  const demoBenchmarkMod = await import('./commands/demo/benchmark');
+  demoBenchmarkMain = demoBenchmarkMod.main;
+  demoBenchmarkSections = demoBenchmarkMod.sections;
 
   logger = createLogger({ scope: 'senars' });
 
@@ -210,39 +230,16 @@ async function registerAllCommands(): Promise<void> {
   registerCommand('logic', { main: logicMain, sections: logicSections });
 
   // demo playground
-  registerCommand('demo playground', {
-    main: async (flags) => {
-      await startPlayground(flags.profile);
-    },
-    sections: [
-      stdSections.usage('senars demo playground', 'Start interactive playground'),
-      {
-        title: 'Options',
-        lines: [
-          '-p, --profile <kind>     Select profile (default: device)',
-          '--web-ui                 Enable Web UI',
-          '--port <number>          Web UI port (default: 8765)',
-          '-v, --version            Show version',
-          '--verbose                Verbose output',
-          '--quiet                  Suppress non-error output',
-          '-h, --help               Show this help',
-        ],
-      },
-      stdSections.examples([
-        'senars demo playground',
-        'senars demo playground --profile logic --web-ui',
-      ]),
-    ],
-  });
+  registerCommand('demo playground', { main: demoPlaygroundMain, sections: demoPlaygroundSections });
 
   // demo arcade
-  registerCommand('demo arcade', createStubCommand('demo arcade', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('demo arcade', { main: demoArcadeMain, sections: demoArcadeSections });
 
   // demo imagine
-  registerCommand('demo imagine', createStubCommand('demo imagine', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('demo imagine', { main: demoImagineMain, sections: demoImagineSections });
 
   // demo benchmark
-  registerCommand('demo benchmark', createStubCommand('demo benchmark', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('demo benchmark', { main: demoBenchmarkMain, sections: demoBenchmarkSections });
 
   // doctor check
   registerCommand('doctor check', createStubCommand('doctor check', 'https://github.com/senars/senars/issues/XXX'));

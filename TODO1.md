@@ -1247,11 +1247,11 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [x] `senars logic` (wrap existing)
 
 ### Session 3: Demo Subsystem
-- [ ] `senars demo playground` (extract)
-- [ ] `senars demo arcade` (extract)
-- [ ] `senars demo imagine` (extract)
-- [ ] `senars demo benchmark` (extract)
-- [ ] Add `--visualize`, `--explain`, `--live` flags
+- [x] `senars demo playground` (extract)
+- [x] `senars demo arcade` (extract)
+- [x] `senars demo imagine` (extract)
+- [x] `senars demo benchmark` (extract)
+- [x] Add `--visualize`, `--explain`, `--live` flags (added to playground and imagine)
 
 ### Session 4: Doctor & Diagnostics
 - [ ] `senars doctor check` (merge)
@@ -1308,8 +1308,9 @@ A command is **done** when:
 3. **Set up CI** — Add benchmark, accessibility, contract tests
 4. ~~**Begin Session 1** — Command router implementation~~ ✅ **DONE**
 5. ~~**Begin Session 2** — Core Execution (`serve mcp`, `serve http`, `serve ws`, `edge run`, `logic`)~~ ✅ **DONE**
-6. **Begin Session 3** — Demo Subsystem (`demo playground`, `demo arcade`, `demo imagine`, `demo benchmark`)
+6. ~~**Begin Session 3** — Demo Subsystem (`demo playground`, `demo arcade`, `demo imagine`, `demo benchmark`)~~ ✅ **DONE**
+7. **Begin Session 4** — Doctor & Diagnostics (`doctor check`, `doctor status`, `doctor report`, `doctor tune`, `doctor bench`)
 
 ---
 
-*Plan version: 1.2 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-2 Complete | Ready for Session 3*
+*Plan version: 1.3 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-3 Complete | Ready for Session 4*
