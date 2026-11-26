@@ -13,7 +13,7 @@ import { readAppEnvConfig } from './lib/env-config';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
 import { intBetween, unitInterval } from '../config/boundary';
 import { runEntrypoint } from './lib/fatal-error';
-import { runCLI, standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI, formatProfileList, formatPackList, getProfileRegistry, getGenomeRegistry, registerDefaultMCPSchemas } from './lib/cli-utils';
+import { standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI, formatProfileList, formatPackList, getProfileRegistry, getGenomeRegistry, registerDefaultMCPSchemas } from './lib/cli-utils';
 import { createLogger } from '@senars/util/logger';
 
 const logger = createLogger({ scope: 'senars' });
@@ -150,7 +150,7 @@ async function startPlayground(profileKind?: string): Promise<void> {
 
   console.log('Type "help" for commands, "exit" to quit.\n');
 
-  const genome = createGenomeRegistry();
+  const genome = await getGenomeRegistry();
 
   while (true) {
     const line = await rl.question('senars> ');
@@ -228,7 +228,7 @@ Commands:
 
 /** Generate schema artifacts. */
 async function generateSchema(schemaId: string): Promise<void> {
-  const genome = createGenomeRegistry();
+  const genome = await getGenomeRegistry();
   const schema = genome.get(schemaId);
 
   if (!schema) {
@@ -251,7 +251,7 @@ async function generateSchema(schemaId: string): Promise<void> {
 
 /** Show schema details. */
 async function showSchema(schemaId: string): Promise<void> {
-  const genome = createGenomeRegistry();
+  const genome = await getGenomeRegistry();
   const schema = genome.get(schemaId);
 
   if (!schema) {
@@ -279,7 +279,7 @@ async function showSchema(schemaId: string): Promise<void> {
 
 /** Default: run agent with profile. */
 async function runAgentMode(profileKind: string): Promise<void> {
-  const registry = createProfileRegistry();
+  const registry = await getProfileRegistry();
   const profile = registry.get(profileKind);
 
   if (!profile) {

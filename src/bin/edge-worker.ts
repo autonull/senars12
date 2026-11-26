@@ -7,11 +7,10 @@
  * no Python. Single-file bundle with vendored .wasm modules.
  */
 
-import { createProfileRegistry } from '../profiles/index';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle';
 import { readAppEnvConfig } from './lib/env-config';
 import { runEntrypoint } from './lib/fatal-error';
-import { runCLI, buildHelp, standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI } from './lib/cli-utils';
+import { standardSections, parseCommonFlags, showHelpAndExit, profileHelpSection, maybeStartWebUI, getProfileRegistry } from './lib/cli-utils';
 import { createLogger } from '@senars/util/logger';
 
 const logger = createLogger({ scope: 'edge-worker' });
@@ -31,7 +30,7 @@ export interface EdgeWorkerConfig {
  */
 export async function runEdgeWorker(config: EdgeWorkerConfig = {}): Promise<void> {
   const profileKind = config.profile ?? 'device';
-  const registry = createProfileRegistry();
+  const registry = await getProfileRegistry();
   const profile = registry.get(profileKind);
 
   if (!profile) {
