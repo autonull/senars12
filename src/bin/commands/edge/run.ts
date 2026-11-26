@@ -99,6 +99,8 @@ export async function main(flags: CommonFlags): Promise<void> {
   await runEdgeWorker(config);
 }
 
+export const edgeRunModule: CommandModule = { main, sections };
+
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {
   runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));

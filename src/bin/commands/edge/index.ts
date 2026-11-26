@@ -4,10 +4,10 @@
 
 import type { CommandModule } from '../../lib/cli';
 import { registerCommand } from '../../lib/cli';
-import { createStubCommand } from '../../lib/cli';
+import { edgeRunModule } from './run';
 
-// Register edge subcommands as stubs for now
-registerCommand('edge run', createStubCommand('edge run', 'https://github.com/senars/senars/issues/XXX'));
+// Register edge subcommands
+registerCommand('edge run', edgeRunModule);
 
 export const edgeModule: CommandModule = {
   main: async () => {
@@ -27,6 +27,6 @@ export const edgeModule: CommandModule = {
     },
   ],
   subcommands: new Map([
-    ['run', createStubCommand('edge run', 'https://github.com/senars/senars/issues/XXX')],
+    ['run', edgeRunModule],
   ]),
 };
