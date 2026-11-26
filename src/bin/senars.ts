@@ -130,13 +130,42 @@ async function runAgentMode(profileKind: string): Promise<void> {
 
 /** Register all commands. */
 async function registerAllCommands(): Promise<void> {
+  let stdSections: any;
+  let serveMcpMain: any, serveMcpSections: any;
+  let serveHttpMain: any, serveHttpSections: any;
+  let serveWsMain: any, serveWsSections: any;
+  let edgeRunMain: any, edgeRunSections: any;
+  let logicMain: any, logicSections: any;
+  let logger: any;
+  
   const { createAgentFromEnv, runAgent } = await import('./lib/lifecycle');
   const { maybeStartWebUI } = await import('./lib/entrypoint-base');
   const { readAppEnvConfig } = await import('./lib/env-config');
   const { createLogger } = await import('@senars/util/logger');
-  const { standardSections: stdSections } = await import('./lib/cli-utils');
+  const cliUtils = await import('./lib/cli-utils');
+  stdSections = cliUtils.standardSections;
+  
+  const mcpMod = await import('./commands/serve/mcp');
+  serveMcpMain = mcpMod.main;
+  serveMcpSections = mcpMod.sections;
+  
+  const httpMod = await import('./commands/serve/http');
+  serveHttpMain = httpMod.main;
+  serveHttpSections = httpMod.sections;
 
-  const logger = createLogger({ scope: 'senars' });
+  const wsMod = await import('./commands/serve/ws');
+  serveWsMain = wsMod.main;
+  serveWsSections = wsMod.sections;
+
+  const edgeMod = await import('./commands/edge/run');
+  edgeRunMain = edgeMod.main;
+  edgeRunSections = edgeMod.sections;
+
+  const logicMod = await import('./commands/logic');
+  logicMain = logicMod.main;
+  logicSections = logicMod.sections;
+
+  logger = createLogger({ scope: 'senars' });
 
   registerCommand('run', {
     main: async (flags) => {
@@ -166,19 +195,19 @@ async function registerAllCommands(): Promise<void> {
   });
 
   // serve mcp
-  registerCommand('serve mcp', createStubCommand('serve mcp', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('serve mcp', { main: serveMcpMain, sections: serveMcpSections });
 
   // serve http
-  registerCommand('serve http', createStubCommand('serve http', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('serve http', { main: serveHttpMain, sections: serveHttpSections });
 
   // serve ws
-  registerCommand('serve ws', createStubCommand('serve ws', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('serve ws', { main: serveWsMain, sections: serveWsSections });
 
   // edge run
-  registerCommand('edge run', createStubCommand('edge run', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('edge run', { main: edgeRunMain, sections: edgeRunSections });
 
   // logic
-  registerCommand('logic', createStubCommand('logic', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('logic', { main: logicMain, sections: logicSections });
 
   // demo playground
   registerCommand('demo playground', {

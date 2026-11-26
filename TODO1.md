@@ -1240,11 +1240,11 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [x] Verify `senars --help` shows full taxonomy
 
 ### Session 2: Core Execution
-- [ ] `senars serve mcp` (extract from mcp-server.ts)
-- [ ] `senars serve http` (new)
-- [ ] `senars serve ws` (new)
-- [ ] `senars edge run` (extract from edge-worker.ts)
-- [ ] `senars logic` (wrap existing)
+- [x] `senars serve mcp` (extract from mcp-server.ts)
+- [x] `senars serve http` (new)
+- [x] `senars serve ws` (new)
+- [x] `senars edge run` (extract from edge-worker.ts)
+- [x] `senars logic` (wrap existing)
 
 ### Session 3: Demo Subsystem
 - [ ] `senars demo playground` (extract)
@@ -1307,8 +1307,9 @@ A command is **done** when:
 2. **Create GitHub Project** — Track phases as milestones
 3. **Set up CI** — Add benchmark, accessibility, contract tests
 4. ~~**Begin Session 1** — Command router implementation~~ ✅ **DONE**
-5. **Begin Session 2** — Core Execution (`serve mcp`, `serve http`, `serve ws`, `edge run`, `logic`)
+5. ~~**Begin Session 2** — Core Execution (`serve mcp`, `serve http`, `serve ws`, `edge run`, `logic`)~~ ✅ **DONE**
+6. **Begin Session 3** — Demo Subsystem (`demo playground`, `demo arcade`, `demo imagine`, `demo benchmark`)
 
 ---
 
-*Plan version: 1.1 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1 Complete | Ready for Session 2*
+*Plan version: 1.2 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-2 Complete | Ready for Session 3*
