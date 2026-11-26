@@ -55,6 +55,37 @@ async function buildRootHelpSections(): Promise<HelpSection[]> {
         '  model list            List models',
         '  model pull            Pull model',
         '  model remove          Remove model',
+        '  experiment run        Run experiment',
+        '  experiment list       List experiments',
+        '  experiment show       Show experiment details',
+        '  experiment compare    Compare experiments',
+        '  experiment analyze    Analyze experiment results',
+        '  experiment sweep      Parameter sweep experiment',
+        '  experiment notebook   Export to Jupyter notebook',
+        '  data import           Import data',
+        '  data export           Export data',
+        '  data transform        Transform data',
+        '  data generate         Generate synthetic data',
+        '  data validate         Validate data integrity',
+        '  dev repl              Developer REPL',
+        '  dev debug             Debug running agent',
+        '  dev profile           CPU/memory profiling',
+        '  dev trace             Trace execution',
+        '  dev inspect           Inspect internal state',
+        '  dev benchmark         Microbenchmarks',
+        '  dev test              Run tests',
+        '  dev lint              Lint code',
+        '  dev typecheck         TypeScript check',
+        '  dev generate          Generate code',
+        '  plugin install        Install plugin',
+        '  plugin remove         Remove plugin',
+        '  plugin list           List plugins',
+        '  plugin update         Update plugin',
+        '  plugin info           Show plugin info',
+        '  plugin dev            Plugin development mode',
+        '  plugin create         Create plugin from template',
+        '  plugin build          Build plugin for distribution',
+        '  plugin publish        Publish plugin to registry',
         '  wasm-bundle           Generate WASM bundle',
         '  self-report           Print cognitive state',
         '  imagine               Run imagine pipeline',
@@ -257,6 +288,134 @@ async function registerAllCommands(): Promise<void> {
   const modelRemoveMain = modelRemoveMod.main;
   const modelRemoveSections = modelRemoveMod.sections;
 
+  // Experiment commands
+  const experimentRunMod = await import('./commands/experiment/run');
+  const experimentRunMain = experimentRunMod.main;
+  const experimentRunSections = experimentRunMod.sections;
+
+  const experimentListMod = await import('./commands/experiment/list');
+  const experimentListMain = experimentListMod.main;
+  const experimentListSections = experimentListMod.sections;
+
+  const experimentShowMod = await import('./commands/experiment/show');
+  const experimentShowMain = experimentShowMod.main;
+  const experimentShowSections = experimentShowMod.sections;
+
+  const experimentCompareMod = await import('./commands/experiment/compare');
+  const experimentCompareMain = experimentCompareMod.main;
+  const experimentCompareSections = experimentCompareMod.sections;
+
+  const experimentAnalyzeMod = await import('./commands/experiment/analyze');
+  const experimentAnalyzeMain = experimentAnalyzeMod.main;
+  const experimentAnalyzeSections = experimentAnalyzeMod.sections;
+
+  const experimentSweepMod = await import('./commands/experiment/sweep');
+  const experimentSweepMain = experimentSweepMod.main;
+  const experimentSweepSections = experimentSweepMod.sections;
+
+  const experimentNotebookMod = await import('./commands/experiment/notebook');
+  const experimentNotebookMain = experimentNotebookMod.main;
+  const experimentNotebookSections = experimentNotebookMod.sections;
+
+  // Data commands
+  const dataImportMod = await import('./commands/data/import');
+  const dataImportMain = dataImportMod.main;
+  const dataImportSections = dataImportMod.sections;
+
+  const dataExportMod = await import('./commands/data/export');
+  const dataExportMain = dataExportMod.main;
+  const dataExportSections = dataExportMod.sections;
+
+  const dataTransformMod = await import('./commands/data/transform');
+  const dataTransformMain = dataTransformMod.main;
+  const dataTransformSections = dataTransformMod.sections;
+
+  const dataGenerateMod = await import('./commands/data/generate');
+  const dataGenerateMain = dataGenerateMod.main;
+  const dataGenerateSections = dataGenerateMod.sections;
+
+  const dataValidateMod = await import('./commands/data/validate');
+  const dataValidateMain = dataValidateMod.main;
+  const dataValidateSections = dataValidateMod.sections;
+
+  // Dev commands
+  const devReplMod = await import('./commands/dev/repl');
+  const devReplMain = devReplMod.main;
+  const devReplSections = devReplMod.sections;
+
+  const devDebugMod = await import('./commands/dev/debug');
+  const devDebugMain = devDebugMod.main;
+  const devDebugSections = devDebugMod.sections;
+
+  const devProfileMod = await import('./commands/dev/profile');
+  const devProfileMain = devProfileMod.main;
+  const devProfileSections = devProfileMod.sections;
+
+  const devTraceMod = await import('./commands/dev/trace');
+  const devTraceMain = devTraceMod.main;
+  const devTraceSections = devTraceMod.sections;
+
+  const devInspectMod = await import('./commands/dev/inspect');
+  const devInspectMain = devInspectMod.main;
+  const devInspectSections = devInspectMod.sections;
+
+  const devBenchmarkMod = await import('./commands/dev/benchmark');
+  const devBenchmarkMain = devBenchmarkMod.main;
+  const devBenchmarkSections = devBenchmarkMod.sections;
+
+  const devTestMod = await import('./commands/dev/test');
+  const devTestMain = devTestMod.main;
+  const devTestSections = devTestMod.sections;
+
+  const devLintMod = await import('./commands/dev/lint');
+  const devLintMain = devLintMod.main;
+  const devLintSections = devLintMod.sections;
+
+  const devTypecheckMod = await import('./commands/dev/typecheck');
+  const devTypecheckMain = devTypecheckMod.main;
+  const devTypecheckSections = devTypecheckMod.sections;
+
+  const devGenerateMod = await import('./commands/dev/generate');
+  const devGenerateMain = devGenerateMod.main;
+  const devGenerateSections = devGenerateMod.sections;
+
+  // Plugin commands
+  const pluginInstallMod = await import('./commands/plugin/install');
+  const pluginInstallMain = pluginInstallMod.main;
+  const pluginInstallSections = pluginInstallMod.sections;
+
+  const pluginRemoveMod = await import('./commands/plugin/remove');
+  const pluginRemoveMain = pluginRemoveMod.main;
+  const pluginRemoveSections = pluginRemoveMod.sections;
+
+  const pluginListMod = await import('./commands/plugin/list');
+  const pluginListMain = pluginListMod.main;
+  const pluginListSections = pluginListMod.sections;
+
+  const pluginUpdateMod = await import('./commands/plugin/update');
+  const pluginUpdateMain = pluginUpdateMod.main;
+  const pluginUpdateSections = pluginUpdateMod.sections;
+
+  const pluginInfoMod = await import('./commands/plugin/info');
+  const pluginInfoMain = pluginInfoMod.main;
+  const pluginInfoSections = pluginInfoMod.sections;
+
+  const pluginDevMod = await import('./commands/plugin/dev');
+  const pluginDevMain = pluginDevMod.main;
+  const pluginDevSections = pluginDevMod.sections;
+
+  const pluginCreateMod = await import('./commands/plugin/create');
+  const pluginCreateMain = pluginCreateMod.main;
+  const pluginCreateSections = pluginCreateMod.sections;
+
+  const pluginBuildMod = await import('./commands/plugin/build');
+  const pluginBuildMain = pluginBuildMod.main;
+  const pluginBuildSections = pluginBuildMod.sections;
+
+  const pluginPublishMod = await import('./commands/plugin/publish');
+  const pluginPublishMain = pluginPublishMod.main;
+  const pluginPublishSections = pluginPublishMod.sections;
+
   logger = createLogger({ scope: 'senars' });
 
   registerCommand('run', {
@@ -366,6 +525,99 @@ async function registerAllCommands(): Promise<void> {
 
   // model remove
   registerCommand('model remove', { main: modelRemoveMain, sections: modelRemoveSections });
+
+  // experiment run
+  registerCommand('experiment run', { main: experimentRunMain, sections: experimentRunSections });
+
+  // experiment list
+  registerCommand('experiment list', { main: experimentListMain, sections: experimentListSections });
+
+  // experiment show
+  registerCommand('experiment show', { main: experimentShowMain, sections: experimentShowSections });
+
+  // experiment compare
+  registerCommand('experiment compare', { main: experimentCompareMain, sections: experimentCompareSections });
+
+  // experiment analyze
+  registerCommand('experiment analyze', { main: experimentAnalyzeMain, sections: experimentAnalyzeSections });
+
+  // experiment sweep
+  registerCommand('experiment sweep', { main: experimentSweepMain, sections: experimentSweepSections });
+
+  // experiment notebook
+  registerCommand('experiment notebook', { main: experimentNotebookMain, sections: experimentNotebookSections });
+
+  // data import
+  registerCommand('data import', { main: dataImportMain, sections: dataImportSections });
+
+  // data export
+  registerCommand('data export', { main: dataExportMain, sections: dataExportSections });
+
+  // data transform
+  registerCommand('data transform', { main: dataTransformMain, sections: dataTransformSections });
+
+  // data generate
+  registerCommand('data generate', { main: dataGenerateMain, sections: dataGenerateSections });
+
+  // data validate
+  registerCommand('data validate', { main: dataValidateMain, sections: dataValidateSections });
+
+  // dev repl
+  registerCommand('dev repl', { main: devReplMain, sections: devReplSections });
+
+  // dev debug
+  registerCommand('dev debug', { main: devDebugMain, sections: devDebugSections });
+
+  // dev profile
+  registerCommand('dev profile', { main: devProfileMain, sections: devProfileSections });
+
+  // dev trace
+  registerCommand('dev trace', { main: devTraceMain, sections: devTraceSections });
+
+  // dev inspect
+  registerCommand('dev inspect', { main: devInspectMain, sections: devInspectSections });
+
+  // dev benchmark
+  registerCommand('dev benchmark', { main: devBenchmarkMain, sections: devBenchmarkSections });
+
+  // dev test
+  registerCommand('dev test', { main: devTestMain, sections: devTestSections });
+
+  // dev lint
+  registerCommand('dev lint', { main: devLintMain, sections: devLintSections });
+
+  // dev typecheck
+  registerCommand('dev typecheck', { main: devTypecheckMain, sections: devTypecheckSections });
+
+  // dev generate
+  registerCommand('dev generate', { main: devGenerateMain, sections: devGenerateSections });
+
+  // plugin install
+  registerCommand('plugin install', { main: pluginInstallMain, sections: pluginInstallSections });
+
+  // plugin remove
+  registerCommand('plugin remove', { main: pluginRemoveMain, sections: pluginRemoveSections });
+
+  // plugin list
+  registerCommand('plugin list', { main: pluginListMain, sections: pluginListSections });
+
+  // plugin update
+  registerCommand('plugin update', { main: pluginUpdateMain, sections: pluginUpdateSections });
+
+  // plugin info
+  registerCommand('plugin info', { main: pluginInfoMain, sections: pluginInfoSections });
+
+  // plugin dev
+  registerCommand('plugin dev', { main: pluginDevMain, sections: pluginDevSections });
+
+  // plugin create
+  registerCommand('plugin create', { main: pluginCreateMain, sections: pluginCreateSections });
+
+  // plugin build
+  registerCommand('plugin build', { main: pluginBuildMain, sections: pluginBuildSections });
+
+  // plugin publish
+  registerCommand('plugin publish', { main: pluginPublishMain, sections: pluginPublishSections });
 
   // wasm-bundle
   registerCommand('wasm-bundle', createStubCommand('wasm-bundle', 'https://github.com/senars/senars/issues/XXX'));

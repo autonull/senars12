@@ -1267,10 +1267,10 @@ export async function dispatch(argv: string[]): Promise<void> {
 - [x] Model management (list, pull, remove)
 
 ### Session 6: Advanced Features
-- [ ] Experiment framework
-- [ ] Data import/export
-- [ ] Dev tools
-- [ ] Plugin system foundation
+- [x] Experiment framework (run, list, show, compare, analyze, sweep, notebook)
+- [x] Data import/export (import, export, transform, generate, validate)
+- [x] Dev tools (repl, debug, profile, trace, inspect, benchmark, test, lint, typecheck, generate)
+- [x] Plugin system foundation (install, remove, list, update, info, dev, create, build, publish)
 
 ### Session 7: Polish
 - [ ] Shell completions
@@ -1311,8 +1311,9 @@ A command is **done** when:
 6. ~~**Begin Session 3** — Demo Subsystem (`demo playground`, `demo arcade`, `demo imagine`, `demo benchmark`)~~ ✅ **DONE**
 7. ~~**Begin Session 4** — Doctor & Diagnostics (`doctor check`, `doctor status`, `doctor report`, `doctor tune`, `doctor bench`)~~ ✅ **DONE**
 8. ~~**Begin Session 5** — Config, Session, Memory, Model (Config CRUD, Session lifecycle, Memory inspection, Model management)~~ ✅ **DONE**
-9. **Begin Session 6** — Advanced Features (Experiment framework, Data import/export, Dev tools, Plugin system foundation)
+9. ~~**Begin Session 6** — Advanced Features (Experiment framework, Data import/export, Dev tools, Plugin system foundation)~~ ✅ **DONE**
+10. **Begin Session 7** — Polish (Shell completions, Help system, Deprecation warnings, Documentation generation, Remove old entry points)
 
 ---
 
-*Plan version: 1.5 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-5 Complete | Ready for Session 6*
+*Plan version: 1.6 | Created: 2026-11-26 | Updated: 2026-11-26 | Session 1-6 Complete | Ready for Session 7*
