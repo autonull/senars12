@@ -18,7 +18,7 @@ export interface CommandModule {
 }
 
 /** Global command registry. */
-const commandRegistry = new Map<string, CommandModule>();
+export const commandRegistry = new Map<string, CommandModule>();
 
 /** Register a top-level command. */
 export function registerCommand(path: string, module: CommandModule): void {
@@ -62,22 +62,8 @@ export async function dispatch(argv: string[]): Promise<void> {
     return;
   }
 
-  // Try to match the longest command path first (e.g., "serve mcp" before "serve")
-  let module: CommandModule | undefined;
-  let matchedPath = '';
-  let rest: string[] = [];
-
-  for (let i = argv.length; i > 0; i--) {
-    const path = argv.slice(0, i).join(' ');
-    const candidate = commandRegistry.get(path);
-    if (candidate) {
-      module = candidate;
-      matchedPath = path;
-      rest = argv.slice(i);
-      break;
-    }
-  }
-
+  // Use getCommand to properly resolve nested subcommands
+  const module = getCommand(argv.join(' '));
   if (!module) {
     const subcommand = argv[0];
     console.error(`Unknown command: ${subcommand}`);
@@ -85,7 +71,18 @@ export async function dispatch(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  // Parse flags for the subcommand
+  // Parse flags for the subcommand (all args after the matched command)
+  // We need to figure out how many parts were consumed by the command
+  const parts = argv.join(' ').split(' ');
+  let matchedParts = 0;
+  for (let i = parts.length; i > 0; i--) {
+    if (getCommand(parts.slice(0, i).join(' '))) {
+      matchedParts = i;
+      break;
+    }
+  }
+  const rest = argv.slice(matchedParts);
+
   const { parseFlags } = await import('@senars/util/cli');
   const flags = parseFlags(rest);
   const { parseCommonFlags } = await import('./cli-utils');

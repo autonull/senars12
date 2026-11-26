@@ -10,7 +10,7 @@
  */
 
 import { runEntrypoint } from './lib/fatal-error';
-import { dispatch, registerCommand, createStubCommand } from './lib/cli';
+import { dispatch, registerCommand, createStubCommand, commandRegistry } from './lib/cli';
 import { getProfileRegistry, profileHelpSection, standardSections, type HelpSection } from './lib/cli-utils';
 import { startPlayground, startMCPServer, generateSchema, showSchema } from './lib/senars-commands';
 import { listProfiles as listProfilesCmd, listPacks as listPacksCmd } from './lib/senars-commands';
@@ -191,7 +191,7 @@ async function registerAllCommands(): Promise<void> {
     import('./commands/logic'),
     import('./commands/demo'),
     import('./commands/doctor'),
-    import('./commands/config'),
+    import('./commands/config/index'),
     import('./commands/session'),
     import('./commands/memory'),
     import('./commands/model'),
