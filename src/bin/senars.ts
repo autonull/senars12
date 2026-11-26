@@ -10,7 +10,7 @@
  */
 
 import { runEntrypoint } from './lib/fatal-error';
-import { dispatch, registerCommand, createStubCommand, commandRegistry } from './lib/cli';
+import { dispatch, registerCommand } from './lib/cli';
 import { getProfileRegistry, profileHelpSection, standardSections, type HelpSection } from './lib/cli-utils';
 import { startPlayground, startMCPServer, generateSchema, showSchema } from './lib/senars-commands';
 import { listProfiles as listProfilesCmd, listPacks as listPacksCmd } from './lib/senars-commands';
@@ -185,6 +185,10 @@ async function registerAllCommands(): Promise<void> {
     { dialogueModule },
     { diagnosticsModule },
     { runtimeModule },
+    { wasmBundleModule },
+    { selfReportModule },
+    { imagineModule },
+    { completionModule },
   ] = await Promise.all([
     import('./commands/run'),
     import('./commands/serve'),
@@ -207,6 +211,10 @@ async function registerAllCommands(): Promise<void> {
     import('./commands/dialogue'),
     import('./commands/diagnostics'),
     import('./commands/runtime'),
+    import('./commands/wasm-bundle'),
+    import('./commands/self-report'),
+    import('./commands/imagine'),
+    import('./commands/completion'),
   ]);
 
   // Register top-level commands
@@ -232,11 +240,11 @@ async function registerAllCommands(): Promise<void> {
   registerCommand('diagnostics', diagnosticsModule);
   registerCommand('runtime', runtimeModule);
 
-  // Stub commands (not yet implemented)
-  registerCommand('wasm-bundle', createStubCommand('wasm-bundle', 'https://github.com/senars/senars/issues/XXX'));
-  registerCommand('self-report', createStubCommand('self-report', 'https://github.com/senars/senars/issues/XXX'));
-  registerCommand('imagine', createStubCommand('imagine', 'https://github.com/senars/senars/issues/XXX'));
-  registerCommand('completion', createStubCommand('completion', 'https://github.com/senars/senars/issues/XXX'));
+  // Stub commands (now in separate files)
+  registerCommand('wasm-bundle', wasmBundleModule);
+  registerCommand('self-report', selfReportModule);
+  registerCommand('imagine', imagineModule);
+  registerCommand('completion', completionModule);
 }
 
 /** Main entry point. */
