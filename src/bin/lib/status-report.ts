@@ -20,7 +20,6 @@ import {
   remainingAll,
 } from '@senars/budget';
 import { createLMService } from '@senars/lm';
-import { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/state';
 import { NARBuilder } from '@senars/agent';
 import {
   CALIBRATION_LOCK_PATH,
@@ -29,13 +28,13 @@ import {
 } from '@senars/lm/system-one';
 import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
-import { formatBytes } from '@senars/util/format';
+import { formatBytes as formatBytesUtil } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
 import { pct } from '@senars/util/format';
 import { loadConfig } from '@senars/config';
 import { renderReport } from '../commands/args';
-import { systemOneDefaults, systemOneSchema } from '@senars/config/schema';
 import { mettaPort } from './metta';
+import { createDiagnosticNAR, loadDiagnosticConfig, readPersistedState, formatBytes, fileInfo } from './diagnostics';
 
 const logger = createLogger({ scope: 'status' });
 
@@ -59,63 +58,55 @@ interface StatusReport {
   };
   governance: { attachedGames: number; awaitingValidation: number; awaitingApproval: number };
   budget?: { slice: BudgetSlice };
-  /** The durable consistency boundary, read off disk (CORE.19 C7.6); `null` when none is saved. */
   persisted: { statePath: string; cycleCount: number; pendingTasks: number } | null;
 }
 
-const byteSize = (path: string): { exists: boolean; bytes: number } => {
-  if (!existsSync(path)) return { exists: false, bytes: 0 };
-  return { exists: true, bytes: statSync(path).size };
-};
-
 const collect = async (): Promise<StatusReport> => {
-  const appConfig = await loadConfig();
-  const systemOne = appConfig.systemOne ?? systemOneSchema.parse({});
-  const provenance =
-    appConfig.systemOne === undefined ||
-    JSON.stringify(appConfig.systemOne) === JSON.stringify(systemOneDefaults)
-      ? 'default'
-      : 'config-file';
+  const { config, systemOneConfig, provenance, statePath } = await loadDiagnosticConfig();
 
-  const nar = (
-    await new NARBuilder()
-      .withLM(createLMService())
-      .withMetta(mettaPort())
-      .withNarConfig({ systemOne })
-      .build()
-  ).nar;
-  const dataset = byteSize(systemOne.distillation.datasetPath);
-  const lock = byteSize(CALIBRATION_LOCK_PATH);
+  const { nar, dispose } = await createDiagnosticNAR({
+    systemOne: systemOneConfig,
+    withLM: true,
+  });
+
   const report: StatusReport = {
     systemOne: { enabled: nar.isSystemOneEnabled(), provenance },
     manifold: null,
     heads: [],
     spend: {},
     artifacts: {
-      datasetPath: systemOne.distillation.datasetPath,
-      datasetExists: dataset.exists,
-      datasetBytes: dataset.bytes,
+      datasetPath: systemOneConfig.distillation?.datasetPath ?? '',
+      datasetExists: false,
+      datasetBytes: 0,
       lockPath: CALIBRATION_LOCK_PATH,
-      lockExists: lock.exists,
-      lockBytes: lock.bytes,
+      lockExists: false,
+      lockBytes: 0,
     },
     governance: { attachedGames: 0, awaitingValidation: 0, awaitingApproval: 0 },
     persisted: null,
   };
 
-  const statePath = appConfig.backends.nar.statePath ?? DEFAULT_NAR_STATE_PATH();
-  const boundary = readPersistedBoundary(statePath);
-  if (boundary)
-    report.persisted = {
-      statePath,
-      cycleCount: boundary.cycleCount,
-      pendingTasks: boundary.pendingTasks.length,
-    };
+  // Artifacts
+  const dataset = fileInfo(systemOneConfig.distillation?.datasetPath ?? '');
+  const lock = fileInfo(CALIBRATION_LOCK_PATH);
+  report.artifacts = {
+    datasetPath: systemOneConfig.distillation?.datasetPath ?? '',
+    datasetExists: dataset.exists,
+    datasetBytes: dataset.bytes,
+    lockPath: CALIBRATION_LOCK_PATH,
+    lockExists: lock.exists,
+    lockBytes: lock.bytes,
+  };
 
+  // Persisted state
+  const persisted = readPersistedState(statePath);
+  if (persisted) report.persisted = { statePath, ...persisted };
+
+  // Manifold
   const manifold = nar.getSystemOneManifold();
   if (manifold && 'health' in manifold) {
     report.manifold = {
-      provider: systemOne.manifold.provider,
+      provider: systemOneConfig.manifold.provider,
       health: manifold.health() as unknown as Record<string, unknown>,
     };
     const sysManifold = manifold as SystemOneManifold;
@@ -129,9 +120,11 @@ const collect = async (): Promise<StatusReport> => {
     }));
   }
 
+  // Spend
   const spend = nar.getLMClient()?.getSpend();
   if (spend) report.spend = spend as StatusReport['spend'];
 
+  // Governance
   const governance = nar.getSelfMetaGame().getGovernanceQueues();
   report.governance = {
     attachedGames: nar.getAttachedGames().length,
@@ -139,26 +132,18 @@ const collect = async (): Promise<StatusReport> => {
     awaitingApproval: governance.approval,
   };
 
-  // Optional capability: absent unless a root budget slice is exposed on the NAR.
+  // Optional budget slice
   if (parseFlags().has('--budget')) {
     const rootSlice = (nar as { getRootBudgetSlice?: () => BudgetSlice }).getRootBudgetSlice?.();
     if (rootSlice) report.budget = { slice: rootSlice };
   }
 
-  await nar.dispose?.();
+  await dispose();
   return report;
 };
 
-/**
- * The four AIKR dimensions, each with the ceiling key that bounds it.
- *
- * Read off `BUDGET_RESOURCES` rather than written out: this was a fourth
- * hand-written copy of the dimension table, so a dimension renamed in
- * `core/budget` would have printed as `undefined` here rather than failing.
- */
 const DIMENSIONS = ALL_RESOURCES.map((resource) => [resource, BUDGET_RESOURCES[resource].total] as const);
 
-/** The root slice's per-dimension spend, worst dimension, and terminal state. */
 const renderBudgetSlice = (slice: BudgetSlice): string => {
   const remaining = remainingAll(slice);
   const rows = DIMENSIONS.map(

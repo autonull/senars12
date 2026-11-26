@@ -20,6 +20,7 @@ import { selectTopN } from '@senars/util/collections';
 import { formatNarseseTruth } from '@senars/types/truth';
 import { runEntrypoint } from './lib/fatal-error';
 import { mettaPort } from './lib/metta';
+import { createDiagnosticNAR, readPersistedState, formatBytes, fileInfo, loadDiagnosticConfig } from './lib/diagnostics';
 
 const logger = createLogger({ scope: 'self-report' });
 
@@ -51,26 +52,7 @@ async function main() {
   logger.info(divider(50));
 
   // Create minimal NAR to query state
-  const registry = createSeNARSRegistry();
-  const lmService = createLMService();
-
-  const nar = (
-    await new NARBuilder()
-      .withLM(lmService)
-      .withMetta(mettaPort())
-      .withCapabilities({
-        self: { enabled: true },
-        rlfp: { enabled: true },
-        lmRules: { enabled: true },
-      })
-      .withNarConfig({
-        providerRegistry: registry,
-        enableTools: true,
-        maxConcepts: 1000,
-        persistState: false,
-      })
-      .build()
-  ).nar;
+  const { nar, dispose } = await createDiagnosticNAR({ withLM: true, maxConcepts: 1000 });
 
   await initializeSelfConcept(nar);
   await initializeMetaReasoning(nar);
@@ -111,11 +93,10 @@ async function main() {
   if (memoryPressure !== undefined)
     aikrPressure = memoryPressure > 0.8 ? 'high' : memoryPressure > 0.5 ? 'medium' : 'low';
 
-  // RLFP reward average (would need access to internal history)
+  // RLFP reward average
   let rlfpRewardAvg = 0;
   if (rlfp) {
-    // Access internal _rlfpRewardHistory if available
-    const history = (rlfp as any)._rlfpRewardHistory ?? [];
+    const history = (rlfp as { _rlfpRewardHistory?: number[] })._rlfpRewardHistory ?? [];
     if (history.length > 0) {
       rlfpRewardAvg = mean(history);
     }
@@ -125,8 +106,8 @@ async function main() {
   let metaDerivationBudget = 'N/A';
   const execution = nar.getExecution?.();
   if (execution) {
-    const metaDerivations = (execution as any)._metaDerivationsThisStep ?? 0;
-    const metaDepth = (execution as any)._metaDerivationDepth ?? 0;
+    const metaDerivations = (execution as { _metaDerivationsThisStep?: number })._metaDerivationsThisStep ?? 0;
+    const metaDepth = (execution as { _metaDerivationDepth?: number })._metaDerivationDepth ?? 0;
     metaDerivationBudget = `${metaDerivations}/5 derivations, depth ${metaDepth}/2`;
   }
 
@@ -190,7 +171,7 @@ async function main() {
   console.log(`  Tasks: ${stats.totalTasks}`);
   console.log(`  Beliefs: ${beliefs.length}`);
   console.log(`  Goals: ${goals.length}`);
-  console.log(`  Memory Pressure: ${pct(memoryPressure)}}`);
+  console.log(`  Memory Pressure: ${pct(memoryPressure)}`);
 
   // Top beliefs by priority
   console.log('\n🏆 TOP 5 BELIEFS (by priority)');
@@ -214,7 +195,6 @@ async function main() {
   // Contradictions
   console.log('\n⚠️  CONTRADICTIONS');
   console.log(divider());
-  // This would need access to conflict detection
   console.log('  (run with --full for contradiction analysis)');
 
   // Stalled goals
@@ -229,7 +209,18 @@ async function main() {
     }
   }
 
-  await nar.stop();
+  // Persisted state
+  const { statePath } = await loadDiagnosticConfig();
+  const persisted = readPersistedState(statePath);
+  if (persisted) {
+    console.log('\n💾 PERSISTED STATE');
+    console.log(divider());
+    console.log(`  Path: ${statePath}`);
+    console.log(`  Cycle: ${persisted.cycleCount}`);
+    console.log(`  Pending Tasks: ${persisted.pendingTasks}`);
+  }
+
+  await dispose();
   console.log('\n' + divider(50));
   console.log('✅ Self-report complete');
 }

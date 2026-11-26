@@ -12,127 +12,28 @@
  */
 
 import { cpus } from 'node:os';
-import { createBotNAR } from '../../agent/index';
-import { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../state/index';
-import { runHealthChecks } from '../../health/index';
-import {
-  cloudApiKey,
-  endpointPath,
-  getCircuitBreaker,
-  getEffectiveCircuitConfig,
-  getModelChain,
-  getRoutingLogStatus,
-  getRoutingStatus,
-  LM_PROVIDER_NAMES,
-  type LMProviderName,
-  type LMTask,
-  probeEmbeddedLlama,
-  probeJson,
-  probeLlamaCpp,
-  probeModelsEndpoint,
-  resolveLMConfig,
-  resolveLMSettings,
-  resolveOfflineTier,
-  setRouting,
-} from '../../lm/index';
-import { createLogger, errMsg, keyedBy, mapValues, parseFlags, envSet, attempted } from '@senars/util';
+import { createLogger, errMsg, keyedBy, mapValues, parseFlags, jsonMode } from '@senars/util';
 import type { HealthReport } from '@senars/types/health';
 import { LM_TASKS } from '@senars/types/llm';
-import { loadConfig } from '../../config/index';
-import { jsonMode } from '../commands/args';
-import { credentialReport, credentialSummary, embeddedProbe, configValidity } from './doctor-checks';
+import {
+  createDiagnosticNAR,
+  loadDiagnosticConfig,
+  readPersistedState,
+  probeLMProvider,
+  probeOllama,
+  probeEmbedded,
+  runDeepHealthChecks,
+  runDerivationBenchmarks,
+  getRoutingMatrix,
+  getRoutingInfo,
+  getCircuitBreakers,
+  getRoutingLogStatus,
+  getCredentials,
+  formatBytes,
+} from './diagnostics';
+import { cloudApiKey, resolveLMConfig, resolveLMSettings, setRouting } from '@senars/lm';
 
 const logger = createLogger({ scope: 'doctor' });
-
-/* ============================================================================
- * Inlined from ./benchmarks.ts
- * ==========================================================================*/
-
-/** One ranked group of rule fires, keyed by rule and conclusion. */
-interface DerivationCost {
-  conclusion: string;
-  rule: string;
-  calls: number;
-  cpuMs: number;
-  durationMs: number;
-}
-
-/** A deterministic syllogism chain — no LM, so the run is a kernel measurement. */
-const BENCH_BELIEFS = [
-  '<a-->b>. %1.0;0.9%',
-  '<b-->c>. %1.0;0.9%',
-  '<c-->d>. %1.0;0.9%',
-  '<d-->e>. %1.0;0.9%',
-  '<e-->f>. %1.0;0.9%',
-] as const;
-const BENCH_QUESTION = '<a-->f>?';
-
-interface BenchmarkOptions {
-  cycles?: number;
-  limit?: number;
-}
-
-const runDerivationBenchmarks = async (
-  options: BenchmarkOptions = {}
-): Promise<DerivationCost[]> => {
-  const nar = createBotNAR();
-  const costs = new Map<string, DerivationCost>();
-  // Note: NAREventMap import removed - using inline type
-  const unsubscribe = nar.getSystemEventBus().on('rule:applied', (e: unknown) => {
-    const event = e as { ruleId: string; conclusion: unknown; cpuMs?: number; duration?: number };
-    const key = `${event.ruleId}\u0000${String(event.conclusion)}`;
-    const row = costs.get(key) ?? {
-      conclusion: String(event.conclusion),
-      rule: event.ruleId,
-      calls: 0,
-      cpuMs: 0,
-      durationMs: 0,
-    };
-    row.calls++;
-    row.cpuMs += event.cpuMs ?? 0;
-    row.durationMs += event.duration ?? 0;
-    costs.set(key, row);
-  });
-  try {
-    await nar.run(1);
-    for (const belief of BENCH_BELIEFS) await nar.believe(belief);
-    await nar.question(BENCH_QUESTION);
-    await nar.run(options.cycles ?? 24);
-  } finally {
-    unsubscribe();
-    await nar.dispose();
-  }
-  return [...costs.values()]
-    .sort((a, b) => b.cpuMs - a.cpuMs || b.durationMs - a.durationMs || b.calls - a.calls)
-    .slice(0, options.limit ?? 10);
-};
-
-interface Check {
-  name: string;
-  ok: boolean;
-  detail: string;
-}
-
-const probeProviderReachable = async (): Promise<boolean> => {
-  const settings = resolveLMSettings();
-  if (settings.provider === 'transformers' || settings.provider === 'mock') return true;
-  if (settings.provider !== 'openai-compatible') return Boolean(cloudApiKey(settings.apiKeyEnv));
-  return probeModelsEndpoint(
-    settings.baseUrl ?? 'http://localhost:11434/v1',
-    settings.provider,
-    cloudApiKey(settings.apiKeyEnv),
-    3000
-  );
-};
-
-const probeOllama = async (host: string): Promise<string> => {
-  const data = await probeJson<{ models?: Array<{ name?: string }> }>(
-    endpointPath(host, 'api/tags'),
-    { timeoutMs: 3000 }
-  );
-  if (!data) return 'unreachable (is ollama running?)';
-  return `online, models: ${data.models?.map((m) => m.name).join(', ') || 'none'}`;
-};
 
 const flags = parseFlags();
 const jsonOutput = jsonMode();
@@ -181,9 +82,8 @@ interface DoctorOutput {
     credentials: Record<string, boolean>;
   };
   routingLog?: { enabled: boolean; bufferSize: number; logPath: string };
-  benchmarks?: DerivationCost[];
+  benchmarks?: Awaited<ReturnType<typeof runDerivationBenchmarks>>;
   deep?: HealthReport;
-  /** The durable consistency boundary on disk (CORE.19 C7.6); `null` when none is saved. */
   persisted: { statePath: string; cycleCount: number; pendingTasks: number } | null;
 }
 
@@ -205,9 +105,9 @@ const main = async (): Promise<void> => {
       stats: {},
       routing: {},
     },
-    credentials: credentialReport(),
-    ollama: await probeOllama(settings.ollamaHost ?? 'http://localhost:11434'),
-    embeddedLlama: await probeEmbeddedLlama(),
+    credentials: await getCredentials(),
+    ollama: await probeOllama(settings.ollamaHost),
+    embeddedLlama: await probeEmbedded(),
     cpus: cpus().length,
     config: { valid: false },
     routingMatrix: {},
@@ -219,7 +119,7 @@ const main = async (): Promise<void> => {
 
   // Load config
   try {
-    const config = await loadConfig();
+    const { config, systemOneConfig, provenance, statePath } = await loadDiagnosticConfig();
     output.config = {
       valid: true,
       profile: { name: config.profile.name, personality: config.profile.personality },
@@ -227,32 +127,27 @@ const main = async (): Promise<void> => {
     };
     if (config.routing) setRouting(config.routing as never);
 
-    const statePath = config.backends.nar.statePath ?? DEFAULT_NAR_STATE_PATH();
-    const boundary = readPersistedBoundary(statePath);
-    if (boundary)
-      output.persisted = {
-        statePath,
-        cycleCount: boundary.cycleCount,
-        pendingTasks: boundary.pendingTasks.length,
-      };
+    const persisted = readPersistedState(statePath);
+    if (persisted) output.persisted = { statePath, ...persisted };
   } catch (e) {
     output.config = { valid: false, error: errMsg(e) };
   }
 
   // Routing matrix
   try {
-    for (const task of LM_TASKS) {
-      const chain = getModelChain(lmConfig.provider, task);
-      output.routingMatrix[task] = chain;
-      if (!jsonOutput) console.log(`  ${task}: ${chain.join(' → ')}`);
+    output.routingMatrix = await getRoutingMatrix();
+    if (!jsonOutput) {
+      for (const [task, chain] of Object.entries(output.routingMatrix)) {
+        console.log(`  ${task}: ${chain.join(' → ')}`);
+      }
     }
-    const offline = resolveOfflineTier(settings);
-    output.offlineTier = offline ?? null;
-    if (!jsonOutput && offline) console.log(`offline tier: ${offline}`);
-    const routing = getRoutingStatus();
-    output.demoted = routing.demoted;
-    if (!jsonOutput && routing.demoted.length) {
-      console.log(`demoted: ${routing.demoted.map((d) => `${d.id} (${d.reason})`).join(', ')}`);
+
+    const { offlineTier, demoted } = await getRoutingInfo();
+    output.offlineTier = offlineTier;
+    output.demoted = demoted;
+    if (!jsonOutput && offlineTier) console.log(`offline tier: ${offlineTier}`);
+    if (!jsonOutput && demoted.length) {
+      console.log(`demoted: ${demoted.map((d) => `${d.id} (${d.reason})`).join(', ')}`);
     }
   } catch {
     /* routing info is best-effort */
@@ -260,26 +155,14 @@ const main = async (): Promise<void> => {
 
   // Circuit breaker status
   try {
-    for (const p of LM_PROVIDER_NAMES) {
-      const cfg = getEffectiveCircuitConfig(p, settings);
-      const breaker = getCircuitBreaker(p);
-      output.circuitBreakers[p] = {
-        config: {
-          failureThreshold: cfg.failureThreshold,
-          resetTimeoutMs: cfg.resetTimeoutMs,
-          successThreshold: cfg.successThreshold,
-        },
-        state: breaker.state,
-        failures: breaker.consecutiveFailures,
-      };
-    }
+    output.circuitBreakers = await getCircuitBreakers();
   } catch {
     /* circuit breaker info is best-effort */
   }
 
   // Degradation posture
   if (showDegradation) {
-    const creds = credentialReport();
+    const creds = await getCredentials();
     output.degradation = {
       activeProvider: lmConfig.provider,
       effectiveChains: output.routingMatrix,
@@ -288,11 +171,7 @@ const main = async (): Promise<void> => {
         failures: v.failures,
       })),
       offlineTier: output.offlineTier,
-      credentials: keyedBy(
-        creds,
-        (c) => c.key,
-        (c) => c.present
-      ),
+      credentials: keyedBy(creds, (c) => c.key, (c) => c.present),
     };
   }
 
@@ -301,24 +180,24 @@ const main = async (): Promise<void> => {
     output.routingLog = getRoutingLogStatus();
   }
 
-  // Deep health checks (O3): spin a bare kernel and run the shared readiness checks.
+  // Deep health checks
   if (deep) {
-    const nar = createBotNAR();
+    const { nar, dispose } = await createDiagnosticNAR({ withLM: true });
     try {
       const report = await runHealthChecks({
         gates: nar.gates,
-        lmReachable: probeProviderReachable,
+        lmReachable: probeLMProvider,
       });
       output.deep = {
         ready: report.ready,
         checks: mapValues(report.checks, (v) => ({ ok: v.ok, detail: v.detail ?? '' })),
       };
     } finally {
-      await nar.dispose();
+      await dispose();
     }
   }
 
-  // Benchmarks: a real, fixed LM-free workload, ranked by measured rule-fire cost.
+  // Benchmarks
   if (showBenchmarks) {
     output.benchmarks = await runDerivationBenchmarks();
   }
