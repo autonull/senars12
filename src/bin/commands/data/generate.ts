@@ -2,66 +2,54 @@
  * `senars data generate` — Generate synthetic data.
  */
 
-import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
-import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommonFlags } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-import { createLogger, parseFlags, jsonMode } from '@senars/util';
+import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
-const logger = createLogger({ scope: 'data:generate' });
-
-export const sections: HelpSection[] = [
-  standardSections.usage('senars data generate', 'Generate synthetic data'),
-  {
-    title: 'Options',
-    lines: [
-      '--type <type>          Data type: beliefs|goals|episodes (default: beliefs)',
-      '--count <n>            Number of items to generate (default: 100)',
-      '--domain <name>        Domain/theme for generation (e.g., animals, logic, math)',
-      '--output <path>        Output file path (default: stdout)',
-      '--format <fmt>         Output format: narsese|json|csv|yaml (default: json)',
-      '--json                 Output machine-readable JSON',
-    ],
-  },
-  standardSections.examples([
+export const sections = createCommandModule({
+  name: 'data generate',
+  description: 'Generate synthetic data',
+  usage: 'senars data generate [options]',
+  sections: [
+    { lines: ['--type <type>          Data type: beliefs|goals|episodes (default: beliefs)', '--count <n>            Number of items to generate (default: 100)', '--domain <name>        Domain/theme for generation (e.g., animals, logic, math)', '--output <path>        Output file path (default: stdout)', '--format <fmt>         Output format: narsese|json|csv|yaml (default: json)', '--json                 Output machine-readable JSON'] },
+  ],
+  examples: [
     'senars data generate --type beliefs --count 50 --domain animals',
     'senars data generate --type episodes --count 10 --output episodes.json',
-  ]),
-];
+  ],
+}, async (flags: CommonFlags, positional: string[], rawFlags): Promise<void> => {
+  await handleErrors(async () => {
+    const jsonOutput = flagHelpers.jsonMode(rawFlags);
+    const type = flagHelpers.str(rawFlags, '--type', 'beliefs');
+    const count = flagHelpers.num(rawFlags, '--count', 100);
+    const domain = flagHelpers.str(rawFlags, '--domain', 'general');
+    const output = flagHelpers.str(rawFlags, '--output', '');
+    const format = flagHelpers.str(rawFlags, '--format', 'json');
 
-export async function main(flags: CommonFlags): Promise<void> {
-  const argv = parseFlags();
-  const jsonOutput = jsonMode(argv);
-  const type = argv.str('--type', 'beliefs');
-  const count = parseInt(argv.str('--count', '100'), 10);
-  const domain = argv.str('--domain', 'general');
-  const output = argv.str('--output');
-  const format = argv.str('--format', 'json');
+    const result = {
+      type,
+      count,
+      domain,
+      output: output ?? 'stdout',
+      format,
+      generated: count,
+      success: true,
+    };
 
-  const result = {
-    type,
-    count,
-    domain,
-    output: output ?? 'stdout',
-    format,
-    generated: count,
-    success: true,
-  };
+    if (jsonOutput) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(`Generating ${count} ${type} (domain: ${domain})...`);
+      console.log(`  Format: ${format}`);
+      if (output) console.log(`  Output: ${output}`);
+      console.log(`\n✓ Generated ${result.generated} items`);
+    }
+  }, flags, 'data generate');
+});
 
-  if (jsonOutput) {
-    console.log(JSON.stringify(result, null, 2));
-  } else {
-    console.log(`Generating ${count} ${type} (domain: ${domain})...`);
-    console.log(`  Format: ${format}`);
-    if (output) console.log(`  Output: ${output}`);
-    console.log(`\n✓ Generated ${result.generated} items`);
-  }
-}
-
-export const dataGenerateModule: CommandModule = {
-  main,
-  sections,
-};
+export const dataGenerateModule: CommandModule = { main: sections.main, sections: sections.sections };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runCLI(main, { sections, version: '0.0.0' });
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(sections.main, { sections: sections.sections, version: '0.0.0' });
 }
