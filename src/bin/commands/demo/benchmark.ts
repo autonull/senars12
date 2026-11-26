@@ -3,11 +3,9 @@
  */
 
 import { runEntrypoint } from '../../lib/fatal-error';
-import { runCLI, standardSections, type CommonFlags, type HelpSection } from '../../lib/cli-utils';
-import { createLogger } from '@senars/util/logger';
+import { standardSections, type HelpSection } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-
-const logger = createLogger({ scope: 'demo:benchmark' });
+import { createStubModule } from '../../lib/command-base';
 
 export const sections: HelpSection[] = [
   standardSections.usage('senars demo benchmark', 'Standardized performance benchmarks'),
@@ -32,27 +30,10 @@ export const sections: HelpSection[] = [
   ]),
 ];
 
-async function main(flags: CommonFlags): Promise<void> {
-  console.log('📊 NAR Demo Benchmark');
-  console.log('⚠️  Command not yet fully implemented: demo benchmark');
-  console.log('   Track progress: https://github.com/senars/senars/issues/XXX');
-  console.log('');
-  console.log('This command will provide standardized benchmarks:');
-  console.log('  - derivation: derivation cost and throughput');
-  console.log('  - memory: memory pressure and concept growth');
-  console.log('  - throughput: cycles per second under load');
-  console.log('  - latency: P50/P95/P99 latency of agent cycles');
-  console.log('  - JSON output for CI integration');
-  console.log('  - Baseline comparison for regression detection');
-  process.exit(1);
-}
-
-export const demoBenchmarkModule: CommandModule = {
-  main,
-  sections,
-};
+export const demoBenchmarkModule: CommandModule = createStubModule('demo benchmark', 'https://github.com/senars/senars/issues/XXX');
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(demoBenchmarkModule.main, { sections: demoBenchmarkModule.sections, version: '0.0.0' });
 }

@@ -2,10 +2,10 @@
  * `senars imagine` — Run imagine pipeline (stub).
  */
 
-import type { CommonFlags, HelpSection } from '../lib/cli-utils';
-import { runCLI, standardSections } from '../lib/cli-utils';
 import { runEntrypoint } from '../lib/fatal-error';
+import { standardSections, type HelpSection } from '../lib/cli-utils';
 import type { CommandModule } from '../lib/cli';
+import { createStubModule } from '../lib/command-base';
 
 export const sections: HelpSection[] = [
   standardSections.usage('senars imagine', 'Run imagine pipeline'),
@@ -15,14 +15,9 @@ export const sections: HelpSection[] = [
   },
 ];
 
-export async function main(flags: CommonFlags): Promise<void> {
-  console.error('⚠️  Command not yet implemented: imagine');
-  console.error('   Track progress: https://github.com/senars/senars/issues/XXX');
-  process.exit(1);
-}
-
-export const imagineModule: CommandModule = { main, sections };
+export const imagineModule: CommandModule = createStubModule('imagine', 'https://github.com/senars/senars/issues/XXX');
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
+  const { runCLI } = await import('../lib/cli-utils');
+  runCLI(imagineModule.main, { sections: imagineModule.sections, version: '0.0.0' });
 }

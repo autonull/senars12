@@ -5,13 +5,9 @@
  */
 
 import { runEntrypoint } from '../../lib/fatal-error';
-import { runCLI, standardSections, type CommonFlags, type HelpSection } from '../../lib/cli-utils';
-import { createLogger } from '@senars/util/logger';
+import { standardSections, type HelpSection } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-
-const logger = createLogger({ scope: 'demo:arcade' });
-
-type Arm = 'manifold' | 'lm' | 'replica' | 'nal' | 'heuristic' | 'random' | 'qlearning' | 'policygradient';
+import { createStubModule } from '../../lib/command-base';
 
 export const sections: HelpSection[] = [
   standardSections.usage('senars demo arcade', 'Cognitive games as stress tests'),
@@ -42,29 +38,10 @@ export const sections: HelpSection[] = [
   ]),
 ];
 
-async function main(flags: CommonFlags): Promise<void> {
-  console.log('🎮 NAR Arcade - Cognitive Games Stress Test');
-  console.log('⚠️  Command not yet fully implemented: demo arcade');
-  console.log('   Track progress: https://github.com/senars/senars/issues/XXX');
-  console.log('');
-  console.log('This command will be implemented by extracting from scripts/arcade.ts');
-  console.log('Key features to port:');
-  console.log('  - Game registry (snake, tetris, 2048, tictactoe, bandit, gridworld)');
-  console.log('  - Arm implementations (heuristic, random, manifold, lm, replica, nal, qlearning, policygradient)');
-  console.log('  - BrierHarness for calibration metrics');
-  console.log('  - Seed-loop for statistical runs');
-  console.log('  - Cognitive rules per game');
-  console.log('  - Distillation pipeline');
-  console.log('  - OpenTelemetry tracing');
-  process.exit(1);
-}
-
-export const demoArcadeModule: CommandModule = {
-  main,
-  sections,
-};
+export const demoArcadeModule: CommandModule = createStubModule('demo arcade', 'https://github.com/senars/senars/issues/XXX');
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(demoArcadeModule.main, { sections: demoArcadeModule.sections, version: '0.0.0' });
 }

@@ -4,12 +4,12 @@
  * TODO: Implement REST API server for SeNARS.
  */
 
-import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
-import { runCLI, standardSections } from '../../lib/cli-utils';
-import { createStubCommand } from '../../lib/cli';
+import { runEntrypoint } from '../../lib/fatal-error';
+import { standardSections, type HelpSection } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
+import { createStubModule } from '../../lib/command-base';
 
-const sections: HelpSection[] = [
+export const sections: HelpSection[] = [
   standardSections.usage('senars serve http', 'Start REST API server'),
   {
     title: 'Options',
@@ -27,12 +27,10 @@ const sections: HelpSection[] = [
   ]),
 ];
 
-const main = createStubCommand('serve http', 'https://github.com/senars/senars/issues/XXX').main;
-
-export const serveHttpModule: CommandModule = { main, sections };
+export const serveHttpModule: CommandModule = createStubModule('serve http', 'https://github.com/senars/senars/issues/XXX');
 
 // For direct execution (testing)
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { runEntrypoint } = await import('../../lib/fatal-error');
-  runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
+  const { runCLI } = await import('../../lib/cli-utils');
+  runCLI(serveHttpModule.main, { sections: serveHttpModule.sections, version: '0.0.0' });
 }

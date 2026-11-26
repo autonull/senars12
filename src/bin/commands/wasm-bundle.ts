@@ -2,10 +2,10 @@
  * `senars wasm-bundle` — Generate WASM bundle (stub).
  */
 
-import type { CommonFlags, HelpSection } from '../lib/cli-utils';
-import { runCLI, standardSections } from '../lib/cli-utils';
 import { runEntrypoint } from '../lib/fatal-error';
+import { standardSections, type HelpSection } from '../lib/cli-utils';
 import type { CommandModule } from '../lib/cli';
+import { createStubModule } from '../lib/command-base';
 
 export const sections: HelpSection[] = [
   standardSections.usage('senars wasm-bundle', 'Generate WASM bundle'),
@@ -15,14 +15,9 @@ export const sections: HelpSection[] = [
   },
 ];
 
-export async function main(flags: CommonFlags): Promise<void> {
-  console.error('⚠️  Command not yet implemented: wasm-bundle');
-  console.error('   Track progress: https://github.com/senars/senars/issues/XXX');
-  process.exit(1);
-}
-
-export const wasmBundleModule: CommandModule = { main, sections };
+export const wasmBundleModule: CommandModule = createStubModule('wasm-bundle', 'https://github.com/senars/senars/issues/XXX');
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runEntrypoint(() => runCLI(main, { sections, version: '0.0.0' }));
+  const { runCLI } = await import('../lib/cli-utils');
+  runCLI(wasmBundleModule.main, { sections: wasmBundleModule.sections, version: '0.0.0' });
 }
