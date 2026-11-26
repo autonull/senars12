@@ -14,6 +14,7 @@ import { divider, formatDuration, pct, section } from '@senars/util/format';
 import { writeJsonFile } from '@senars/util/fs';
 import { runEntrypoint } from '../../lib/fatal-error';
 import { runCLI, standardSections, type CommonFlags, type HelpSection } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 
 interface ImagineOptions {
   profile: ScenarioProfile;
@@ -226,6 +227,11 @@ async function main(flags: CommonFlags): Promise<void> {
 
   console.log('\n✅ NAR Imagine completed successfully!');
 }
+
+export const demoImagineModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -48,11 +48,6 @@ export interface SystemOneSpec {
   params?: Partial<SystemOneConfig>;
 }
 
-// Use imported BuilderStepRecord from @senars/util/builder
-
-/** Typed failure of an inconsistent assembly spec (TODO19 F1). Re-exported so
- *  builder callers keep one import path; the class itself is declared once in
- *  the kernel error taxonomy, where `step` is a typed field and context entry. */
 export { BuilderError };
 
 /** The assembled artifact: agent + NAR + the gates instance that scopes it. */
@@ -73,6 +68,7 @@ export interface WiredNAR {
  * validate and record; a step not called ⇒ subsystem absent, never stubbed.
  */
 export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
+  // Subsystem fields
   private lm?: LMService;
   private systemOne?: SystemOneSpec;
   private capabilities: CapabilitySurface = {};
@@ -93,8 +89,13 @@ export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
   private consolidation?: CreateAgentConfig['consolidation'];
   private deviceHeadSpec?: { wasmPath: string; modelDigest: string; dimension: number };
   private threadScope?: ThreadScope;
-  private strategyRegistry?: CognitiveRegistry;
   private capabilityOntologyEnabled = false;
+
+  /** Helper: set field and record step. */
+  private setAndRecord<T>(field: string, value: T, stepName: string, present = true, detail?: Record<string, unknown>): this {
+    (this as Record<string, unknown>)[field] = value;
+    return this.recordStep(stepName, present, detail);
+  }
 
   /** TODO19 F3: seed the builder from a named profile preset (profiles are data). */
   static fromProfile(name: string): NARBuilder {
@@ -113,19 +114,16 @@ export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
   }
 
   withLM(lmService: LMService): this {
-    this.lm = lmService;
-    return this.recordStep('lm', true);
+    return this.setAndRecord('lm', lmService, 'lm');
   }
 
   /** System One cortex; `{ tier: 0 }` ⇒ absent (no LM-bound heads, no cortex import path). */
   withSystemOne(spec: { tier: CapabilityTier; params?: Partial<SystemOneConfig> }): this {
-    this.systemOne = spec;
-    return this.recordStep('systemOne', spec.tier > 0, { tier: spec.tier });
+    return this.setAndRecord('systemOne', spec, 'systemOne', spec.tier > 0, { tier: spec.tier });
   }
 
   withCapabilities(capabilities: CapabilitySurface): this {
-    this.capabilities = capabilities;
-    return this.recordStep('capabilities', true, {
+    return this.setAndRecord('capabilities', capabilities, 'capabilities', true, {
       self: capabilities.self?.enabled ?? false,
       rlfp: capabilities.rlfp?.enabled ?? false,
     });
@@ -133,65 +131,53 @@ export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
 
   /** Partial parameters merge over defaults (ParameterTable seeds, F5 substrate). */
   withParameters(cognitiveParams: CognitiveParameters): this {
-    this.cognitiveParams = { ...DEFAULT_COGNITIVE_PARAMETERS, ...cognitiveParams };
-    return this.recordStep('parameters', true);
+    return this.setAndRecord('cognitiveParams', { ...DEFAULT_COGNITIVE_PARAMETERS, ...cognitiveParams }, 'parameters');
   }
 
   /** Per-instance kernel gates (F2) — a fresh `createGateRegistry()` (isolation) or init config. */
   withGates(spec?: GateRegistry | GateRegistryInit): this {
-    this.gates =
-      spec instanceof Object && 'initialize' in spec
-        ? (spec as GateRegistry)
-        : createGateRegistry();
-    this.gateConfig =
-      spec instanceof Object && 'initialize' in spec ? undefined : (spec as GateRegistryInit);
+    const gates = spec instanceof Object && 'initialize' in spec ? (spec as GateRegistry) : createGateRegistry();
+    const gateConfig = spec instanceof Object && 'initialize' in spec ? undefined : (spec as GateRegistryInit);
+    (this as Record<string, unknown>).gates = gates;
+    (this as Record<string, unknown>).gateConfig = gateConfig;
     return this.recordStep('gates', true);
   }
 
   withPersistence(persistence: { path: string }): this {
-    this.persistence = persistence;
-    return this.recordStep('persistence', true, persistence);
+    return this.setAndRecord('persistence', persistence, 'persistence', true, persistence);
   }
 
   withMemory(episodicMemory: EpisodicMemory): this {
-    this.episodicMemory = episodicMemory;
-    return this.recordStep('memory', true);
+    return this.setAndRecord('episodicMemory', episodicMemory, 'memory');
   }
 
   /** MeTTa engine seam — `metta` is above `nar`, so the engine is injected. */
   withMetta(metta: MettaPort): this {
-    this.metta = metta;
-    return this.recordStep('metta', true);
+    return this.setAndRecord('metta', metta, 'metta');
   }
 
   withSessionManager(sessionManager: CreateAgentConfig['sessionManager']): this {
-    this.sessionManager = sessionManager;
-    return this.recordStep('sessionManager', Boolean(sessionManager));
+    return this.setAndRecord('sessionManager', sessionManager, 'sessionManager', Boolean(sessionManager));
   }
 
   withProfile(profile: CreateAgentConfig['profile']): this {
-    this.profile = profile;
-    return this.recordStep('profile', Boolean(profile));
+    return this.setAndRecord('profile', profile, 'profile', Boolean(profile));
   }
 
   withSkills(skills: CreateAgentConfig['skills']): this {
-    this.skills = skills;
-    return this.recordStep('skills', Boolean(skills?.length));
+    return this.setAndRecord('skills', skills, 'skills', Boolean(skills?.length));
   }
 
   withConversation(conversation: CreateAgentConfig['conversation']): this {
-    this.conversation = conversation;
-    return this.recordStep('conversation', Boolean(conversation));
+    return this.setAndRecord('conversation', conversation, 'conversation', Boolean(conversation));
   }
 
   withPromptBuilder(promptBuilder: PromptBuilder): this {
-    this.promptBuilder = promptBuilder;
-    return this.recordStep('promptBuilder', Boolean(promptBuilder));
+    return this.setAndRecord('promptBuilder', promptBuilder, 'promptBuilder', Boolean(promptBuilder));
   }
 
   withEngines(engines: CreateAgentConfig['engines']): this {
-    this.engines = engines;
-    return this.recordStep('engines', Boolean(engines));
+    return this.setAndRecord('engines', engines, 'engines', Boolean(engines));
   }
 
   /** Escape hatch for raw NARConfig fields (gateRegistry is always owned by the builder). */
@@ -210,26 +196,22 @@ export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
 
   /** Phase A (REFACTOR.todo2): macro-cycle learning consolidation config. */
   withConsolidation(consolidation: CreateAgentConfig['consolidation']): this {
-    this.consolidation = consolidation;
-    return this.recordStep('consolidation', consolidation?.enabled !== false);
+    return this.setAndRecord('consolidation', consolidation, 'consolidation', consolidation?.enabled !== false);
   }
 
   /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
   withThreadScope(threadScope: ThreadScope): this {
-    this.threadScope = threadScope;
-    return this.recordStep('threadScope', true);
+    return this.setAndRecord('threadScope', threadScope, 'threadScope');
   }
 
   /** P7: the tier-0 head, compiled to a zero-import WASM bundle and loaded sandboxed. */
   withDeviceHead(spec: { wasmPath: string; modelDigest: string; dimension: number }): this {
-    this.deviceHeadSpec = spec;
-    return this.recordStep('deviceHead', true, { wasmPath: spec.wasmPath });
+    return this.setAndRecord('deviceHeadSpec', spec, 'deviceHead', true, { wasmPath: spec.wasmPath });
   }
 
   /** Phase E: enable CapabilityOntology — registers tools, rules, skills into CapabilitySpace. */
   withCapabilityOntology(enabled = true): this {
-    this.capabilityOntologyEnabled = enabled;
-    return this.recordStep('capabilityOntology', enabled);
+    return this.setAndRecord('capabilityOntologyEnabled', enabled, 'capabilityOntology', enabled);
   }
 
   /** Validate the spec and assemble: NAR (kernel) + Agent (transport). */
@@ -253,9 +235,6 @@ export class NARBuilder extends BaseBuilder<WiredNAR, BuilderStepRecord> {
   private async buildInner(): Promise<WiredNAR> {
     const systemOneEnabled = (this.systemOne?.tier ?? 0) > 0;
     const selfEnabled = this.capabilities.self?.enabled === true;
-    // Model rules exist when a provider was provided. There is no switch beside
-    // that, so a capability claiming them without one is a profile that is wrong
-    // rather than a build that silently derives less (TODO29.a §5.2).
     const modelRulesEnabled = this.capabilities.lmRules?.enabled === true;
 
     if (

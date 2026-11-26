@@ -194,92 +194,97 @@ const createSkillsPromptBuilder = (
 const blocksToPrompt = (header: string, blocks: string[]): string =>
   blocks.length > 0 ? [header, ...blocks].join('\n\n') : '';
 
+/** Helper to assign multiple methods to an object concisely. */
+const assignMethods = <T extends object>(target: T, methods: Record<string, unknown>): void => {
+  for (const [key, value] of Object.entries(methods)) {
+    (target as Record<string, unknown>)[key] = value;
+  }
+};
+
 function extendAgent(agent: Agent, config: CreateAgentConfig, narInstance: NAR, narEngine: NAREngine): ExtendedAgent {
   let throttle = config.throttle ?? 0;
 
   const know = new Map<string, string>();
-  (agent as ExtendedAgent).know = (key: string, value: string) => void know.set(key, value);
-  (agent as ExtendedAgent).knowGet = (key: string) => know.get(key);
-  (agent as ExtendedAgent).knowList = () => Array.from(know.entries()).map(([key, value]) => ({ key, value }));
 
-  const believe = async (text: string): Promise<void> => {
-    await narInstance.believe(text);
-  };
-  (agent as ExtendedAgent).believe = believe;
-
-  (agent as ExtendedAgent).recall = (query?: string, limit?: number) => recallEpisodes(config as any, query, limit);
-  (agent as ExtendedAgent).setThrottle = (n: number) => {
-    throttle = clamp(n, 0, 100);
-  };
-  (agent as ExtendedAgent).getThrottle = () => throttle;
-  (agent as ExtendedAgent).getNAR = () => narEngine?.nar;
-  (agent as ExtendedAgent).getEpisodicMemory = () => config.episodicMemory;
-
-  (agent as ExtendedAgent).delegate = async (params: {
-    target: string;
-    task: { type: string; term: string };
-    ruleId: string;
-  }): Promise<{ truth?: Truth; confidence?: number; error?: string }> => {
-    const { target, task, ruleId } = params;
-    const url = new URL(target);
-    const host = url.hostname;
-    const port = parseInt(url.port) || 8765;
-    const wsUrl = `ws://${host}:${port}`;
-    const ws = new WebSocket(wsUrl);
-    return new Promise((resolve) => {
-      const disarmDeadline = deadline(DELEGATION_TIMEOUT_MS, () => {
-        resolve({ error: 'Delegation timeout' });
-        ws.close();
-      });
-      ws.on('open', () => {
-        const delegation = {
-          type: 'cognitive-delegation',
-          delegation: {
-            taskId: makeId(),
-            taskType: ruleId,
-            narseseContext: task.term,
-            callbackEndpoint: wsUrl,
-          },
-        };
-        ws.send(JSON.stringify(delegation));
-      });
-      ws.on('message', async (data) => {
-        const message = parseJsonOr<{ type?: string; result?: any }>(data.toString(), {});
-        if (message.type === 'cognitive-delegation-result' && message.result) {
-          disarmDeadline();
+  // Define all extension methods in a single object for cleaner assignment
+  const extensions = {
+    know: (key: string, value: string) => void know.set(key, value),
+    knowGet: (key: string) => know.get(key),
+    knowList: () => Array.from(know.entries()).map(([key, value]) => ({ key, value })),
+    believe: async (text: string) => { await narInstance.believe(text); },
+    recall: (query?: string, limit?: number) => recallEpisodes(config as any, query, limit),
+    setThrottle: (n: number) => { throttle = clamp(n, 0, 100); },
+    getThrottle: () => throttle,
+    getNAR: () => narEngine?.nar,
+    getEpisodicMemory: () => config.episodicMemory,
+    delegate: async (params: {
+      target: string;
+      task: { type: string; term: string };
+      ruleId: string;
+    }): Promise<{ truth?: Truth; confidence?: number; error?: string }> => {
+      const { target, task, ruleId } = params;
+      const url = new URL(target);
+      const host = url.hostname;
+      const port = parseInt(url.port) || 8765;
+      const wsUrl = `ws://${host}:${port}`;
+      const ws = new WebSocket(wsUrl);
+      return new Promise((resolve) => {
+        const disarmDeadline = deadline(DELEGATION_TIMEOUT_MS, () => {
+          resolve({ error: 'Delegation timeout' });
           ws.close();
-          const result = message.result;
-          if (result.success && result.resultNarsese?.length > 0) {
-            const nar = narEngine?.nar;
-            if (nar) {
-              for (const termStr of result.resultNarsese) {
-                await nar.input(termStr, 'belief', Truth.create(1.0, 0.5));
+        });
+        ws.on('open', () => {
+          const delegation = {
+            type: 'cognitive-delegation',
+            delegation: {
+              taskId: makeId(),
+              taskType: ruleId,
+              narseseContext: task.term,
+              callbackEndpoint: wsUrl,
+            },
+          };
+          ws.send(JSON.stringify(delegation));
+        });
+        ws.on('message', async (data) => {
+          const message = parseJsonOr<{ type?: string; result?: any }>(data.toString(), {});
+          if (message.type === 'cognitive-delegation-result' && message.result) {
+            disarmDeadline();
+            ws.close();
+            const result = message.result;
+            if (result.success && result.resultNarsese?.length > 0) {
+              const nar = narEngine?.nar;
+              if (nar) {
+                for (const termStr of result.resultNarsese) {
+                  await nar.input(termStr, 'belief', Truth.create(1.0, 0.5));
+                }
+                await nar.run(3);
+                const answer = await nar.ask(task.term);
+                if (answer?.truth) {
+                  resolve({
+                    truth: answer.truth,
+                    confidence: Truth.expectation(answer.truth),
+                  });
+                  return;
+                }
               }
-              await nar.run(3);
-              const answer = await nar.ask(task.term);
-              if (answer?.truth) {
-                resolve({
-                  truth: answer.truth,
-                  confidence: Truth.expectation(answer.truth),
-                });
-                return;
-              }
+              resolve({ truth: Truth.create(1.0, SOURCE_QUALITY_CONFIDENCE.PEER_AGENT) });
+            } else {
+              resolve({ error: result.error ?? 'Delegation failed' });
             }
-            resolve({ truth: Truth.create(1.0, SOURCE_QUALITY_CONFIDENCE.PEER_AGENT) });
-          } else {
-            resolve({ error: result.error ?? 'Delegation failed' });
           }
-        }
+        });
+        ws.on('error', (err) => {
+          disarmDeadline();
+          resolve({ error: `WebSocket error: ${err.message}` });
+        });
+        ws.on('close', () => {
+          disarmDeadline();
+        });
       });
-      ws.on('error', (err) => {
-        disarmDeadline();
-        resolve({ error: `WebSocket error: ${err.message}` });
-      });
-      ws.on('close', () => {
-        disarmDeadline();
-      });
-    });
+    },
   };
+
+  assignMethods(agent, extensions);
 
   return agent as ExtendedAgent;
 }

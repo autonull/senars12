@@ -19,6 +19,7 @@ import type { Formula } from '../../../logics/axiomatic/ast';
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
 import { runEntrypoint } from '../../lib/fatal-error';
+import type { CommandModule } from '../../lib/cli';
 
 export const sections: HelpSection[] = [
   standardSections.usage('senars logic', 'Stand-alone logic tool over deterministic axiomatic core'),
@@ -104,6 +105,11 @@ export async function main(flags: CommonFlags, positional: string[]): Promise<vo
       process.exit(2);
   }
 }
+
+export const logicModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

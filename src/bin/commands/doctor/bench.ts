@@ -4,6 +4,7 @@
 
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 import { createLogger, parseFlags, jsonMode, clamp, finiteOr, stopwatch, perSecond } from '@senars/util';
 import { createDiagnosticNAR, runDerivationBenchmarks } from '../../lib/diagnostics';
 
@@ -97,6 +98,11 @@ export async function main(flags: CommonFlags): Promise<void> {
     }
   }
 }
+
+export const doctorBenchModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

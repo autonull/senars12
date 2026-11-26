@@ -28,6 +28,7 @@ import {
 } from '../../lib/mcp';
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 
 const logger = createLogger({ scope: 'serve:mcp' });
 
@@ -129,6 +130,11 @@ export async function main(flags: CommonFlags): Promise<void> {
     await closeTransport();
   }, logger);
 }
+
+export const serveMcpModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

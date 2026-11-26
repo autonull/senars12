@@ -4,6 +4,7 @@
 
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 import { loadConfig } from '../../../config/index';
 import { createLogger, parseFlags, jsonMode, errMsg } from '@senars/util';
 
@@ -62,6 +63,11 @@ export async function main(flags: CommonFlags): Promise<void> {
     process.exit(1);
   }
 }
+
+export const configValidateModule: CommandModule = {
+  main,
+  sections,
+};
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   runCLI(main, { sections, version: '0.0.0' });

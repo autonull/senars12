@@ -5,6 +5,7 @@
 import { runEntrypoint } from '../../lib/fatal-error';
 import { runCLI, standardSections, type CommonFlags, type HelpSection } from '../../lib/cli-utils';
 import { createLogger } from '@senars/util/logger';
+import type { CommandModule } from '../../lib/cli';
 
 const logger = createLogger({ scope: 'demo:benchmark' });
 
@@ -45,6 +46,11 @@ async function main(flags: CommonFlags): Promise<void> {
   console.log('  - Baseline comparison for regression detection');
   process.exit(1);
 }
+
+export const demoBenchmarkModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

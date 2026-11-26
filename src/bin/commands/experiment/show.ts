@@ -4,6 +4,7 @@
 
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 import { createLogger, parseFlags, jsonMode } from '@senars/util';
 
 const logger = createLogger({ scope: 'experiment:show' });
@@ -67,6 +68,11 @@ export async function main(flags: CommonFlags): Promise<void> {
     console.log(`  Results: ${JSON.stringify(experiment.results, null, 2).split('\n').map(l => `    ${l}`).join('\n')}`);
   }
 }
+
+export const experimentShowModule: CommandModule = {
+  main,
+  sections,
+};
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   runCLI(main, { sections, version: '0.0.0' });

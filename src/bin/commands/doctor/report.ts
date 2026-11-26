@@ -4,6 +4,7 @@
 
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 import { resolveLMSettings, resolveLMConfig, cloudApiKey } from '@senars/lm';
 import { loadConfig } from '../../../config/index';
 import { createLogger, parseFlags, jsonMode, formatBytes, errMsg } from '@senars/util';
@@ -298,6 +299,11 @@ function formatReport(r: ReportOutput): string {
 
   return lines.join('\n');
 }
+
+export const doctorReportModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

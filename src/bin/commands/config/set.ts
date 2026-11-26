@@ -4,6 +4,7 @@
 
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 import { loadConfig } from '../../../config/index';
 import { writeJsonFile } from '@senars/util/fs';
 import { createLogger, parseFlags, jsonMode, errMsg } from '@senars/util';
@@ -97,6 +98,11 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
   current[lastPart] = value;
   return true;
 }
+
+export const configSetModule: CommandModule = {
+  main,
+  sections,
+};
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   runCLI(main, { sections, version: '0.0.0' });

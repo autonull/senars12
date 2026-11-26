@@ -7,6 +7,7 @@
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
 import { createStubCommand } from '../../lib/cli';
+import type { CommandModule } from '../../lib/cli';
 
 const sections: HelpSection[] = [
   standardSections.usage('senars serve http', 'Start REST API server'),
@@ -26,9 +27,9 @@ const sections: HelpSection[] = [
   ]),
 ];
 
-// Re-export as a stub for now - will be implemented in Session 2
-export const main = createStubCommand('serve http', 'https://github.com/senars/senars/issues/XXX').main;
-export { sections };
+const main = createStubCommand('serve http', 'https://github.com/senars/senars/issues/XXX').main;
+
+export const serveHttpModule: CommandModule = { main, sections };
 
 // For direct execution (testing)
 if (import.meta.url === `file://${process.argv[1]}`) {

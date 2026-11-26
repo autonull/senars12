@@ -4,6 +4,7 @@
 
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
+import type { CommandModule } from '../../lib/cli';
 import { resolveLMSettings, resolveLMConfig, cloudApiKey, getRoutingLogStatus } from '@senars/lm';
 import { loadConfig } from '../../../config/index';
 import { createLogger, parseFlags, jsonMode } from '@senars/util';
@@ -127,6 +128,11 @@ export async function main(flags: CommonFlags): Promise<void> {
     }
   }
 }
+
+export const doctorStatusModule: CommandModule = {
+  main,
+  sections,
+};
 
 // Allow direct execution for testing
 if (import.meta.url === `file://${process.argv[1]}`) {

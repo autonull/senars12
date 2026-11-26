@@ -162,490 +162,89 @@ async function runAgentMode(profileKind: string): Promise<void> {
 
 /** Register all commands. */
 async function registerAllCommands(): Promise<void> {
-  let stdSections: any;
-  let serveMcpMain: any, serveMcpSections: any;
-  let serveHttpMain: any, serveHttpSections: any;
-  let serveWsMain: any, serveWsSections: any;
-  let edgeRunMain: any, edgeRunSections: any;
-  let logicMain: any, logicSections: any;
-  let demoPlaygroundMain: any, demoPlaygroundSections: any;
-  let demoArcadeMain: any, demoArcadeSections: any;
-  let demoImagineMain: any, demoImagineSections: any;
-  let demoBenchmarkMain: any, demoBenchmarkSections: any;
-  let logger: any;
-  
-  const { createAgentFromEnv, runAgent } = await import('./lib/lifecycle');
-  const { maybeStartWebUI } = await import('./lib/entrypoint-base');
-  const { readAppEnvConfig } = await import('./lib/env-config');
-  const { createLogger } = await import('@senars/util/logger');
-  const cliUtils = await import('./lib/cli-utils');
-  stdSections = cliUtils.standardSections;
-  
-  const mcpMod = await import('./commands/serve/mcp');
-  serveMcpMain = mcpMod.main;
-  serveMcpSections = mcpMod.sections;
-  
-  const httpMod = await import('./commands/serve/http');
-  serveHttpMain = httpMod.main;
-  serveHttpSections = httpMod.sections;
-
-  const wsMod = await import('./commands/serve/ws');
-  serveWsMain = wsMod.main;
-  serveWsSections = wsMod.sections;
-
-  const edgeMod = await import('./commands/edge/run');
-  edgeRunMain = edgeMod.main;
-  edgeRunSections = edgeMod.sections;
-
-  const logicMod = await import('./commands/logic');
-  logicMain = logicMod.main;
-  logicSections = logicMod.sections;
-
-  const demoPlaygroundMod = await import('./commands/demo/playground');
-  demoPlaygroundMain = demoPlaygroundMod.main;
-  demoPlaygroundSections = demoPlaygroundMod.sections;
-
-  const demoArcadeMod = await import('./commands/demo/arcade');
-  demoArcadeMain = demoArcadeMod.main;
-  demoArcadeSections = demoArcadeMod.sections;
-
-  const demoImagineMod = await import('./commands/demo/imagine');
-  demoImagineMain = demoImagineMod.main;
-  demoImagineSections = demoImagineMod.sections;
-
-  const demoBenchmarkMod = await import('./commands/demo/benchmark');
-  demoBenchmarkMain = demoBenchmarkMod.main;
-  demoBenchmarkSections = demoBenchmarkMod.sections;
-
-  const doctorCheckMod = await import('./commands/doctor/check');
-  const doctorCheckMain = doctorCheckMod.main;
-  const doctorCheckSections = doctorCheckMod.sections;
-
-  const doctorStatusMod = await import('./commands/doctor/status');
-  const doctorStatusMain = doctorStatusMod.main;
-  const doctorStatusSections = doctorStatusMod.sections;
-
-  const doctorReportMod = await import('./commands/doctor/report');
-  const doctorReportMain = doctorReportMod.main;
-  const doctorReportSections = doctorReportMod.sections;
-
-  const doctorTuneMod = await import('./commands/doctor/tune');
-  const doctorTuneMain = doctorTuneMod.main;
-  const doctorTuneSections = doctorTuneMod.sections;
-
-  const doctorBenchMod = await import('./commands/doctor/bench');
-  const doctorBenchMain = doctorBenchMod.main;
-  const doctorBenchSections = doctorBenchMod.sections;
-
-  const configValidateMod = await import('./commands/config/validate');
-  const configValidateMain = configValidateMod.main;
-  const configValidateSections = configValidateMod.sections;
-
-  const configGetMod = await import('./commands/config/get');
-  const configGetMain = configGetMod.main;
-  const configGetSections = configGetMod.sections;
-
-  const configSetMod = await import('./commands/config/set');
-  const configSetMain = configSetMod.main;
-  const configSetSections = configSetMod.sections;
-
-  const configListMod = await import('./commands/config/list');
-  const configListMain = configListMod.main;
-  const configListSections = configListMod.sections;
-
-  const sessionStartMod = await import('./commands/session/start');
-  const sessionStartMain = sessionStartMod.main;
-  const sessionStartSections = sessionStartMod.sections;
-
-  const sessionStopMod = await import('./commands/session/stop');
-  const sessionStopMain = sessionStopMod.main;
-  const sessionStopSections = sessionStopMod.sections;
-
-  const sessionListMod = await import('./commands/session/list');
-  const sessionListMain = sessionListMod.main;
-  const sessionListSections = sessionListMod.sections;
-
-  const memoryInspectMod = await import('./commands/memory/inspect');
-  const memoryInspectMain = memoryInspectMod.main;
-  const memoryInspectSections = memoryInspectMod.sections;
-
-  const memoryExportMod = await import('./commands/memory/export');
-  const memoryExportMain = memoryExportMod.main;
-  const memoryExportSections = memoryExportMod.sections;
-
-  const memoryImportMod = await import('./commands/memory/import');
-  const memoryImportMain = memoryImportMod.main;
-  const memoryImportSections = memoryImportMod.sections;
-
-  const modelListMod = await import('./commands/model/list');
-  const modelListMain = modelListMod.main;
-  const modelListSections = modelListMod.sections;
-
-  const modelPullMod = await import('./commands/model/pull');
-  const modelPullMain = modelPullMod.main;
-  const modelPullSections = modelPullMod.sections;
-
-  const modelRemoveMod = await import('./commands/model/remove');
-  const modelRemoveMain = modelRemoveMod.main;
-  const modelRemoveSections = modelRemoveMod.sections;
-
-  // Experiment commands
-  const experimentRunMod = await import('./commands/experiment/run');
-  const experimentRunMain = experimentRunMod.main;
-  const experimentRunSections = experimentRunMod.sections;
-
-  const experimentListMod = await import('./commands/experiment/list');
-  const experimentListMain = experimentListMod.main;
-  const experimentListSections = experimentListMod.sections;
-
-  const experimentShowMod = await import('./commands/experiment/show');
-  const experimentShowMain = experimentShowMod.main;
-  const experimentShowSections = experimentShowMod.sections;
-
-  const experimentCompareMod = await import('./commands/experiment/compare');
-  const experimentCompareMain = experimentCompareMod.main;
-  const experimentCompareSections = experimentCompareMod.sections;
-
-  const experimentAnalyzeMod = await import('./commands/experiment/analyze');
-  const experimentAnalyzeMain = experimentAnalyzeMod.main;
-  const experimentAnalyzeSections = experimentAnalyzeMod.sections;
-
-  const experimentSweepMod = await import('./commands/experiment/sweep');
-  const experimentSweepMain = experimentSweepMod.main;
-  const experimentSweepSections = experimentSweepMod.sections;
-
-  const experimentNotebookMod = await import('./commands/experiment/notebook');
-  const experimentNotebookMain = experimentNotebookMod.main;
-  const experimentNotebookSections = experimentNotebookMod.sections;
-
-  // Data commands
-  const dataImportMod = await import('./commands/data/import');
-  const dataImportMain = dataImportMod.main;
-  const dataImportSections = dataImportMod.sections;
-
-  const dataExportMod = await import('./commands/data/export');
-  const dataExportMain = dataExportMod.main;
-  const dataExportSections = dataExportMod.sections;
-
-  const dataTransformMod = await import('./commands/data/transform');
-  const dataTransformMain = dataTransformMod.main;
-  const dataTransformSections = dataTransformMod.sections;
-
-  const dataGenerateMod = await import('./commands/data/generate');
-  const dataGenerateMain = dataGenerateMod.main;
-  const dataGenerateSections = dataGenerateMod.sections;
-
-  const dataValidateMod = await import('./commands/data/validate');
-  const dataValidateMain = dataValidateMod.main;
-  const dataValidateSections = dataValidateMod.sections;
-
-  // Dev commands
-  const devReplMod = await import('./commands/dev/repl');
-  const devReplMain = devReplMod.main;
-  const devReplSections = devReplMod.sections;
-
-  const devDebugMod = await import('./commands/dev/debug');
-  const devDebugMain = devDebugMod.main;
-  const devDebugSections = devDebugMod.sections;
-
-  const devProfileMod = await import('./commands/dev/profile');
-  const devProfileMain = devProfileMod.main;
-  const devProfileSections = devProfileMod.sections;
-
-  const devTraceMod = await import('./commands/dev/trace');
-  const devTraceMain = devTraceMod.main;
-  const devTraceSections = devTraceMod.sections;
-
-  const devInspectMod = await import('./commands/dev/inspect');
-  const devInspectMain = devInspectMod.main;
-  const devInspectSections = devInspectMod.sections;
-
-  const devBenchmarkMod = await import('./commands/dev/benchmark');
-  const devBenchmarkMain = devBenchmarkMod.main;
-  const devBenchmarkSections = devBenchmarkMod.sections;
-
-  const devTestMod = await import('./commands/dev/test');
-  const devTestMain = devTestMod.main;
-  const devTestSections = devTestMod.sections;
-
-  const devLintMod = await import('./commands/dev/lint');
-  const devLintMain = devLintMod.main;
-  const devLintSections = devLintMod.sections;
-
-  const devTypecheckMod = await import('./commands/dev/typecheck');
-  const devTypecheckMain = devTypecheckMod.main;
-  const devTypecheckSections = devTypecheckMod.sections;
-
-  const devGenerateMod = await import('./commands/dev/generate');
-  const devGenerateMain = devGenerateMod.main;
-  const devGenerateSections = devGenerateMod.sections;
-
-  // Plugin commands
-  const pluginInstallMod = await import('./commands/plugin/install');
-  const pluginInstallMain = pluginInstallMod.main;
-  const pluginInstallSections = pluginInstallMod.sections;
-
-  const pluginRemoveMod = await import('./commands/plugin/remove');
-  const pluginRemoveMain = pluginRemoveMod.main;
-  const pluginRemoveSections = pluginRemoveMod.sections;
-
-  const pluginListMod = await import('./commands/plugin/list');
-  const pluginListMain = pluginListMod.main;
-  const pluginListSections = pluginListMod.sections;
-
-  const pluginUpdateMod = await import('./commands/plugin/update');
-  const pluginUpdateMain = pluginUpdateMod.main;
-  const pluginUpdateSections = pluginUpdateMod.sections;
-
-  const pluginInfoMod = await import('./commands/plugin/info');
-  const pluginInfoMain = pluginInfoMod.main;
-  const pluginInfoSections = pluginInfoMod.sections;
-
-  const pluginDevMod = await import('./commands/plugin/dev');
-  const pluginDevMain = pluginDevMod.main;
-  const pluginDevSections = pluginDevMod.sections;
-
-  const pluginCreateMod = await import('./commands/plugin/create');
-  const pluginCreateMain = pluginCreateMod.main;
-  const pluginCreateSections = pluginCreateMod.sections;
-
-  const pluginBuildMod = await import('./commands/plugin/build');
-  const pluginBuildMain = pluginBuildMod.main;
-  const pluginBuildSections = pluginBuildMod.sections;
-
-  const pluginPublishMod = await import('./commands/plugin/publish');
-  const pluginPublishMain = pluginPublishMod.main;
-  const pluginPublishSections = pluginPublishMod.sections;
-
-  const completionMod = await import('./completion');
-  const completionMain = completionMod.main;
-  const completionSections = completionMod.sections;
-
-  logger = createLogger({ scope: 'senars' });
-
-  registerCommand('run', {
-    main: async (flags) => {
-      const profileKind = flags.profile ?? 'agent';
-      await runAgentMode(profileKind);
-    },
-    sections: [
-      stdSections.usage('senars run', 'Run agent with profile (default command)'),
-      {
-        title: 'Options',
-        lines: [
-          '-p, --profile <kind>     Select profile: logic | coprocessor | agent | device (default: agent)',
-          '--web-ui                 Enable Web UI',
-          '--port <number>          Web UI port (default: 8765)',
-          '-v, --version            Show version',
-          '--verbose                Verbose output',
-          '--quiet                  Suppress non-error output',
-          '-h, --help               Show this help',
-        ],
-      },
-      stdSections.examples([
-        'senars run',
-        'senars run --profile logic',
-        'senars run --profile agent --web-ui --port 3000',
-      ]),
-    ],
-  });
-
-  // serve mcp
-  registerCommand('serve mcp', { main: serveMcpMain, sections: serveMcpSections });
-
-  // serve http
-  registerCommand('serve http', { main: serveHttpMain, sections: serveHttpSections });
-
-  // serve ws
-  registerCommand('serve ws', { main: serveWsMain, sections: serveWsSections });
-
-  // edge run
-  registerCommand('edge run', { main: edgeRunMain, sections: edgeRunSections });
-
-  // logic
-  registerCommand('logic', { main: logicMain, sections: logicSections });
-
-  // demo playground
-  registerCommand('demo playground', { main: demoPlaygroundMain, sections: demoPlaygroundSections });
-
-  // demo arcade
-  registerCommand('demo arcade', { main: demoArcadeMain, sections: demoArcadeSections });
-
-  // demo imagine
-  registerCommand('demo imagine', { main: demoImagineMain, sections: demoImagineSections });
-
-  // demo benchmark
-  registerCommand('demo benchmark', { main: demoBenchmarkMain, sections: demoBenchmarkSections });
-
-  // doctor check
-  registerCommand('doctor check', { main: doctorCheckMain, sections: doctorCheckSections });
-
-  // doctor status
-  registerCommand('doctor status', { main: doctorStatusMain, sections: doctorStatusSections });
-
-  // doctor report
-  registerCommand('doctor report', { main: doctorReportMain, sections: doctorReportSections });
-
-  // doctor tune
-  registerCommand('doctor tune', { main: doctorTuneMain, sections: doctorTuneSections });
-
-  // doctor bench
-  registerCommand('doctor bench', { main: doctorBenchMain, sections: doctorBenchSections });
-
-  // config validate
-  registerCommand('config validate', { main: configValidateMain, sections: configValidateSections });
-
-  // config get
-  registerCommand('config get', { main: configGetMain, sections: configGetSections });
-
-  // config set
-  registerCommand('config set', { main: configSetMain, sections: configSetSections });
-
-  // config list
-  registerCommand('config list', { main: configListMain, sections: configListSections });
-
-  // session start
-  registerCommand('session start', { main: sessionStartMain, sections: sessionStartSections });
-
-  // session stop
-  registerCommand('session stop', { main: sessionStopMain, sections: sessionStopSections });
-
-  // session list
-  registerCommand('session list', { main: sessionListMain, sections: sessionListSections });
-
-  // memory inspect
-  registerCommand('memory inspect', { main: memoryInspectMain, sections: memoryInspectSections });
-
-  // memory export
-  registerCommand('memory export', { main: memoryExportMain, sections: memoryExportSections });
-
-  // memory import
-  registerCommand('memory import', { main: memoryImportMain, sections: memoryImportSections });
-
-  // model list
-  registerCommand('model list', { main: modelListMain, sections: modelListSections });
-
-  // model pull
-  registerCommand('model pull', { main: modelPullMain, sections: modelPullSections });
-
-  // model remove
-  registerCommand('model remove', { main: modelRemoveMain, sections: modelRemoveSections });
-
-  // experiment run
-  registerCommand('experiment run', { main: experimentRunMain, sections: experimentRunSections });
-
-  // experiment list
-  registerCommand('experiment list', { main: experimentListMain, sections: experimentListSections });
-
-  // experiment show
-  registerCommand('experiment show', { main: experimentShowMain, sections: experimentShowSections });
-
-  // experiment compare
-  registerCommand('experiment compare', { main: experimentCompareMain, sections: experimentCompareSections });
-
-  // experiment analyze
-  registerCommand('experiment analyze', { main: experimentAnalyzeMain, sections: experimentAnalyzeSections });
-
-  // experiment sweep
-  registerCommand('experiment sweep', { main: experimentSweepMain, sections: experimentSweepSections });
-
-  // experiment notebook
-  registerCommand('experiment notebook', { main: experimentNotebookMain, sections: experimentNotebookSections });
-
-  // data import
-  registerCommand('data import', { main: dataImportMain, sections: dataImportSections });
-
-  // data export
-  registerCommand('data export', { main: dataExportMain, sections: dataExportSections });
-
-  // data transform
-  registerCommand('data transform', { main: dataTransformMain, sections: dataTransformSections });
-
-  // data generate
-  registerCommand('data generate', { main: dataGenerateMain, sections: dataGenerateSections });
-
-  // data validate
-  registerCommand('data validate', { main: dataValidateMain, sections: dataValidateSections });
-
-  // dev repl
-  registerCommand('dev repl', { main: devReplMain, sections: devReplSections });
-
-  // dev debug
-  registerCommand('dev debug', { main: devDebugMain, sections: devDebugSections });
-
-  // dev profile
-  registerCommand('dev profile', { main: devProfileMain, sections: devProfileSections });
-
-  // dev trace
-  registerCommand('dev trace', { main: devTraceMain, sections: devTraceSections });
-
-  // dev inspect
-  registerCommand('dev inspect', { main: devInspectMain, sections: devInspectSections });
-
-  // dev benchmark
-  registerCommand('dev benchmark', { main: devBenchmarkMain, sections: devBenchmarkSections });
-
-  // dev test
-  registerCommand('dev test', { main: devTestMain, sections: devTestSections });
-
-  // dev lint
-  registerCommand('dev lint', { main: devLintMain, sections: devLintSections });
-
-  // dev typecheck
-  registerCommand('dev typecheck', { main: devTypecheckMain, sections: devTypecheckSections });
-
-  // dev generate
-  registerCommand('dev generate', { main: devGenerateMain, sections: devGenerateSections });
-
-  // plugin install
-  registerCommand('plugin install', { main: pluginInstallMain, sections: pluginInstallSections });
-
-  // plugin remove
-  registerCommand('plugin remove', { main: pluginRemoveMain, sections: pluginRemoveSections });
-
-  // plugin list
-  registerCommand('plugin list', { main: pluginListMain, sections: pluginListSections });
-
-  // plugin update
-  registerCommand('plugin update', { main: pluginUpdateMain, sections: pluginUpdateSections });
-
-  // plugin info
-  registerCommand('plugin info', { main: pluginInfoMain, sections: pluginInfoSections });
-
-  // plugin dev
-  registerCommand('plugin dev', { main: pluginDevMain, sections: pluginDevSections });
-
-  // plugin create
-  registerCommand('plugin create', { main: pluginCreateMain, sections: pluginCreateSections });
-
-  // plugin build
-  registerCommand('plugin build', { main: pluginBuildMain, sections: pluginBuildSections });
-
-  // plugin publish
-  registerCommand('plugin publish', { main: pluginPublishMain, sections: pluginPublishSections });
-
-  // completion
-  registerCommand('completion', { main: completionMain, sections: completionSections });
-
-  // wasm-bundle
+  // Import command modules lazily to avoid circular dependencies
+  const [
+    { runModule },
+    { serveModule },
+    { logicModule },
+    { demoModule },
+    { doctorModule },
+    { configModule },
+    { sessionModule },
+    { memoryModule },
+    { modelModule },
+    { experimentModule },
+    { dataModule },
+    { devModule },
+    { pluginModule },
+    { edgeModule },
+    { systemOneModule },
+    { profileModule },
+    { lmModule },
+    { connectionModule },
+    { dialogueModule },
+    { diagnosticsModule },
+    { runtimeModule },
+  ] = await Promise.all([
+    import('./commands/run'),
+    import('./commands/serve'),
+    import('./commands/logic'),
+    import('./commands/demo'),
+    import('./commands/doctor'),
+    import('./commands/config'),
+    import('./commands/session'),
+    import('./commands/memory'),
+    import('./commands/model'),
+    import('./commands/experiment'),
+    import('./commands/data'),
+    import('./commands/dev'),
+    import('./commands/plugin'),
+    import('./commands/edge'),
+    import('./commands/systemone'),
+    import('./commands/profile'),
+    import('./commands/lm'),
+    import('./commands/connection'),
+    import('./commands/dialogue'),
+    import('./commands/diagnostics'),
+    import('./commands/runtime'),
+  ]);
+
+  // Register top-level commands
+  registerCommand('run', runModule);
+  registerCommand('serve', serveModule);
+  registerCommand('logic', logicModule);
+  registerCommand('demo', demoModule);
+  registerCommand('doctor', doctorModule);
+  registerCommand('config', configModule);
+  registerCommand('session', sessionModule);
+  registerCommand('memory', memoryModule);
+  registerCommand('model', modelModule);
+  registerCommand('experiment', experimentModule);
+  registerCommand('data', dataModule);
+  registerCommand('dev', devModule);
+  registerCommand('plugin', pluginModule);
+  registerCommand('edge', edgeModule);
+  registerCommand('systemone', systemOneModule);
+  registerCommand('profile', profileModule);
+  registerCommand('lm', lmModule);
+  registerCommand('connection', connectionModule);
+  registerCommand('dialogue', dialogueModule);
+  registerCommand('diagnostics', diagnosticsModule);
+  registerCommand('runtime', runtimeModule);
+
+  // Stub commands (not yet implemented)
   registerCommand('wasm-bundle', createStubCommand('wasm-bundle', 'https://github.com/senars/senars/issues/XXX'));
-
-  // self-report
   registerCommand('self-report', createStubCommand('self-report', 'https://github.com/senars/senars/issues/XXX'));
-
-  // imagine
   registerCommand('imagine', createStubCommand('imagine', 'https://github.com/senars/senars/issues/XXX'));
+  registerCommand('completion', createStubCommand('completion', 'https://github.com/senars/senars/issues/XXX'));
 }
 
 /** Main entry point. */
 async function main(): Promise<void> {
   await registerAllCommands();
-
   const argv = process.argv.slice(2);
-
   // Skip `--` separator if present (from pnpm/npm)
   const cleanArgv = argv[0] === '--' ? argv.slice(1) : argv;
-
   // If no subcommand and no flags that imply default behavior, show help
   const hasSubcommand = cleanArgv.length > 0 && !cleanArgv[0].startsWith('--');
   const hasProfileFlag = cleanArgv.includes('--profile') || cleanArgv.includes('-p');
@@ -655,55 +254,45 @@ async function main(): Promise<void> {
   const hasListPacks = cleanArgv.includes('--list-packs');
   const hasGenerate = cleanArgv.some((a) => a.startsWith('--generate'));
   const hasSchema = cleanArgv.some((a) => a.startsWith('--schema'));
-
   // Handle global --help and --version ONLY when no subcommand
   if (!hasSubcommand && (cleanArgv.includes('--help') || cleanArgv.includes('-h'))) {
     const sections = await buildRootHelpSections();
     const { showHelpAndExit } = await import('./lib/cli-utils');
     showHelpAndExit(sections);
   }
-
   if (!hasSubcommand && (cleanArgv.includes('--version') || cleanArgv.includes('-v'))) {
     const { getVersion } = await import('./lib/cli-utils');
     console.log(getVersion());
     process.exit(0);
   }
-
   if (!hasSubcommand && !hasProfileFlag && !hasMCPFlag && !hasPlaygroundFlag && !hasListProfiles && !hasListPacks && !hasGenerate && !hasSchema) {
     const sections = await buildRootHelpSections();
     const { showHelpAndExit } = await import('./lib/cli-utils');
     showHelpAndExit(sections);
   }
-
   // Handle legacy flags for backward compatibility (only when no subcommand)
   if (!hasSubcommand) {
     const customFlags = parseCustomFlags(cleanArgv);
-
     if (customFlags.listProfiles) {
       await listProfilesCmd();
       return;
     }
-
     if (customFlags.listPacks) {
       listPacksCmd();
       return;
     }
-
     if (customFlags.generate) {
       await generateSchema(String(customFlags.generate));
       return;
     }
-
     if (customFlags.schema) {
       await showSchema(String(customFlags.schema));
       return;
     }
-
     if (customFlags.mcp) {
       await startMCPServer(typeof customFlags.mcpPort === 'number' ? customFlags.mcpPort : undefined);
       return;
     }
-
     if (customFlags.playground) {
       const { parseCommonFlags } = await import('./lib/cli-utils');
       const { parseFlags } = await import('@senars/util/cli');
@@ -712,15 +301,12 @@ async function main(): Promise<void> {
       await startPlayground(common.profile);
       return;
     }
-
     // Default: run agent with profile
     const profileKind = customFlags.profile as string ?? 'agent';
     await runAgentMode(profileKind);
     return;
   }
-
   // Dispatch to registered command (handles subcommand --help/--version internally)
   await dispatch(cleanArgv);
 }
-
 runEntrypoint(main);
