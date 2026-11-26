@@ -40,7 +40,7 @@ import type { HealthReport } from '@senars/types/health';
 import { LM_TASKS } from '@senars/types/llm';
 import { loadConfig } from '../../config/index';
 import { jsonMode } from '../commands/args';
-import { credentialSummary, embeddedProbe, configValidity } from './doctor-checks';
+import { credentialReport, credentialSummary, embeddedProbe, configValidity } from './doctor-checks';
 
 const logger = createLogger({ scope: 'doctor' });
 

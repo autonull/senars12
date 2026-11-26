@@ -93,12 +93,10 @@ export interface BotRuntime {
 export function narrationKeys(): string[] {
   let provider: string | undefined;
   try {
-    const { resolveLMSettings } = require('@senars/lm');
     provider = resolveLMSettings().provider;
   } catch {
     provider = undefined;
   }
-  const { providerKey } = require('@senars/kernel');
   const key = providerKey(provider);
   return key ? ['llm-narration', key] : ['llm-narration'];
 }
@@ -137,7 +135,6 @@ export async function captureDistillation(
 export function buildGroundednessState(wired: AgentFromEnvResult): GroundednessState {
   const nar = wired.nar;
   const systemOneGate = nar.getSystemOneGroundednessGate?.();
-  const { SourceReputation, DEFAULT_REPUTATION_PATH } = require('@senars/kernel');
   const sourceReputation = new SourceReputation({ path: DEFAULT_REPUTATION_PATH });
   nar.setSourceReputation(sourceReputation);
 
@@ -230,7 +227,6 @@ export async function attachConversationGame(
     const mettaRuntime = createMeTTa();
     const evaluateMetta = (expression: string): boolean | null => {
       try {
-        const { Effect } = require('effect');
         const atom = Effect.runSync(mettaRuntime.evaluate(parseMeTTa(expression)));
         return atom.kind === 0
           ? atom.value === 'True'
@@ -271,9 +267,6 @@ export function buildDialogueCapture(
   conversationGame: AttachedGame | null
 ): DialogueCapture {
   const nar = wired.nar;
-  const { DialogueCapture } = require('@senars/dialogue');
-  const { providerKey } = require('@senars/kernel');
-  const { resolveLMSettings } = require('@senars/lm');
 
   const understanding = wired.appConfig.dialogue?.captureAll === true
     ? new NLUnderstandingService(wired.lmService, new TranslationCache(), { structuredOnly: true })
