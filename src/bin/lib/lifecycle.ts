@@ -51,18 +51,16 @@ export interface AgentFromEnvResult {
 const narCoreOverrides = (appConfig: AppConfig): Partial<NARConfig> => {
   const { memory, inference } = appConfig;
   const overrides: Partial<NARConfig> = {};
-  const maxConcepts = memory.maxConcepts ?? appConfig.capabilities.senars.maxConcepts;
-  if (maxConcepts !== undefined) (overrides as Record<string, unknown>).maxConcepts = maxConcepts;
-  const depth = inference.maxDerivationDepth ?? memory.derivationDepth;
-  if (depth !== undefined) (overrides as Record<string, unknown>).maxDerivationDepth = depth;
-  if (inference.maxDerivationsPerStep !== undefined)
-    (overrides as Record<string, unknown>).maxDerivationsPerStep = inference.maxDerivationsPerStep;
-  if (inference.cpuThrottleMs !== undefined)
-    (overrides as Record<string, unknown>).cpuThrottleMs = inference.cpuThrottleMs;
-  if (appConfig.backends.nar.cyclesPerStep !== undefined)
-    (overrides as Record<string, unknown>).cyclesPerStep = appConfig.backends.nar.cyclesPerStep;
-  if (appConfig.backends.nar.statePath !== undefined)
-    (overrides as Record<string, unknown>).statePath = appConfig.backends.nar.statePath;
+  const set = <K extends keyof NARConfig>(key: K, value: NARConfig[K] | undefined): void => {
+    if (value !== undefined) (overrides as Record<string, unknown>)[key] = value;
+  };
+
+  set('maxConcepts', memory.maxConcepts ?? appConfig.capabilities.senars.maxConcepts);
+  set('maxDerivationDepth', inference.maxDerivationDepth ?? memory.derivationDepth);
+  set('maxDerivationsPerStep', inference.maxDerivationsPerStep);
+  set('cpuThrottleMs', inference.cpuThrottleMs);
+  set('cyclesPerStep', appConfig.backends.nar.cyclesPerStep);
+  set('statePath', appConfig.backends.nar.statePath);
   if (appConfig.backends.nar.autonomy) overrides.autonomy = appConfig.backends.nar.autonomy;
   return overrides;
 };

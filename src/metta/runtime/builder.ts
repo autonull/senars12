@@ -24,9 +24,14 @@ export class MeTTaBuilder extends BaseBuilder<MeTTaRuntime, MeTTaBuilderStep> {
     this.interpreter.addSpace(new InMemorySpace('default'));
   }
 
+  /** Helper: set field and record step. */
+  private setAndRecord<T>(field: string, value: T, stepName: string, present = true, detail?: Record<string, unknown>): this {
+    (this as Record<string, unknown>)[field] = value;
+    return this.recordStep(stepName, present, detail);
+  }
+
   withConfig(overrides: Partial<MeTTaConfig>): this {
-    this.config = createConfig(overrides);
-    return this.recordStep('withConfig', true);
+    return this.setAndRecord('config', createConfig(overrides), 'withConfig');
   }
 
   withSpace(id: string): this {

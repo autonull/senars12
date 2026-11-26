@@ -89,10 +89,15 @@ export class BookBuilder extends BaseBuilder<Book, BookBuilderStep> {
     this.rng = rng ?? createDefaultRNG();
   }
 
+  /** Helper: set field and record step. */
+  private setAndRecord<T>(field: string, value: T, stepName: string, present = true, detail?: Record<string, unknown>): this {
+    (this as Record<string, unknown>)[field] = value;
+    return this.recordStep(stepName, present, detail);
+  }
+
   /** Set book metadata. */
   setMetadata(metadata: Partial<BookMetadata>): this {
-    this.metadata = { ...this.metadata, ...metadata };
-    return this.recordStep('setMetadata', true);
+    return this.setAndRecord('metadata', { ...this.metadata, ...metadata }, 'setMetadata');
   }
 
   /** Add artifact to book. */
