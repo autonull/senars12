@@ -62,25 +62,24 @@ export async function dispatch(argv: string[]): Promise<void> {
     return;
   }
 
-  // Use getCommand to properly resolve nested subcommands
-  const module = getCommand(argv.join(' '));
-  if (!module) {
+  // Find the longest matching command path (excluding flags which start with --)
+  let matchedParts = 0;
+  for (let i = argv.length; i > 0; i--) {
+    const candidate = argv.slice(0, i).join(' ');
+    if (getCommand(candidate)) {
+      matchedParts = i;
+      break;
+    }
+  }
+
+  if (matchedParts === 0) {
     const subcommand = argv[0];
     console.error(`Unknown command: ${subcommand}`);
     console.error(`Run 'senars --help' for available commands.`);
     process.exit(1);
   }
 
-  // Parse flags for the subcommand (all args after the matched command)
-  // We need to figure out how many parts were consumed by the command
-  const parts = argv.join(' ').split(' ');
-  let matchedParts = 0;
-  for (let i = parts.length; i > 0; i--) {
-    if (getCommand(parts.slice(0, i).join(' '))) {
-      matchedParts = i;
-      break;
-    }
-  }
+  const module = getCommand(argv.slice(0, matchedParts).join(' '))!;
   const rest = argv.slice(matchedParts);
 
   const { parseFlags } = await import('@senars/util/cli');
