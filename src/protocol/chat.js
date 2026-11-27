@@ -1,0 +1,45 @@
+/**
+ * Chat protocol schemas
+ */
+import { MessageRoleSchema } from '@senars/types';
+import { nonEmpty } from '@senars/config';
+import { z } from 'zod';
+import { TaskPunctuationSchema } from '@senars/schemas/task';
+import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
+import { msg } from './envelope';
+export const ChatMessage = z.object({
+    id: z.string(),
+    role: MessageRoleSchema,
+    content: z.string(),
+    html: z.string().optional(),
+    /** Declared composer intent (§8.1); a free string so the protocol stays UI-agnostic. */
+    mode: z.string().optional(),
+    /** The workspace blocks this turn follows up on / is prompted from (§1.6, §2.3). */
+    contexts: z.array(z.string()).optional(),
+    timestamp: z.number(),
+    term: z.string().optional(),
+    truth: TruthValueSchema.optional(),
+    punctuation: TaskPunctuationSchema.optional(),
+    parentId: z.string().nullable(),
+    threadRootId: z.string(),
+    supports: z.array(z.string()),
+    contradicts: z.array(z.string()),
+    derivesFrom: z.array(z.string()),
+});
+export const ChatUserMsg = msg('chat.user', {
+    content: nonEmpty.max(10000),
+    mode: z.string().optional(),
+    contexts: z.array(z.string()).optional(),
+});
+export const ChatAgentStream = msg('chat.agent.stream', { delta: z.string() });
+export const ChatAgentComplete = msg('chat.agent.complete', {
+    content: z.string(),
+    html: z.string().optional(),
+    messageId: z.string(),
+});
+export const LMStatusRequest = msg('lm.status.request', {});
+export const LMSwitchMsg = msg('lm.switch', {
+    provider: nonEmpty,
+    model: z.string().optional(),
+});
+export const LMStatusMsg = msg('lm.status', { data: z.record(z.string(), z.unknown()) });

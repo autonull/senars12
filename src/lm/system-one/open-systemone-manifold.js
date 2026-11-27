@@ -1,0 +1,73 @@
+import { roundTo } from '@senars/util/numeric';
+import { composeProposition } from './distribution';
+import { createRemoteManifold } from './remote-manifold';
+import { openResponseSchema } from './systemone-wire';
+import { NO_COST } from './types';
+export const OPEN_REPLICA_BACKEND = 'open-systemone';
+/** Canonical perception state text: stable JSON of the context embedding. */
+export const canonicalState = (embedding) => JSON.stringify(Array.from(embedding, (v) => roundTo(v, 4)));
+export const toOpenQuestions = (queries) => queries.map((query, i) => {
+    const id = `q${i}`;
+    if (query.kind === 'classify')
+        return {
+            id,
+            type: 'choice',
+            options: [...query.space],
+            instruction: query.instruction,
+        };
+    return {
+        id,
+        type: 'score',
+        levels: query.levels ? [...query.levels] : undefined,
+        instruction: query.instruction,
+    };
+});
+const buildProposition = (query, answer, model) => composeProposition(query, {
+    queryId: answer.id,
+    backendId: OPEN_REPLICA_BACKEND,
+    modelDigest: `open:${model}`,
+    calibration: { version: `open-replica:${model}`, ece: -1 },
+    latencyMs: 0,
+    cost: NO_COST,
+    tier: 1,
+    abstained: answer.abstained,
+}, query.kind === 'classify'
+    ? {
+        kind: 'classify',
+        distribution: answer.distribution ?? (answer.choice ? [{ option: answer.choice, p: 1 }] : []),
+    }
+    : {
+        kind: 'evaluate',
+        score: answer.score ?? (answer.boolean === undefined ? 0 : answer.boolean ? 1 : 0),
+    });
+export function createOpenSystemOneManifold(config) {
+    return createRemoteManifold({
+        backendId: OPEN_REPLICA_BACKEND,
+        endpoint: config.endpoint,
+        embeddingCache: config.embeddingCache,
+        timeoutMs: config.timeoutMs,
+        fetchImpl: config.fetchImpl,
+        errorLabel: 'Open replica',
+        buildRequest: (embedding, queries) => ({
+            state: canonicalState(embedding),
+            questions: toOpenQuestions(queries),
+        }),
+        // Malformed/missing answers fail closed. Propositions pass through raw
+        // (D4 semantics); consumers re-enter them untrusted at the LLM_PRIOR
+        // ceiling via seedTruth — asserted in todo17-open-replica.test.ts.
+        parseResponse: (body, queries) => {
+            const parsed = openResponseSchema.parse(body);
+            return queries.map((query, i) => {
+                const answer = parsed.answers[i];
+                if (!answer) {
+                    return {
+                        ...buildProposition(query, { id: `q${i}`, abstained: true }, parsed.model),
+                        abstained: true,
+                        abstainReason: 'low-confidence',
+                    };
+                }
+                return buildProposition(query, answer, parsed.model);
+            });
+        },
+    });
+}

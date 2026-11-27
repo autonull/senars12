@@ -1,0 +1,49 @@
+/**
+ * Every place the reasoning cycle can await a provider, declared as data.
+ *
+ * **A1 (2026-09-30): all three are bounded.** The bounds are a deadline on the
+ * consumer's own await — `LMRule`'s `callTimeoutMs`, the gate's `judgeTimeoutMs`,
+ * the reasoner's `backendTimeoutMs` — and each one is an off-cycle await as of
+ * A1: the cycle stages model-backed work and pumps it at a boundary, so the
+ * question this file answers changed from "does the cycle hang" to "does any
+ * consumer hang". Both are worth knowing and only this file can say which.
+ *
+ * TODO29.a §1.3 states the cycle invariant as a *property* — "the synchronous
+ * cycle must never depend on an external model response for completion" — and
+ * §0.6 item 1 asks A0 for "provider-*dependency* detection, not presence
+ * detection". Presence detection is `lm.enabled === false`, which is true on a
+ * tree where `KernelPerceptionGate` still awaits a judge with no timeout
+ * (§4 row 11). A declaration is the honest instrument: a seam is listed here
+ * with the bound it has **today**, and `cycle:dependency` drives a
+ * never-resolving provider through each one to find out whether the declaration
+ * is true.
+ *
+ * A declaration was therefore a measurement, not an omission, and A1 made the
+ * property hold: every row is `bounded: true` with the deadline that bounds it,
+ * and the gate asserts that the deadline actually interrupts a provider that
+ * never answers. Nothing here decides what a bound should be — that is A7's
+ * budget scopes and A3's protocol — only whether one exists.
+ */
+import type { WitnessList } from '@senars/util/witness';
+/** A cycle-path await on something outside the process's own computation. */
+export interface ProviderSeam {
+    readonly id: string;
+    /** What the consumer calls, in the consumer's own terms. */
+    readonly call: string;
+    /** Where the await happens — content-anchored, so it survives an edit above it. */
+    readonly callSites: WitnessList;
+    /** Whether a cycle reaches this await. */
+    readonly onCyclePath: boolean;
+    /**
+     * Whether the await is bounded today — a timeout, a budget, or an abort
+     * signal that the cycle is guaranteed to raise. `false` means a provider that
+     * never resolves hangs the caller forever.
+     */
+    readonly bounded: boolean;
+    /** The bound, when there is one. Required whenever `bounded`. */
+    readonly bound?: string;
+    /** The inventory behaviour this seam performs, by id. */
+    readonly behaviour: string;
+}
+export declare const PROVIDER_SEAMS: readonly ProviderSeam[];
+//# sourceMappingURL=provider-seams.d.ts.map

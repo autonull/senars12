@@ -1,0 +1,47 @@
+import { canonicalTerm } from './reduce';
+import { getArgs } from './impls/accessors';
+import { Truth } from './impls/Truth';
+import { SenarsError } from '../errors/senars-error';
+/**
+ * `--x. %f%;c%` and `x. %(1−f)%;c%` are **one claim** spelled twice, and nothing
+ * above the term layer can say so — a term holds no truth. The negation moves
+ * into the truth, never the other way: `negationElim`, `implicationIntro` and
+ * `classical.syllogismNegation` all key a premise on `term.kind === 'negation'`,
+ * so a form that emptied the negation bucket would silently disable three
+ * registered rules, and one that invented a negation at every head below half
+ * frequency would empty the `inheritance` bucket — where the table's hottest 21
+ * rules live. A doubted claim keeps the spelling its author gave it.
+ */
+const negationIntoTruth = {
+    id: 'negation-into-truth',
+    applies: (task) => task.term.kind === 'negation' && getArgs(task.term)[0]?.kind !== 'negation',
+    reduce: (task) => ({
+        ...task,
+        term: getArgs(task.term)[0],
+        truth: Truth.negation(task.truth),
+    }),
+};
+export const TASK_REDUCERS = Object.freeze([negationIntoTruth]);
+const MAX_PASSES = 4;
+/**
+ * Canonicalisation at task construction, so a claim cannot reach memory in two
+ * spellings. The stamp, the budget and the occurrence time carry through
+ * untouched: this is the same claim with a different surface, not a revision.
+ */
+export const canonicalTask = (task) => {
+    let current = task;
+    // A loop over `TASK_REDUCERS`, not `reduce` over it: this runs on every task and every
+    // secondary premise, and the closure plus accumulator plumbing were two allocations per
+    // call for a table with one row. The "nothing rewrote it" early exit is unchanged.
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+        let next = current;
+        for (const reducer of TASK_REDUCERS) {
+            if (reducer.applies(next))
+                next = reducer.reduce(next);
+        }
+        if (next === current)
+            return current;
+        current = { ...next, term: canonicalTerm(next.term) };
+    }
+    throw new SenarsError(`canonicalTask did not reach a fixed point in ${MAX_PASSES} passes: ${task.term}`, 'OPERATION_ERROR', { maxPasses: MAX_PASSES, term: task.term.toString() });
+};

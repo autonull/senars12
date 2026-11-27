@@ -1,0 +1,1 @@
+{"version":3,"file":"stats.d.ts","sourceRoot":"","sources":["stats.ts"],"names":[],"mappings":"AAEA;;;;;GAKG;AACH,MAAM,MAAM,cAAc,GAAG;IAAE,IAAI,EAAE,MAAM,CAAC;IAAC,QAAQ,EAAE,MAAM,CAAC;IAAC,WAAW,EAAE,MAAM,CAAA;CAAE,CAAC;AAErF,qEAAqE;AACrE,eAAO,MAAM,cAAc,SAAU,MAAM,YAAY,MAAM,KAAG,cAI9D,CAAC"}

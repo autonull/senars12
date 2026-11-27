@@ -1,0 +1,182 @@
+import { LruCache } from '@senars/util/lru-cache';
+import { rankBy } from '@senars/util/collections';
+import { actionGrammar } from './action-grammar';
+import { createDecider } from './decide';
+import { recordReflexOutcome } from './reflex-label-source';
+import { DecisionReadout } from './reflex-readout';
+import { DEFAULT_SYNTHESIS_CANDIDATES } from './types';
+/**
+ * Warm decisions retained per reflex. A `stateId` is minted per distinct
+ * observation, so this table is keyed on unbounded input and needs the AIKR
+ * capacity bound; the least-recently-used entry is the one to drop, because a
+ * stale state id is the least likely to be asked for again.
+ */
+const WARM_DECISIONS_CAP = 512;
+const STATE_POINTER_CAP = 2000;
+/**
+ * Real-LM per-tick decision reflex (TODO17 C1): at the prefetch (attend) stage
+ * the LM proposes ranked candidates under a generated GBNF grammar enumerating
+ * the legal-action set; the manifold judges them (reflex_value / feasibility /
+ * risk). The synchronous propose contract reads the warm table; cold/failure
+ * ⇒ fallback reflex. The LM arm feeds the distillation flywheel (C3).
+ */
+export class LMReflex extends DecisionReadout {
+    id = 'lm-reflex';
+    #fallback;
+    #dispatcher;
+    embeddingCache;
+    budget;
+    #dataset;
+    #actionLegend;
+    #promptTemplate;
+    #maxCandidates;
+    #contrastive;
+    /** TODO23 Phase 4: candidate verification routed through the unified choose() API. */
+    #decider;
+    #warm = new LruCache(WARM_DECISIONS_CAP);
+    /** stateId → embedding pointer, for recording distillation rows whose vectors
+     *  match what the manifold reads at runtime (bounded; evicts least-recently-used). */
+    #statePointers = new LruCache(STATE_POINTER_CAP);
+    failures = 0;
+    /** Distillation rows recorded WITH an embedding (vector-joinable at training). */
+    embeddedRows = 0;
+    decisions = 0;
+    /** Warm decisions actually served at propose (diagnoses cold/missed hand-offs). */
+    served = 0;
+    /** Proposals rejected or demoted by contrastive verification (CLM telemetry). */
+    contrastiveVetoes = 0;
+    constructor(options) {
+        super();
+        this.#fallback = options.fallback;
+        this.#dispatcher = options.dispatcher;
+        this.embeddingCache = options.embeddingCache;
+        this.budget = options.budget;
+        this.#dataset = options.dataset;
+        this.#actionLegend = options.actionLegend;
+        this.#promptTemplate = options.promptTemplate;
+        this.#maxCandidates = options.maxCandidates ?? DEFAULT_SYNTHESIS_CANDIDATES;
+        this.#contrastive = options.contrastive;
+        this.#decider = createDecider({
+            judge: (pointer, queries, budget) => options.dispatcher.judge(pointer, queries, budget),
+            embeddingCache: options.embeddingCache,
+            contrastive: options.contrastive,
+        });
+    }
+    /** Attend-stage: LM proposes + manifold judges (the only await, C2). */
+    async prefetch(stateId, context, legalActions, _manifold, _budget, observation) {
+        if (legalActions.length === 0)
+            return;
+        try {
+            const stateDigest = Object.entries(observation?.features ?? {})
+                .slice(0, 24)
+                .map(([k, v]) => `${k}=${v}`)
+                .join(', ');
+            const cognitiveContext = {
+                tickId: stateId,
+                topBeliefs: [...legalActions],
+                topGoals: ['choose the best legal action'],
+                workingMemory: [],
+            };
+            const judgmentQueries = legalActions.slice(0, this.#maxCandidates).map((action) => ({
+                kind: 'evaluate',
+                instruction: `Evaluate action ${action}`,
+                rubric: 'reflex_value',
+                axis: 'teleological',
+            }));
+            const result = await this.#dispatcher.proposeAndJudge(cognitiveContext, {
+                kind: 'synthesize',
+                instruction: 'Choose the single best next action.',
+                grammar: actionGrammar(legalActions),
+                maxCandidates: this.#maxCandidates,
+                promptOverride: this.#promptTemplate
+                    ? this.#promptTemplate.replace(/\{(\w+)\}/g, (_, key) => String(observation?.features?.[key] ?? `{${key}}`))
+                    : [
+                        `Legal actions: ${legalActions.join(', ')}`,
+                        ...(this.#actionLegend ? [this.#actionLegend] : []),
+                        ...(stateDigest ? [`State observations: ${stateDigest}`] : []),
+                        'Which action maximizes expected reward? Answer with only the action.',
+                    ].join('\n'),
+            }, judgmentQueries, this.budget);
+            void context;
+            // Highest-ranked *legal* candidate: stub/illegal candidates (LM produced
+            // fewer than maxCandidates) must never shadow a real decision.
+            let ranked = result.ranked.filter((r) => legalActions.includes(r.candidate));
+            // CLM contrastive verification: score legal candidates against stored
+            // hard negatives; the top proposal must clear the verification floor or
+            // the next-best verified candidate serves instead.
+            if (this.#contrastive && !this.#contrastive.isEmpty() && ranked.length > 0) {
+                ranked = await this.#verifiedRanking(ranked);
+                if (ranked[0].candidate !==
+                    result.ranked.find((r) => legalActions.includes(r.candidate)).candidate) {
+                    this.contrastiveVetoes++;
+                }
+            }
+            const top = ranked[0];
+            if (top) {
+                this.#warm.set(stateId, { action: top.candidate, confidence: top.truth.f });
+                this.decisions++;
+            }
+            if (context)
+                this.#statePointers.set(stateId, context);
+        }
+        catch {
+            this.failures++; // cold — fallback serves at propose
+        }
+    }
+    /** Synchronous contract: warm LM decision, else fallback. */
+    propose(state, legalActions) {
+        const warm = this.#warm.take(state.stateId);
+        const legal = legalActions.map(String);
+        if (warm && legal.includes(warm.action)) {
+            this.served++;
+            this.decisionLog.record(legal, warm.action);
+            return [
+                {
+                    action: warm.action,
+                    value: 0.5 + warm.confidence / 2,
+                    confidence: Math.max(0.1, warm.confidence),
+                    source: this.id,
+                },
+            ];
+        }
+        return this.#fallback.propose(state, legalActions);
+    }
+    /**
+     * CLM contrastive verification (Phase 4): re-rank candidates through the
+     * unified `choose()` API — pre-scored so no extra head invocation; the
+     * contrastive penalty reorders (positive−negative similarity), stable on
+     * ties so verification only demotes clear losers.
+     */
+    async #verifiedRanking(ranked) {
+        const result = await this.#decider.choose({
+            context: ranked.map((r) => r.candidate).join(', '),
+            candidates: ranked.map((r) => r.candidate),
+            budget: this.budget,
+            // Uniform weights + no floor: ordering must come from the contrastive
+            // penalty alone (penalty = 1 − cross-rubric score), rank-stable on ties.
+            preScored: ranked.map((r) => ({ option: r.candidate, p: 1 })),
+        });
+        const verification = (candidate) => 1 - (result.contrastive.penalties[candidate] ?? 0);
+        return rankBy(ranked, (entry) => verification(entry.candidate));
+    }
+    learn(event) {
+        if (this.#dataset && (event.actionProposed || event.actionExecuted)) {
+            // Attribute the outcome to the state the action was DECIDED in (previous
+            // perception) — its embedding was prefetched this tick; the next state's
+            // is not, and reward belongs to the decision state anyway.
+            const decisionState = event.previousPerception ?? event.perception;
+            const stateId = decisionState?.stateId ?? 'unknown-state';
+            const pointer = this.#statePointers.get(stateId);
+            recordReflexOutcome(this.#dataset, {
+                stateDigest: stateId,
+                action: event.actionExecuted ?? event.actionProposed,
+                reward: event.reward,
+                source: this.id,
+                embedding: pointer ? this.embeddingCache.read(pointer) : undefined,
+            });
+            if (pointer && this.embeddingCache.read(pointer))
+                this.embeddedRows++;
+        }
+        this.#fallback.learn(event);
+    }
+}

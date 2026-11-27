@@ -36,6 +36,7 @@ export const commandManifest: CommandManifestEntry[] = [
   { name: 'connection', modulePath: './commands/connection/index', description: 'Connection commands' },
   { name: 'dialogue', modulePath: './commands/dialogue/index', description: 'Dialogue commands' },
   { name: 'diagnostics', modulePath: './commands/diagnostics/index', description: 'Diagnostics commands' },
+  { name: 'observe', modulePath: './commands/observe', description: 'Self-observation & repair loop' },
   { name: 'runtime', modulePath: './commands/runtime/index', description: 'Runtime commands' },
   // Stub commands (separate files)
   { name: 'wasm-bundle', modulePath: './commands/wasm-bundle', description: 'Generate WASM bundle' },

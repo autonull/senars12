@@ -1,0 +1,151 @@
+import { existsSync } from 'node:fs';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { transformersJS } from '@browser-ai/transformers-js';
+import { createProviderRegistry, customProvider, wrapLanguageModel, } from 'ai';
+import { builtinModels, cloudApiKey, defaultModelFor, } from '../env-config';
+import { delegate } from '../provider-runtime';
+import { createEmbeddedLlamaCppLanguageModel } from './embedded-llamacpp';
+import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT } from './llamacpp';
+import { createMockModel } from './mock-model';
+import { resolveOfflineTier } from './routing';
+import { getLMSettings } from './settings';
+import { withThinkingDisabled } from './thinking';
+import { detectDevice, getWebLLMRuntime } from './webllm';
+// S4 (TODO20): strip tool-calling directives local models cannot honor —
+// prevents spoofed function-call payloads from leaking into responses.
+// (`function_call` is legacy OpenAI wire format; the transformers.js provider
+// never emits it, so `toolChoice` is the only strip point needed here.)
+const stripUnsupportedToolChoice = () => ({
+    transformParams: async ({ params }) => ({ ...params, toolChoice: undefined }),
+});
+export const localModel = (model, settings, onProgress) => {
+    // H7: per-slot dtype (LM_QUALITY_DTYPE/LM_FAST_DTYPE) over global LM_DTYPE over quantized flag.
+    const isQuality = model === settings.model || model === defaultModelFor(settings.provider);
+    const dtype = (isQuality
+        ? (settings.qualityDtype ?? settings.dtype)
+        : (settings.fastDtype ?? settings.dtype)) ?? (settings.quantized ? 'q4' : 'fp32');
+    return wrapLanguageModel({
+        model: transformersJS(model, {
+            device: detectDevice(),
+            dtype,
+            ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
+            ...(onProgress ? { initProgressCallback: onProgress } : {}),
+        }),
+        middleware: stripUnsupportedToolChoice(),
+    });
+};
+export const mockModel = () => createMockLanguageModel();
+export const setBuiltinProgressCallback = delegate('setBuiltinProgressCallback');
+export const getBuiltinProgressCallback = delegate('getBuiltinProgressCallback');
+export function createSeNARSRegistry(settings) {
+    const s = settings ?? getLMSettings();
+    const { provider, model: modelOverride, fastModel, structuredModel, compactModel, baseUrl } = s;
+    const hasCloudKey = Boolean(cloudApiKey(s.apiKeyEnv));
+    // Every *configured* provider is built, not just the active one, so a runtime
+    // switch (lm.switch) needs no rebuild and distinct providers can be used at the
+    // same time (each call may name its model id). `provider` only picks the
+    // default chain; availability is decided per provider, independently.
+    // - cloud/anthropic/openai/openai-compatible: a credential or a base URL.
+    // - llamacpp: an external llama-server host.
+    // - llamacpp-embedded: a GGUF on disk (lazy; loads on first call).
+    // - webllm: the browser runtime is installed (WebGPU present).
+    const useCloud = hasCloudKey || provider === 'openai-compatible' || Boolean(baseUrl);
+    const useWebLLM = typeof getWebLLMRuntime() !== 'undefined' &&
+        typeof navigator !== 'undefined' &&
+        'gpu' in navigator;
+    const useLlamaCpp = Boolean(s.llamacppHost) || provider === 'llamacpp';
+    // Settings-based (env OR config file), not env-only: the app config carries
+    // `llamacppModelPath`, so a configured GGUF is built even without the env var.
+    const useEmbeddedLlamaCpp = Boolean(s.llamacppModelPath && existsSync(s.llamacppModelPath));
+    const llamacpp = createOpenAICompatible({
+        name: 'llamacpp',
+        apiKey: 'none',
+        baseURL: `${(s.llamacppHost ?? LLAMACPP_HOST_DEFAULT).replace(/\/v1\/?$/, '')}/v1`,
+        // Edge models (Qwen/Gemma reasoners) burn all tokens on reasoning_content
+        // by default — thinking stays off unless explicitly re-enabled.
+        fetch: createLlamaCppFetch({ disableThinking: s.disableThinking !== false }),
+    });
+    const thinkingAwareFetch = s.disableThinking ? withThinkingDisabled() : undefined;
+    const cloud = createOpenAICompatible({
+        name: 'cloud',
+        apiKey: cloudApiKey(s.apiKeyEnv) ?? '',
+        baseURL: baseUrl ??
+            (provider === 'anthropic'
+                ? 'https://api.anthropic.com/v1'
+                : provider === 'openai'
+                    ? 'https://api.openai.com/v1'
+                    : 'http://localhost:11434/v1'),
+        ...(thinkingAwareFetch && { fetch: thinkingAwareFetch }),
+    });
+    const frontierId = modelOverride ?? defaultModelFor(provider);
+    const builtinCompact = compactModel ?? builtinModels.compact;
+    const offlineTier = resolveOfflineTier(s);
+    const webllm = getWebLLMRuntime();
+    const webllmQuality = useWebLLM ? webllm?.createModel('llama-3.2-3b-instruct') : undefined;
+    const webllmFast = useWebLLM ? webllm?.createModel('phi-3.5-mini-instruct') : undefined;
+    // Unavailable slots are omitted (not mocked) so registry.languageModel() throws
+    // and routing failover skips them instead of silently admitting a placeholder.
+    return createProviderRegistry({
+        cloud: customProvider({
+            languageModels: {
+                ...(useCloud && {
+                    quality: cloud(frontierId),
+                    fast: cloud(fastModel ?? frontierId),
+                    structured: cloud(structuredModel ?? frontierId),
+                    compact: cloud(compactModel ?? frontierId),
+                }),
+            },
+            fallbackProvider: useCloud ? cloud : undefined,
+        }),
+        llamacpp: customProvider({
+            languageModels: {
+                ...(useLlamaCpp && {
+                    quality: llamacpp(modelOverride ?? defaultModelFor('llamacpp')),
+                    fast: llamacpp(fastModel ?? defaultModelFor('llamacpp')),
+                    structured: llamacpp(structuredModel ?? defaultModelFor('llamacpp')),
+                    compact: llamacpp(compactModel ?? defaultModelFor('llamacpp')),
+                }),
+            },
+            fallbackProvider: useLlamaCpp ? llamacpp : undefined,
+        }),
+        'llamacpp-embedded': customProvider({
+            languageModels: {
+                ...(useEmbeddedLlamaCpp && {
+                    quality: createEmbeddedLlamaCppLanguageModel('quality'),
+                    fast: createEmbeddedLlamaCppLanguageModel('fast'),
+                    structured: createEmbeddedLlamaCppLanguageModel('structured'),
+                    compact: createEmbeddedLlamaCppLanguageModel('compact'),
+                }),
+            },
+        }),
+        webllm: customProvider({
+            languageModels: {
+                ...(useWebLLM && {
+                    quality: webllmQuality,
+                    fast: webllmFast,
+                    structured: webllmQuality,
+                    compact: webllmFast,
+                }),
+            },
+            fallbackProvider: useWebLLM ? undefined : undefined,
+        }),
+        builtin: customProvider({
+            languageModels: {
+                quality: localModel(offlineTier ?? modelOverride ?? builtinModels.quality, s, getBuiltinProgressCallback()),
+                fast: localModel(builtinCompact, s, getBuiltinProgressCallback()),
+                structured: localModel(offlineTier ?? modelOverride ?? builtinModels.quality, s, getBuiltinProgressCallback()),
+                compact: localModel(builtinCompact, s, getBuiltinProgressCallback()),
+                mock: mockModel(),
+            },
+        }),
+    });
+}
+// ---- Mock model (shared shim — see providers/mock-model.ts) ----
+export function createMockLanguageModel(generateTextFn) {
+    return createMockModel({
+        generateTextFn,
+        transformText: (text, options) => options.responseFormat?.type === 'json'
+            ? JSON.stringify({ result: 'mock', data: text.slice(0, 100) })
+            : text,
+    });
+}

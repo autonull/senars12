@@ -1,0 +1,80 @@
+{
+  "name": "@senars/observe",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./schema": {
+      "types": "./src/schema.ts",
+      "import": "./src/schema.ts"
+    },
+    "./programs": {
+      "types": "./src/programs.ts",
+      "import": "./src/programs.ts"
+    },
+    "./run": {
+      "types": "./src/run.ts",
+      "import": "./src/run.ts"
+    },
+    "./record": {
+      "types": "./src/record.ts",
+      "import": "./src/record.ts"
+    },
+    "./checks": {
+      "types": "./src/checks.ts",
+      "import": "./src/checks.ts"
+    },
+    "./review": {
+      "types": "./src/review.ts",
+      "import": "./src/review.ts"
+    },
+    "./report": {
+      "types": "./src/report.ts",
+      "import": "./src/report.ts"
+    },
+    "./task": {
+      "types": "./src/task.ts",
+      "import": "./src/task.ts"
+    },
+    "./verify": {
+      "types": "./src/verify.ts",
+      "import": "./src/verify.ts"
+    },
+    "./diff": {
+      "types": "./src/diff.ts",
+      "import": "./src/diff.ts"
+    },
+    "./promote": {
+      "types": "./src/promote.ts",
+      "import": "./src/promote.ts"
+    },
+    "./cli": {
+      "types": "./src/cli.ts",
+      "import": "./src/cli.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "senars": "workspace:*",
+    "zod": "^4.6.7",
+    "ulid": "^3.0.2",
+    "playwright-core": "^1.40.0",
+    "node-pty": "^1.0.0",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "vitest": "^5.1.1",
+    "typescript": "7.0.2"
+  }
+}

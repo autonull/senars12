@@ -1,0 +1,174 @@
+import { BoundedMap } from '@senars/util/bounded-map';
+import { getOrInsert } from '@senars/util/collections';
+import { COMMUTATIVE_OPS, OPERATORS } from '../operators.ts';
+import { VARIABLE_SYMBOL, isAtomic } from '../types.ts';
+import { serializeTerm } from './serialize.ts';
+import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.ts';
+import { atomKey } from './accessors.ts';
+import { SenarsError } from '../../errors/senars-error';
+// Inline termKey to avoid module evaluation order issues
+const termKeyMap = new WeakMap();
+const termKey = (term) => {
+    const cached = termKeyMap.get(term);
+    if (cached)
+        return cached;
+    let key;
+    if (isAtomic(term)) {
+        key = atomKey(term.symbol);
+    }
+    else {
+        const args = getArgs(term);
+        const len = args.length;
+        if (len === 0) {
+            key = `${term.kind}:`;
+        }
+        else if (len === 1) {
+            key = `${term.kind}:${termKey(args[0])}`;
+        }
+        else if (len === 2) {
+            key = `${term.kind}:${termKey(args[0])},${termKey(args[1])}`;
+        }
+        else {
+            key = `${term.kind}:${termKey(args[0])}`;
+            for (let i = 1; i < len; i++) {
+                key += `,${termKey(args[i])}`;
+            }
+        }
+    }
+    termKeyMap.set(term, key);
+    return key;
+};
+// Inline getArgs to avoid module evaluation order issues
+const getArgs = (term) => {
+    if (term.kind === 'atom')
+        return [];
+    return term.args ?? [];
+};
+const TERM_CACHE_MAX_SIZE = 10000;
+// FIFO, not LRU: a term is immutable and interned, so a hit's recency carries
+// no information the key does not already, and LRU's read costs a delete+set on
+// the hottest read in the engine — every atom and every compound construction.
+const termCache = new BoundedMap({ maxSize: TERM_CACHE_MAX_SIZE, eviction: 'fifo' });
+const cache = (term, key) => {
+    termCache.set(key, term);
+    return term;
+};
+const createAtom = (symbol) => {
+    const key = atomKey(symbol);
+    // The cache read comes *before* the grammar checks, which is the whole cost of
+    // a repeated symbol. A hit means this exact symbol was already admitted, so
+    // re-running the character-class tests on it decides nothing; a miss pays them
+    // once and inserts. `atomKey` is a pure injective function of the symbol, so
+    // "cached" and "already validated" are the same statement here.
+    const cached = termCache.get(key);
+    if (cached)
+        return cached;
+    if (symbol.includes(':')) {
+        throw new SenarsError(`Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`, 'PARSE_ERROR', { symbol });
+    }
+    const isVariable = VARIABLE_SYMBOL.test(symbol);
+    const isQuotedAtom = symbol.startsWith('"') && symbol.endsWith('"');
+    if (!isVariable && !isQuotedAtom && INVALID_ATOM_CHARS_REGEX.test(symbol)) {
+        const badChar = symbol.match(INVALID_ATOM_CHARS_REGEX)?.[0];
+        throw new SenarsError(`Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
+            `Use '_' instead.`, 'PARSE_ERROR', { symbol, badChar });
+    }
+    return cache(Object.freeze({
+        kind: 'atom',
+        symbol,
+        isVariable,
+        toString() {
+            return symbol;
+        },
+    }), key);
+};
+const TRUE_ATOM = createAtom('TRUE');
+const FALSE_ATOM = createAtom('FALSE');
+const NULL_ATOM = createAtom('NULL');
+export const atomOf = (symbol) => symbol === 'TRUE'
+    ? TRUE_ATOM
+    : symbol === 'FALSE'
+        ? FALSE_ATOM
+        : symbol === 'NULL'
+            ? NULL_ATOM
+            : createAtom(symbol);
+export const isBoolAtom = (term) => term.kind === 'atom' &&
+    (term.symbol === 'TRUE' || term.symbol === 'FALSE' || term.symbol === 'NULL');
+/** Module-scope collator: identical ordering to `localeCompare` without its per-call ICU setup. */
+const CANONICAL_COLLATOR = new Intl.Collator();
+const canonicalKeyOf = (t) => (t.kind === 'atom' ? t.symbol : t.kind);
+const canonicalOrder = (a, b) => CANONICAL_COLLATOR.compare(canonicalKeyOf(a), canonicalKeyOf(b));
+/**
+ * `termKey` of the compound `(kind, args)`, without building the compound.
+ *
+ * Character-identical to `termKey({ kind, args })` — for a non-atom the key is
+ * `` `${kind}:${getArgs(args).map(termKey).join(',')}` `` and `getArgs` of a
+ * shape with a real `args` array is that array — so the intern cache is keyed
+ * exactly as before. It exists because the alternative built the shape, memoised
+ * a `WeakMap` entry and a fresh `{}` against it, and then *could never hit that
+ * memo*: `compoundOf` is every derived conclusion of every fired rule, and the
+ * common case is an intern hit. Keying on `(kind, args)` skips the object, the
+ * memo machinery and the dead `WeakMap` write on that path entirely.
+ */
+const compoundKey = (kind, args) => `${kind}:${args.map(termKey).join(',')}`;
+/**
+ * The interning constructor, deliberately **raw**: it sorts, collapses and keys,
+ * and it does not canonicalise. Canonicalisation lives one level up in
+ * `factory.ts`, so a reducer can rebuild its own output here without re-entering
+ * the reducer pipeline — a cycle the fixpoint in `canonicalTerm` cannot survive.
+ */
+export const compoundOf = (kind, args) => {
+    const valid = args.filter(Boolean);
+    // Empty: only disjunction folds to FALSE; conjunction and product are real terms
+    if (valid.length === 0) {
+        if (kind === 'disjunction')
+            return FALSE_ATOM;
+        // conjunction and product with 0 args are valid distinct terms
+    }
+    // Single argument: folds for disjunction, conjunction, parallel (n-ary kinds).
+    // Sequence is binary in SeNARS (arity=2) — throws on wrong arity.
+    // Product is GTEZero — 1-member is a real term, not a fold.
+    if (valid.length === 1) {
+        if (kind === 'disjunction' || kind === 'conjunction' || kind === 'parallel')
+            return valid[0];
+    }
+    // Negation requires exactly 1 argument — reference throws on wrong arity
+    if (kind === 'negation' && valid.length !== 1) {
+        throw new SenarsError(`Negation requires exactly 1 argument, got ${valid.length}`, 'PARSE_ERROR', { kind, arity: valid.length });
+    }
+    // Sequence is binary in SeNARS — reference throws on wrong arity
+    if (kind === 'sequence' && valid.length !== 2) {
+        throw new SenarsError(`Sequence requires exactly 2 arguments, got ${valid.length}`, 'PARSE_ERROR', { kind, arity: valid.length });
+    }
+    // Operation requires exactly 2 arguments — reference throws on wrong arity
+    if (kind === 'operation' && valid.length !== 2) {
+        throw new SenarsError(`Operation requires exactly 2 arguments, got ${valid.length}`, 'PARSE_ERROR', { kind, arity: valid.length });
+    }
+    // Operation requires its second argument to be a product (per Narsese grammar).
+    // If caller passed a bare term, wrap it. This ensures round-trip identity.
+    if (kind === 'operation' && valid.length === 2 && valid[1]?.kind !== 'product') {
+        valid[1] = compoundOf('product', [valid[1]]);
+    }
+    const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(canonicalOrder) : valid;
+    const key = compoundKey(kind, sorted);
+    return getOrInsert(termCache, key, () => {
+        // Compute serialized form once during creation (cache key is NOT the full serialized form)
+        const serialized = serializeTerm({ kind, args: sorted });
+        return Object.freeze({
+            kind,
+            args: sorted,
+            _serialized: serialized,
+            toString() {
+                return this._serialized ?? serializeTerm(this);
+            },
+        });
+    });
+};
+const compoundCtors = {};
+for (const key of Object.keys(OPERATORS)) {
+    compoundCtors[key] = (...args) => compoundOf(key, args);
+}
+export const rawCompoundCtors = compoundCtors;
+export const evictTerm = (key) => termCache.delete(key);
+export const clearTerms = () => termCache.clear();
+export const termCacheSize = () => termCache.size();

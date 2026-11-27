@@ -1,0 +1,117 @@
+import { unique } from '@senars/util/collections';
+import { cloudApiKey } from '../env-config';
+import { getProviderRuntime, } from '../provider-runtime';
+import { latencyClassOf } from './capabilities';
+import { pickModel } from './routing';
+import { getLMSettings, getLmProvider } from './settings';
+import { SenarsError } from '../../errors/senars-error';
+/**
+ * One rung per (provider, task) the model factory registers.
+ *
+ * `Record<LMTask, …>` is what makes this table honest rather than merely
+ * populated: the type used to say three tiers while the factory built four, so
+ * `compact` had no rung anywhere and asking for it threw out of the `??` ladder
+ * in {@link getModelChain} instead of failing with the message two lines below it.
+ * Every id here must be one `createSeNARSRegistry()` can answer for.
+ */
+const CHAINS = {
+    transformers: {
+        quality: ['builtin:quality'],
+        fast: ['builtin:fast'],
+        structured: ['builtin:structured'],
+        compact: ['builtin:compact'],
+    },
+    mock: {
+        quality: ['builtin:mock'],
+        fast: ['builtin:mock'],
+        structured: ['builtin:mock'],
+        compact: ['builtin:mock'],
+    },
+    llamacpp: {
+        // Explicit provider: authoritative, no silent CPU fallback rungs.
+        quality: ['llamacpp:quality'],
+        fast: ['llamacpp:fast'],
+        structured: ['llamacpp:structured'],
+        compact: ['llamacpp:compact'],
+    },
+    'llamacpp-embedded': {
+        // Embedded provider: authoritative, no silent CPU fallback rungs.
+        quality: ['llamacpp-embedded:quality'],
+        fast: ['llamacpp-embedded:fast'],
+        structured: ['llamacpp-embedded:structured'],
+        compact: ['llamacpp-embedded:compact'],
+    },
+    anthropic: {
+        quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
+        fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
+        structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
+        compact: ['cloud:compact', 'builtin:compact', 'builtin:mock'],
+    },
+    openai: {
+        quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
+        fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
+        structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
+        compact: ['cloud:compact', 'builtin:compact', 'builtin:mock'],
+    },
+    'openai-compatible': {
+        quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
+        fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
+        structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
+        compact: ['cloud:compact', 'builtin:compact', 'builtin:mock'],
+    },
+    webllm: {
+        quality: ['webllm:quality', 'builtin:quality', 'builtin:compact', 'builtin:mock'],
+        fast: ['webllm:fast', 'builtin:compact', 'builtin:mock'],
+        structured: ['webllm:quality', 'builtin:compact', 'builtin:mock'],
+        compact: ['webllm:compact', 'builtin:compact', 'builtin:mock'],
+    },
+};
+export function getModelChain(provider, task, rt = getProviderRuntime()) {
+    // Mock provider is the test/offline posture: configured routing candidates
+    // must not bypass it (a stale senars.config.json would otherwise route a
+    // mock lane onto builtin transformers models with minutes-long cold loads).
+    if (provider === 'mock')
+        return CHAINS.mock[task];
+    const policy = rt.routing;
+    const c = policy?.candidates;
+    if (c?.length) {
+        const obj = policy?.objectives?.[task];
+        const offlineOnly = obj?.offlineOnly ?? policy?.offlineOnly;
+        const maxLatencyMs = obj?.maxLatencyMs ?? policy?.maxLatencyMs;
+        // demoted candidates sink to the back of the chain (session-level)
+        const ordered = [...c].sort((a, b) => Number(rt.demotions.has(a)) - Number(rt.demotions.has(b)));
+        const candidates = [...ordered, 'builtin:compact', 'builtin:mock'].filter((id) => !(offlineOnly && !id.startsWith('builtin:')) &&
+            !(maxLatencyMs !== undefined && latencyClassOf(id) === 'slow'));
+        return unique(candidates);
+    }
+    // AI SDK may suffix provider names (e.g. 'llamacpp.chat') — normalize to the base key.
+    const base = (provider.split('.')[0] ?? provider);
+    return CHAINS[base]?.[task] ?? CHAINS[getLmProvider()]?.[task] ?? CHAINS.mock[task];
+}
+export function getModelForTask(registry, task, settings, stats, 
+/** H2/X16: explicit per-call model id (e.g. 'cloud:quality') — bypasses the chain. */
+modelOverride, rt = getProviderRuntime()) {
+    if (modelOverride) {
+        // Unknown ids throw here — no silent failover (routing honesty rules).
+        const model = registry.languageModel(modelOverride);
+        rt.lastDecision = { task, modelId: modelOverride, reason: 'primary' };
+        return model;
+    }
+    const chain = getModelChain(settings?.provider ?? getLmProvider(), task, rt);
+    // R4/R5: success-rate-aware reordering within the resolved chain (failsafe rungs stay
+    // guaranteed by pickModel's deterministic tie-breaking and the appended ladder).
+    const ordered = (stats ? pickModel(chain, {}, stats).map((c) => c.id) : chain);
+    for (const [i, id] of ordered.entries()) {
+        try {
+            const model = registry.languageModel(id);
+            rt.lastDecision = { task, modelId: id, reason: i === 0 ? 'primary' : 'failover' };
+            return model;
+        }
+        catch { }
+    }
+    throw new SenarsError(`No model available for task: ${task}`, 'OPERATION_ERROR');
+}
+export function getQualityModel(registry) {
+    return getModelForTask(registry, 'quality');
+}
+export const hasCloudCredentials = (settings) => Boolean(cloudApiKey((settings ?? getLMSettings()).apiKeyEnv));

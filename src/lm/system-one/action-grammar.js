@@ -1,0 +1,14 @@
+import { getOrInsert } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
+const escapeGbnf = (literal) => `"${literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+const GRAMMAR_CACHE_MAX = 1024;
+const grammarCache = new LruCache(GRAMMAR_CACHE_MAX);
+/**
+ * Generate a GBNF grammar enumerating the legal-action set. Generated text is
+ * cached per action-set signature — deterministic games repeat action sets
+ * heavily, so this stays off the hot path after the first tick.
+ */
+export function actionGrammar(legalActions) {
+    const signature = legalActions.join('\u0000');
+    return getOrInsert(grammarCache, signature, () => `root ::= ${legalActions.map(escapeGbnf).join(' | ')}`);
+}

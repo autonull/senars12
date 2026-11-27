@@ -80,9 +80,93 @@
       "types": "./src/schemas/derivation-records.ts",
       "import": "./src/schemas/derivation-records.ts"
     },
+    "./observe": {
+      "types": "./observe/src/index.ts",
+      "import": "./observe/src/index.ts"
+    },
+    "./observe/schema": {
+      "types": "./observe/src/schema.ts",
+      "import": "./observe/src/schema.ts"
+    },
+    "./observe/programs": {
+      "types": "./observe/src/programs.ts",
+      "import": "./observe/src/programs.ts"
+    },
+    "./observe/run": {
+      "types": "./observe/src/run.ts",
+      "import": "./observe/src/run.ts"
+    },
+    "./observe/record": {
+      "types": "./observe/src/record.ts",
+      "import": "./observe/src/record.ts"
+    },
+    "./observe/checks": {
+      "types": "./observe/src/checks.ts",
+      "import": "./observe/src/checks.ts"
+    },
+    "./observe/review": {
+      "types": "./observe/src/review.ts",
+      "import": "./observe/src/review.ts"
+    },
+    "./observe/report": {
+      "types": "./observe/src/report.ts",
+      "import": "./observe/src/report.ts"
+    },
+    "./observe/task": {
+      "types": "./observe/src/task.ts",
+      "import": "./observe/src/task.ts"
+    },
+    "./observe/verify": {
+      "types": "./observe/src/verify.ts",
+      "import": "./observe/src/verify.ts"
+    },
+    "./observe/diff": {
+      "types": "./observe/src/diff.ts",
+      "import": "./observe/src/diff.ts"
+    },
+    "./observe/promote": {
+      "types": "./observe/src/promote.ts",
+      "import": "./observe/src/promote.ts"
+    },
+    "./observe/cli": {
+      "types": "./observe/src/cli.ts",
+      "import": "./observe/src/cli.ts"
+    },
     "./verify-derivation": {
       "types": "./src/rules/verifier-truth-table.ts",
       "import": "./src/rules/verifier-truth-table.ts"
+    },
+    "./tools": {
+      "types": "./src/tools/index.ts",
+      "import": "./src/tools/index.ts"
+    },
+    "./tools/adapters": {
+      "types": "./src/tools/adapters/index.ts",
+      "import": "./src/tools/adapters/index.ts"
+    },
+    "./tools/adapters/scenario-execute": {
+      "types": "./src/tools/adapters/scenario-execute.ts",
+      "import": "./src/tools/adapters/scenario-execute.ts"
+    },
+    "./tools/adapters/scenario-profiles": {
+      "types": "./src/tools/adapters/scenario-profiles.ts",
+      "import": "./src/tools/adapters/scenario-profiles.ts"
+    },
+    "./tools/adapters/self": {
+      "types": "./src/tools/adapters/self/index.ts",
+      "import": "./src/tools/adapters/self/index.ts"
+    },
+    "./tools/adapters/shadow-worktree": {
+      "types": "./src/tools/adapters/shadow-worktree.ts",
+      "import": "./src/tools/adapters/shadow-worktree.ts"
+    },
+    "./tools/adapters/codemod": {
+      "types": "./src/tools/adapters/codemod.ts",
+      "import": "./src/tools/adapters/codemod.ts"
+    },
+    "./tools/adapters/proc": {
+      "types": "./src/tools/adapters/proc.ts",
+      "import": "./src/tools/adapters/proc.ts"
     },
     "./lens-schema": {
       "types": "./src/protocol/lens-schema.ts",
@@ -115,6 +199,82 @@
     "./errors": {
       "types": "./src/errors/index.ts",
       "import": "./src/errors/index.ts"
+    },
+    "./events": {
+      "types": "./src/events/index.ts",
+      "import": "./src/events/index.ts"
+    },
+    "./events/event-bus": {
+      "types": "./src/events/event-bus.ts",
+      "import": "./src/events/event-bus.ts"
+    },
+    "./log": {
+      "types": "./src/log/index.ts",
+      "import": "./src/log/index.ts"
+    },
+    "./log/replay": {
+      "types": "./src/log/replay.ts",
+      "import": "./src/log/replay.ts"
+    },
+    "./log/store": {
+      "types": "./src/log/store.ts",
+      "import": "./src/log/store.ts"
+    },
+    "./log/events": {
+      "types": "./src/log/events.ts",
+      "import": "./src/log/events.ts"
+    },
+    "./log/replay-reducers": {
+      "types": "./src/log/replay-reducers.ts",
+      "import": "./src/log/replay-reducers.ts"
+    },
+    "./governance": {
+      "types": "./src/governance/index.ts",
+      "import": "./src/governance/index.ts"
+    },
+    "./governance/artifacts": {
+      "types": "./src/governance/artifacts.ts",
+      "import": "./src/governance/artifacts.ts"
+    },
+    "./governance/pipeline": {
+      "types": "./src/governance/pipeline.ts",
+      "import": "./src/governance/pipeline.ts"
+    },
+    "./lm": {
+      "types": "./src/lm/index.ts",
+      "import": "./src/lm/index.ts"
+    },
+    "./lm/system-one": {
+      "types": "./src/lm/system-one/index.ts",
+      "import": "./src/lm/system-one/index.ts"
+    },
+    "./lm/system-one/manifold": {
+      "types": "./src/lm/system-one/manifold.ts",
+      "import": "./src/lm/system-one/manifold.ts"
+    },
+    "./lm/system-one/open-systemone-manifold": {
+      "types": "./src/lm/system-one/open-systemone-manifold.ts",
+      "import": "./src/lm/system-one/open-systemone-manifold.ts"
+    },
+    "./agent": {
+      "types": "./src/agent/index.ts",
+      "import": "./src/agent/index.ts"
+    },
+    "./config": {
+      "types": "./src/config/index.ts",
+      "import": "./src/config/index.ts"
+    },
+    "./util": {
+      "types": "./src/util/index.ts",
+      "import": "./src/util/index.ts"
+    },
+    "./util/logger": {
+      "types": "./src/util/logger.ts",
+      "import": "./src/util/logger.ts"
+    },
+    "./util/cli": {
+      "types": "./src/util/cli.ts",
+      "import": "./src/util/cli.ts"
     }
   },
   "scripts": {
@@ -274,6 +434,7 @@
     "@opentelemetry/sdk-trace": "^3.1.1",
     "@prometheus-io/client": "^0.16.1",
     "@senars/ui": "workspace:*",
+    "@senars/observe": "workspace:*",
     "ai": "^7.0.179",
     "cbor-x": "^1.6.9",
     "clingo-wasm": "^0.6.0",

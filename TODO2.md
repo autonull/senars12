@@ -2,6 +2,40 @@ This adopts the repair-task bridge from the draft and perfects two things that w
 
 ---
 
+## 📋 Implementation Progress
+
+**Phase 1 — Core Loop (No LM)** — ✅ **COMPLETE**
+- [x] `observe/` package created with package.json and workspace integration
+- [x] `schema.ts` — Finding, Verdict, RepairTask, CheckResult, EvidenceRef (Zod)
+- [x] `programs.ts` — ObserveProgram type + 5 seed program adapters
+- [x] `record.ts` — Recorder class (EventBus + Playwright + node-pty)
+- [x] `run.ts` — observeRun() wrapping runScenario() + recorders
+- [x] `checks.ts` — runChecks() with deterministic validators (validator, literal, stall, ui, budget)
+- [x] `review.ts` — reviewBundle() with judgeBatch() integration
+- [x] `report.ts` — renderReport() markdown output
+- [x] `task.ts` — emitTask() with governance artifact registration + dedup
+- [x] `verify.ts` — verifyTask() with replay + grader guard (git diff + PatchRiskClassifier)
+- [x] `diff.ts` — diffRuns() and bisect() stubs
+- [x] `promote.ts` — promoteRun() with fixture write + hardening suggestion
+- [x] `cli.ts` — senars observe subcommand router (list, run, record, review, verify, diff, bisect, promote, export, replay)
+- [x] Tests: `schema.test.ts`, `programs.test.ts` passing
+
+**Phase 2 — Intelligence** — ⏳ **PENDING**
+- [ ] LM review integration testing (test 2: Sensitivity, test 4: Grounding + fail-closed)
+- [ ] MCP tools (observe_run, observe_task, observe_verify)
+- [ ] Failure-bundle hook
+- [ ] Auto scenario registration in promote.ts
+
+**Phase 3 — Polish** — ⏳ **PENDING**
+- [ ] diff.ts full implementation (frame hash comparison, gate snapshot deltas)
+- [ ] bisect.ts full implementation (git bisect + replay)
+- [ ] export/replay CLI (GIF generation, webm serving)
+- [ ] --publish flag
+- [ ] Drift gate
+- [ ] Generated tours
+
+---
+
 # RFC: Self-Observation & Repair Loop (`@senars/observe`)
 
 **Status:** final implementable spec · **Package:** `observe/` workspace · **Surfaces:** `senars observe …`, MCP `observe_*`, CI.

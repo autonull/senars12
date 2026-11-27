@@ -1,0 +1,281 @@
+import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/autonomy';
+import { LM_PROVIDER_NAMES } from '../lm/env-config';
+import { LM_TASKS } from '@senars/types/llm';
+import { dialogueDefaults, dialogueSchema } from './dialogue';
+import { intBetween, nonEmpty, positiveInt, unitInterval } from './boundary';
+import { lmSettingsSchema } from './lm-schema';
+import { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber } from './bound-table';
+import { systemOneDefaults, systemOneSchema } from './system-one';
+import { z } from 'zod';
+// System One schema/defaults live in @senars/util/config (single definition —
+// also consumed by @senars/nar); re-exported here for the app config surface.
+export { systemOneDefaults, systemOneSchema };
+/** Every core knob is table-driven — a limit is written once, in `narCoreBounds`, and
+ *  both its default record and its zod shape are projections of that one table. */
+export const narCoreSchema = z.object(narCoreDefaultsSchema);
+const lmDefaults = { enabled: true, provider: 'llamacpp-embedded' };
+/** Extends the shared LM-settings schema with the capability-level `enabled` flag. */
+export const lmSchema = lmSettingsSchema.extend({
+    enabled: z.boolean().default(lmDefaults.enabled),
+    provider: z.string().default(lmDefaults.provider),
+});
+const profileDefaults = {
+    name: 'SeNARS',
+    personality: 'Curious, analytical, and helpful.',
+    joinMessage: "Hello! I'm SeNARS.",
+    capabilities: [],
+    reasoningTransparency: 'summary',
+    narrateTier: 'fast',
+};
+export const botProfileSchema = z.object({
+    name: z.string().default(profileDefaults.name),
+    personality: z.string().default(profileDefaults.personality),
+    joinMessage: z.string().default(profileDefaults.joinMessage),
+    capabilities: z.array(z.string()).default([]),
+    reasoningTransparency: z
+        .enum(['none', 'summary', 'full'])
+        .default(profileDefaults.reasoningTransparency),
+    /** H2: default narration tier for chat cycles — chat() callers without an explicit tier use this. */
+    narrateTier: z.enum(LM_TASKS).default(profileDefaults.narrateTier),
+});
+const conversationDefaults = {
+    maxHistory: 20,
+    summaryThreshold: 30,
+};
+const lmRulesDefaults = {
+    enabled: true,
+    rules: [],
+};
+export const lmRuleSchema = z.object({
+    /** Preset id (e.g. 'lm-narsese-translation') or custom rule id. */
+    id: z.string(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    priority: z.number().optional(),
+    /** Custom prompt template (omit for presets). */
+    prompt: z.string().optional(),
+    taskType: z.string().optional(),
+    budget: z.number().optional(),
+    multiline: z.boolean().optional(),
+    singlePremise: z.boolean().optional(),
+    enabled: z.boolean().default(true),
+});
+const memoryDefaults = {};
+export const memorySchema = z.object({
+    // Memory caps are deliberately looser than the core bounds — only the ceiling is shared.
+    maxConcepts: z.number().positive().max(narCoreBounds.maxConcepts.max).optional(),
+    /**
+     * Deprecated alias for inference.maxDerivationDepth.
+     * @deprecated since 2.1 — use inference.maxDerivationDepth (removed after 2 minors — see AGENTS.md).
+     */
+    derivationDepth: narCoreNumber('maxDerivationDepth').optional(),
+});
+const inferenceDefaults = {};
+export const inferenceSchema = z.object({
+    maxDerivationDepth: narCoreNumber('maxDerivationDepth').optional(),
+    maxDerivationsPerStep: narCoreNumber('maxDerivationsPerStep').optional(),
+    cpuThrottleMs: narCoreNumber('cpuThrottleMs').optional(),
+});
+const backendsDefaults = { nar: { enabled: true } };
+/** Objective-driven routing policy (shared shape lives in @senars/nar/lm). */
+export const routingSchema = z.object({
+    /**
+     * A *partial* record, matching `Partial<Record<LMTask, RoutingObjective>>`:
+     * an absent tier is an empty objective, and the runtime already reads it that
+     * way (`policy?.objectives?.[task]`). A total record would instead oblige every
+     * default in this file to re-enumerate the tiers — two literals that were one
+     * tier short the moment `compact` was added, and would be short again the next time.
+     */
+    objectives: z
+        .partialRecord(z.enum(LM_TASKS), z.object({
+        quality: z.enum(['balanced', 'high', 'max']).optional(),
+        maxLatencyMs: z.number().optional(),
+        offlineOnly: z.boolean().optional(),
+    }))
+        .default({}),
+    candidates: z.array(z.string()).optional(),
+    offlineOnly: z.boolean().optional(),
+    maxLatencyMs: z.number().optional(),
+    /** Offline failsafe ladder: local model ids, smallest → most capable. */
+    offlineLadder: z.array(z.string()).optional(),
+});
+export const backendsSchema = z
+    .object({
+    nar: z
+        .object({
+        enabled: z.boolean().default(true),
+        /** NAR inference cycles per engine step (`NARConfig.cyclesPerStep`). */
+        cyclesPerStep: positiveInt.optional(),
+        /**
+         * Where persisted NAR state lives (`NARConfig.statePath`). Absent ⇒ the
+         * cache default, so the durability readers (`--status`/`--doctor`, MCP)
+         * report the same path a restart would resume (CORE.19 C7.4).
+         */
+        statePath: z.string().optional(),
+        /**
+         * The kernel-owned autonomy loop (CORE.19 C5). Absent ⇒ off, and the
+         * NAR is pull-driven exactly as before. A partial override over the
+         * declared defaults; the reader lives in `narCoreOverrides`.
+         */
+        autonomy: z
+            .object({
+            enabled: z.boolean().default(false),
+            mode: z.enum(AUTONOMY_MODES).default('manual'),
+            hz: positiveInt.optional(),
+            maxCyclesPerWindow: positiveInt.optional(),
+            maxWallClockMsPerWindow: positiveInt.optional(),
+            backpressureThreshold: unitInterval.optional(),
+            policies: z.partialRecord(z.enum(AUTONOMY_POLICIES), z.boolean()).optional(),
+            curiosity: z
+                .object({
+                maxQuestionsPerWindow: positiveInt,
+                maxConfidence: unitInterval,
+            })
+                .partial()
+                .optional(),
+            consolidation: z.object({ intervalCycles: positiveInt }).partial().optional(),
+        })
+            .optional(),
+    })
+        .default({ enabled: true }),
+})
+    .default({ nar: { enabled: true } });
+/** Alternate LM settings selectable via LM_PROFILE=production. */
+export const productionSchema = z
+    .object({
+    provider: z.enum(LM_PROVIDER_NAMES).optional(),
+    model: z.string().optional(),
+    baseUrl: z.string().optional(),
+    apiKeyEnv: z.string().optional(),
+})
+    .optional();
+const ircDefaults = {
+    server: 'irc.libera.chat',
+    port: 6697,
+    useTLS: true,
+    nick: 'senars-bot',
+    channels: [],
+};
+export const ircSchema = z.object({
+    server: z.string().default(ircDefaults.server),
+    port: positiveInt.default(ircDefaults.port),
+    useTLS: z.boolean().default(ircDefaults.useTLS),
+    nick: z.string().default(ircDefaults.nick),
+    channels: z.array(z.string()).default([]),
+});
+/** Per-transport connection settings (e.g. MCP approval gating). */
+export const connectionsSchema = z.object({
+    mcp: z
+        .object({
+        /** Require approval for mutating tools (write_file); `SENARS_MCP_APPROVE=1` also enables. */
+        approval: z.boolean().default(false),
+        /** API key required by the SSE/HTTP transports (`x-api-key` header); one is generated and logged when unset. */
+        apiKey: z.string().optional(),
+        /** Env var holding the API key (overrides `apiKey`). */
+        apiKeyEnv: z.string().optional(),
+        /** Per-key request cap per minute on the SSE/HTTP transports. */
+        rateLimitPerMinute: positiveInt.default(30),
+    })
+        .optional(),
+});
+const senarsCapabilityDefaults = { enabled: true };
+const agentDefaults = {
+    maxLoops: 5,
+    reasoningIntervalMs: 60_000,
+    sessionHistoryLimit: 20,
+    rateLimitPerMinute: 30,
+    enableNlTranslation: true,
+    enableNarseseHumanization: true,
+};
+export const agentSectionSchema = z
+    .object({
+    name: z.string().optional(),
+    persona: z.string().optional(),
+    maxLoops: intBetween(0, 50).default(agentDefaults.maxLoops),
+    reasoningIntervalMs: positiveInt.default(agentDefaults.reasoningIntervalMs),
+    sessionHistoryLimit: positiveInt.default(agentDefaults.sessionHistoryLimit),
+    rateLimitPerMinute: positiveInt.default(agentDefaults.rateLimitPerMinute),
+    enableNlTranslation: z.boolean().default(agentDefaults.enableNlTranslation),
+    enableNarseseHumanization: z.boolean().default(agentDefaults.enableNarseseHumanization),
+    systemInstructions: z.string().max(16_000).optional(),
+})
+    .default({ ...agentDefaults });
+const capabilitiesDefaults = {
+    lm: lmDefaults,
+    senars: senarsCapabilityDefaults,
+};
+const botConfigDefaults = {
+    skills: [],
+    conversation: conversationDefaults,
+    lmRules: lmRulesDefaults,
+};
+export const botConfigSchema = z.object({
+    skills: z
+        .array(z.object({
+        id: nonEmpty,
+        description: z.string().optional(),
+        instructions: nonEmpty,
+        enabled: z.boolean().default(true),
+    }))
+        .default([]),
+    conversation: z
+        .object({
+        maxHistory: positiveInt.default(conversationDefaults.maxHistory),
+        summaryThreshold: positiveInt.default(conversationDefaults.summaryThreshold),
+    })
+        .default(conversationDefaults),
+    lmRules: z
+        .object({
+        enabled: z.boolean().default(lmRulesDefaults.enabled),
+        rules: z.array(lmRuleSchema).default([]),
+    })
+        .default({ ...lmRulesDefaults, rules: [...lmRulesDefaults.rules] }),
+});
+const appConfigBase = z.object({
+    /** Semantic version of the config file — validated by the loader for migration. */
+    configVersion: z.string().optional(),
+    /** Package metadata passthrough (mirrors senars.config.json's top-level name/version). */
+    name: z.string().optional(),
+    version: z.string().optional(),
+    lm: lmSchema.optional(),
+    /** Alternate LM settings, activated with LM_PROFILE=production. */
+    production: productionSchema,
+    profile: botProfileSchema.default({ ...profileDefaults }),
+    capabilities: z
+        .object({
+        lm: lmSchema.default({ ...lmDefaults }),
+        senars: z
+            .object({
+            enabled: z.boolean().default(senarsCapabilityDefaults.enabled),
+            memoryFile: z.string().optional(),
+            maxConcepts: positiveInt.optional(),
+        })
+            .default({ ...senarsCapabilityDefaults }),
+    })
+        .default({
+        ...capabilitiesDefaults,
+        lm: { ...capabilitiesDefaults.lm },
+        senars: { ...capabilitiesDefaults.senars },
+    }),
+    core: narCoreSchema.default({ ...narCoreDefaults }),
+    memory: memorySchema.default({}),
+    inference: inferenceSchema.default({}),
+    backends: backendsSchema,
+    irc: ircSchema.optional(),
+    routing: routingSchema.default({ objectives: {} }),
+    agent: agentSectionSchema,
+    bot: botConfigSchema.default({
+        ...botConfigDefaults,
+        lmRules: { ...botConfigDefaults.lmRules, rules: [...botConfigDefaults.lmRules.rules] },
+    }),
+    connections: connectionsSchema.default(() => ({})),
+    systemOne: systemOneSchema.optional(),
+    dialogue: dialogueSchema.default({ ...dialogueDefaults }),
+});
+/** Strict: unknown top-level keys are a config error (typo protection). */
+const appConfigStrict = appConfigBase.strict();
+export const appConfigSchema = appConfigStrict.transform((config) => {
+    config.profile.name = config.agent.name ?? config.profile.name;
+    config.profile.personality = config.agent.persona ?? config.profile.personality;
+    return config;
+});

@@ -1,0 +1,1 @@
+{"version":3,"file":"term-collection.d.ts","sourceRoot":"","sources":["term-collection.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;GAcG;AAEH,OAAO,KAAK,EAAE,IAAI,EAAE,MAAM,UAAU,CAAC;AAErC,OAAO,EAAE,eAAe,EAAE,MAAM,+BAA+B,CAAC;AAEhE,8BAAsB,cAAc,CAAC,CAAC,CAAE,SAAQ,eAAe,CAAC,IAAI,EAAE,CAAC,EAAE,MAAM,CAAC;IAC9E,SAAS,CAAC,SAAS,CAAC,GAAG,EAAE,IAAI,GAAG,MAAM,CAErC;CACF"}

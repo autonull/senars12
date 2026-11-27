@@ -1,0 +1,54 @@
+/**
+ * Operator definitions - standalone to avoid circular dependencies
+ *
+ * `symbol` is the **Narsese surface spelling**: what `narsese.peggy` accepts and
+ * what `serialize.ts` writes. `scripts/terms-canonical.ts` fails if the grammar's
+ * token table and this one disagree, so neither can drift from the other.
+ */
+export const OPERATORS = {
+    inheritance: { symbol: '-->', arity: 2, commutative: false, nary: false },
+    similarity: { symbol: '<->', arity: 2, commutative: true, nary: false },
+    conjunction: { symbol: '&', arity: 0, commutative: true, nary: true },
+    disjunction: { symbol: '|', arity: 0, commutative: true, nary: true },
+    negation: { symbol: '--', arity: 1, commutative: false, nary: false },
+    implication: { symbol: '==>', arity: 2, commutative: false, nary: false },
+    equivalence: { symbol: '<=>', arity: 2, commutative: true, nary: false },
+    // Narsese's extensional and intensional sets. `instance` / `property` were a
+    // NAL2-rules naming that leaked into the term kinds; `{a}` reads back as a
+    // set, and the grammar has always built `setExt` / `setInt`.
+    setExt: { symbol: '{', arity: 1, commutative: false, nary: false },
+    setInt: { symbol: '[', arity: 1, commutative: false, nary: false },
+    sequence: { symbol: '&/', arity: 2, commutative: false, nary: false },
+    parallel: { symbol: '&|', arity: 0, commutative: true, nary: true },
+    predictive: { symbol: '=/>', arity: 2, commutative: false, nary: false },
+    retrospective: { symbol: '=|', arity: 2, commutative: false, nary: false },
+    operation: { symbol: '^', arity: 2, commutative: false, nary: false },
+    // Products are n-ary but NOT commutative: `docs/java/Op.java:110` builds PROD
+    // through the non-commutative constructor, and `(*,a,b)` and `(*,b,a)` are two
+    // different products. Declaring them commutative sorted their arguments at
+    // construction, so the two interned to one term and `termsEqual` said yes.
+    // The comma is the copula — `TermBuilder.tuple` routed the comma list here and
+    // built a conjunction instead, so no product had any text syntax at all.
+    product: { symbol: ',', arity: 0, commutative: false, nary: true },
+};
+/**
+ * The infix binary operators — a statement's copulas, longest symbol first so a
+ * scanner that tests prefixes cannot take `==>` for `=|` or `=/>` for `=>`.
+ *
+ * Derived from {@link OPERATORS} rather than written out, because three modules
+ * were spelling out their own list of them: `nl/normalize.ts` carried one that
+ * included `'&&'`, which is not a Narsese copula at all (conjunction is `'&'`),
+ * and omitted the predictive, retrospective, sequence and operation forms.
+ */
+export const COPULA_SYMBOLS = Object.values(OPERATORS)
+    .filter((operator) => operator.arity === 2)
+    .map((operator) => operator.symbol)
+    .toSorted((a, b) => b.length - a.length);
+/** Whether `text` contains any copula — the one "is this a statement?" test. */
+export const hasCopula = (text) => COPULA_SYMBOLS.some((symbol) => text.includes(symbol));
+export const COMMUTATIVE_OPS = new Set();
+export const NARY_OPS = new Set();
+for (const [k, v] of Object.entries(OPERATORS)) {
+    v.commutative && COMMUTATIVE_OPS.add(k);
+    v.nary && NARY_OPS.add(k);
+}

@@ -1,0 +1,167 @@
+import { promises as fs } from 'node:fs';
+import { groupBy, sortBy } from '@senars/util/collections';
+import { holdoutSplit, mulberry32 } from '@senars/util/random';
+import { toFiniteNumber } from '@senars/util/numeric';
+import { writeJsonFile } from '@senars/util/fs';
+import { sha256HexParts } from '@senars/util/hash';
+import { cachePath } from '@senars/config';
+import { createIsotonicCalibrator } from './calibration';
+import { identityECE, meanBrier, meanBrierOf } from './metrics';
+import { DigestMismatchError } from './wasi-runtime';
+// ─── Lock schema (jevcal pattern: fitted thresholds, digest-pinned) ──────────
+export { identityECE, meanBrier, meanBrierOf } from './metrics';
+const OBSERVED_BY_LABEL = {
+    approved: 1,
+    rejected: 0,
+    support: 1,
+    conflict: 0,
+    accepted: 1,
+    rejected_outcome: 0,
+};
+/**
+ * Extract (predicted, observed) pairs from dataset labels. Rows carry the
+ * head's predicted `score` and a ground-truth `observed` (recorded at label
+ * time) — the B6 self-supervised no-op never enters this path.
+ */
+export function extractLabeledData(dataset, headIds) {
+    const wanted = headIds ? new Set(headIds) : null;
+    const data = [];
+    for (const label of dataset.all()) {
+        if (wanted && !wanted.has(label.rubric))
+            continue;
+        if (label.score === undefined || label.observed === undefined)
+            continue;
+        if (!Number.isFinite(label.score) || !Number.isFinite(label.observed))
+            continue;
+        data.push({ headId: label.rubric, predicted: label.score, observed: label.observed });
+    }
+    return data;
+}
+function observedFor(label) {
+    return OBSERVED_BY_LABEL[label] ?? toFiniteNumber(label);
+}
+/** Dataset rows that only carry a categorical label get their observed value derived. */
+export function extractLabeledDataWithDerivedOutcomes(dataset, headIds) {
+    const wanted = headIds ? new Set(headIds) : null;
+    const data = [];
+    for (const label of dataset.all()) {
+        if (wanted && !wanted.has(label.rubric))
+            continue;
+        if (label.score === undefined || !Number.isFinite(label.score))
+            continue;
+        const observed = label.observed ?? observedFor(label.label);
+        if (observed === undefined || !Number.isFinite(observed))
+            continue;
+        data.push({ headId: label.rubric, predicted: label.score, observed });
+    }
+    return data;
+}
+function split(data, holdoutFraction, seed) {
+    const { holdout, train: fit } = holdoutSplit(data, holdoutFraction, mulberry32(seed));
+    return { holdout, fit };
+}
+/** Brier with abstain→0.5 fallback, used to select the per-head threshold. */
+function brierWithAbstain(data, calibrate, threshold) {
+    return meanBrierOf(data, (d) => (d.predicted < threshold ? 0.5 : calibrate(d.predicted)), (d) => d.observed);
+}
+const THRESHOLD_GRID = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5];
+export function fitCalibrationLock(dataset, options = {}) {
+    const holdoutFraction = options.holdoutFraction ?? 0.3;
+    const minRows = options.minRows ?? 8;
+    const version = (options.calibrationVersion ?? 'v2.4.1');
+    const data = extractLabeledDataWithDerivedOutcomes(dataset, options.headIds);
+    const byHead = groupBy(data, (d) => d.headId);
+    const perHead = new Map();
+    const entries = [];
+    let improved = true;
+    for (const [headId, headData] of byHead) {
+        if (headData.length < minRows) {
+            improved = false;
+            continue;
+        }
+        const { fit, holdout } = split(headData, holdoutFraction, options.seed ?? 7);
+        const calibrator = createIsotonicCalibrator(version, headId);
+        calibrator.update(fit.map((d) => ({ predicted: d.predicted, observed: d.observed, weight: 1 })));
+        const fittedECE = identityECE(holdout.map((d) => ({ ...d, predicted: calibrator.calibrate(d.predicted) })));
+        const baselineECE = identityECE(holdout);
+        if (fittedECE >= baselineECE)
+            improved = false;
+        const threshold = THRESHOLD_GRID.reduce((best, t) => {
+            const loss = brierWithAbstain(holdout, (s) => calibrator.calibrate(s), t);
+            return loss < best.loss ? { t, loss } : best;
+        }, { t: 0, loss: Infinity }).t;
+        perHead.set(headId, calibrator);
+        entries.push({
+            headId,
+            digest: `sha256:${createLockDigest(calibrator, threshold)}`,
+            abstainThreshold: threshold,
+            ece: fittedECE,
+            fitted: calibrator.fitted,
+            points: calibrator
+                .getPoints()
+                .map((p) => ({ predicted: p.predicted, observed: p.observed, weight: p.weight })),
+        });
+    }
+    return {
+        lock: {
+            version,
+            generatedAt: Date.now(),
+            heads: entries,
+            ...(options.frozenSet && options.frozenSet.rows.length > 0
+                ? { eval: lockMetrics(options.frozenSet) }
+                : {}),
+            ...(options.oodSet && options.oodSet.rows.length > 0
+                ? { ood: lockMetrics(options.oodSet) }
+                : {}),
+        },
+        perHead,
+        improved,
+    };
+}
+function lockMetrics(set) {
+    const brier = meanBrier(set.rows);
+    return { brier, ece: identityECE(set.rows), datasetDigest: set.digest, count: set.rows.length };
+}
+function createLockDigest(calibrator, threshold) {
+    // Lightweight content digest over the sorted calibration curve + threshold.
+    return sha256HexParts([
+        ...sortBy(calibrator.getPoints(), (p) => p.predicted).map((p) => `${p.predicted}:${p.observed}:${p.weight};`),
+        `threshold=${threshold}`,
+    ]);
+}
+export async function writeCalibrationLock(lock, path) {
+    await writeJsonFile(path, lock);
+}
+export async function readCalibrationLock(path) {
+    return JSON.parse(await fs.readFile(path, 'utf-8'));
+}
+/** The one on-disk location of the digest-pinned calibration lock. */
+export const CALIBRATION_LOCK_PATH = cachePath('systemone', 'calibration-lock.json');
+/** Best-effort lock read: `null` when absent or unreadable. */
+export async function readCalibrationLockOrNull(path = CALIBRATION_LOCK_PATH) {
+    try {
+        return await readCalibrationLock(path);
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * Digest-pinned lock load (H3 fail-closed semantics): a lock pinned to a
+ * modelDigest that does not match the manifold's bundle is rejected outright.
+ */
+export function assertLockMatches(lock, modelDigest) {
+    if (lock.modelDigest && lock.modelDigest !== modelDigest) {
+        throw new DigestMismatchError(modelDigest, lock.modelDigest);
+    }
+}
+/** Apply a verified lock to a calibrator suite (fitted points flow in, B6 no-op replaced). */
+export function applyCalibrationLock(calibrators, lock) {
+    for (const entry of lock.heads) {
+        const calibrator = calibrators.get(entry.headId);
+        if (!calibrator)
+            continue;
+        calibrator.reset();
+        calibrator.update(entry.points);
+    }
+}

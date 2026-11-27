@@ -1,0 +1,196 @@
+/**
+ * Unified decision API (TODO23): one typed call composing the calibrated-head
+ * path (`judgeBatch` → isotonic → `ConfidenceRouter`) with the TODO22
+ * contrastive layer. A thin facade — all inference logic lives in the
+ * manifold heads, contrastive memory, and policy utilities it composes.
+ */
+import { bandOrdinal } from '@senars/util/cognitive-schemas';
+import { chunk, mapToRecord, rankBy } from '@senars/util/collections';
+import { renormalize, retain } from '@senars/util/numeric';
+import { sha256Hex } from '@senars/util/hash';
+import { isSafetyFloor } from './algebra';
+import { candidateProximity, rubricOf } from './contrastive';
+import { ConfidenceRouter, compositeScore, DEFAULT_CONFIDENCE_BANDS, } from './policy';
+/** Per-head band routing over the router (abstain propagates). */
+function verdictBand(router, proposition) {
+    if (!proposition)
+        return 'abstain';
+    return proposition.kind === 'classify'
+        ? router.route({ abstained: proposition.abstained, top: proposition.top })
+        : router.route({ abstained: proposition.abstained, score: proposition.score });
+}
+function contrastiveScore(contrastive, embedding, rubric) {
+    if (!contrastive || contrastive.isEmpty() || !embedding)
+        return {};
+    const score = contrastive.score(embedding, rubric);
+    return score === undefined ? {} : { score, penalty: 1 - score };
+}
+export const isFitted = (p) => p?.calibration?.fitted === true;
+/** Digest pinning a proposition's calibration to its model — absent when unfitted. */
+export const calibrationDigestOf = (p) => p?.calibration?.version ? sha256Hex(`${p.modelDigest}:${p.calibration.version}`) : undefined;
+/** The single provenance constructor: every judgment path pins the same digest identity. */
+export function provenanceFrom(proposition, inputDigest, band, abstained, overrides = {}) {
+    return {
+        modelDigest: overrides.modelDigest ?? proposition?.modelDigest,
+        calibrationDigest: overrides.calibrationDigest ?? calibrationDigestOf(proposition),
+        inputDigest,
+        contrastiveDigest: overrides.contrastiveDigest,
+        fitted: overrides.fitted ?? proposition?.calibration.fitted === true,
+        abstained,
+        band,
+        timestamp: Date.now(),
+    };
+}
+/**
+ * Provenance for a staged judgment chain: the winning stage (last judged
+ * non-empty) supplies the digest identity, any fitted stage lifts `fitted`.
+ */
+export function stageProvenance(stages, inputDigest, band, abstained, overrides = {}) {
+    const winner = stages.findLast((p) => p !== undefined);
+    return provenanceFrom(winner, inputDigest, band, abstained, {
+        ...overrides,
+        fitted: overrides.fitted ?? stages.some(isFitted),
+    });
+}
+export function createDecider(deps) {
+    const router = deps.router ?? new ConfidenceRouter(DEFAULT_CONFIDENCE_BANDS);
+    const chunkSize = Math.max(1, deps.maxBatchSize ?? 64);
+    const decide = async (request) => {
+        const contextPointer = (await deps.embeddingCache.write(request.context));
+        // Phase 5 short-circuit at the query-composition layer: once a safety-floor
+        // head (injection/assertion, high/critical criticality) reaches the top
+        // confidence band, no remaining query can change the router decision (block) —
+        // they are omitted from the judge call and reported `skipped: true`. The
+        // trigger is the band's own threshold rather than a number spelled here, so
+        // the short-circuit cannot sit below the band it exists to reach.
+        const propositions = [];
+        let shortCircuited = false;
+        for (const slice of chunk(request.queries, chunkSize)) {
+            if (shortCircuited)
+                break;
+            const batch = await deps.judge(contextPointer, slice, request.budget);
+            propositions.push(...batch);
+            // Over the chunk just judged, not a re-slice of the whole request: `i` was a
+            // chunk index used as a query offset, so from the second chunk on this tested
+            // the wrong queries against the wrong propositions.
+            shortCircuited = slice.some((query, j) => isSafetyFloor(query) &&
+                !batch[j]?.abstained &&
+                batch[j].score >= DEFAULT_CONFIDENCE_BANDS.act);
+        }
+        const embedding = deps.embeddingCache.read(contextPointer);
+        const contrastive = contrastiveScore(deps.contrastive, embedding, request.contrastiveRubric);
+        const verdicts = request.queries.map((query, i) => {
+            const proposition = propositions[i];
+            const band = verdictBand(router, proposition);
+            const vetoed = proposition !== undefined &&
+                !proposition.abstained &&
+                proposition.kind === 'evaluate' &&
+                isSafetyFloor(query) &&
+                proposition.score >= DEFAULT_CONFIDENCE_BANDS.act;
+            return {
+                query,
+                proposition,
+                band: vetoed ? 'block' : band,
+                abstained: proposition?.abstained ?? true,
+                abstainReason: proposition?.abstainReason ?? 'out-of-domain',
+                skipped: proposition === undefined,
+            };
+        });
+        const evaluated = verdicts.filter((v) => !v.skipped);
+        const nonAbstained = evaluated.filter((v) => !v.abstained);
+        const band = evaluated.reduce((mostRestrictive, v) => bandOrdinal(v.band) < bandOrdinal(mostRestrictive) ? v.band : mostRestrictive, 'act');
+        const abstained = evaluated.length === 0 ||
+            nonAbstained.length === 0 ||
+            (contrastive.score !== undefined && contrastive.score < 0.1);
+        const abstainReason = nonAbstained.length === 0 ? 'all-heads-abstained' : 'out-of-domain';
+        const entries = verdicts.flatMap(({ query, proposition }) => {
+            const p = propositionScore(proposition);
+            return p === undefined ? [] : [{ key: rubricOf(query), p }];
+        });
+        const composite = request.weights && entries.length > 0
+            ? compositeScore(entries.map((e) => ({ ...e, abstained: e.p === undefined })), request.weights)
+            : undefined;
+        return {
+            contextPointer,
+            verdicts,
+            composite,
+            contrastive,
+            band,
+            abstained,
+            abstainReason: abstained ? abstainReason : undefined,
+            provenance: stageProvenance(propositions, sha256Hex(request.context), band, abstained, deps),
+        };
+    };
+    const choose = async (request) => {
+        const { candidates } = request;
+        if (candidates.length === 0) {
+            return {
+                selected: undefined,
+                distribution: [],
+                ranked: [],
+                abstained: true,
+                abstainReason: 'no-candidates',
+                contrastive: { penalties: {}, vetoes: [] },
+                provenance: stageProvenance([], sha256Hex(''), 'abstain', true, deps),
+            };
+        }
+        const contextPointer = (await deps.embeddingCache.write(request.context));
+        const preScored = request.preScored;
+        const query = {
+            kind: 'classify',
+            instruction: request.instruction ?? 'Select the best option.',
+            space: candidates,
+            axis: request.axis ?? 'teleological',
+            rubric: request.rubric ?? 'candidate_select',
+        };
+        const [proposition] = preScored
+            ? []
+            : await deps.judge(contextPointer, [query], request.budget);
+        // Per-candidate contrastive penalties (CLM hard-negative proximity).
+        const { penalties: proximity, belowFloor } = await candidateProximity(deps.contrastive, deps.embeddingCache, candidates, request.verificationFloor ?? 0);
+        const penalties = mapToRecord(proximity);
+        const vetoes = [...belowFloor];
+        const base = preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);
+        const distribution = adjustDistribution(base, penalties);
+        // Ranked view: adjusted score descending (the selection order).
+        const ranked = rankBy(distribution, (d) => d.p);
+        const selected = ranked.find((d) => !vetoes.includes(d.option))?.option;
+        const abstained = selected === undefined;
+        const band = abstained ? 'abstain' : verdictBand(router, proposition);
+        const inputDigest = sha256Hex(candidates.join('\n'));
+        const provenance = {
+            ...stageProvenance(proposition ? [proposition] : [], inputDigest, band, abstained, deps),
+            inputDigest,
+        };
+        return {
+            selected,
+            distribution,
+            ranked,
+            abstained,
+            abstainReason: abstained
+                ? proposition?.abstained
+                    ? 'low-confidence'
+                    : 'verification-veto'
+                : undefined,
+            contrastive: { penalties, vetoes },
+            provenance,
+        };
+    };
+    return { decide, choose };
+}
+/** Confidence extracted from a proposition; undefined when it abstained. */
+function propositionScore(p) {
+    if (!p || p.abstained)
+        return undefined;
+    return p.kind === 'classify' ? p.top.p : p.score;
+}
+/** Contrastive-penalized, re-normalized distribution (vetoed candidates stay listed). */
+function adjustDistribution(base, penalties) {
+    if (!base || base.length === 0)
+        return [];
+    const adjusted = base.map((d) => ({
+        option: d.option,
+        p: retain(d.p, penalties[d.option] ?? 0),
+    }));
+    return renormalize(adjusted, (d) => d.p, (d, share) => ({ ...d, p: share }), base);
+}

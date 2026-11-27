@@ -1,0 +1,61 @@
+import { LruCache } from '@senars/util/lru-cache';
+import { sha256HexParts } from '@senars/util/hash';
+import { systemClock } from '@senars/util/clock';
+const CACHE_TTL_MS = 60_000;
+/**
+ * The key covers every field that can change a completion, in a fixed order.
+ * The parts are length-prefixed rather than delimiter-joined: a GBNF `grammar`
+ * is full of `|`, so a joined key cannot tell a grammar from a prompt that
+ * straddled the same delimiter.
+ */
+export function buildCacheKey(prompt, options) {
+    return sha256HexParts([
+        prompt,
+        options?.task ?? 'fast',
+        String(options?.temperature ?? 0),
+        String(options?.maxOutputTokens ?? 0),
+        options?.grammar ?? '',
+        options?.model ?? '',
+    ]);
+}
+/**
+ * Prompt-hash-keyed semantic cache with a 60s TTL, cleared on failure so a retry
+ * re-populates.
+ *
+ * D16: bounded memory without a timer. The sweep runs at most once per TTL
+ * window rather than on every write — `settle` is on the innermost LM path, and
+ * a per-write `purgeExpired` walked the whole map per completion to reclaim
+ * entries a read would have reclaimed anyway, since `BoundedMap` treats an
+ * expired entry as absent on every read. Reclaiming within one TTL period is the
+ * same bound to within a factor of the call rate, and it is amortized O(1) per
+ * write instead of O(size).
+ */
+export class ResponseCache {
+    #cache;
+    #ttlMs;
+    #now;
+    #sweptAt;
+    constructor(opts = {}) {
+        this.#ttlMs = opts.ttlMs ?? CACHE_TTL_MS;
+        this.#now = opts.now ?? systemClock;
+        this.#sweptAt = this.#now();
+        this.#cache = new LruCache({ ttlMs: this.#ttlMs, now: this.#now });
+    }
+    /** Entries the map holds — live, plus any expired not yet swept. */
+    get size() {
+        return this.#cache.size();
+    }
+    get(key) {
+        return this.#cache.get(key);
+    }
+    set(key, value) {
+        if (this.#now() - this.#sweptAt >= this.#ttlMs) {
+            this.#cache.purgeExpired();
+            this.#sweptAt = this.#now();
+        }
+        this.#cache.set(key, value);
+    }
+    clear(key) {
+        this.#cache.delete(key);
+    }
+}

@@ -1,0 +1,99 @@
+import { ambientRng } from '@senars/util/random';
+import { formatTruth } from '@senars/types/truth';
+import { stableKeyOf } from '@senars/util/json';
+import { takeFirst, unique } from '@senars/util/collections';
+import { buildGenerationPrompt } from './prompts/generation-v1';
+import { GenerationOutputSchema } from './schemas';
+import { SingleFlight } from './singleflight';
+function classifyReasoning(derivation) {
+    if (!derivation || derivation.steps === 0)
+        return 'direct observation';
+    if (derivation.steps <= 2)
+        return 'simple deduction';
+    if (derivation.steps <= 5)
+        return 'multi-step reasoning';
+    return 'deep reasoning';
+}
+function findKnowledgeGaps(beliefs) {
+    const gaps = [];
+    for (const b of beliefs) {
+        if (b.truth && b.truth.confidence < 0.6) {
+            gaps.push(`more evidence about ${b.term}`);
+        }
+    }
+    return takeFirst(unique(gaps), 3);
+}
+export class NLGenerationService {
+    lm;
+    flight = new SingleFlight();
+    constructor(lm) {
+        this.lm = lm;
+    }
+    async generate(input) {
+        return this.flight.run(stableKeyOf(input, () => `${Date.now()}:${ambientRng()}`), () => this.generateInner(input));
+    }
+    async generateInner(input) {
+        if (!this.lm) {
+            return this.fallbackGenerate(input);
+        }
+        const derivation = input.derivation;
+        const reasoningType = classifyReasoning(derivation);
+        const keyPremises = derivation ? takeFirst(derivation.newBeliefs, 3).map((b) => b.term) : [];
+        const gaps = findKnowledgeGaps(input.beliefs);
+        const prompt = buildGenerationPrompt({
+            query: input.query,
+            beliefs: derivation?.newBeliefs ?? input.beliefs,
+            conflicts: input.conflicts,
+            derivationSteps: derivation?.steps,
+            reasoningType,
+            keyPremises,
+            gaps,
+            userProfile: input.userProfile,
+        });
+        try {
+            const object = await this.lm.generateObject(prompt, GenerationOutputSchema, {
+                task: 'structured',
+            });
+            return {
+                response: object.response,
+                confidence: object.confidence,
+                suggestedFollowups: object.suggestedFollowups,
+                meta: {
+                    reasoningType: object.meta.reasoningType || reasoningType,
+                    keyPremises: object.meta.keyPremises.length > 0 ? object.meta.keyPremises : keyPremises,
+                    gaps: object.meta.gaps.length > 0 ? object.meta.gaps : gaps,
+                },
+            };
+        }
+        catch {
+            return this.fallbackGenerate(input);
+        }
+    }
+    fallbackGenerate(input) {
+        const derivation = input.derivation;
+        if (!derivation || derivation.newBeliefs.length === 0) {
+            return {
+                response: `I don't have enough information about "${input.query}".`,
+                confidence: 0.2,
+                suggestedFollowups: [],
+                meta: {
+                    reasoningType: 'no derivation',
+                    keyPremises: [],
+                    gaps: [`knowledge about ${input.query}`],
+                },
+            };
+        }
+        const best = derivation.newBeliefs[0];
+        const truth = best.truth ? ` ${formatTruth(best.truth)}` : '';
+        return {
+            response: `Based on reasoning: ${best.term}${truth}`,
+            confidence: best.truth?.confidence ?? 0.5,
+            suggestedFollowups: [],
+            meta: {
+                reasoningType: classifyReasoning(derivation),
+                keyPremises: takeFirst(derivation.newBeliefs, 3).map((b) => b.term),
+                gaps: findKnowledgeGaps(input.beliefs),
+            },
+        };
+    }
+}

@@ -4,6 +4,7 @@ packages:
   - 'ui-backend-2d'
   - 'ui-backend-fractal'
   - 'ui-shell'
+  - 'observe'
 
 allowBuilds:
   '@biomejs/biome': true

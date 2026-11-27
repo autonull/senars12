@@ -1,0 +1,1 @@
+{"version":3,"file":"attention-ports.d.ts","sourceRoot":"","sources":["attention-ports.ts"],"names":[],"mappings":"AAAA;;;;;;;;;GASG;AAEH,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,wBAAwB,CAAC;AAE7D;;;;;;;GAOG;AACH,MAAM,WAAW,cAAc;IAC7B,QAAQ,CAAC,cAAc,EAAE,cAAc,CAAC;IACxC,iBAAiB,CAAC,KAAK,EAAE,cAAc,GAAG,IAAI,CAAC;CAChD"}

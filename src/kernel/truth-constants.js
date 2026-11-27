@@ -1,0 +1,36 @@
+/**
+ * Shared Truth Constants — single source for NAL truth algebra parameters.
+ *
+ * Re-exports generic truth algebra from @senars/util/truth-algebra and adds
+ * kernel-specific constants. Both the engine (kernel/truth.ts) and the verifier
+ * (rules/verifier-truth-table.ts) import from here to eliminate duplication.
+ */
+import { clamp } from '@senars/util/numeric';
+import { WEIGHT_AT_CERTAINTY, confidenceToWeight, weightToConfidence, weakenConfidence, } from '@senars/util/truth-algebra';
+/** Maximum confidence value (saturating bound). */
+export const MAX_CONFIDENCE = 0.999;
+/** Weakening factor for confidence decay in chains. */
+export const WEAKENING_FACTOR = 10;
+/** Gain applied when positive feedback reinforces a truth. */
+export const CONFIRM_GAIN = 1.1;
+/** Decay applied when negative feedback contradicts a truth. */
+export const CONTRADICT_DECAY = 0.9;
+/** Gain/loss applied to confidence on outcome feedback. */
+export const OUTCOME_GAIN = 0.1;
+/**
+ * Weakening squash: c / (1 + c * factor).
+ * Used for confidence weakening in deduction/induction/abduction chains
+ * and structural deduction/reduction. Default factor = WEAKENING_FACTOR (10).
+ */
+export function weakenSquash(c, factor = WEAKENING_FACTOR) {
+    return c / (1 + c * factor);
+}
+/** Normalize a truth value to valid domain [0,1] x [0, MAX_CONFIDENCE]. */
+export function normalizeTruth(f, c) {
+    return {
+        f: clamp(isNaN(f) ? 0.5 : f, 0, 1),
+        c: clamp(isNaN(c) ? 0.9 : c, 0, MAX_CONFIDENCE),
+    };
+}
+// Re-export generic truth algebra functions for backward compatibility
+export { WEIGHT_AT_CERTAINTY, confidenceToWeight, weightToConfidence, weakenConfidence, };

@@ -13,7 +13,7 @@ import { resetDemotions } from '../../../lm/index';
 import { filterFolded } from '@senars/util/text';
 import { takeLast, unique } from '@senars/util/collections';
 import { positiveInt } from '@senars/config';
-import { evaluateExpression } from '@senars/eval';
+import { evaluateExpression } from '@senars/util/eval';
 import { z } from 'zod';
 import type { JobManager } from './jobs';
 import { registerNARRegistryTools, ANNOTATIONS, createMCPResponse, formatBeliefsForMCP, stringifyMCP } from './core';
