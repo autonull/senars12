@@ -8,6 +8,7 @@ import { writeJsonFile } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
 import { coerce } from '../args';
 import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
+import { getNested } from '@senars/util/object';
 
 export const sections = createCommandModule({
   name: 'config set',
@@ -39,14 +40,22 @@ export const sections = createCommandModule({
 
     const { readFileSync } = await import('node:fs');
     const rawConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
-    const success = setNestedValue(rawConfig, key, value);
 
-    if (!success) {
+    // Check if the path exists (parent path)
+    const parts = key.split('.');
+    const parentPath = parts.slice(0, -1).join('.');
+    const parent = parentPath ? getNested(rawConfig, parentPath) : rawConfig;
+
+    if (!parent || typeof parent !== 'object' || !(parts[parts.length - 1] in parent)) {
       const result = { error: `Cannot set key: ${key} (path does not exist in raw config)` };
       if (jsonOutput) console.log(JSON.stringify(result, null, 2));
       else console.error(result.error);
       process.exit(1);
     }
+
+    // Set the value using setNested (parent path exists, so this won't create intermediates)
+    const { setNested } = await import('@senars/util/object');
+    setNested(rawConfig, key, value);
 
     writeJsonFile(configPath, rawConfig);
 
@@ -58,27 +67,6 @@ export const sections = createCommandModule({
     }
   }, flags, 'config set');
 });
-
-function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): boolean {
-  const parts = path.split('.');
-  let current: Record<string, unknown> = obj;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!(part in current) || typeof current[part] !== 'object' || current[part] === null) {
-      return false;
-    }
-    current = current[part] as Record<string, unknown>;
-  }
-
-  const lastPart = parts[parts.length - 1];
-  if (!(lastPart in current)) {
-    return false;
-  }
-
-  current[lastPart] = value;
-  return true;
-}
 
 export const configSetModule: CommandModule = { main: sections.main, sections: sections.sections };
 

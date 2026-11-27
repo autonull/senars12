@@ -7,6 +7,7 @@ import type { CommandModule } from '../../lib/cli';
 import { loadConfig } from '../../../config/index';
 import { errMsg } from '@senars/util/error';
 import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
+import { getNested } from '@senars/util/object';
 
 export const sections = createCommandModule({
   name: 'config get',
@@ -33,7 +34,7 @@ export const sections = createCommandModule({
     }
 
     const config = await loadConfig(configPath);
-    const value = getNestedValue(config, key);
+    const value = getNested(config, key);
 
     if (value === undefined) {
       const result = { error: `Key not found: ${key}` };
@@ -49,15 +50,6 @@ export const sections = createCommandModule({
     }
   }, flags, 'config get');
 });
-
-function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  return path.split('.').reduce((acc: unknown, part: string) => {
-    if (acc && typeof acc === 'object' && part in acc) {
-      return (acc as Record<string, unknown>)[part];
-    }
-    return undefined;
-  }, obj);
-}
 
 export const configGetModule: CommandModule = { main: sections.main, sections: sections.sections };
 
