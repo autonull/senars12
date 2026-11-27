@@ -8,6 +8,7 @@
 import type { JudgmentCalibration } from './cascade';
 import { IsotonicCalibrator } from './judge';
 import type { Clock, TimestampMs } from '../../kernel/env';
+import { clamp } from '../../util/numeric';
 import type { TelemetryCollector } from './telemetry';
 
 /** Calibration method. */
@@ -272,8 +273,8 @@ export class BetaCalibrator {
       this.a = mean * phi;
       this.b = (1 - mean) * phi;
       // Clamp to reasonable bounds
-      this.a = Math.max(0.1, Math.min(100, this.a));
-      this.b = Math.max(0.1, Math.min(100, this.b));
+      this.a = clamp(this.a, 0.1, 100);
+      this.b = clamp(this.b, 0.1, 100);
     }
 
     return { a: this.a, b: this.b, ece: this.computeECE() };
