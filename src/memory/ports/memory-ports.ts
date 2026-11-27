@@ -14,6 +14,7 @@ import type { LinkEntry, LinkType } from '../links/types';
 import type { RandomSource } from '../../types/primitives';
 import type { Focus } from '../focus';
 import type { AssociativeRegistry } from '../associative';
+import type { MemoryHealth } from '../health';
 
 /** The two bounds a store's occupancy is measured against. */
 export interface StoreBounds {
@@ -94,16 +95,4 @@ export interface MemoryClock {
   consolidate(opts?: { cycleCount?: number }): void;
 }
 
-/** Memory health check result. */
-export interface MemoryHealth {
-  /** Whether memory is healthy. */
-  isHealthy: boolean;
-  /** Current pressure level (0-1). */
-  pressureLevel: number;
-  /** Whether consolidation is needed. */
-  consolidationNeeded: boolean;
-  /** Whether forgetting is needed. */
-  forgettingNeeded: boolean;
-  /** Recommendations for improvement. */
-  recommendations: string[];
-}
+

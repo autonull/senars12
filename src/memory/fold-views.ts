@@ -10,6 +10,7 @@ import type { Term } from '../terms/index';
 import { atom, getArgs, termKey, fromNarsese } from '../terms/index';
 import { cosineNormalized, normalize } from '../util/similarity';
 import type { Episode } from '@senars/types/episodic-memory';
+import type { EpisodeCandidate, ConsolidationResult } from './episode-consolidator';
 import type { CoActivationEdge } from './ConceptGraph';
 import type { RecallHit } from './associative';
 import type { IndexedEmbedding } from './links/EmbeddingLayer';
@@ -468,17 +469,7 @@ export interface EpisodeConsolidatorData {
   emittedSummaries: Episode[];
 }
 
-export interface EpisodeCandidate {
-  id: string;
-  priority: number;
-  episode: Episode;
-}
 
-export interface ConsolidationResult {
-  summary: Episode;
-  merged: string[];
-  scanned: number;
-}
 
 /** Create an episode consolidator fold view. */
 export function createEpisodeConsolidatorView(
