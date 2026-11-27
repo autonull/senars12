@@ -311,14 +311,14 @@ export class Concept {
 
   mergeWith(others: Concept[]): ConceptMergeResult {
     for (const other of [this, ...others]) {
-      for (const belief of other.beliefBag.all()) {
+      for (const belief of other.beliefBag.values()) {
         const added = this.beliefBag.add(belief);
         if (added) this.beliefIndex.set(termKey(belief.term), belief);
       }
-      for (const goal of other.goalBag.all()) {
+      for (const goal of other.goalBag.values()) {
         this.goalBag.add(goal);
       }
-      for (const question of other.questionBag.all()) {
+      for (const question of other.questionBag.values()) {
         this.questionBag.add(question);
       }
     }
@@ -411,10 +411,10 @@ export class Concept {
   private calculateTaskOverlap(other: Concept): number {
     const thisSet = new TermSet();
     const otherSet = new TermSet();
-    for (const b of this.beliefBag.all()) {
+    for (const b of this.beliefBag.values()) {
       thisSet.add(b.term);
     }
-    for (const b of other.beliefBag.all()) {
+    for (const b of other.beliefBag.values()) {
       otherSet.add(b.term);
     }
     return jaccard(thisSet, otherSet);

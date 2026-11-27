@@ -331,7 +331,10 @@ export class RuleProcessor {
   }
 
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
-    this.resultBuffer = [...this.applySyncRulesInternal(p1, p2, true)];
+    this.resultBuffer.length = 0;
+    for (const result of this.applySyncRulesInternal(p1, p2, true)) {
+      this.resultBuffer.push(result);
+    }
     this.#finishRecord();
     return this.resultBuffer;
   }

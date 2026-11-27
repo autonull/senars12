@@ -267,6 +267,33 @@ export class Memory implements MemoryPorts {
     return questions;
   }
 
+  /** Iterator over all beliefs without allocating an array. */
+  *beliefTasks(): IterableIterator<Belief> {
+    for (const concept of this.concepts.values()) {
+      for (const b of concept.beliefBag.all()) {
+        yield taskFromBagItem(b, 'belief', concept.priority) as Belief;
+      }
+    }
+  }
+
+  /** Iterator over all goals without allocating an array. */
+  *goalTasks(): IterableIterator<Task> {
+    for (const concept of this.concepts.values()) {
+      for (const g of concept.goalBag.all()) {
+        yield taskFromBagItem(g, 'goal', concept.priority);
+      }
+    }
+  }
+
+  /** Iterator over all questions without allocating an array. */
+  *questionTasks(): IterableIterator<Question> {
+    for (const concept of this.concepts.values()) {
+      for (const q of concept.questionBag.all()) {
+        yield taskFromBagItem(q, 'question', concept.priority) as Question;
+      }
+    }
+  }
+
   /**
    * Memory statistics.
    */
