@@ -11,7 +11,7 @@ import { latencyClassOf } from './capabilities';
 import type { SeNARSModelId, SeNARSRegistry } from './model-factory';
 import { type ModelReliability, pickModel } from './routing';
 import { getLMSettings, getLmProvider } from './settings';
-import type { LMTask } from '@senars/util';
+import type { LMTask } from '@senars/types/llm';
 import { SenarsError } from '../../errors/senars-error';
 
 

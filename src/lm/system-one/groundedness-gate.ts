@@ -3,7 +3,7 @@ import type { ContrastiveMemory } from './contrastive';
 import { createDecider, type Decider } from './decide';
 import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types';
 import { createSystemOneBudget } from './types';
-import type { EgressVerdict } from '@senars/util';
+import type { EgressVerdict } from '@senars/types/cognitive';
 
 export interface GroundednessGateOptions {
   manifold: JudgmentManifold;

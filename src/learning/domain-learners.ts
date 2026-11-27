@@ -2,7 +2,7 @@ import type { RewardDomain } from '@senars/schemas';
 import { accumulate } from '@senars/util/collections';
 import { clamp, clamp01, clampSigned } from '@senars/util/numeric';
 import { SenarsError } from '@senars/errors';
-import type { CapabilityRisk } from '@senars/util';
+import type { CapabilityRisk } from '@senars/util/capability-risk';
 import type { FocusBag } from '../focus/FocusBag';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate';
 import type { LearningEvent, Reflex } from '../reflex/Reflex';

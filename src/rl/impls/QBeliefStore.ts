@@ -2,7 +2,7 @@ import { ambientRng, nextInt } from '@senars/util/random';
 import { clamp01, lerp, nearlyEqual } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
-import type { RandomSource } from '@senars/util';
+import type { RandomSource } from '@senars/util/random';
 import type { DriveManager } from '../../drives/impls/DriveManager';
 import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index';
 import type { NAR } from '../../nar/core';

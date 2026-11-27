@@ -1,7 +1,7 @@
 import type { Clock } from '@senars/util/clock';
 import { clamp01, flooredRatio } from '@senars/util/numeric';
 import { incrementCount, selectTopN, shareCount } from '@senars/util/collections';
-import type { CallTally } from '@senars/util';
+import type { CallTally } from '@senars/util/tally';
 
 /**
  * Selection weights: how often a rule worked dominates, how fast it answered

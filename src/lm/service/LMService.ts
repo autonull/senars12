@@ -16,7 +16,7 @@ import type {
   LMGenerateOptions,
   LMTask,
   LMExecutionStats,
-} from '@senars/util';
+} from '@senars/types/llm';
 import {
   createSeNARSRegistry,
   getLMSettings,

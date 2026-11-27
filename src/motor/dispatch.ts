@@ -1,5 +1,5 @@
 import { errMsg } from '@senars/util/error';
-import type { ToolCall } from '@senars/util';
+import type { ToolCall } from '@senars/types/tools';
 
 export interface DispatchContext {
   tools: Record<string, { execute: (args: Record<string, unknown>) => Promise<unknown> }>;

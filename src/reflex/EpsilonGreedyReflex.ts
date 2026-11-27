@@ -2,7 +2,7 @@ import { ambientRng } from '@senars/util/random';
 import { isYoung } from '@senars/util/bandit';
 import { BanditReflex } from './BanditReflex';
 import type { Reflex } from './Reflex';
-import type { RandomSource } from '@senars/util';
+import type { RandomSource } from '@senars/util/random';
 import type { QEntry } from '@senars/util/bandit';
 
 interface EpsilonGreedyOptions {

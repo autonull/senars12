@@ -3,7 +3,7 @@ import { clamp01 } from '@senars/util/numeric';
 import { maxScore } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
 import { systemClock, type Clock } from '@senars/util/clock';
-import type { BeliefTruth } from '@senars/util';
+import type { BeliefTruth } from '@senars/types/truth';
 import { type Bag, type BagOptions, createBag } from '../bag/index';
 import type { ResolvedBagSlot } from '../bag/registration';
 import type { Term, Truth } from '../terms';

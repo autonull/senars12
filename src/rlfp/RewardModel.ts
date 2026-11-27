@@ -1,7 +1,7 @@
 import { ambientRng, nextInt } from '@senars/util/random';
 import { flooredRatio, normalizeToSum, safeRatio, softFalloff } from '@senars/util/numeric';
 import { ensureArray } from '@senars/util/guards';
-import type { RandomSource } from '@senars/util';
+import type { RandomSource } from '@senars/util/random';
 
 import type { PreferenceData } from './PreferenceCollector';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger';

@@ -5,7 +5,7 @@ import { lerpUpdate, QTable, rampConfidence, type QEntry } from '@senars/util/ba
 import type { Perception } from '../game/Game';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex';
 import { byExpectedValue } from './Reflex';
-import type { RandomSource } from '@senars/util';
+import type { RandomSource } from '@senars/util/random';
 
 interface TabularQReflexOptions {
   alpha?: number;

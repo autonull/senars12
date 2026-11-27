@@ -33,7 +33,7 @@ import {
 } from '../runtime/llama-runtime';
 import { grammarScope } from './llamacpp';
 import { getLMSettings } from './settings';
-import type { LMTask } from '@senars/util';
+import type { LMTask } from '@senars/types/llm';
 import { SenarsError } from '../../errors/senars-error';
 import { createLogger } from '../../util/logger';
 

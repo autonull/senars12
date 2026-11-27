@@ -3,7 +3,7 @@ import { envPositive } from '@senars/config';
 import { recordLmSpend } from '../../metrics/index';
 import { getModelCapability } from '../providers';
 import { LMUnavailableError, withHint } from './errors';
-import type { LMTask } from '@senars/util';
+import type { LMTask } from '@senars/types/llm';
 
 /** H3/X15: per-provider cumulative spend. */
 export interface ProviderSpend {

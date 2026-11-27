@@ -3,7 +3,7 @@ import { toolError } from '@senars/types/engine';
 import { toSkillFeedback } from '@senars/feedback';
 import type { SkillFeedback, ToolFeedbackObserver } from '@senars/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/feedback';
-import type { ToolCapabilities, ToolContext, ToolFn, ToolSpec, ToolResult } from '@senars/util';
+import type { ToolCapabilities, ToolContext, ToolFn, ToolSpec, ToolResult } from '@senars/types/tools';
 
 /**
  * The tool contract and the feedback record are util's. The contract was declared

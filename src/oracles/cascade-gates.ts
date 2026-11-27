@@ -15,7 +15,7 @@ import type { KernelBudgetGate } from '../kernel/KernelBudgetGate';
 import type { EmbeddingCache, JudgmentManifold, ReasoningBudget } from '../lm/system-one/types';
 import type { ContrastiveMemory } from '../lm/system-one/contrastive';
 import type { AgentTrace } from '@senars/types/cognitive';
-import type { EgressVerdict } from '@senars/util';
+import type { EgressVerdict } from '@senars/types/cognitive';
 import { SenarsError } from '../errors/senars-error';
 
 
