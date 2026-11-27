@@ -9,7 +9,7 @@ import { Focus } from '../focus';
 import { Archive } from '../lifecycle';
 import { MemoryIndex } from '../memory-index';
 import type { ResolvedMemoryConfig } from '../config';
-import { LinkManager } from '../links';
+import { LinkManager } from '../links/LinkManager';
 import type { MemoryPorts } from '../ports/index';
 import type { AttentionModel } from '../../strategies/types';
 import type { EmbeddingGenerator } from '../embedding';

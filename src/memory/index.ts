@@ -31,6 +31,7 @@ export { EPISODE_TYPES, EpisodeSchema } from './episodic';
 export { MockEmbeddingGenerator, type EmbeddingGenerator, createEmbeddingGenerator, isMockLM } from './embedding';
 export { LINK_LAYER, type KnownLinkLayer } from './links/types';
 export { Layer } from './links/Layer';
+export { LinkManager } from './links/LinkManager';
 export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative';
 export { EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from './episode-consolidator';
 export type { EpisodeConsolidatorOptions } from './episode-consolidator';

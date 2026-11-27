@@ -34,7 +34,7 @@ import { type EmbeddingGenerator, MockEmbeddingGenerator } from '../embedding';
 import { Focus } from '../focus';
 import type { MemoryHealth } from '../health';
 import { Archive, Forgetting } from '../lifecycle';
-import { LinkManager } from '../links';
+import { LinkManager } from '../links/LinkManager';
 import { EmbeddingLayer } from '../links/EmbeddingLayer';
 import { LINK_LAYER } from '../links/types';
 import { MemoryIndex } from '../memory-index';
