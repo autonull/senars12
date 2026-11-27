@@ -7,7 +7,10 @@
  */
 
 import { DialogueCapture } from '@senars/dialogue';
-import { createLogger, envStr, parseFlags, setupGracefulShutdown } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { envStr } from '@senars/util/config';
+import { parseFlags } from '@senars/util/cli';
+import { setupGracefulShutdown } from '@senars/util/shutdown';
 import { runEntrypoint } from '../../lib/fatal-error';
 import { createAgentFromEnv } from '../../lib/lifecycle';
 import {

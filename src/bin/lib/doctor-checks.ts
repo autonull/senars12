@@ -4,7 +4,8 @@
  */
 
 import { loadConfig } from '../../config/index';
-import { envSet, errMsg } from '@senars/util';
+import { envSet } from '@senars/util/config';
+import { errMsg } from '@senars/util/error';
 import { attempted } from '@senars/cli';
 import { probeEmbeddedLlama } from '../../lm/index';
 

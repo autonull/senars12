@@ -7,7 +7,7 @@ import type { CommandModule } from '../../lib/cli';
 import { resolveLMSettings } from '@senars/lm';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config';
 import { RLFPLearner } from '@senars/rlfp';
-import { clamp, finiteOr } from '@senars/util';
+import { clamp, finiteOr } from '@senars/util/numeric';
 import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
 interface TuneResult {

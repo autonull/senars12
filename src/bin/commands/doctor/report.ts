@@ -7,7 +7,10 @@ import { runCLI, standardSections } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
 import { resolveLMSettings, resolveLMConfig, cloudApiKey } from '@senars/lm';
 import { loadConfig } from '../../../config/index';
-import { createLogger, parseFlags, jsonMode, formatBytes, errMsg } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { parseFlags, jsonMode } from '@senars/util/cli';
+import { formatBytes } from '@senars/util/format';
+import { errMsg } from '@senars/util/error';
 import {
   createDiagnosticNAR,
   loadDiagnosticConfig,

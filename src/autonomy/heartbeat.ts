@@ -1,4 +1,4 @@
-import { perPart, periodic } from '@senars/util';
+import { perPart, periodic } from '@senars/util/async';
 import type { AutonomyConfig } from './config';
 import type { AutonomyPorts, AutonomyTickReport, ConceptObservation } from './types';
 

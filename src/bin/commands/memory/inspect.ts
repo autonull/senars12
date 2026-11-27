@@ -5,7 +5,8 @@
 import type { CommonFlags, HelpSection } from '../../lib/cli-utils';
 import { runCLI, standardSections } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
-import { createLogger, parseFlags, jsonMode } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { parseFlags, jsonMode } from '@senars/util/cli';
 import { createAgentFromEnv } from '../../lib/lifecycle';
 
 const logger = createLogger({ scope: 'memory:inspect' });

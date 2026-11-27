@@ -13,7 +13,7 @@ import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../.
 import type { Clock } from '../../kernel/env';
 import { createLogger } from '../../util/logger';
 import { errMsg } from '@senars/util/error';
-import { unique } from '@senars/util';
+import { unique } from '@senars/util/collections';
 
 import type {
   Anomaly,

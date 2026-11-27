@@ -2,7 +2,7 @@ import {
   mintCognitiveEvent,
   type ShadowValidationDropEvent,
 } from '@senars/schemas';
-import { makeId } from '@senars/util';
+import { makeId } from '@senars/util/id';
 import type { GateRegistry } from '../kernel/index';
 import type { Memory } from '../memory';
 import type { Task } from '../types';

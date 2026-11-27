@@ -11,7 +11,7 @@ import type { ProofMettaProposer } from '../meta/index';
 import { ProposalBag } from '../meta/proposal-bag';
 import type { Reflex } from '../reflex/Reflex';
 import type { NarEventBus, ContradictionEvent, NAREventMap } from '../types/events';
-import type { EventBus } from '@senars/util';
+import type { EventBus } from '@senars/events';
 import type { RandomSource } from '../types/primitives';
 import type { NARConfig } from '../nar/config';
 import type { SystemOneRuntime } from './system-one';

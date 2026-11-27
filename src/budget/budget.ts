@@ -28,7 +28,7 @@ import type { BudgetExhaustedEvent } from '../schemas/cognitive-events';
 import type { ReasoningBudget, TerminationReason } from '../schemas/reasoning-budget';
 import { zeroConsumed } from '../schemas/reasoning-budget';
 import type { BudgetEventMap } from './budget-events';
-import type { EventBus } from '@senars/util';
+import type { EventBus } from '@senars/events';
 
 export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason, BudgetEventMap };
 

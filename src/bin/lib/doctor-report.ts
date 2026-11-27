@@ -12,7 +12,10 @@
  */
 
 import { cpus } from 'node:os';
-import { createLogger, errMsg, keyedBy, mapValues, parseFlags, jsonMode } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { errMsg } from '@senars/util/error';
+import { keyedBy, mapValues } from '@senars/util/collections';
+import { parseFlags, jsonMode } from '@senars/util/cli';
 import type { HealthReport } from '@senars/types/health';
 import { LM_TASKS } from '@senars/types/llm';
 import {

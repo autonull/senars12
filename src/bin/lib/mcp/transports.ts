@@ -10,7 +10,10 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
 import { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
-import { BoundedMap, generateId, type Teardown, envStrOr, envNum } from '@senars/util';
+import { BoundedMap } from '@senars/util/bounded-map';
+import { generateId } from '@senars/util/id';
+import type { Teardown } from '@senars/util/disposal';
+import { envStrOr, envNum } from '@senars/util/config';
 
 /** HTTP request guard with API key validation and rate limiting. */
 export class HttpGuard {

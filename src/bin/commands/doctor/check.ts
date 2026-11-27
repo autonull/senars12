@@ -9,7 +9,11 @@ import { runCLI, standardSections } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
 import { resolveLMSettings, resolveLMConfig, cloudApiKey } from '@senars/lm';
 import { loadConfig, systemOneDefaults, systemOneSchema } from '../../../config/index';
-import { createLogger, parseFlags, jsonMode, keyedBy, mapValues, errMsg, formatBytes } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { parseFlags, jsonMode } from '@senars/util/cli';
+import { keyedBy, mapValues } from '@senars/util/collections';
+import { errMsg } from '@senars/util/error';
+import { formatBytes } from '@senars/util/format';
 import {
   createDiagnosticNAR,
   loadDiagnosticConfig,

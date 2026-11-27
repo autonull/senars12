@@ -5,7 +5,8 @@
 
 import type { NAR, ExtendedAgent } from '../agent/index';
 import type { LMExecutionStats } from '@senars/types/llm';
-import { formatDuration, formatTruth, limitList } from '@senars/util';
+import { formatDuration, limitList } from '@senars/util/format';
+import { formatTruth } from '@senars/types/truth';
 import type { LMHandle } from './commands';
 
 export interface FormattedStats {

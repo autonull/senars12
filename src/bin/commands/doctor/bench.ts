@@ -5,7 +5,8 @@
 import type { CommonFlags } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
 import { createDiagnosticNAR, runDerivationBenchmarks } from '../../lib/diagnostics';
-import { clamp, finiteOr, stopwatch, perSecond } from '@senars/util';
+import { clamp, finiteOr } from '@senars/util/numeric';
+import { stopwatch, perSecond } from '@senars/util/async';
 import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
 
 interface BenchResult {
