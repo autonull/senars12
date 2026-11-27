@@ -1,6 +1,6 @@
 import { takeFirst, takeLast } from '@senars/util/collections';
 import { intBetween, unitInterval } from '@senars/config';
-import { evaluateExpression } from '@senars/util/eval';
+import { evaluateExpression } from '@senars/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { Term } from '../../terms';

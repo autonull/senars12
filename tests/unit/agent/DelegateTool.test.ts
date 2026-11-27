@@ -49,6 +49,6 @@ describe('delegate tool', () => {
     });
     const res = await motor.execute('delegate', { prompt: 'x' });
     expect(res.success).toBe(false);
-    expect(res.error).toContain('worker crashed');
+    expect(res.error).toContain('Delegation failed: worker crashed');
   });
 });

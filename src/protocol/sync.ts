@@ -6,7 +6,7 @@ import { ConfigField } from './config';
 import { msg } from './envelope';
 import { Lens } from './graph-view';
 import type { CognitiveEvent } from '../schemas/cognitive-events';
-import { nonNegativeInt } from '@senars/util/config';
+import { nonNegativeInt } from '@senars/config';
 
 export const SyncRequest = msg('sync.request', { lastSeqId: z.number().nullable() });
 

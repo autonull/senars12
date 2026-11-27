@@ -1,6 +1,6 @@
 import { errMsg } from '@senars/util/error';
 import { selectTopN } from '@senars/util/collections';
-import { intBetween } from '@senars/util/config';
+import { intBetween } from '@senars/config';
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory';

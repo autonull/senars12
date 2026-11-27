@@ -5,7 +5,7 @@
  * config-file overrides.
  */
 
-import { envBool, envCsv, envFirst, envInt, envStrOr } from '@senars/util/config';
+import { envBool, envCsv, envFirst, envInt, envStrOr } from '@senars/config';
 import type { ConnectionConfig } from '../types';
 
 export interface TransportEnvOverrides {

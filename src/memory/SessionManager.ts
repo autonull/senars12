@@ -1,17 +1,13 @@
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import {
-  abortSession,
-  createSession,
-  InMemorySessionManager,
-  SessionStore,
-} from '@senars/util/memory';
+import { abortSession, createSession, InMemorySessionManager } from './in-memory-session-manager';
+import { SessionStore } from './in-memory-session-manager';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 import { z } from 'zod';
 import { HistoryEntrySchema } from '../schemas/common';
 
 /**
  * @deprecated Will be removed in next major version.
- * Use `import { InMemorySessionManager, createSession, abortSession } from '@senars/util/memory'` instead.
+ * Use `import { InMemorySessionManager, createSession, abortSession } from '@senars/memory'` instead.
  */
 export { abortSession, createSession, InMemorySessionManager };
 

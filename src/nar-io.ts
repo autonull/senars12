@@ -8,7 +8,7 @@ import type { RewardGateOutput } from '@senars/schemas/gate-io';
 import { clamp, clampSigned } from '@senars/util/numeric';
 import { makeId } from '@senars/util/id';
 import { writeJsonFile } from '@senars/util/fs';
-import type { EventBus } from '@senars/util/events';
+import type { EventBus } from '@senars/events';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import type { NARConfig } from './nar/config';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';

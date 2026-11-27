@@ -3,7 +3,7 @@ import type { PromptBuilder } from '@senars/cortex';
 import type { MettaPort } from './metta-port';
 import { entryKey, keyedBy } from '@senars/util/collections';
 import { errMsg } from '@senars/util/error';
-import type { SystemOneConfig } from '@senars/util/config';
+import type { SystemOneConfig } from '@senars/config';
 import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry';
 import {
   type CognitiveParameters,

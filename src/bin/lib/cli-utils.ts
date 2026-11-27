@@ -3,6 +3,13 @@
  */
 
 import { parseFlags, type Flags } from '@senars/util/cli';
+import { errMsg } from '@senars/util/error';
+
+/** Format an error for CLI output. */
+export function formatError(err: unknown, json: boolean, context?: string): string {
+  const message = context ? `${context}: ${errMsg(err)}` : errMsg(err);
+  return json ? JSON.stringify({ error: message }) : `Error: ${message}`;
+}
 
 /** Standard help section. */
 export interface HelpSection {
@@ -94,7 +101,7 @@ export async function runCLI<T>(
     return await main(common, flags.positional);
   } catch (err) {
     if (!common.quiet) {
-      console.error(common.json ? JSON.stringify({ error: String(err) }) : `Error: ${err}`);
+      console.error(formatError(err, common.json));
     }
     process.exit(1);
   }

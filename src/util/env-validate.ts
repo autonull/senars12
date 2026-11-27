@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/util/logger';
-import { isBooleanSpelling } from '@senars/util/config';
+import { isBooleanSpelling } from '@senars/config';
 
 const logger = createLogger({ scope: 'env:validate' });
 

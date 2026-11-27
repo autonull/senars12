@@ -12,7 +12,7 @@
  * whatever is current when it runs rather than what existed at build time.
  */
 
-import { systemOneDefaults } from '@senars/util/config';
+import { systemOneDefaults } from '@senars/config';
 import { createSystemOneBudget } from './lm/system-one/types';
 import { SystemOneIngressJudge } from './lm/system-one/ingress-judge';
 import type { JudgmentProposition, JudgmentQuery } from './lm/system-one/types';

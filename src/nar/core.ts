@@ -20,7 +20,7 @@ import {
 } from '../util/index';
 import { BoundedRing } from '../util/collections';
 import { createLogger } from '../util/logger';
-import type { EventBus } from '@senars/util/events';
+import type { EventBus } from '@senars/events';
 import {
   AutonomyHeartbeat,
   type AutonomyConfig,

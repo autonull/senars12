@@ -28,13 +28,13 @@ import {
 } from '@senars/lm/system-one';
 import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
-import { formatBytes as formatBytesUtil } from '@senars/util/format';
+import { formatBytes } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
 import { pct } from '@senars/util/format';
 import { loadConfig } from '@senars/config';
 import { renderReport } from '../commands/args';
 import { mettaPort } from './metta';
-import { createDiagnosticNAR, loadDiagnosticConfig, readPersistedState, formatBytes, fileInfo } from './diagnostics';
+import { createDiagnosticNAR, loadDiagnosticConfig, readPersistedState, fileInfo } from './diagnostics';
 
 const logger = createLogger({ scope: 'status' });
 

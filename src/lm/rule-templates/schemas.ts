@@ -4,7 +4,7 @@
  */
 import { AmbiguityReportSchema, DetectedIntentSchema } from '@senars/schemas/formalization';
 import { z } from 'zod';
-import { unitInterval } from '@senars/util/config';
+import { unitInterval } from '@senars/config';
 
 export const NarseseBeliefSchema = z.object({
   narsese: z.string().describe('A single valid Narsese statement, e.g. (bird --> animal).'),

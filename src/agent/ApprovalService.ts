@@ -1,7 +1,7 @@
 import { deferred, withTimeout } from '@senars/util/async';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
-import { envBool } from '@senars/util/config';
+import { envBool } from '@senars/config';
 import { APPROVAL_TIMEOUT_MS } from './constants';
 import type { Verdict } from '../schemas/gate-io';
 import type { CapabilityRisk } from '@senars/util/capability-risk';

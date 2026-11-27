@@ -1,6 +1,6 @@
 /** System One config: .s1-config show|set <path> <value>|save|reload */
 
-import { envStrOr } from '@senars/util/config';
+import { envStrOr } from '@senars/config';
 import { cmd } from '@senars/cli';
 import { dispatchSub, coerce, setPath } from '../args';
 import { reloadAppConfig } from '../config';

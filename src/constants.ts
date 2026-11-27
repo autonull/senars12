@@ -11,7 +11,7 @@ export const SATURATION_COUNT = 10;
  * `@senars/util` (the AIKR bag reads it too); re-exported here so the cognitive
  * modules keep importing it from their own constants.
  */
-export { PRESSURE } from '@senars/util/config';
+export { PRESSURE } from '@senars/config';
 
 /**
  * The bag capacities a focus is built with when its options are silent. `Focus`

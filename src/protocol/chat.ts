@@ -2,7 +2,7 @@
  * Chat protocol schemas
  */
 import { MessageRoleSchema } from '@senars/types';
-import { nonEmpty } from '@senars/util/config';
+import { nonEmpty } from '@senars/config';
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '@senars/schemas/task';
 import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';

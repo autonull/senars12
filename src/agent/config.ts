@@ -2,7 +2,7 @@ import type { PromptBuilder } from '@senars/cortex';
 import type { PersistableSessionManager } from '@senars/memory';
 import type { MettaPort } from './metta-port';
 import type { LMTask } from '@senars/types/llm';
-import type { ConnectionConfig } from '@senars/util/types/transport';
+import type { ConnectionConfig } from '@senars/types/transport';
 import type { EpisodicMemory, LMService, NAR } from '../index';
 import type { ThreadScope } from '../kernel/thread-scope';
 

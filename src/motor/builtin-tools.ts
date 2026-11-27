@@ -3,7 +3,7 @@ import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/types/episodic-memory';
 import { CAPABILITY_RISKS, CapabilityRiskSchema } from '@senars/util/capability-risk';
-import { envStr } from '@senars/util/config';
+import { envStr } from '@senars/config';
 import { errMsg } from '@senars/util/error';
 import { objectSpec } from '@senars/types/tools';
 import { toolAttempt, toolError, toolOk } from '@senars/types/engine';

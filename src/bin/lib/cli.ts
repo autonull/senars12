@@ -104,7 +104,8 @@ export async function dispatch(argv: string[]): Promise<void> {
     await module.main(commonFlags, flags.positional);
   } catch (err) {
     if (!commonFlags.quiet) {
-      console.error(commonFlags.json ? JSON.stringify({ error: String(err) }) : `Error: ${err}`);
+      const { formatError } = await import('./cli-utils');
+      console.error(formatError(err, commonFlags.json));
     }
     process.exit(1);
   }

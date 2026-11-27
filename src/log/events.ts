@@ -32,7 +32,7 @@ import {
   type DerivationStep,
   type DerivationRecord,
 } from '../generated/schemas';
-import { uuid, nonNegativeInt, timestamp, nonEmpty } from '@senars/util/config';
+import { uuid, nonNegativeInt, timestamp, nonEmpty } from '@senars/config';
 
 export type {
   UUID,

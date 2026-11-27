@@ -1,7 +1,7 @@
 /** Raw-token access for CLI commands — the single argv-shape toolkit. */
 
 import { getNested } from '@senars/util/object';
-import { parseEnvValue } from '@senars/util/config';
+import { parseEnvValue } from '@senars/config';
 import { parseFlags, type Flags, jsonMode } from '@senars/util/cli';
 import { splitWords } from '@senars/util/text';
 

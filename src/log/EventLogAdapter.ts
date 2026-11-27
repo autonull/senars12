@@ -20,7 +20,7 @@ import type {
 } from './events';
 import { createLogEntry, hashEntry } from './events';
 import { CognitiveEventSchema } from '../generated/schemas';
-import { PushQueue } from '@senars/util/events';
+import { PushQueue } from '@senars/events';
 import { SenarsError } from '../errors/senars-error';
 
 

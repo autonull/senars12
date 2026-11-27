@@ -1,6 +1,6 @@
 /** Application config read/write commands (`.config-*`). Mutates `rt.appConfig` in place. */
 
-import { envStrOr } from '@senars/util/config';
+import { envStrOr } from '@senars/config';
 import { thaw } from '@senars/util/object';
 import { writeJsonFile } from '@senars/util/fs';
 import { cmd } from '@senars/cli';

@@ -5,10 +5,10 @@ import { toolError } from '@senars/types/engine';
 import { errMsg } from '@senars/util/error';
 import { stopwatch } from '@senars/util/async';
 import { SenarsError } from '@senars/errors';
-import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
-import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import type { ToolFeedback, ToolFeedbackObserver } from '@senars/feedback';
+import { DefaultToolFeedbackObserver } from '@senars/feedback';
 import type { Term } from '../../terms';
-import type { EventBus } from '@senars/util/events';
+import type { EventBus } from '@senars/events';
 import type { NAREventMap } from '../../types';
 import type { RandomSource } from '../../types/primitives';
 import type {

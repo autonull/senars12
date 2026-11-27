@@ -1,4 +1,4 @@
-import { nonEmpty } from '@senars/util/config';
+import { nonEmpty } from '@senars/config';
 import { z } from 'zod';
 
 /** JSON-serializable form of a Modulation AST node. Defined manually to avoid circular type inference. */

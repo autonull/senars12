@@ -29,7 +29,6 @@ import {
   getCircuitBreakers,
   getRoutingLogStatus,
   getCredentials,
-  formatBytes,
 } from './diagnostics';
 import { cloudApiKey, resolveLMConfig, resolveLMSettings, setRouting } from '@senars/lm';
 

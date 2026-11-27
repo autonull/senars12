@@ -4,7 +4,7 @@ import { holdoutSplit, mulberry32 } from '@senars/util/random';
 import { toFiniteNumber } from '@senars/util/numeric';
 import { writeJsonFile } from '@senars/util/fs';
 import { sha256HexParts } from '@senars/util/hash';
-import { cachePath } from '@senars/util/config';
+import { cachePath } from '@senars/config';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration';
 import type { JudgmentDataset } from './distill';
 import { identityECE, meanBrier, meanBrierOf } from './metrics';

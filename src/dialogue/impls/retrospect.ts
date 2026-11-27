@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { cachePath } from '@senars/util/config';
+import { cachePath } from '@senars/config';
 import { parseJsonOr } from '@senars/util/fs';
 import { mean } from '@senars/util/numeric';
 import { sortBy, takeFirst } from '@senars/util/collections';

@@ -2,7 +2,7 @@ import type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig, Episodi
 import { containsFolded, foldNeedle } from '@senars/util/text';
 import { flatUnique, getOrInsert, rankBy, takeLast } from '@senars/util/collections';
 import { systemClock, type Clock } from '@senars/util/clock';
-import { cachePath } from '@senars/util/config';
+import { cachePath } from '@senars/config';
 import { EPISODE_TYPES } from '../types/episodic-memory';
 import { sortableIdSource } from '@senars/util/id';
 import {

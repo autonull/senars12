@@ -1,4 +1,4 @@
-import { intBetween } from '@senars/util/config';
+import { intBetween } from '@senars/config';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { parseCoverageFiles } from './vitest-json';

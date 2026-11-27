@@ -2,7 +2,7 @@ import type { Agent } from '@senars/agent';
 import { aggregateChatResponse } from '@senars/bridge';
 import type { BridgeOptions } from '@senars/types/agent';
 import type { Connection, IOMessage } from '@senars/types/transport';
-import { InMemorySessionManager } from '@senars/util/memory';
+import { InMemorySessionManager } from '@senars/memory';
 import type { ConnectionManager } from '../connection-manager';
 import {
   ctxAsRecord,

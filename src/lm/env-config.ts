@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/util/config';
+import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/config';
 import type { CircuitBreakerSettings, CircuitState } from '@senars/util/circuit-breaker';
 import { endpointPath } from './providers/probe';
 import { type GpuSetting, gpuSettingFrom } from './runtime/llama-runtime';

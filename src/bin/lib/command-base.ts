@@ -7,7 +7,7 @@
 import type { Flags } from '@senars/util/cli';
 import { parseFlags } from '@senars/util/cli';
 import type { CommonFlags, HelpSection } from './cli-utils';
-import { parseCommonFlags, runCLI, standardSections } from './cli-utils';
+import { parseCommonFlags, runCLI, standardSections, formatError } from './cli-utils';
 import type { CommandModule } from './cli';
 import { createStubCommand } from './cli';
 
@@ -108,8 +108,7 @@ export async function handleErrors<T>(
     return await fn();
   } catch (err) {
     if (!flags.quiet) {
-      const message = context ? `${context}: ${err}` : String(err);
-      console.error(flags.json ? JSON.stringify({ error: message }) : `Error: ${message}`);
+      console.error(formatError(err, flags.json, context));
     }
     process.exit(1);
   }

@@ -1,5 +1,5 @@
 import { type SearchProvider, searchWeb, type WebSearchOutcome } from '@senars/motor';
-import { intBetween } from '@senars/util/config';
+import { intBetween } from '@senars/config';
 import { tool } from 'ai';
 import { z } from 'zod';
 

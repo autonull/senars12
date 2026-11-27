@@ -1,4 +1,4 @@
-import type { SystemOneConfig } from '@senars/util/config';
+import type { SystemOneConfig } from '@senars/config';
 import { SenarsError } from '../errors/senars-error';
 
 

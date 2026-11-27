@@ -1,5 +1,5 @@
 import { accumulate, mapToRecord } from '@senars/util/collections';
-import { envPositive } from '@senars/util/config';
+import { envPositive } from '@senars/config';
 import { recordLmSpend } from '../../metrics/index';
 import { getModelCapability } from '../providers';
 import { LMUnavailableError, withHint } from './errors';

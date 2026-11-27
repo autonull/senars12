@@ -4,7 +4,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
-import { withDefaults } from '@senars/util/config';
+import { withDefaults } from '@senars/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types';
 import { BaseConnection } from './base';
 import { SenarsError } from '../../errors/senars-error';

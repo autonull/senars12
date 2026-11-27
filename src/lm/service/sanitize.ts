@@ -1,4 +1,4 @@
-import { envPositive } from '@senars/util/config';
+import { envPositive } from '@senars/config';
 import { SenarsError } from '@senars/errors';
 
 export const DEFAULT_MAX_LM_OUTPUT_CHARS = 65_536;

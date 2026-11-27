@@ -5,7 +5,7 @@ import { DisposalRegistry } from '@senars/util/disposal';
 import { errMsg } from '@senars/util/error';
 import { isQuitResult, QUIT_SENTINEL } from '@senars/commands';
 import { splitWords } from '@senars/util/text';
-import { withDefaults } from '@senars/util/config';
+import { withDefaults } from '@senars/config';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types';
 import { BaseConnection } from './base';
 

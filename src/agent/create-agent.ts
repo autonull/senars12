@@ -6,8 +6,8 @@ import { createLogStore, LogStoreEventLog } from '@senars/log';
 import { createCortexFromLM } from '@senars/cortex';
 import type { PersistableSessionManager } from '@senars/memory';
 import { registerAgentTools } from '@senars/motor';
-import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import type { ToolFeedbackObserver } from '@senars/feedback';
+import { DefaultToolFeedbackObserver } from '@senars/feedback';
 import { clamp } from '@senars/util/numeric';
 import { createLogger, silentLogger } from '@senars/util/logger';
 import { deadline } from '@senars/util/async';
@@ -27,7 +27,7 @@ import { createCompactionPromptBuilder } from './compaction';
 import type { CreateAgentConfig } from './config';
 import { recallEpisodes } from './recall';
 import { WSConnection } from '@senars/io/connections/ws';
-import type { ConnectionConfig } from '@senars/util/types/transport';
+import type { ConnectionConfig } from '@senars/types/transport';
 import { handleDelegationMessage, createDelegation } from '../cooperation/delegation';
 import type {
   DelegationPeer,

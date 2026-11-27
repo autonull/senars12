@@ -10,7 +10,7 @@ import { ensureDir, writeJsonFile } from '@senars/util/fs';
 import { sha256Prefixed } from '@senars/util/hash';
 import { composeModelDigest, encoderDigest, DigestMismatchError } from './wasi-runtime';
 import type { HeadGeometry, TrainedHeadModel, HeadArtifactBundle, HeadArtifactConfig } from './types';
-import { nonEmpty, nonNegativeInt, positiveInt } from '@senars/util/config';
+import { nonEmpty, nonNegativeInt, positiveInt } from '@senars/config';
 import { cognitiveAxisSchema, rubricIdSchema } from '../../decision/types';
 
 /** Parameters as bytes: the vector, then the bias as a trailing f32. */
@@ -78,7 +78,7 @@ export const HeadArtifactConfigSchema = z.strictObject({
   modelDigest: nonEmpty,
 }) satisfies z.ZodType<HeadArtifactConfig>;
 
-import { parseOrThrow } from '@senars/util/config';
+import { parseOrThrow } from '@senars/config';
 
 /** Serialize a trained model to the on-disk artifact bundle. */
 export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {

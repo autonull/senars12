@@ -1,4 +1,4 @@
-import { cachePath } from '@senars/util/config';
+import { cachePath } from '@senars/config';
 import { clamp, clampSigned, flooredRatio, roundTo } from '@senars/util/numeric';
 import { createLogger } from '@senars/util/logger';
 import { ensureArray } from '@senars/util/guards';

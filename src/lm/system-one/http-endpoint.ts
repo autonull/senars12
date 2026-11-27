@@ -1,5 +1,5 @@
 import type { TermTruth } from '@senars/types/truth';
-import { criticalitySchema } from '@senars/util/config';
+import { criticalitySchema } from '@senars/config';
 import { z } from 'zod';
 import { seedTruth } from './seed';
 import type {

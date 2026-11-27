@@ -2,7 +2,7 @@
  * Object/node patch schemas
  */
 
-import { unitInterval } from '@senars/util/config';
+import { unitInterval } from '@senars/config';
 import { z } from 'zod';
 import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
 import { msg } from './envelope';

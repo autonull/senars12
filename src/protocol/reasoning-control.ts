@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { msg } from './envelope';
-import { nonEmpty, unitInterval, intBetween, positiveInt } from '@senars/util/config';
+import { nonEmpty, unitInterval, intBetween, positiveInt } from '@senars/config';
 
 /**
  * The correlation the client stamps on every control request and the engine

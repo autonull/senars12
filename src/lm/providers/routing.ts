@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LMExecutionStats } from '@senars/types/llm';
-import { cachePath } from '@senars/util/config';
+import { cachePath } from '@senars/config';
 import { clamp01 } from '@senars/util/numeric';
-import { envStr } from '@senars/util/config';
+import { envStr } from '@senars/config';
 import type { LMSettings } from '../env-config';
 import {
   delegate,

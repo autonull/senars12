@@ -25,7 +25,7 @@ export type {
   ScenarioSuccessCriteria,
 } from './scenario-execute';
 
-import { intBetween } from '@senars/util/config';
+import { intBetween } from '@senars/config';
 
 export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
   const _workspaceRoot = deps.workspaceRoot || process.cwd();

@@ -10,6 +10,7 @@ import { createLogger } from '@senars/util/logger';
 import { setupGracefulShutdown } from '@senars/util/shutdown';
 import type { ExtendedAgent } from '@senars/agent';
 import type { NAR } from '@senars/agent';
+import { maybeStartWebUI } from './cli-utils';
 
 const logger = createLogger({ scope: 'entrypoint-base' });
 
@@ -32,24 +33,6 @@ export async function createWiredAgent(): Promise<WiredAgent> {
   };
 }
 
-/**
- * Start Web UI if enabled (shared across entry points).
- */
-export async function maybeStartWebUI(
-  agent: ExtendedAgent,
-  enabled: boolean,
-  port?: number,
-  logger?: { info: (msg: string) => void; error: (msg: string, err: Error) => void }
-): Promise<void> {
-  if (!enabled) return;
-  try {
-    const { startAgentUI } = await import('../../ui/src/server/index');
-    await startAgentUI(agent, { port: port ?? 8765 });
-    logger?.info(`Web UI at http://localhost:${port ?? 8765}`);
-  } catch (err) {
-    logger?.error('Web UI failed to start', err as Error);
-  }
-}
-
 export { runEntrypoint } from './fatal-error';
 export { createLogger } from '@senars/util/logger';
+export { maybeStartWebUI };

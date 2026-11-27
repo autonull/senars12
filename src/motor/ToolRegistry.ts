@@ -1,8 +1,8 @@
 import { stopwatch } from '@senars/util/async';
 import { toolError } from '@senars/types/engine';
 import { toSkillFeedback } from '@senars/feedback';
-import type { SkillFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
-import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import type { SkillFeedback, ToolFeedbackObserver } from '@senars/feedback';
+import { DefaultToolFeedbackObserver } from '@senars/feedback';
 import type { ToolCapabilities, ToolContext, ToolFn, ToolSpec, ToolResult } from '@senars/util';
 
 /**

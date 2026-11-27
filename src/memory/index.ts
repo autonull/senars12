@@ -24,7 +24,8 @@ export {
 export { MemoryService } from './MemoryService';
 export { EpisodicMemory } from './episodic';
 export type { PersistableSessionManager } from './types';
-export { abortSession, createSession, InMemorySessionManager, JsonlSessionManager, type JsonlSessionManagerConfig } from './SessionManager';
+export { abortSession, createSession, InMemorySessionManager } from './in-memory-session-manager';
+export { JsonlSessionManager, type JsonlSessionManagerConfig } from './SessionManager';
 export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager';
 export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic';
 export { EPISODE_TYPES, EpisodeSchema } from './episodic';

@@ -1,7 +1,7 @@
 import { createLogger } from '@senars/util/logger';
 import { makeId } from '@senars/util/id';
 import { type WebSocket, WebSocketServer } from 'ws';
-import { withDefaults } from '@senars/util/config';
+import { withDefaults } from '@senars/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types';
 import { startWSServer } from '../utils/http';
 import {

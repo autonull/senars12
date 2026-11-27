@@ -17,4 +17,4 @@ export type {
   IOMessage,
   MessageClassification,
   TransportDeps,
-} from '@senars/util/types/transport';
+} from '@senars/types/transport';

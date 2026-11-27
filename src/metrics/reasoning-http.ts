@@ -11,7 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { envBool } from '@senars/util/config';
+import { envBool } from '@senars/config';
 import { SenarsError } from '../errors/senars-error';
 
 

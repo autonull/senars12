@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { envStrOr } from '@senars/util/config';
+import { envStrOr } from '@senars/config';
 import { errMsg } from '@senars/util/error';
 import { withBodyPatch } from './body-patch';
 import { endpointPath, probeJson, probeReachable } from './probe';
