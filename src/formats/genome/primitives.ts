@@ -22,6 +22,7 @@ export function generatePrimitives(): string[] {
     ['unitInterval', 'z.number().min(0).max(1)'],
     ['signedUnitInterval', 'z.number().min(-1).max(1)'],
     ['timestamp', 'z.number().int().positive()'],
+    ['temperature', 'z.number().min(0).max(2)'],
   ] as const;
 
   for (const [name, code] of primitives) {

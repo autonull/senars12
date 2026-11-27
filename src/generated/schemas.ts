@@ -17,6 +17,7 @@ export const positiveInt = () => z.number().int().positive();
 export const unitInterval = () => z.number().min(0).max(1);
 export const signedUnitInterval = () => z.number().min(-1).max(1);
 export const timestamp = () => z.number().int().positive();
+export const temperature = () => z.number().min(0).max(2);
 
 /** UUID string (RFC 4122). */
 export type UUID = string;
@@ -534,8 +535,8 @@ export const LMGenerateTextQuerySchema = z.object({
   options: z.object({
     task: z.string().optional(),
     model: z.string().optional(),
-    temperature: z.number().min(0).max(2).optional(),
-    maxOutputTokens: z.number().int().positive().optional(),
+    temperature: temperature().optional(),
+    maxOutputTokens: positiveInt().optional(),
     signal: z.any().optional(),
   }).optional(),
 });
@@ -544,9 +545,9 @@ export type LMGenerateTextQuery = z.infer<typeof LMGenerateTextQuerySchema>;
 export const LMGenerateTextResultSchema = z.object({
   text: z.string(),
   usage: z.object({
-    promptTokens: z.number().int().nonnegative(),
-    completionTokens: z.number().int().nonnegative(),
-    totalTokens: z.number().int().nonnegative(),
+    promptTokens: nonNegativeInt(),
+    completionTokens: nonNegativeInt(),
+    totalTokens: nonNegativeInt(),
   }).optional(),
 });
 export type LMGenerateTextResult = z.infer<typeof LMGenerateTextResultSchema>;
@@ -564,8 +565,8 @@ export const LMGenerateObjectQuerySchema = z.object({
   options: z.object({
     task: z.string().optional(),
     model: z.string().optional(),
-    temperature: z.number().min(0).max(2).optional(),
-    maxOutputTokens: z.number().int().positive().optional(),
+    temperature: temperature().optional(),
+    maxOutputTokens: positiveInt().optional(),
   }).optional(),
 });
 export type LMGenerateObjectQuery = z.infer<typeof LMGenerateObjectQuerySchema>;
@@ -573,9 +574,9 @@ export type LMGenerateObjectQuery = z.infer<typeof LMGenerateObjectQuerySchema>;
 export const LMGenerateObjectResultSchema = z.object({
   object: z.any(),
   usage: z.object({
-    promptTokens: z.number().int().nonnegative(),
-    completionTokens: z.number().int().nonnegative(),
-    totalTokens: z.number().int().nonnegative(),
+    promptTokens: nonNegativeInt(),
+    completionTokens: nonNegativeInt(),
+    totalTokens: nonNegativeInt(),
   }).optional(),
 });
 export type LMGenerateObjectResult = z.infer<typeof LMGenerateObjectResultSchema>;
@@ -593,8 +594,8 @@ export const LMStreamQuerySchema = z.object({
   options: z.object({
     task: z.string().optional(),
     model: z.string().optional(),
-    temperature: z.number().min(0).max(2).optional(),
-    maxOutputTokens: z.number().int().positive().optional(),
+    temperature: temperature().optional(),
+    maxOutputTokens: positiveInt().optional(),
   }).optional(),
 });
 export type LMStreamQuery = z.infer<typeof LMStreamQuerySchema>;
@@ -613,7 +614,7 @@ export type LMStreamCert = z.infer<typeof LMStreamCertSchema>;
 
 export const RetrievalQuerySchema = z.object({
   query: z.string(),
-  topK: z.number().int().positive().optional(),
+  topK: positiveInt().optional(),
   filter: z.record(z.string(), z.any()).optional(),
 });
 export type RetrievalQuery = z.infer<typeof RetrievalQuerySchema>;
@@ -637,7 +638,7 @@ export type RetrievalCert = z.infer<typeof RetrievalCertSchema>;
 
 export const EngineZ3QuerySchema = z.object({
   formula: z.string(),
-  timeoutMs: z.number().int().positive().optional(),
+  timeoutMs: positiveInt().optional(),
 });
 export type EngineZ3Query = z.infer<typeof EngineZ3QuerySchema>;
 
@@ -646,10 +647,10 @@ export const EngineZ3ResultSchema = z.object({
   model: z.any().optional(),
   proof: z.string().optional(),
   statistics: z.object({
-    timeMs: z.number().int().nonnegative(),
-    nodesVisited: z.number().int().nonnegative().optional(),
-    clausesGenerated: z.number().int().nonnegative().optional(),
-    backtracks: z.number().int().nonnegative().optional(),
+    timeMs: nonNegativeInt(),
+    nodesVisited: nonNegativeInt().optional(),
+    clausesGenerated: nonNegativeInt().optional(),
+    backtracks: nonNegativeInt().optional(),
   }).optional(),
 });
 export type EngineZ3Result = z.infer<typeof EngineZ3ResultSchema>;
@@ -663,7 +664,7 @@ export type EngineZ3Cert = z.infer<typeof EngineZ3CertSchema>;
 
 export const EngineClingoQuerySchema = z.object({
   program: z.string(),
-  timeoutMs: z.number().int().positive().optional(),
+  timeoutMs: positiveInt().optional(),
 });
 export type EngineClingoQuery = z.infer<typeof EngineClingoQuerySchema>;
 
@@ -671,8 +672,8 @@ export const EngineClingoResultSchema = z.object({
   satisfiable: z.boolean(),
   models: z.array(z.any()).optional(),
   statistics: z.object({
-    timeMs: z.number().int().nonnegative(),
-    modelsFound: z.number().int().nonnegative().optional(),
+    timeMs: nonNegativeInt(),
+    modelsFound: nonNegativeInt().optional(),
   }).optional(),
 });
 export type EngineClingoResult = z.infer<typeof EngineClingoResultSchema>;
@@ -686,7 +687,7 @@ export type EngineClingoCert = z.infer<typeof EngineClingoCertSchema>;
 
 export const EngineMiniSatQuerySchema = z.object({
   cnf: z.string(),
-  timeoutMs: z.number().int().positive().optional(),
+  timeoutMs: positiveInt().optional(),
 });
 export type EngineMiniSatQuery = z.infer<typeof EngineMiniSatQuerySchema>;
 
@@ -694,9 +695,9 @@ export const EngineMiniSatResultSchema = z.object({
   satisfiable: z.boolean(),
   model: z.any().optional(),
   statistics: z.object({
-    timeMs: z.number().int().nonnegative(),
-    decisions: z.number().int().nonnegative().optional(),
-    conflicts: z.number().int().nonnegative().optional(),
+    timeMs: nonNegativeInt(),
+    decisions: nonNegativeInt().optional(),
+    conflicts: nonNegativeInt().optional(),
   }).optional(),
 });
 export type EngineMiniSatResult = z.infer<typeof EngineMiniSatResultSchema>;
@@ -711,7 +712,7 @@ export type EngineMiniSatCert = z.infer<typeof EngineMiniSatCertSchema>;
 export const EngineTauPrologQuerySchema = z.object({
   program: z.string(),
   query: z.string(),
-  timeoutMs: z.number().int().positive().optional(),
+  timeoutMs: positiveInt().optional(),
 });
 export type EngineTauPrologQuery = z.infer<typeof EngineTauPrologQuerySchema>;
 
@@ -719,8 +720,8 @@ export const EngineTauPrologResultSchema = z.object({
   success: z.boolean(),
   bindings: z.array(z.record(z.string(), z.any())).optional(),
   statistics: z.object({
-    timeMs: z.number().int().nonnegative(),
-    inferences: z.number().int().nonnegative().optional(),
+    timeMs: nonNegativeInt(),
+    inferences: nonNegativeInt().optional(),
   }).optional(),
 });
 export type EngineTauPrologResult = z.infer<typeof EngineTauPrologResultSchema>;
@@ -735,14 +736,14 @@ export type EngineTauPrologCert = z.infer<typeof EngineTauPrologCertSchema>;
 export const EngineMettaQuerySchema = z.object({
   program: z.string(),
   query: z.string().optional(),
-  timeoutMs: z.number().int().positive().optional(),
+  timeoutMs: positiveInt().optional(),
 });
 export type EngineMettaQuery = z.infer<typeof EngineMettaQuerySchema>;
 
 export const EngineMettaResultSchema = z.object({
   result: z.any(),
   statistics: z.object({
-    timeMs: z.number().int().nonnegative(),
+    timeMs: nonNegativeInt(),
   }).optional(),
 });
 export type EngineMettaResult = z.infer<typeof EngineMettaResultSchema>;
@@ -757,14 +758,14 @@ export type EngineMettaCert = z.infer<typeof EngineMettaCertSchema>;
 export const EngineCustomQuerySchema = z.object({
   engine: z.string(),
   payload: z.any(),
-  timeoutMs: z.number().int().positive().optional(),
+  timeoutMs: positiveInt().optional(),
 });
 export type EngineCustomQuery = z.infer<typeof EngineCustomQuerySchema>;
 
 export const EngineCustomResultSchema = z.object({
   result: z.any(),
   statistics: z.object({
-    timeMs: z.number().int().nonnegative(),
+    timeMs: nonNegativeInt(),
   }).optional(),
 });
 export type EngineCustomResult = z.infer<typeof EngineCustomResultSchema>;
@@ -783,12 +784,12 @@ export type FormalizationNLToFormalQuery = z.infer<typeof FormalizationNLToForma
 
 export const FormalizationNLToFormalResultSchema = z.object({
   narsese: z.string(),
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval(),
   ambiguities: z.array(z.object({
     type: z.string(),
     description: z.string(),
     options: z.array(z.string()),
-    confidence: z.number().min(0).max(1),
+    confidence: unitInterval(),
   })).optional(),
 });
 export type FormalizationNLToFormalResult = z.infer<typeof FormalizationNLToFormalResultSchema>;
@@ -807,7 +808,7 @@ export type FormalizationFormalToNLQuery = z.infer<typeof FormalizationFormalToN
 
 export const FormalizationFormalToNLResultSchema = z.object({
   text: z.string(),
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval(),
 });
 export type FormalizationFormalToNLResult = z.infer<typeof FormalizationFormalToNLResultSchema>;
 

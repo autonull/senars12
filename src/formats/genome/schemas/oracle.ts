@@ -15,8 +15,8 @@ export function generateOracleSchemas(): string[] {
   lines.push('  options: z.object({');
   lines.push('    task: z.string().optional(),');
   lines.push('    model: z.string().optional(),');
-  lines.push('    temperature: z.number().min(0).max(2).optional(),');
-  lines.push('    maxOutputTokens: z.number().int().positive().optional(),');
+  lines.push('    temperature: temperature().optional(),');
+  lines.push('    maxOutputTokens: positiveInt().optional(),');
   lines.push('    signal: z.any().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
@@ -26,9 +26,9 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const LMGenerateTextResultSchema = z.object({');
   lines.push('  text: z.string(),');
   lines.push('  usage: z.object({');
-  lines.push('    promptTokens: z.number().int().nonnegative(),');
-  lines.push('    completionTokens: z.number().int().nonnegative(),');
-  lines.push('    totalTokens: z.number().int().nonnegative(),');
+  lines.push('    promptTokens: nonNegativeInt(),');
+  lines.push('    completionTokens: nonNegativeInt(),');
+  lines.push('    totalTokens: nonNegativeInt(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type LMGenerateTextResult = z.infer<typeof LMGenerateTextResultSchema>;');
@@ -49,8 +49,8 @@ export function generateOracleSchemas(): string[] {
   lines.push('  options: z.object({');
   lines.push('    task: z.string().optional(),');
   lines.push('    model: z.string().optional(),');
-  lines.push('    temperature: z.number().min(0).max(2).optional(),');
-  lines.push('    maxOutputTokens: z.number().int().positive().optional(),');
+  lines.push('    temperature: temperature().optional(),');
+  lines.push('    maxOutputTokens: positiveInt().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type LMGenerateObjectQuery = z.infer<typeof LMGenerateObjectQuerySchema>;');
@@ -59,9 +59,9 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const LMGenerateObjectResultSchema = z.object({');
   lines.push('  object: z.any(),');
   lines.push('  usage: z.object({');
-  lines.push('    promptTokens: z.number().int().nonnegative(),');
-  lines.push('    completionTokens: z.number().int().nonnegative(),');
-  lines.push('    totalTokens: z.number().int().nonnegative(),');
+  lines.push('    promptTokens: nonNegativeInt(),');
+  lines.push('    completionTokens: nonNegativeInt(),');
+  lines.push('    totalTokens: nonNegativeInt(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type LMGenerateObjectResult = z.infer<typeof LMGenerateObjectResultSchema>;');
@@ -82,8 +82,8 @@ export function generateOracleSchemas(): string[] {
   lines.push('  options: z.object({');
   lines.push('    task: z.string().optional(),');
   lines.push('    model: z.string().optional(),');
-  lines.push('    temperature: z.number().min(0).max(2).optional(),');
-  lines.push('    maxOutputTokens: z.number().int().positive().optional(),');
+  lines.push('    temperature: temperature().optional(),');
+  lines.push('    maxOutputTokens: positiveInt().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type LMStreamQuery = z.infer<typeof LMStreamQuerySchema>;');
@@ -106,7 +106,7 @@ export function generateOracleSchemas(): string[] {
   // Retrieval query
   lines.push('export const RetrievalQuerySchema = z.object({');
   lines.push('  query: z.string(),');
-  lines.push('  topK: z.number().int().positive().optional(),');
+  lines.push('  topK: positiveInt().optional(),');
   lines.push('  filter: z.record(z.string(), z.any()).optional(),');
   lines.push('});');
   lines.push('export type RetrievalQuery = z.infer<typeof RetrievalQuerySchema>;');
@@ -134,7 +134,7 @@ export function generateOracleSchemas(): string[] {
   // Engine Z3
   lines.push('export const EngineZ3QuerySchema = z.object({');
   lines.push('  formula: z.string(),');
-  lines.push('  timeoutMs: z.number().int().positive().optional(),');
+  lines.push('  timeoutMs: positiveInt().optional(),');
   lines.push('});');
   lines.push('export type EngineZ3Query = z.infer<typeof EngineZ3QuerySchema>;');
   lines.push('');
@@ -144,10 +144,10 @@ export function generateOracleSchemas(): string[] {
   lines.push('  model: z.any().optional(),');
   lines.push('  proof: z.string().optional(),');
   lines.push('  statistics: z.object({');
-  lines.push('    timeMs: z.number().int().nonnegative(),');
-  lines.push('    nodesVisited: z.number().int().nonnegative().optional(),');
-  lines.push('    clausesGenerated: z.number().int().nonnegative().optional(),');
-  lines.push('    backtracks: z.number().int().nonnegative().optional(),');
+  lines.push('    timeMs: nonNegativeInt(),');
+  lines.push('    nodesVisited: nonNegativeInt().optional(),');
+  lines.push('    clausesGenerated: nonNegativeInt().optional(),');
+  lines.push('    backtracks: nonNegativeInt().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type EngineZ3Result = z.infer<typeof EngineZ3ResultSchema>;');
@@ -164,7 +164,7 @@ export function generateOracleSchemas(): string[] {
   // Engine Clingo
   lines.push('export const EngineClingoQuerySchema = z.object({');
   lines.push('  program: z.string(),');
-  lines.push('  timeoutMs: z.number().int().positive().optional(),');
+  lines.push('  timeoutMs: positiveInt().optional(),');
   lines.push('});');
   lines.push('export type EngineClingoQuery = z.infer<typeof EngineClingoQuerySchema>;');
   lines.push('');
@@ -173,8 +173,8 @@ export function generateOracleSchemas(): string[] {
   lines.push('  satisfiable: z.boolean(),');
   lines.push('  models: z.array(z.any()).optional(),');
   lines.push('  statistics: z.object({');
-  lines.push('    timeMs: z.number().int().nonnegative(),');
-  lines.push('    modelsFound: z.number().int().nonnegative().optional(),');
+  lines.push('    timeMs: nonNegativeInt(),');
+  lines.push('    modelsFound: nonNegativeInt().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type EngineClingoResult = z.infer<typeof EngineClingoResultSchema>;');
@@ -191,7 +191,7 @@ export function generateOracleSchemas(): string[] {
   // Engine MiniSat
   lines.push('export const EngineMiniSatQuerySchema = z.object({');
   lines.push('  cnf: z.string(),');
-  lines.push('  timeoutMs: z.number().int().positive().optional(),');
+  lines.push('  timeoutMs: positiveInt().optional(),');
   lines.push('});');
   lines.push('export type EngineMiniSatQuery = z.infer<typeof EngineMiniSatQuerySchema>;');
   lines.push('');
@@ -200,9 +200,9 @@ export function generateOracleSchemas(): string[] {
   lines.push('  satisfiable: z.boolean(),');
   lines.push('  model: z.any().optional(),');
   lines.push('  statistics: z.object({');
-  lines.push('    timeMs: z.number().int().nonnegative(),');
-  lines.push('    decisions: z.number().int().nonnegative().optional(),');
-  lines.push('    conflicts: z.number().int().nonnegative().optional(),');
+  lines.push('    timeMs: nonNegativeInt(),');
+  lines.push('    decisions: nonNegativeInt().optional(),');
+  lines.push('    conflicts: nonNegativeInt().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type EngineMiniSatResult = z.infer<typeof EngineMiniSatResultSchema>;');
@@ -220,7 +220,7 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const EngineTauPrologQuerySchema = z.object({');
   lines.push('  program: z.string(),');
   lines.push('  query: z.string(),');
-  lines.push('  timeoutMs: z.number().int().positive().optional(),');
+  lines.push('  timeoutMs: positiveInt().optional(),');
   lines.push('});');
   lines.push('export type EngineTauPrologQuery = z.infer<typeof EngineTauPrologQuerySchema>;');
   lines.push('');
@@ -229,8 +229,8 @@ export function generateOracleSchemas(): string[] {
   lines.push('  success: z.boolean(),');
   lines.push('  bindings: z.array(z.record(z.string(), z.any())).optional(),');
   lines.push('  statistics: z.object({');
-  lines.push('    timeMs: z.number().int().nonnegative(),');
-  lines.push('    inferences: z.number().int().nonnegative().optional(),');
+  lines.push('    timeMs: nonNegativeInt(),');
+  lines.push('    inferences: nonNegativeInt().optional(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type EngineTauPrologResult = z.infer<typeof EngineTauPrologResultSchema>;');
@@ -248,7 +248,7 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const EngineMettaQuerySchema = z.object({');
   lines.push('  program: z.string(),');
   lines.push('  query: z.string().optional(),');
-  lines.push('  timeoutMs: z.number().int().positive().optional(),');
+  lines.push('  timeoutMs: positiveInt().optional(),');
   lines.push('});');
   lines.push('export type EngineMettaQuery = z.infer<typeof EngineMettaQuerySchema>;');
   lines.push('');
@@ -256,7 +256,7 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const EngineMettaResultSchema = z.object({');
   lines.push('  result: z.any(),');
   lines.push('  statistics: z.object({');
-  lines.push('    timeMs: z.number().int().nonnegative(),');
+  lines.push('    timeMs: nonNegativeInt(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type EngineMettaResult = z.infer<typeof EngineMettaResultSchema>;');
@@ -274,7 +274,7 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const EngineCustomQuerySchema = z.object({');
   lines.push('  engine: z.string(),');
   lines.push('  payload: z.any(),');
-  lines.push('  timeoutMs: z.number().int().positive().optional(),');
+  lines.push('  timeoutMs: positiveInt().optional(),');
   lines.push('});');
   lines.push('export type EngineCustomQuery = z.infer<typeof EngineCustomQuerySchema>;');
   lines.push('');
@@ -282,7 +282,7 @@ export function generateOracleSchemas(): string[] {
   lines.push('export const EngineCustomResultSchema = z.object({');
   lines.push('  result: z.any(),');
   lines.push('  statistics: z.object({');
-  lines.push('    timeMs: z.number().int().nonnegative(),');
+  lines.push('    timeMs: nonNegativeInt(),');
   lines.push('  }).optional(),');
   lines.push('});');
   lines.push('export type EngineCustomResult = z.infer<typeof EngineCustomResultSchema>;');
@@ -305,12 +305,12 @@ export function generateOracleSchemas(): string[] {
 
   lines.push('export const FormalizationNLToFormalResultSchema = z.object({');
   lines.push('  narsese: z.string(),');
-  lines.push('  confidence: z.number().min(0).max(1),');
+  lines.push('  confidence: unitInterval(),');
   lines.push('  ambiguities: z.array(z.object({');
   lines.push('    type: z.string(),');
   lines.push('    description: z.string(),');
   lines.push('    options: z.array(z.string()),');
-  lines.push('    confidence: z.number().min(0).max(1),');
+  lines.push('    confidence: unitInterval(),');
   lines.push('  })).optional(),');
   lines.push('});');
   lines.push('export type FormalizationNLToFormalResult = z.infer<typeof FormalizationNLToFormalResultSchema>;');
@@ -333,7 +333,7 @@ export function generateOracleSchemas(): string[] {
 
   lines.push('export const FormalizationFormalToNLResultSchema = z.object({');
   lines.push('  text: z.string(),');
-  lines.push('  confidence: z.number().min(0).max(1),');
+  lines.push('  confidence: unitInterval(),');
   lines.push('});');
   lines.push('export type FormalizationFormalToNLResult = z.infer<typeof FormalizationFormalToNLResultSchema>;');
   lines.push('');
