@@ -136,14 +136,13 @@ export class Layer {
   }
 
   applyDecay(decayRate: number): void {
-    const doomed: string[] = [];
-    for (const [id, entry] of this.links.entries()) {
+    const doomed: LinkEntry[] = [];
+    for (const [, entry] of this.links.entries()) {
       entry.priority = retain(entry.priority, decayRate);
-      if (entry.priority < LINK.MIN_PRIORITY) doomed.push(id);
+      if (entry.priority < LINK.MIN_PRIORITY) doomed.push(entry);
     }
-    for (const id of doomed) {
-      const entry = this.links.peek(id);
-      if (entry) this.purge(entry);
+    for (const entry of doomed) {
+      this.purge(entry);
     }
   }
 
