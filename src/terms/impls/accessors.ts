@@ -269,8 +269,21 @@ export const atomKey = (symbol: string): string => `atom:${symbol}`;
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
 /** Prefixing every atom makes the derivation injective, where joining bare
  *  `toString()` forms let any symbol containing `,` alias a different arity. */
-const deriveKey = (term: Term): string =>
-  isAtomic(term) ? atomKey(term.symbol) : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
+const deriveKey = (term: Term): string => {
+  if (isAtomic(term)) return atomKey(term.symbol);
+  const args = getArgs(term);
+  const len = args.length;
+  if (len === 0) return `${term.kind}:`;
+  if (len === 1) return `${term.kind}:${termKey(args[0]!)}`;
+  // Inline the join for 2 args (most common case) to avoid array allocation
+  if (len === 2) return `${term.kind}:${termKey(args[0]!)},${termKey(args[1]!)}`;
+  // Fallback for n-ary: build string incrementally
+  let key = `${term.kind}:${termKey(args[0]!)}`;
+  for (let i = 1; i < len; i++) {
+    key += `,${termKey(args[i]!)}`;
+  }
+  return key;
+};
 
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
 export const termKey = (term: Term): string => memoFact(term, 'key', deriveKey);

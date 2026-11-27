@@ -217,7 +217,7 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
           const [term, concept] = conceptOf(event.payload.term);
           const matching = concept.getBeliefs().find((b) => termsEqual(b.term, term));
           if (!matching) return false;
-          concept.beliefBag.remove(matching.id);
+          concept.removeBelief(matching.id);
           concept.addTask('belief', {
             ...matching,
             truth: Truth.fromUnknown(event.payload.newTruth),
@@ -270,7 +270,7 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
             return true;
           }
           if (step.independence === 'unknown') return false;
-          concept.beliefBag.remove(existing.id);
+          concept.removeBelief(existing.id);
           concept.addTask('belief', { ...existing, truth, timestamp: now() });
           return true;
         })

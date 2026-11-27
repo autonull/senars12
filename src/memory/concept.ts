@@ -143,6 +143,8 @@ export class Concept {
   readonly createdAt: number;
   lastAccessedAt: number;
   private readonly onRevision?: RevisionCallback;
+  /** Term-keyed index for O(1) belief lookup. Maps termKey -> belief item. */
+  private readonly beliefIndex = new Map<string, TaskData>();
 
   /**
    * The store's own clock, taken from the bag slot it was built with.
@@ -259,6 +261,17 @@ export class Concept {
     return this.findMatchingBelief(term) !== undefined;
   }
 
+  /** Remove a belief by id, updating the term-keyed index. */
+  removeBelief(id: string): boolean {
+    // Find the belief to get its term for index cleanup
+    const beliefs = this.beliefBag.all();
+    const belief = beliefs.find((b) => b.id === id);
+    if (!belief) return false;
+    const removed = this.beliefBag.remove(id);
+    if (removed) this.beliefIndex.delete(termKey(belief.term));
+    return removed;
+  }
+
   getBeliefs(): TaskData[] {
     return this.beliefBag.all();
   }
@@ -299,7 +312,8 @@ export class Concept {
   mergeWith(others: Concept[]): ConceptMergeResult {
     for (const other of [this, ...others]) {
       for (const belief of other.beliefBag.all()) {
-        this.beliefBag.add(belief);
+        const added = this.beliefBag.add(belief);
+        if (added) this.beliefIndex.set(termKey(belief.term), belief);
       }
       for (const goal of other.goalBag.all()) {
         this.goalBag.add(goal);
@@ -325,7 +339,8 @@ export class Concept {
     data: TaskData,
     independence: IndependenceStatus = 'unknown'
   ): boolean {
-    const existing = this.findMatchingBelief(data.term);
+    const key = termKey(data.term);
+    const existing = this.beliefIndex.get(key);
 
     if (existing) {
       if (!data.truth || !existing.truth) return false;
@@ -341,6 +356,7 @@ export class Concept {
 
       const revisedTruth = TruthOps.revision(data.truth, existing.truth);
       this.beliefBag.remove(existing.id);
+      this.beliefIndex.delete(key);
       const item = {
         ...data,
         id: existing.id,
@@ -349,6 +365,7 @@ export class Concept {
         timestamp: this.now(),
       } as TaskData;
       const added = this.beliefBag.add(item);
+      if (added) this.beliefIndex.set(key, item);
       if (added && this.onRevision && existing.stamp) {
         this.onRevision({
           termKey: termKey(this.term),
@@ -368,6 +385,7 @@ export class Concept {
       priority: data.budget?.priority ?? 0.5,
     } as TaskData;
     const added = this.beliefBag.add(item);
+    if (added) this.beliefIndex.set(key, item);
     if (added && this.onRevision && data.truth && data.stamp) {
       this.onRevision({
         termKey: termKey(this.term),
@@ -384,13 +402,10 @@ export class Concept {
   /**
    * The belief about `term`, if this concept holds one.
    *
-   * Keyed rather than walked: `termKey` is memoised per interned term, so this
-   * is a string compare per belief instead of a recursive descent — and it runs
-   * on every belief admission, for every input and every derived task.
+   * O(1) lookup via term-keyed index.
    */
   private findMatchingBelief(term: Term): TaskData | undefined {
-    const key = termKey(term);
-    return this.beliefBag.all().find((item) => termKey(item.term) === key);
+    return this.beliefIndex.get(termKey(term));
   }
 
   private calculateTaskOverlap(other: Concept): number {

@@ -13,7 +13,25 @@ const termKeyMap = new WeakMap<Term, string>();
 const termKey = (term: Term): string => {
   const cached = termKeyMap.get(term);
   if (cached) return cached;
-  const key = isAtomic(term) ? atomKey(term.symbol) : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
+  let key: string;
+  if (isAtomic(term)) {
+    key = atomKey(term.symbol);
+  } else {
+    const args = getArgs(term);
+    const len = args.length;
+    if (len === 0) {
+      key = `${term.kind}:`;
+    } else if (len === 1) {
+      key = `${term.kind}:${termKey(args[0]!)}`;
+    } else if (len === 2) {
+      key = `${term.kind}:${termKey(args[0]!)},${termKey(args[1]!)}`;
+    } else {
+      key = `${term.kind}:${termKey(args[0]!)}`;
+      for (let i = 1; i < len; i++) {
+        key += `,${termKey(args[i]!)}`;
+      }
+    }
+  }
   termKeyMap.set(term, key);
   return key;
 };
