@@ -14,9 +14,9 @@ export function generateKernelSchemas(): string[] {
   lines.push('export const VariableTermSchema = z.object({');
   lines.push("  op: z.literal('var'),");
   lines.push('  name: z.string(),');
-  lines.push('  index: z.number().int().nonnegative(),');
-  lines.push('  hash: z.number().int(),');
-  lines.push('  complexity: z.number().int().positive(),');
+  lines.push('  index: nonNegativeInt(),');
+  lines.push('  hash: nonNegativeInt(),');
+  lines.push('  complexity: positiveInt(),');
   lines.push('});');
   lines.push('export type VariableTerm = z.infer<typeof VariableTermSchema>;');
   lines.push('');
@@ -24,8 +24,8 @@ export function generateKernelSchemas(): string[] {
   lines.push('export const ConstantTermSchema = z.object({');
   lines.push("  op: z.literal('const'),");
   lines.push('  value: z.string(),');
-  lines.push('  hash: z.number().int(),');
-  lines.push('  complexity: z.number().int().positive(),');
+  lines.push('  hash: nonNegativeInt(),');
+  lines.push('  complexity: positiveInt(),');
   lines.push('});');
   lines.push('export type ConstantTerm = z.infer<typeof ConstantTermSchema>;');
   lines.push('');
@@ -37,9 +37,9 @@ export function generateKernelSchemas(): string[] {
   lines.push('export const CompoundTermSchema = z.object({');
   lines.push('  op: CompoundTermOpSchema,');
   lines.push('  args: z.array(z.lazy(() => TermSchema)),');
-  lines.push('  arity: z.number().int().positive(),');
-  lines.push('  hash: z.number().int(),');
-  lines.push('  complexity: z.number().int().positive(),');
+  lines.push('  arity: positiveInt(),');
+  lines.push('  hash: nonNegativeInt(),');
+  lines.push('  complexity: positiveInt(),');
   lines.push('});');
   lines.push('export type CompoundTerm = z.infer<typeof CompoundTermSchema>;');
   lines.push('');

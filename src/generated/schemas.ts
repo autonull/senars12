@@ -467,7 +467,7 @@ export interface HistoryEntry {
 export const HistoryEntrySchema = z.object({
   role: z.enum(['user', 'agent', 'system']),
   content: z.string(),
-  timestamp: z.number().int().nonnegative(),
+  timestamp: nonNegativeInt(),
 });
 
 export const IndependenceSchema = z.enum(INDEPENDENCE);
@@ -827,17 +827,17 @@ export type TermOp = z.infer<typeof TermOpSchema>;
 export const VariableTermSchema = z.object({
   op: z.literal('var'),
   name: z.string(),
-  index: z.number().int().nonnegative(),
-  hash: z.number().int(),
-  complexity: z.number().int().positive(),
+  index: nonNegativeInt(),
+  hash: nonNegativeInt(),
+  complexity: positiveInt(),
 });
 export type VariableTerm = z.infer<typeof VariableTermSchema>;
 
 export const ConstantTermSchema = z.object({
   op: z.literal('const'),
   value: z.string(),
-  hash: z.number().int(),
-  complexity: z.number().int().positive(),
+  hash: nonNegativeInt(),
+  complexity: positiveInt(),
 });
 export type ConstantTerm = z.infer<typeof ConstantTermSchema>;
 
@@ -847,9 +847,9 @@ export type CompoundTermOp = z.infer<typeof CompoundTermOpSchema>;
 export const CompoundTermSchema = z.object({
   op: CompoundTermOpSchema,
   args: z.array(z.lazy(() => TermSchema)),
-  arity: z.number().int().positive(),
-  hash: z.number().int(),
-  complexity: z.number().int().positive(),
+  arity: positiveInt(),
+  hash: nonNegativeInt(),
+  complexity: positiveInt(),
 });
 export type CompoundTerm = z.infer<typeof CompoundTermSchema>;
 

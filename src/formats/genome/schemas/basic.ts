@@ -76,7 +76,7 @@ export function generateBasicSchemas(): string[] {
   lines.push('export const HistoryEntrySchema = z.object({');
   lines.push("  role: z.enum(['user', 'agent', 'system']),");
   lines.push('  content: z.string(),');
-  lines.push('  timestamp: z.number().int().nonnegative(),');
+  lines.push('  timestamp: nonNegativeInt(),');
   lines.push('});');
   lines.push('');
 
