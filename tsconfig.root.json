@@ -34,8 +34,7 @@
       "@senars/kernel": ["./src/kernel/index.ts"],
       "@senars/kernel/index": ["./src/kernel/index.ts"],
       "@senars/kernel/*": ["./src/kernel/*"],
-      "@senars/logics": ["./src/logics/index.ts"],
-      "@senars/logics/*": ["./src/logics/*"],
+      
       "@senars/log": ["./src/log/index.ts"],
       "@senars/log/*": ["./src/log/*"],
       "@senars/formats": ["./src/formats/index.ts"],
