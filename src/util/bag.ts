@@ -457,6 +457,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     const now = this.#clock();
     let hasChanges = false;
     let newPeekEntry: InternalEntry<T> | null = null;
+    let newMinEntry: InternalEntry<T> | null = null;
 
     for (const [id, entry] of this.#items) {
       const ageSeconds = (now - entry._insertedAt) / 1000;
@@ -474,19 +475,27 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         if (newPeekEntry === null || newPriority > newPeekEntry._currentPriority) {
           newPeekEntry = entry;
         }
+        if (newMinEntry === null || newPriority < newMinEntry._currentPriority) {
+          newMinEntry = entry;
+        }
         hasChanges = true;
       } else if (newPeekEntry === null || newPriority > newPeekEntry._currentPriority) {
         newPeekEntry = entry;
+      }
+      if (newMinEntry === null || newPriority < newMinEntry._currentPriority) {
+        newMinEntry = entry;
       }
     }
 
     if (hasChanges) {
       this.#peekCache = newPeekEntry;
+      this.#minPriorityEntry = newMinEntry;
       this.#version++;
       this.#invalidateCache();
       this.#updatePressure();
     } else if (newPeekEntry !== null) {
       this.#peekCache = newPeekEntry;
+      this.#minPriorityEntry = newMinEntry;
     }
   }
 
