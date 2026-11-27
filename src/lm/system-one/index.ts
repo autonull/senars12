@@ -19,7 +19,7 @@ export * from './eval-set';
 export * from './groundedness-gate';
 export * from './hard-negatives';
 export * from './head-ontology';
-export * from './heads/index';
+export * from './head-specs';
 export * from './http-endpoint';
 export * from './http-manifold';
 export * from './open-systemone-manifold';

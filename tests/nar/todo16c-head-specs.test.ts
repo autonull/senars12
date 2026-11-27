@@ -16,7 +16,8 @@ import {
 } from '@senars/lm/system-one/head-ontology';
 import { createDefaultCalibrationSuite } from '@senars/lm/system-one/calibration';
 import { DEFAULT_PIPELINE_STAGES } from '@senars/lm/system-one/judgment-pipeline';
-import * as headsNs from '@senars/lm/system-one/heads/index';
+import * as headOntologyNs from '@senars/lm/system-one/head-ontology';
+import * as headSpecsNs from '@senars/lm/system-one/head-specs';
 import * as systemOneNs from '@senars/lm/system-one/index';
 import { findKnobSpec, KNOB_SPECS, createKnobSet } from '@senars/rlfp/knobs';
 import type { HeadFactoryOptions } from '@senars/lm/system-one/heads/factory';
@@ -165,10 +166,11 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
     });
   });
 
-  it('G5 — no duplicate export names across the heads subpath and system-one index', async () => {
+  it('G5 — no duplicate export names across head-ontology/head-specs and system-one index', async () => {
     const seen = new Map<string, string>();
     for (const [nsName, ns] of [
-      ['heads', headsNs],
+      ['head-ontology', headOntologyNs],
+      ['head-specs', headSpecsNs],
       ['system-one', systemOneNs],
     ] as const) {
       for (const key of Object.keys(ns)) {
@@ -177,11 +179,16 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
         seen.set(key, nsName);
       }
     }
-    // The guard: heads subpath itself must not shadow duplicates (within-namespace check).
-    const headsKeys = new Set<string>();
-    for (const key of Object.keys(headsNs)) {
-      expect(headsKeys.has(key)).toBe(false);
-      headsKeys.add(key);
+    // The guard: each subpath must not shadow duplicates (within-namespace check).
+    const hoKeys = new Set<string>();
+    for (const key of Object.keys(headOntologyNs)) {
+      expect(hoKeys.has(key)).toBe(false);
+      hoKeys.add(key);
+    }
+    const hsKeys = new Set<string>();
+    for (const key of Object.keys(headSpecsNs)) {
+      expect(hsKeys.has(key)).toBe(false);
+      hsKeys.add(key);
     }
     const soKeys = new Set<string>();
     for (const key of Object.keys(systemOneNs)) {

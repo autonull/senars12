@@ -20,7 +20,8 @@ import {
 } from './calibration-fit';
 import { type ContrastiveMemory, rubricOf } from './contrastive';
 import { composeProposition } from './distribution';
-import { createAllHeads, type PerHeadConfig } from './heads/index';
+import { createAllHeads } from './head-specs';
+import type { PerHeadConfig } from './heads/factory';
 import type {
   BackendId,
   CalibrationVersion,
