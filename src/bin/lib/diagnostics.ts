@@ -251,15 +251,7 @@ export async function getCredentials(): Promise<Array<{ key: string; present: bo
   return credentialReport();
 }
 
-/**
- * Format bytes for display.
- */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
+import { formatBytes } from '@senars/util/format';
 import { existsSync, statSync } from 'node:fs';
 
 /**

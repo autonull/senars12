@@ -3,8 +3,7 @@ import { QUIT_SENTINEL } from '../io/index';
 import type { NAR, ExtendedAgent } from '../agent/index';
 import type { LMTask, LMExecutionStats } from '@senars/types/llm';
 import { degrade, errMsg } from '@senars/util/error';
-import { splitWords } from '@senars/util/text';
-import { truncate } from '@senars/util/async';
+import { splitWords, truncate } from '@senars/util/text';
 import type { ConversationSession, SessionManager } from '@senars/types/memory';
 import { type Flags, parseFlags } from '@senars/util/cli';
 

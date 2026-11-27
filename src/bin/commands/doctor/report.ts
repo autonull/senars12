@@ -23,19 +23,6 @@ import {
   getCircuitBreakers,
   getRoutingLogStatus,
   runDerivationBenchmarks,
-} from '../../lib/diagnostics';
-import {
-  createDiagnosticNAR,
-  loadDiagnosticConfig,
-  readPersistedState,
-  probeOllama,
-  probeEmbedded,
-  getCredentials,
-  getRoutingMatrix,
-  getRoutingInfo,
-  getCircuitBreakers,
-  getRoutingLogStatus,
-  runDerivationBenchmarks,
   probeLMProvider,
 } from '../../lib/diagnostics';
 import { runHealthChecks } from '../../../health/index';
