@@ -5,6 +5,7 @@
 import type { CommonFlags } from '../../lib/cli-utils';
 import type { CommandModule } from '../../lib/cli';
 import { createCommandModule, flagHelpers, handleErrors } from '../../lib/command-base';
+import { sleep } from '@senars/util/async';
 
 interface ExperimentResult {
   runId: string;
@@ -62,7 +63,7 @@ export const sections = createCommandModule({
 
     try {
       // Simulate experiment run
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await sleep(100);
 
       result.status = 'completed';
       result.completedAt = new Date().toISOString();

@@ -18,6 +18,7 @@ import type { Repertoire } from '../admit/repertoire';
 import { createRepertoire } from '../admit/repertoire';
 import type { EvaluationFold } from './scorecard';
 import { createLogger } from '../util/logger';
+import { sleep } from '../util/async';
 
 const logger = createLogger({ scope: 'worlds:soak' });
 
@@ -257,7 +258,7 @@ export class SoakRunner {
         this.evolutionCycle++;
 
         // Small delay to prevent CPU saturation
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await sleep(10);
       }
     }
   }

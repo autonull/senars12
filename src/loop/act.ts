@@ -9,6 +9,7 @@ import type { SelectionResult, SelectionCandidate } from './select';
 import type { Clock } from '../kernel/env';
 import { createDefaultClock } from '../kernel/env';
 import { SenarsError, isRetryableError } from '../errors/senars-error';
+import { sleep } from '../util/async';
 
 
 /** Action types. */
@@ -221,7 +222,7 @@ export class ActionExecutor {
         // Only retry if error is retryable (based on SenarsError.code or message fallback)
         if (attempt <= (action.retry?.maxAttempts ?? defaultRetryPolicy.maxAttempts) && isRetryableError(lastError)) {
           const delay = this.computeDelay(attempt, action.retry ?? defaultRetryPolicy);
-          await this.sleep(delay);
+          await sleep(delay);
         } else {
           // Non-retryable error — fail immediately
           break;
@@ -522,10 +523,7 @@ export class ActionExecutor {
     return Math.min(delay, policy.maxDelayMs);
   }
 
-  /** Sleep utility. */
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  
 
   /** Record execution result. */
   private recordResult(result: ActionResult): void {
