@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { generateId } from '@senars/util/id';
 
 // ============================================================================
-// PRIMITIVES
+// PRIMITIVES — inlined for self-contained generated code
 // ============================================================================
+
+// Canonical source: src/config/boundary.ts
 
 export const uuid = () => z.string().uuid();
 export const nonEmpty = () => z.string().min(1);

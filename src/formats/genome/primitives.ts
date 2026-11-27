@@ -1,12 +1,17 @@
 /**
  * Primitive generators for the genome.
+ * 
+ * NOTE: These are inlined zod schemas for the generated code to be self-contained.
+ * The canonical definitions live in config/boundary.ts — keep them in sync.
  */
 
 export function generatePrimitives(): string[] {
   const lines: string[] = [];
   lines.push('// ============================================================================');
-  lines.push('// PRIMITIVES');
+  lines.push('// PRIMITIVES — inlined for self-contained generated code');
   lines.push('// ============================================================================');
+  lines.push('');
+  lines.push('// Canonical source: src/config/boundary.ts');
   lines.push('');
 
   const primitives = [

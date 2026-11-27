@@ -258,7 +258,8 @@ export const Defs = {
     ] as const,
   },
 
-  // Primitive validators (as string templates for code generation)
+  // Primitive validators (as string templates for code generation).
+  // Canonical source: src/config/boundary.ts — keep in sync.
   primitives: {
     uuid: 'z.string().uuid()',
     nonEmpty: 'z.string().min(1)',
