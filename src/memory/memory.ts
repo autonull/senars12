@@ -80,6 +80,8 @@ export class Memory implements MemoryPorts {
   #sortedConceptsCache: Concept[] | null = null;
   /** Whether the sorted cache is dirty. */
   #sortedConceptsDirty = true;
+  /** Cached resident entries for sweeps. */
+  #residentEntriesCache: TermMapEntry<Concept>[] | null = null;
 
   constructor(
     config: MemoryConfig = DEFAULT_MEMORY_CONFIG,
@@ -205,7 +207,10 @@ export class Memory implements MemoryPorts {
    * the sweeps in this class only ever mutate the concepts themselves.
    */
   private residentEntries(): TermMapEntry<Concept>[] {
-    return this.concepts.getEntries();
+    if (this.#residentEntriesCache === null) {
+      this.#residentEntriesCache = this.concepts.getEntries();
+    }
+    return this.#residentEntriesCache;
   }
 
   getFocusConcepts(): Concept[] {
@@ -331,6 +336,7 @@ export class Memory implements MemoryPorts {
   #invalidateSortedCache(): void {
     this.#sortedConceptsDirty = true;
     this.#sortedConceptsCache = null;
+    this.#residentEntriesCache = null;
   }
 
   addTask(
