@@ -1,10 +1,9 @@
 /** Calibration lock status: .calibrate [refresh|refit] */
 
-import { existsSync, statSync } from 'node:fs';
-import { formatBytes } from '@senars/util/format';
 import { attempted, cmd } from '@senars/cli';
 import { datasetPathOf } from './constants';
 import type { BotRuntime } from '../context';
+import { fileInfo, formatBytes } from '@senars/bin/lib/diagnostics';
 
 export const calibrateCommand = cmd(
   'calibrate',
@@ -52,7 +51,8 @@ export const calibrateCommand = cmd(
       });
     }
     const { EVAL_SET_PATH } = await import('@senars/lm/system-one');
-    if (!existsSync(CALIBRATION_LOCK_PATH)) {
+    const lockInfo = fileInfo(CALIBRATION_LOCK_PATH);
+    if (!lockInfo.exists) {
       return 'No calibration lock (heads unfitted — pass-through mode)';
     }
     const lock = await readCalibrationLockOrNull();
@@ -60,6 +60,6 @@ export const calibrateCommand = cmd(
     const heads = lock.heads
       .map((h) => `  ${h.headId}: abstain=${h.fitted ? h.abstainThreshold.toFixed(4) : '—'}`)
       .join('\n');
-    return `lock ${formatBytes(statSync(CALIBRATION_LOCK_PATH).size)}\n${heads || '  (no per-head data)'}`;
+    return `lock ${formatBytes(lockInfo.bytes)}\n${heads || '  (no per-head data)'}`;
   }
 );

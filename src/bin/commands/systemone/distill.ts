@@ -1,17 +1,17 @@
 /** Distillation dataset status */
 
-import { existsSync, statSync } from 'node:fs';
-import { formatBytes } from '@senars/util/format';
 import { cmd } from '@senars/cli';
 import { datasetPathOf } from './constants';
 import type { BotRuntime } from '../context';
+import { fileInfo, formatBytes } from '@senars/bin/lib/diagnostics';
 
 export const distillCommand = cmd(
   'distill',
   'Distillation dataset status',
   (rt: BotRuntime) => () => {
     const p = datasetPathOf(rt);
-    const st = existsSync(p) ? formatBytes(statSync(p).size) : 'absent';
+    const info = fileInfo(p);
+    const st = info.exists ? formatBytes(info.bytes) : 'absent';
     return `dataset ${p}: ${st}\nRun full teacher→student loop: pnpm run demo:arcade -- --distill`;
   }
 );
