@@ -10,3 +10,4 @@ export * from './verify.js';
 export * from './diff.js';
 export * from './promote.js';
 export * from './cli.js';
+export * from './hooks.js';

@@ -10,6 +10,7 @@ import { runChecks, type CheckResult } from './checks.js';
 import { reviewBundle, type Verdict } from './review.js';
 import { renderReport } from './report.js';
 import { emitTask } from './task.js';
+import { runFailureHooks, createFailureBundle, hasActionableFindings } from './hooks.js';
 import type { ObserveProgram } from './programs.js';
 import type { Manifest, Finding, CheckResult as CheckResultType } from './schema.js';
 
@@ -96,6 +97,11 @@ export async function observeRun(options: ObserveRunOptions): Promise<ObserveRun
   let taskPath: string | undefined;
   if (verdict.overall !== 'pass' && verdict.overall !== 'uncertain') {
     taskPath = await emitTask(bundleDir, manifest, verdict, checks);
+  }
+
+  if (hasActionableFindings(verdict, checks)) {
+    const failureBundle = createFailureBundle(runId, options.program, manifest, verdict, checks);
+    await runFailureHooks(failureBundle);
   }
 
   logger.info('Observe run completed', { runId, verdict: verdict.overall, taskPath });

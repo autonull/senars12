@@ -106,7 +106,7 @@ export async function verifyTask(taskPath: string, worktreePath: string): Promis
   await fs.writeFile(join(newBundleDir, 'verdict.json'), JSON.stringify(verdict, null, 2));
 
   const criteria = evaluateAcceptance(task, verdict, checks, manifest);
-  const accepted = criteria.resolve.every((v) => v) && criteria.noNewFindings && criteria.checksPass && criteria.durationOk;
+  const accepted = criteria.resolve.every((v: boolean) => v) && criteria.noNewFindings && criteria.checksPass && criteria.durationOk;
 
   const duration = Date.now() - startTime;
   criteria.durationOk = duration <= task.acceptance.maxDurationMs;
@@ -149,7 +149,7 @@ async function checkGraderGuard(task: RepairTask, worktreePath: string): Promise
     const assessment = classifier.classify(patch);
 
     if (assessment.risk === 'HIGH') {
-      return { passed: false, reason: `PatchRiskClassifier: HIGH risk on grader files (${assessment.factors.map((f) => f.factor).join(', ')})` };
+      return { passed: false, reason: `PatchRiskClassifier: HIGH risk on grader files (${assessment.factors.map((f: { factor: string }) => f.factor).join(', ')})` };
     }
 
     return { passed: true, reason: 'Grader guard passed' };

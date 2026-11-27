@@ -614,3 +614,159 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
     }
   );
 }
+
+/* ============================================================================
+ * Observe Tools (Self-observation & repair loop)
+ * ============================================================================*/
+
+export interface ObserveToolsOptions {
+  deps: import('@senars/tools/adapters/scenario-execute').ScenarioRunnerDeps;
+}
+
+export function registerObserveTools(server: McpServer, options: ObserveToolsOptions): void {
+  const { deps } = options;
+
+  server.registerTool(
+    'observe_run',
+    {
+      title: 'Observe Run',
+      description: 'Run an observe program and return the run bundle',
+      inputSchema: {
+        program: z.string().describe('Program ID (e.g., contradictory_sensors)'),
+        live: z.boolean().optional().describe('Use live lane (non-deterministic)'),
+      },
+      outputSchema: {
+        runId: z.string(),
+        verdict: z.string(),
+        findings: z.number(),
+        bundleDir: z.string(),
+        taskPath: z.string().optional(),
+      },
+      annotations: ANNOTATIONS.run,
+    },
+    async ({ program, live }) => {
+      try {
+        const { getObserveProgram } = await import('@senars/observe/programs.js');
+        const { observeRun } = await import('@senars/observe/run.js');
+        
+        const observeProgram = getObserveProgram(program as any, `mcp-${Date.now()}`);
+        observeProgram.observe.lane = live ? 'live' : 'hermetic';
+        
+        const result = await observeRun({ program: observeProgram, deps, runReview: true });
+        
+        return createMCPResponse(
+          `Run ${result.runId} completed: ${result.verdict.overall} (${result.verdict.findings.length} findings)`,
+          {
+            runId: result.runId,
+            verdict: result.verdict.overall,
+            findings: result.verdict.findings.length,
+            bundleDir: result.bundleDir,
+            taskPath: result.taskPath,
+          }
+        );
+      } catch (error) {
+        return createMCPResponse(`Observe run failed: ${error instanceof Error ? error.message : String(error)}`, {
+          runId: '',
+          verdict: 'error',
+          findings: 0,
+          bundleDir: '',
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'observe_task',
+    {
+      title: 'Observe Task',
+      description: 'Get the repair task for a run bundle',
+      inputSchema: {
+        runId: z.string().describe('Run ID to get task for'),
+      },
+      outputSchema: {
+        taskId: z.string().optional(),
+        taskPath: z.string().optional(),
+        findings: z.number(),
+        signatures: z.array(z.string()),
+      },
+      annotations: ANNOTATIONS.read,
+    },
+    async ({ runId }) => {
+      try {
+        const { promises: fs } = await import('node:fs');
+        const { join } = await import('node:path');
+        
+        const bundleDir = join(process.cwd(), '.cache', 'observations', runId);
+        const taskPath = join(bundleDir, 'repair-task.json');
+        
+        const taskContent = await fs.readFile(taskPath, 'utf-8');
+        const task = JSON.parse(taskContent);
+        
+        return createMCPResponse(
+          `Task ${task.taskId} for run ${runId}: ${task.acceptance.resolve.length} signatures to resolve`,
+          {
+            taskId: task.taskId,
+            taskPath,
+            findings: task.findings.length,
+            signatures: task.acceptance.resolve,
+          }
+        );
+      } catch (error) {
+        return createMCPResponse(`No task found for run ${runId}: ${error instanceof Error ? error.message : String(error)}`, {
+          taskId: undefined,
+          taskPath: undefined,
+          findings: 0,
+          signatures: [],
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'observe_verify',
+    {
+      title: 'Observe Verify',
+      description: 'Verify a repair task in a shadow worktree',
+      inputSchema: {
+        taskPath: z.string().describe('Path to repair-task.json'),
+        worktreePath: z.string().describe('Path to shadow worktree'),
+      },
+      outputSchema: {
+        accepted: z.boolean(),
+        runId: z.string(),
+        criteria: z.object({
+          resolve: z.record(z.boolean()),
+          noNewFindings: z.boolean(),
+          checksPass: z.boolean(),
+          durationOk: z.boolean(),
+        }),
+        details: z.array(z.string()),
+      },
+      annotations: ANNOTATIONS.run,
+    },
+    async ({ taskPath, worktreePath }) => {
+      try {
+        const { verifyTask } = await import('@senars/observe/verify.js');
+        
+        const result = await verifyTask(taskPath, worktreePath);
+        
+        return createMCPResponse(
+          `Verification ${result.accepted ? 'ACCEPTED' : 'REJECTED'}: ${result.runId}`,
+          {
+            accepted: result.accepted,
+            runId: result.runId,
+            criteria: result.criteria,
+            details: result.details,
+          }
+        );
+      } catch (error) {
+        return createMCPResponse(`Verification failed: ${error instanceof Error ? error.message : String(error)}`, {
+          accepted: false,
+          runId: '',
+          criteria: { resolve: {}, noNewFindings: false, checksPass: false, durationOk: false },
+          details: [String(error)],
+        });
+      }
+    }
+  );
+}

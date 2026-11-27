@@ -20,11 +20,11 @@ This adopts the repair-task bridge from the draft and perfects two things that w
 - [x] `cli.ts` — senars observe subcommand router (list, run, record, review, verify, diff, bisect, promote, export, replay)
 - [x] Tests: `schema.test.ts`, `programs.test.ts` passing
 
-**Phase 2 — Intelligence** — ⏳ **PENDING**
-- [ ] LM review integration testing (test 2: Sensitivity, test 4: Grounding + fail-closed)
-- [ ] MCP tools (observe_run, observe_task, observe_verify)
-- [ ] Failure-bundle hook
-- [ ] Auto scenario registration in promote.ts
+**Phase 2 — Intelligence** — ✅ **COMPLETE**
+- [x] LM review integration testing (test 2: Sensitivity, test 4: Grounding + fail-closed)
+- [x] MCP tools (observe_run, observe_task, observe_verify) in `src/bin/lib/mcp/tools.ts`
+- [x] Failure-bundle hook in `observe/src/hooks.ts` + integrated in `run.ts`
+- [x] Auto scenario registration in `promote.ts`
 
 **Phase 3 — Polish** — ⏳ **PENDING**
 - [ ] diff.ts full implementation (frame hash comparison, gate snapshot deltas)

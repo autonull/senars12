@@ -12,6 +12,7 @@ export interface PromoteResult {
   fixturePath: string;
   profileName: string;
   hardeningSuggestion?: string;
+  autoRegistered?: boolean;
 }
 
 export async function promoteRun(runId: string): Promise<PromoteResult> {
@@ -63,13 +64,68 @@ export async function promoteRun(runId: string): Promise<PromoteResult> {
 
   await registerRegressionFixture(profileName, fixtureManifest);
 
-  logger.info('Run promoted to fixture', { runId, profileName, fixtureDir, clearedSignatures: clearedSignatures.length });
+  // Auto-register in scenario-profiles.ts if enabled
+  const autoRegistered = await autoRegisterScenarioProfile(profileName);
+
+  logger.info('Run promoted to fixture', { runId, profileName, fixtureDir, clearedSignatures: clearedSignatures.length, autoRegistered });
 
   return {
     fixturePath: fixtureDir,
     profileName,
     hardeningSuggestion,
+    autoRegistered,
   };
+}
+
+async function autoRegisterScenarioProfile(profileName: string): Promise<boolean> {
+  try {
+    const profilesPath = join(process.cwd(), 'src/tools/adapters/scenario-profiles.ts');
+    const content = await fs.readFile(profilesPath, 'utf-8');
+    
+    // Check if already registered
+    if (content.includes(`'${profileName}'`)) {
+      logger.info('Profile already registered in scenario-profiles.ts', { profileName });
+      return false;
+    }
+    
+    // Find the SCENARIO_PROFILES array and add the new profile
+    const lines = content.split('\n');
+    const exportLineIndex = lines.findIndex(line => line.trim().startsWith('export const SCENARIO_PROFILES = ['));
+    
+    if (exportLineIndex === -1) {
+      logger.warn('Could not find SCENARIO_PROFILES export', { profilesPath });
+      return false;
+    }
+    
+    // Find the closing bracket
+    let bracketCount = 0;
+    let insertIndex = -1;
+    for (let i = exportLineIndex; i < lines.length; i++) {
+      bracketCount += (lines[i].match(/\[/g) || []).length;
+      bracketCount -= (lines[i].match(/\]/g) || []).length;
+      if (bracketCount === 0 && i > exportLineIndex) {
+        insertIndex = i;
+        break;
+      }
+    }
+    
+    if (insertIndex === -1) {
+      logger.warn('Could not find end of SCENARIO_PROFILES array', { profilesPath });
+      return false;
+    }
+    
+    // Insert the new profile before the closing bracket
+    const indent = lines[insertIndex].match(/^\s*/)?.[0] ?? '  ';
+    lines.splice(insertIndex, 0, `${indent}  '${profileName}',`);
+    
+    await fs.writeFile(profilesPath, lines.join('\n'));
+    
+    logger.info('Auto-registered profile in scenario-profiles.ts', { profileName });
+    return true;
+  } catch (error) {
+    logger.warn('Failed to auto-register scenario profile', { profileName, error });
+    return false;
+  }
 }
 
 function findBundle(runId: string): string | null {
