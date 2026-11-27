@@ -50,6 +50,8 @@ export class TaskManager {
   private readonly defaultTimeout: number;
   private gates: GateRegistry;
   private timeouts = new Map<string, () => void>();
+  /** Cached priority-sorted pending wrappers. */
+  #byPriorityCache: TaskWrapper[] | null = null;
 
   constructor(
     memory: TaskAdmission,
@@ -74,7 +76,15 @@ export class TaskManager {
 
   /** Pending wrappers, highest priority first. */
   private byPriority(): TaskWrapper[] {
-    return rankBy(this.pending.values(), (w) => w.priority);
+    if (this.#byPriorityCache === null) {
+      this.#byPriorityCache = rankBy(this.pending.values(), (w) => w.priority);
+    }
+    return this.#byPriorityCache;
+  }
+
+  /** Invalidate the byPriority cache. */
+  #invalidateByPriorityCache(): void {
+    this.#byPriorityCache = null;
   }
 
   peekTask(): Task | undefined {
@@ -92,6 +102,7 @@ export class TaskManager {
     if (!wrapper) return false;
     this.pending.delete(taskId);
     this.disarm(taskId);
+    this.#invalidateByPriorityCache();
     return true;
   }
 
@@ -107,6 +118,7 @@ export class TaskManager {
 
     const taskId = task.stamp.id;
     this.pending.set(taskId, wrapper);
+    this.#invalidateByPriorityCache();
 
     if (wrapper.timeout && wrapper.timeout > 0) {
       this.timeouts.set(
@@ -161,11 +173,13 @@ export class TaskManager {
         processed.push(wrapper.task);
         this.completed.set(taskId, wrapper);
         this.pending.delete(taskId);
+        this.#invalidateByPriorityCache();
       } else {
         wrapper.lifecycle = 'failed';
         wrapper.completedAt = Date.now();
         this.failed.set(taskId, wrapper);
         this.pending.delete(taskId);
+        this.#invalidateByPriorityCache();
       }
     }
 
@@ -182,6 +196,7 @@ export class TaskManager {
     this.failed.set(taskId, wrapper);
 
     this.disarm(taskId);
+    this.#invalidateByPriorityCache();
     return true;
   }
 
@@ -201,6 +216,7 @@ export class TaskManager {
     this.pending.clear();
     this.completed.clear();
     this.failed.clear();
+    this.#invalidateByPriorityCache();
   }
 
   /**
@@ -210,6 +226,7 @@ export class TaskManager {
   clearPending(): void {
     for (const taskId of this.pending.keys()) this.disarm(taskId);
     this.pending.clear();
+    this.#invalidateByPriorityCache();
   }
 
   private expireTask(taskId: string): void {
@@ -221,5 +238,6 @@ export class TaskManager {
     this.pending.delete(taskId);
     this.failed.set(taskId, wrapper);
     this.disarm(taskId);
+    this.#invalidateByPriorityCache();
   }
 }
