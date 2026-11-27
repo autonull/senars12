@@ -2,9 +2,9 @@ import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/autonomy';
 import { LM_PROVIDER_NAMES } from '../lm/env-config';
 import { LM_TASKS } from '@senars/types/llm';
 import { dialogueDefaults, dialogueSchema } from './dialogue';
-import { intBetween, nonEmpty, positiveInt } from './boundary';
+import { intBetween, nonEmpty, positiveInt, unitInterval } from './boundary';
 import { lmSettingsSchema } from './lm-schema';
-import { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber } from './nar-core-bounds';
+import { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber } from './bound-table';
 import { systemOneDefaults, systemOneSchema, type SystemOneConfig } from './system-one';
 import { z } from 'zod';
 
@@ -145,12 +145,12 @@ export const backendsSchema = z
             hz: positiveInt.optional(),
             maxCyclesPerWindow: positiveInt.optional(),
             maxWallClockMsPerWindow: positiveInt.optional(),
-            backpressureThreshold: z.number().min(0).max(1).optional(),
+            backpressureThreshold: unitInterval.optional(),
             policies: z.partialRecord(z.enum(AUTONOMY_POLICIES), z.boolean()).optional(),
             curiosity: z
               .object({
                 maxQuestionsPerWindow: positiveInt,
-                maxConfidence: z.number().min(0).max(1),
+                maxConfidence: unitInterval,
               })
               .partial()
               .optional(),

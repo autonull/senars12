@@ -8,7 +8,7 @@
 
 import { randomUUID, createHash } from 'crypto';
 import { z } from 'zod';
-import { uuid, timestamp, nonNegativeInt, positiveInt } from '../config';
+import { uuid, timestamp, nonNegativeInt, positiveInt, unitInterval } from '../config';
 import { FunctionRegistry } from '../util/registry';
 import { SenarsError } from '../errors/senars-error';
 
@@ -118,7 +118,7 @@ export const MissionOverlaySchema = z.object({
   provenance: z.object({
     source: z.enum(['human-mission', 'learned-policy', 'self-meta-game', 'external-governance']),
     derivationIds: z.array(uuid).optional(),
-    confidence: z.number().min(0).max(1),
+    confidence: unitInterval,
   }),
   /** Scope: where this overlay applies. */
   scope: z.object({

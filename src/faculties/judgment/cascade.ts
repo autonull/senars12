@@ -30,6 +30,8 @@ import { createLogger } from '../../util/logger';
 import { errMsg } from '@senars/util/error';
 import { flooredRatio, sigmoid } from '@senars/util/numeric';
 import { mapToRecord } from '@senars/util/collections';
+import { z } from 'zod';
+import { unitInterval } from '../../config/boundary';
 
 const logger = createLogger({ scope: 'faculties:judgment:cascade' });
 
@@ -675,10 +677,9 @@ Provide scores 0-1 for each criterion.
 
   /** Build Zod schema for rubric evaluation. */
   private buildRubricSchema(criteria: Array<{ name: string; description: string; weight: number }>) {
-    const { z } = require('zod');
     const shape: Record<string, any> = {};
     for (const c of criteria) {
-      shape[c.name] = z.number().min(0).max(1);
+      shape[c.name] = unitInterval;
     }
     return z.object(shape);
   }

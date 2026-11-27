@@ -323,3 +323,26 @@ export const SYSTEM_ONE_DEFAULT_PATHS = [
 
 // Re-export raw tables for backward compatibility
 export const cognitiveBounds = boundTables.cognitive;
+
+/**
+ * NAR core config bounds — the single source of truth for engine defaults,
+ * config-file schemas, and UI slider configs. Avoids drift between validation
+ * limits, engine defaults and UI control ranges.
+ */
+
+/** A bound row's limits, never restated: `narCoreNumber('maxDerivationDepth')`. */
+export const narCoreNumber = (key: NarCoreBoundKey) => narCoreBound.schema(key, { defaulted: false });
+
+/** The same row carrying its default — what a config-file field wants. */
+export const narCoreDefaultedNumber = (key: NarCoreBoundKey) => narCoreBound.schema(key);
+
+/** Every bound's default, keyed by knob — the projection the engine's `DEFAULT_CONFIG`
+ *  and the config-file schema's `narCoreDefaults` both wanted and each re-derived. */
+export const narCoreDefaults: Record<NarCoreBoundKey, number> = narCoreBound.defaults;
+
+/** The whole table as one zod object, defaults attached — so the schema is the bounds
+ *  rather than a hand-maintained transcription of them. */
+export const narCoreDefaultsSchema = narCoreBound.defaultsSchema;
+
+// Re-export the raw table for any consumers that need it
+export const narCoreBounds = boundTables.narCore;

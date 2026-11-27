@@ -1,7 +1,5 @@
 import { z } from 'zod';
-
-/** The `0..1` interval constraint used by truth schemas. */
-const unitInterval = z.number().min(0).max(1);
+import { unitInterval } from '../config/boundary';
 
 /** The `0..1` truth pair every event payload, derivation record, and formalization candidate carries. */
 export const BeliefTruthSchema = z.object({

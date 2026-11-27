@@ -5,7 +5,7 @@ export { dialogueDefaults, dialogueSchema, type DialogueConfig } from './dialogu
 export { intBetween, nonEmpty, positiveInt, unitInterval, uuid, nonNegativeInt, timestamp, intAtLeast, signedUnitInterval, temperature } from './boundary';
 export { lmSettingsSchema, lmSettingsShape, type LMSettingsShape } from './lm-schema';
 export { systemOneDefaults, systemOneSchema, type SystemOneConfig, CRITICALITY_LEVELS, type CriticalityLevel, criticalitySchema } from './system-one';
-export { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber, narCoreDefaultedNumber } from './nar-core-bounds';
+export { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber, narCoreDefaultedNumber } from './bound-table';
 export { readEnvOverrides, SENARS_ENV_MAP, envBool, envCsv, envFirst, envInt, envNum, envPositive, envSet, envStr, envStrOr, isTruthy, parseEnvValue, envNumOr, isBooleanSpelling } from './env';
 export { CACHE_DIR, cachePath } from './paths';
 export { PRESSURE } from './pressure';
