@@ -63,8 +63,8 @@ export type EvictStrategy = 'priority' | 'fifo' | 'lru' | 'random';
 /** Internal entry with bag-managed fields. */
 export interface InternalEntry<T extends BagItem> extends BagItem {
   readonly _insertedAt: number;
-  readonly _lastAccessedAt: number;
-  readonly _accessCount: number;
+  _lastAccessedAt: number;
+  _accessCount: number;
   _currentPriority: number;
   /** The original item, preserving methods and non-enumerable properties. */
   readonly _item: T;
@@ -404,16 +404,11 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   get(id: string): T | undefined {
     const entry = this.#items.get(id);
     if (entry) {
-      // Update access metadata
+      // Update access metadata in place to avoid allocation
       const now = this.#clock();
-      const updated: InternalEntry<T> = {
-        ...entry,
-        _lastAccessedAt: now,
-        _accessCount: entry._accessCount + 1,
-        _item: entry._item,
-      };
-      this.#items.set(id, updated);
-      this.#updateLRU(updated);
+      entry._lastAccessedAt = now;
+      entry._accessCount = entry._accessCount + 1;
+      this.#updateLRU(entry);
       return entry._item;
     }
     return undefined;
@@ -441,14 +436,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   updatePriority(id: string, priority: number): boolean {
     const entry = this.#items.get(id);
     if (!entry) return false;
-    const updated: InternalEntry<T> = {
-      ...entry,
-      _currentPriority: priority,
-      priority,
-      _item: entry._item,
-    };
-    this.#items.set(id, updated);
-    this.#updateTrackingOnUpdate(updated);
+    entry._currentPriority = priority;
+    entry.priority = priority;
+    this.#updateTrackingOnUpdate(entry);
     this.#version++;
     this.#sortedDirty = true;
     this.#sortedCache = null;

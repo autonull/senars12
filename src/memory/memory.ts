@@ -76,6 +76,10 @@ export class Memory implements MemoryPorts {
   private cyclesSinceConsolidation = 0;
   /** The last eviction pass's report, including whether it could free anything. */
   private lastEviction: EvictionReport | undefined;
+  /** Cached priority-sorted concepts for sampleWindow. */
+  #sortedConceptsCache: Concept[] | null = null;
+  /** Whether the sorted cache is dirty. */
+  #sortedConceptsDirty = true;
 
   constructor(
     config: MemoryConfig = DEFAULT_MEMORY_CONFIG,
@@ -310,6 +314,7 @@ export class Memory implements MemoryPorts {
    */
   private adoptConcept(concept: Concept): Concept {
     this.concepts.set(concept.term, concept);
+    this.#invalidateSortedCache();
 
     if (this.config.enableIndexing) this.index.index(concept);
 
@@ -320,6 +325,12 @@ export class Memory implements MemoryPorts {
 
     this.updateFocus(concept);
     return concept;
+  }
+
+  /** Invalidate the priority-sorted concept cache. */
+  #invalidateSortedCache(): void {
+    this.#sortedConceptsDirty = true;
+    this.#sortedConceptsCache = null;
   }
 
   addTask(
@@ -349,6 +360,7 @@ export class Memory implements MemoryPorts {
       if (this.config.enableIndexing) this.index.remove(concept);
       this.linkManager.removeAllLinksForTerm(term);
       this.concepts.delete(term);
+      this.#invalidateSortedCache();
       return true;
     }
     return false;
@@ -391,13 +403,17 @@ export class Memory implements MemoryPorts {
     if (len === 0) return [];
     if (len <= windowSize) return entries.map((e) => e.value);
 
-    // Extract concepts to array and sort by priority descending.
-    // This avoids the TermMapEntry wrapper and closure overhead from toSorted().
-    const concepts = new Array(len);
-    for (let i = 0; i < len; i++) {
-      concepts[i] = entries[i]!.value;
+    // Use cached priority-sorted array if available, otherwise build and cache it.
+    let concepts = this.#sortedConceptsCache;
+    if (this.#sortedConceptsDirty || concepts === null) {
+      concepts = new Array(len);
+      for (let i = 0; i < len; i++) {
+        concepts[i] = entries[i]!.value;
+      }
+      concepts.sort((a, b) => b.priority - a.priority);
+      this.#sortedConceptsCache = concepts;
+      this.#sortedConceptsDirty = false;
     }
-    concepts.sort((a, b) => b.priority - a.priority);
 
     const start = nextInt(rng, len - windowSize + 1);
     return concepts.slice(start, start + windowSize);
@@ -486,6 +502,7 @@ export class Memory implements MemoryPorts {
     if (this.config.enableIndexing) this.index.clear();
     if (this.config.enableArchive) this.archive.clear();
     this.linkManager.applyDecay(1);
+    this.#invalidateSortedCache();
   }
 
   /**
@@ -620,6 +637,7 @@ export class Memory implements MemoryPorts {
       const decay = this.attentionModel.decay(concept, cyclesElapsed, rate);
       if (decay !== 0) concept.writeAttention({ reason: 'decay', amount: decay });
     }
+    this.#invalidateSortedCache();
   }
 
   private bfsCluster(start: Concept, minStrength: number, visited: TermSet): Concept[] {
