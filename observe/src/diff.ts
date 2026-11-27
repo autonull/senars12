@@ -2,7 +2,9 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { createLogger } from 'senars/util/logger';
 import type { Manifest, Finding } from './schema.js';
-import { replayCognitiveState } from 'senars/log/replay-reducers';
+import { replay } from '../src/log/replay.ts';
+import { LogStore } from '../src/log/store.ts';
+import type { CognitiveEvent } from '../src/schemas/cognitive-events.ts';
 
 const logger = createLogger({ scope: 'ObserveDiff' });
 
@@ -16,9 +18,17 @@ export interface DiffResult {
     overallB: string;
     findingsAdded: Finding[];
     findingsRemoved: Finding[];
+    findingsChanged: Array<{ signature: string; severityA: string; severityB: string }>;
   };
   frameHashDeltas: Array<{ markId: string; hashA: string; hashB: string }>;
   gateSnapshotDeltas: number;
+  eventCountDelta: number;
+  markCountDelta: number;
+}
+
+export interface BisectResult {
+  badCommit: string;
+  testedCommits: Array<{ sha: string; eventDigest: string; match: boolean }>;
 }
 
 export async function diffRuns(runA: string, runB: string): Promise<DiffResult> {
@@ -29,7 +39,7 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
     throw new Error(`Bundle not found: ${!bundleA ? runA : runB}`);
   }
 
-  const [manifestA, manifestB, marksA, marksB, framesA, framesB, verdictA, verdictB] = await Promise.all([
+  const [manifestA, manifestB, marksA, marksB, framesA, framesB, verdictA, verdictB, eventsA, eventsB] = await Promise.all([
     readManifest(bundleA),
     readManifest(bundleB),
     readMarks(bundleA),
@@ -38,6 +48,8 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
     readFrames(bundleB),
     readVerdict(bundleA),
     readVerdict(bundleB),
+    readEvents(bundleA),
+    readEvents(bundleB),
   ]);
 
   const eventDigestMatch = manifestA.eventDigest === manifestB.eventDigest;
@@ -65,9 +77,17 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
 
   const findingsAdded: Finding[] = [];
   const findingsRemoved: Finding[] = [];
+  const findingsChanged: Array<{ signature: string; severityA: string; severityB: string }> = [];
 
   for (const [sig, finding] of findingsB) {
-    if (!findingsA.has(sig)) findingsAdded.push(finding);
+    if (!findingsA.has(sig)) {
+      findingsAdded.push(finding);
+    } else {
+      const findingA = findingsA.get(sig)!;
+      if (findingA.severity !== finding.severity) {
+        findingsChanged.push({ signature: sig, severityA: findingA.severity, severityB: finding.severity });
+      }
+    }
   }
   for (const [sig, finding] of findingsA) {
     if (!findingsB.has(sig)) findingsRemoved.push(finding);
@@ -83,12 +103,21 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
 
   let gateSnapshotDeltas = 0;
   try {
-    const stateA = await replayCognitiveState(manifestA.fromSeq, manifestA.toSeq);
-    const stateB = await replayCognitiveState(manifestB.fromSeq, manifestB.toSeq);
+    const storeA = new LogStore({ dir: join(bundleA, '..', '..', 'data', 'log') });
+    await storeA.open();
+    const stateA = await replayCognitiveStateFromStore(storeA, manifestA.fromSeq, manifestA.toSeq);
+    await storeA.close();
+
+    const storeB = new LogStore({ dir: join(bundleB, '..', '..', 'data', 'log') });
+    await storeB.open();
+    const stateB = await replayCognitiveStateFromStore(storeB, manifestB.fromSeq, manifestB.toSeq);
+    await storeB.close();
+
     if (JSON.stringify(stateA) !== JSON.stringify(stateB)) {
       gateSnapshotDeltas = 1;
     }
-  } catch {
+  } catch (error) {
+    logger.warn('Could not compare gate snapshots', { error });
     gateSnapshotDeltas = -1;
   }
 
@@ -102,53 +131,92 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
       overallB: verdictB.overall,
       findingsAdded,
       findingsRemoved,
+      findingsChanged,
     },
     frameHashDeltas,
     gateSnapshotDeltas,
+    eventCountDelta: eventsB.length - eventsA.length,
+    markCountDelta: marksB.length - marksA.length,
   };
 }
 
-export async function bisect(programId: string, goodSha: string, badSha: string): Promise<string> {
+async function replayCognitiveStateFromStore(store: LogStore, fromSeq: number, toSeq: number): Promise<any> {
+  const initialState = { gates: [], beliefs: [], concepts: [] };
+  const reducer = (state: any, event: CognitiveEvent) => {
+    if (event.type?.includes('Gate')) state.gates.push({ type: event.type, payload: event.payload });
+    if (event.type === 'BeliefRevisedEvent' || event.type === 'BeliefAddedEvent') state.beliefs.push(event.payload);
+    if (event.type === 'ConceptActivatedEvent') state.concepts.push(event.payload);
+    return state;
+  };
+  const result = await replay(store, { initialState, reducer, fromSeq, toSeq });
+  return result.state;
+}
+
+export async function bisect(programId: string, goodSha: string, badSha: string): Promise<BisectResult> {
   logger.info('Starting bisect', { programId, goodSha, badSha });
 
   const { execSync } = await import('node:child_process');
+  const originalSha = execSync('git rev-parse HEAD', { cwd: process.cwd(), encoding: 'utf-8' }).trim();
 
-  execSync(`git bisect start ${badSha} ${goodSha}`, { cwd: process.cwd(), stdio: 'inherit' });
+  const testedCommits: BisectResult['testedCommits'] = [];
 
   try {
+    execSync(`git bisect start ${badSha} ${goodSha}`, { cwd: process.cwd(), stdio: 'pipe' });
+
+    const baselineResult = await runProgramInCommit(programId, goodSha);
+    const baselineDigest = baselineResult.eventDigest;
+
     while (true) {
       const currentSha = execSync('git rev-parse HEAD', { cwd: process.cwd(), encoding: 'utf-8' }).trim();
       logger.info('Bisect testing', { sha: currentSha });
 
       const runResult = await runProgramInCommit(programId, currentSha);
+      const match = runResult.eventDigest === baselineDigest;
 
-      if (runResult.eventDigest === runResult.baselineDigest) {
-        execSync('git bisect good', { cwd: process.cwd(), stdio: 'inherit' });
+      testedCommits.push({ sha: currentSha, eventDigest: runResult.eventDigest, match });
+
+      if (match) {
+        execSync('git bisect good', { cwd: process.cwd(), stdio: 'pipe' });
       } else {
-        execSync('git bisect bad', { cwd: process.cwd(), stdio: 'inherit' });
+        execSync('git bisect bad', { cwd: process.cwd(), stdio: 'pipe' });
       }
 
-      const status = execSync('git bisect log', { cwd: process.cwd(), encoding: 'utf-8' });
-      if (status.includes('first bad commit')) {
-        const badCommit = execSync('git bisect bad', { cwd: process.cwd(), encoding: 'utf-8' }).trim();
+      const log = execSync('git bisect log', { cwd: process.cwd(), encoding: 'utf-8' });
+      if (log.includes('first bad commit')) {
+        const badCommit = execSync('git rev-parse $(git bisect bad)', { cwd: process.cwd(), encoding: 'utf-8' }).trim();
         logger.info('Bisect found regression', { badCommit });
-        return badCommit;
+        return { badCommit, testedCommits };
+      }
+
+      if (testedCommits.length > 50) {
+        logger.warn('Bisect max iterations reached');
+        break;
       }
     }
+
+    return { badCommit: '', testedCommits };
+  } catch (error) {
+    logger.error('Bisect failed', { error });
+    throw error;
   } finally {
-    execSync('git bisect reset', { cwd: process.cwd(), stdio: 'inherit' });
+    try {
+      execSync('git bisect reset', { cwd: process.cwd(), stdio: 'pipe' });
+      execSync(`git checkout ${originalSha}`, { cwd: process.cwd(), stdio: 'pipe' });
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 }
 
 async function runProgramInCommit(programId: string, sha: string): Promise<{ eventDigest: string; baselineDigest: string }> {
   const { execSync } = await import('node:child_process');
-  execSync(`git checkout ${sha}`, { cwd: process.cwd(), stdio: 'inherit' });
+  execSync(`git checkout ${sha}`, { cwd: process.cwd(), stdio: 'pipe' });
 
   const { observeRun } = await import('./run.js');
   const { getObserveProgram } = await import('./programs.js');
   const program = getObserveProgram(programId as any, 'bisect-seed');
 
-  const result = await observeRun({ program, deps: { nar: null } });
+  const result = await observeRun({ program, deps: { nar: null }, runReview: false });
 
   return { eventDigest: result.eventDigest, baselineDigest: '' };
 }
@@ -184,4 +252,9 @@ async function readFrames(bundleDir: string): Promise<any[]> {
 
 async function readVerdict(bundleDir: string): Promise<{ overall: string; findings: Finding[] }> {
   return JSON.parse(await fs.readFile(join(bundleDir, 'verdict.json'), 'utf-8').catch(() => '{"overall":"unknown","findings":[]}'));
+}
+
+async function readEvents(bundleDir: string): Promise<any[]> {
+  const content = await fs.readFile(join(bundleDir, 'events.jsonl'), 'utf-8').catch(() => '');
+  return content.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
 }

@@ -11,3 +11,5 @@ export * from './diff.js';
 export * from './promote.js';
 export * from './cli.js';
 export * from './hooks.js';
+export * from './drift.js';
+export * from './tour.js';

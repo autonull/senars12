@@ -7,9 +7,11 @@ import { verifyTask } from './verify.js';
 import { diffRuns, bisect } from './diff.js';
 import { promoteRun } from './promote.js';
 import { getObserveProgram, listObservePrograms } from './programs.js';
+import { runDriftGate } from './drift.js';
 import type { ObserveRunResult } from './run.js';
 import type { VerifyResult } from './verify.js';
 import type { ScenarioRunnerDeps } from 'senars/tools/adapters/scenario-execute';
+import { execSync } from 'node:child_process';
 
 const logger = createLogger({ scope: 'ObserveCLI' });
 
@@ -42,6 +44,10 @@ export async function observeCLI(argv: string[], options: ObserveCLIOptions): Pr
       return await cmdExport(flags);
     case 'replay':
       return await cmdReplay(flags);
+    case 'drift':
+      return await cmdDrift(flags);
+    case 'tour':
+      return await cmdTour(flags);
     default:
       console.log(observeHelp());
       return 0;
@@ -66,6 +72,8 @@ COMMANDS:
   promote <runId>         Promote verified fix to regression fixture
   export <runId>          Export bundle to GIF/webm/cast/report
   replay <runId>          Replay console cast or serve video
+  drift <runId>           Check for drift against baseline
+  tour <runId>            Generate narrative tour from run
 
 OPTIONS:
   --program, -p       Program ID (for run)
@@ -334,9 +342,16 @@ async function cmdExport(flags: Flags): Promise<number> {
       break;
     }
     case 'gif': {
-      console.log('GIF export requires ffmpeg. Run manually:');
-      console.log(`  ffmpeg -i ${join(bundleDir, 'ui.webm')} -vf "fps=10,scale=640:-1:flags=lanczos" -loop 0 ${outPath}`);
-      return 1;
+      try {
+        execSync(`ffmpeg -y -i ${join(bundleDir, 'ui.webm')} -vf "fps=10,scale=640:-1:flags=lanczos" -loop 0 ${outPath}`, {
+          stdio: 'pipe',
+        });
+      } catch (error) {
+        console.error('GIF export failed. Is ffmpeg installed?');
+        console.log(`  Manual: ffmpeg -i ${join(bundleDir, 'ui.webm')} -vf "fps=10,scale=640:-1:flags=lanczos" -loop 0 ${outPath}`);
+        return 1;
+      }
+      break;
     }
     default:
       console.error(`Unknown format: ${format}`);
@@ -350,6 +365,8 @@ async function cmdExport(flags: Flags): Promise<number> {
 async function cmdReplay(flags: Flags): Promise<number> {
   const runId = flags.positional.shift();
   const speed = flags.str('speed', '1x');
+  const serve = flags.has('serve');
+  const port = parseInt(flags.str('port', '3000'), 10);
 
   if (!runId) {
     console.error('Error: runId required');
@@ -371,7 +388,132 @@ async function cmdReplay(flags: Flags): Promise<number> {
   const webmPath = join(bundleDir, 'ui.webm');
   console.log(`\nTo view UI video:`);
   console.log(`  Open ${webmPath} in browser or:`);
-  console.log(`  npx serve ${bundleDir}  # then open http://localhost:3000/ui.webm`);
+
+  if (serve) {
+    console.log(`  Starting HTTP server on port ${port}...`);
+    await serveBundle(bundleDir, port);
+  } else {
+    console.log(`  npx serve ${bundleDir}  # then open http://localhost:${port}/ui.webm`);
+  }
+
+  return 0;
+}
+
+async function serveBundle(bundleDir: string, port: number): Promise<void> {
+  const http = await import('node:http');
+  const { createReadStream, statSync } = await import('node:fs');
+  const { extname } = await import('node:path');
+
+  const mimeTypes: Record<string, string> = {
+    '.webm': 'video/webm',
+    '.cast': 'application/octet-stream',
+    '.json': 'application/json',
+    '.md': 'text/markdown',
+    '.jpg': 'image/jpeg',
+    '.jsonl': 'application/json',
+  };
+
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    let filePath = join(bundleDir, url.pathname.slice(1));
+    
+    // Security: prevent directory traversal
+    if (!filePath.startsWith(bundleDir)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+
+    try {
+      const stat = statSync(filePath);
+      if (stat.isDirectory()) {
+        filePath = join(filePath, 'index.html');
+      }
+    } catch {
+      res.writeHead(404);
+      res.end('Not found');
+      return;
+    }
+
+    const ext = extname(filePath);
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    
+    res.writeHead(200, { 'Content-Type': contentType });
+    createReadStream(filePath).pipe(res);
+  });
+
+  server.listen(port, () => {
+    console.log(`  Server running at http://localhost:${port}`);
+    console.log(`  UI video: http://localhost:${port}/ui.webm`);
+    console.log(`  Console cast: http://localhost:${port}/console.cast`);
+    console.log(`  Report: http://localhost:${port}/report.md`);
+    console.log('  Press Ctrl+C to stop');
+  });
+
+  await new Promise<void>((resolve) => {
+    process.on('SIGINT', () => {
+      server.close(() => resolve());
+    });
+  });
+}
+
+async function cmdDrift(flags: Flags): Promise<number> {
+  const runId = flags.positional.shift();
+  if (!runId) {
+    console.error('Error: runId required');
+    return 1;
+  }
+
+  console.log(`Checking drift for run: ${runId}`);
+
+  const result = await runDriftGate(runId);
+
+  console.log(`\nDrift check: ${result.passed ? 'PASSED' : 'FAILED'}`);
+  console.log(`Baseline run: ${result.baselineRunId}`);
+  console.log(`Current run: ${result.currentRunId}`);
+  console.log(`Event digest match: ${result.eventDigestMatch ? 'YES' : 'NO'}`);
+  console.log(`Frame similarity: ${(result.frameSimilarity * 100).toFixed(1)}%`);
+  console.log(`Gate state match: ${result.gateStateMatch ? 'YES' : 'NO'}`);
+
+  if (result.details.length > 0) {
+    console.log('\nDetails:');
+    for (const detail of result.details) {
+      console.log(`  ${detail}`);
+    }
+  }
+
+  return result.passed ? 0 : 1;
+}
+
+async function cmdTour(flags: Flags): Promise<number> {
+  const runId = flags.positional.shift();
+  const format = flags.str('format', '') || flags.str('f', '') || 'markdown';
+  const output = flags.str('output', '') || flags.str('o', '');
+
+  if (!runId) {
+    console.error('Error: runId required');
+    return 1;
+  }
+
+  console.log(`Generating tour for run: ${runId}`);
+
+  const { generateTour, renderTourMarkdown, saveTour } = await import('./tour.js');
+
+  const tour = await generateTour(runId);
+
+  if (format === 'json') {
+    const outPath = output || join(process.cwd(), 'generated', 'tours', `${tour.runId}-tour.json`);
+    await saveTour(tour, outPath);
+    console.log(`Tour saved to: ${outPath}`);
+  } else {
+    const markdown = await renderTourMarkdown(tour);
+    const outPath = output || join(process.cwd(), 'generated', 'tours', `${tour.runId}-tour.md`);
+    await saveTour({ ...tour, summary: markdown } as any, outPath);
+    console.log(`Tour saved to: ${outPath}`);
+  }
+
+  console.log(`\nSummary: ${tour.summary.split('\n')[0]}`);
+  console.log(`Steps: ${tour.steps.length}`);
 
   return 0;
 }

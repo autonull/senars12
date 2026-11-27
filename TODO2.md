@@ -26,13 +26,13 @@ This adopts the repair-task bridge from the draft and perfects two things that w
 - [x] Failure-bundle hook in `observe/src/hooks.ts` + integrated in `run.ts`
 - [x] Auto scenario registration in `promote.ts`
 
-**Phase 3 — Polish** — ⏳ **PENDING**
-- [ ] diff.ts full implementation (frame hash comparison, gate snapshot deltas)
-- [ ] bisect.ts full implementation (git bisect + replay)
-- [ ] export/replay CLI (GIF generation, webm serving)
-- [ ] --publish flag
-- [ ] Drift gate
-- [ ] Generated tours
+**Phase 3 — Polish** — ✅ **COMPLETE**
+- [x] diff.ts full implementation (frame hash comparison, gate snapshot deltas, findings changed)
+- [x] bisect.ts full implementation (git bisect + replay with event digest comparison)
+- [x] export/replay CLI (GIF generation via ffmpeg, webm serving, HTTP server for replay)
+- [x] --publish flag (implemented in Phase 1, works with generated/observations)
+- [x] Drift gate (runDriftGate in drift.ts + CLI command)
+- [x] Generated tours (HTTP server serves bundle for video/cast/report viewing)
 
 ---
 
