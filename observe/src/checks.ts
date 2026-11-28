@@ -79,23 +79,25 @@ function runValidatorChecks(context: CheckContext): CheckResult[] {
           ? `Contradiction detected at step ${scenarioResult?.steps_executed}`
           : `No contradiction within ${value} steps`;
         break;
-      case 'response_latency_p95':
+      case 'response_latency_p95': {
         const avgLatency = scenarioResult?.duration_ms ? scenarioResult.duration_ms / (scenarioResult.steps_executed || 1) : 0;
         passed = avgLatency <= (value as number);
         score = passed ? 1 : Math.max(0, 1 - avgLatency / ((value as number) * 2));
         details = `Avg latency ${avgLatency.toFixed(1)}ms (threshold: ${value}ms)`;
         break;
+      }
       case 'min_derivations':
         passed = (scenarioResult?.derived_beliefs?.length ?? 0) >= (value as number);
         score = passed ? 1 : (scenarioResult?.derived_beliefs?.length ?? 0) / (value as number);
         details = `${scenarioResult?.derived_beliefs?.length ?? 0}/${value} derivations`;
         break;
-      case 'specific_belief_derived':
+      case 'specific_belief_derived': {
         const target = value as string;
         passed = (scenarioResult?.derived_beliefs ?? []).some((b: string) => b.includes(target));
         score = passed ? 1 : 0;
         details = passed ? `Derived ${target}` : `Missing ${target}`;
         break;
+      }
       default:
         passed = true;
         score = 1;
