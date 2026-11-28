@@ -1,11 +1,11 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import type { Manifest, Verdict, Finding, CheckResult } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { findBundle, readBundle } from './bundle.js';
 
-const logger = createLogger({ scope: 'ObserveTour' });
+const logger = getLogger('ObserveTour');
 
 export interface TourStep {
   markId: string;

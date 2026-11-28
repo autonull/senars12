@@ -1,13 +1,13 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import type { Manifest, Finding } from './schema.js';
 import { replay } from '@senars/log/replay';
 import { LogStore } from '@senars/log/store';
 import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
 import { findBundle, readBundle, findFirstDivergentMark } from './bundle.js';
 
-const logger = createLogger({ scope: 'ObserveDiff' });
+const logger = getLogger('ObserveDiff');
 
 export interface DiffResult {
   runA: string;

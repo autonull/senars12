@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import type { ObserveProgram } from './programs.js';
 import type { Manifest, Verdict, Finding, EvidenceRef, CheckResult } from './schema.js';
 export type { Verdict } from './schema.js';
@@ -9,7 +9,7 @@ import { SystemOneManifold, type JudgmentManifold, type JudgmentQuery, type Embe
 import { readBundle } from './bundle.js';
 import { findingFromCheckFailure, type CheckContext } from './checks.js';
 
-const logger = createLogger({ scope: 'ObserveReview' });
+const logger = getLogger('ObserveReview');
 
 const DEFAULT_REVIEWER_PROMPT = `You are reviewing a SeNARS cognitive run for anomalies. Analyze the provided transcript, event summary, and keyframes.
 

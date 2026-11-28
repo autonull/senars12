@@ -1,11 +1,11 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import type { Manifest, Finding } from './schema.js';
 import { diffRuns } from './diff.js';
 import { findBundle } from './bundle.js';
 
-const logger = createLogger({ scope: 'ObserveDrift' });
+const logger = getLogger('ObserveDrift');
 
 export interface DriftResult {
   passed: boolean;

@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import { type Flags, parseFlags } from '@senars/util/cli';
 import { observeRun, observeRecord } from './run.js';
 import { verifyTask } from './verify.js';
@@ -14,7 +14,7 @@ import type { VerifyResult } from './verify.js';
 import type { ScenarioRunnerDeps } from '@senars/tools/adapters/scenario-execute';
 import { execSync } from 'node:child_process';
 
-const logger = createLogger({ scope: 'ObserveCLI' });
+const logger = getLogger('ObserveCLI');
 
 export interface ObserveCLIOptions {
   deps: ScenarioRunnerDeps;

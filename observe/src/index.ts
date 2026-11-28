@@ -13,3 +13,4 @@ export * from './cli.js';
 export * from './hooks.js';
 export * from './drift.js';
 export * from './tour.js';
+export * from './logger.js';

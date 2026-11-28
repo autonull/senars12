@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulid';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import type { ScenarioSpec } from '@senars/tools/adapters/scenario-execute';
 import { runScenario, type ScenarioRunnerDeps, type ScenarioResult } from '@senars/tools/adapters/scenario-execute';
 import { EventBus } from '@senars/events/event-bus';
@@ -14,7 +14,7 @@ import { runFailureHooks, createFailureBundle, hasActionableFindings } from './h
 import type { ObserveProgram } from './programs.js';
 import type { Manifest, Finding, CheckResult as CheckResultType } from './schema.js';
 
-const logger = createLogger({ scope: 'ObserveRun' });
+const logger = getLogger('ObserveRun');
 
 export interface ObserveRunOptions {
   program: ObserveProgram;

@@ -1,8 +1,8 @@
 import type { Manifest, Verdict, Finding, CheckResult } from './schema.js';
 import type { ObserveProgram } from './programs.js';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 
-const logger = createLogger({ scope: 'ObserveHooks' });
+const logger = getLogger('ObserveHooks');
 
 export interface FailureBundle {
   runId: string;

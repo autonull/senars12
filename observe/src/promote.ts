@@ -1,13 +1,13 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulid';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import type { Manifest, Verdict, Finding } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { findBundle, readBundle } from './bundle.js';
 
-const logger = createLogger({ scope: 'ObservePromote' });
+const logger = getLogger('ObservePromote');
 
 export interface PromoteResult {
   fixturePath: string;

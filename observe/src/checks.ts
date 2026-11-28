@@ -1,13 +1,13 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util/logger';
+import { getLogger } from './logger.js';
 import type { ObserveProgram } from './programs.js';
 import type { CheckResult, Finding, EvidenceRef, Mark } from './schema.js';
 export type { CheckResult } from './schema.js';
 import { createCheckId, FindingKind, FindingSeverity } from './schema.js';
 import { readBundle } from './bundle.js';
 
-const logger = createLogger({ scope: 'ObserveChecks' });
+const logger = getLogger('ObserveChecks');
 
 interface CheckContext {
   bundleDir: string;
