@@ -138,13 +138,20 @@ async function checkGraderGuard(task: RepairTask, worktreePath: string): Promise
       return { passed: false, reason: `Grader files modified: ${task.doNotEdit.join(', ')}` };
     }
 
+    interface RiskPatch {
+    affectedFiles: string[];
+    affectedComponents: string[];
+    linesAdded: number;
+    linesRemoved: number;
+  }
+
     const classifier = new PatchRiskClassifier();
-    const patch = {
+    const patch: RiskPatch = {
       affectedFiles: task.doNotEdit,
       affectedComponents: [],
       linesAdded: 0,
       linesRemoved: 0,
-    } as any;
+    };
     const assessment = classifier.classify(patch);
 
     if (assessment.risk === 'HIGH') {

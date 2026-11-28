@@ -7,6 +7,7 @@ import { verifyTask } from './verify.js';
 import { diffRuns, bisect } from './diff.js';
 import { promoteRun } from './promote.js';
 import { getObserveProgram, listObservePrograms } from './programs.js';
+import type { ScenarioProfile } from './programs.js';
 import { runDriftGate } from './drift.js';
 import { findBundle, readBundle, Paths } from './bundle.js';
 import type { ObserveRunResult } from './run.js';
@@ -129,7 +130,7 @@ async function cmdRun(flags: Flags, deps: ScenarioRunnerDeps): Promise<number> {
   const publish = flags.has('publish');
   const surfaces = (flags.str('surfaces', '') || flags.str('s', '') || 'console').split(',') as ('console' | 'ui')[];
   const uiUrl = flags.str('ui-url', '') || flags.str('u', '');
-  const program = getObserveProgram(programId as any, `cli-${Date.now()}`);
+  const program = getObserveProgram(programId as ScenarioProfile, `cli-${Date.now()}`);
   program.observe.lane = live ? 'live' : 'hermetic';
   program.observe.surfaces = surfaces;
   if (uiUrl) program.observe.uiUrl = uiUrl;
@@ -521,7 +522,7 @@ async function cmdTour(flags: Flags): Promise<number> {
   } else {
     const markdown = await renderTourMarkdown(tour);
     const outPath = output || join(Paths.generatedTours, `${tour.runId}-tour.md`);
-    await saveTour({ ...tour, summary: markdown } as any, outPath);
+    await saveTourMarkdown(markdown, tour.runId, outPath);
     console.log(`Tour saved to: ${outPath}`);
   }
 

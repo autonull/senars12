@@ -209,13 +209,15 @@ export async function bisect(programId: string, goodSha: string, badSha: string)
   }
 }
 
+import type { ScenarioProfile } from './programs.js';
+
 async function runProgramInCommit(programId: string, sha: string): Promise<{ eventDigest: string; baselineDigest: string }> {
   const { execSync } = await import('node:child_process');
   execSync(`git checkout ${sha}`, { cwd: process.cwd(), stdio: 'pipe' });
 
   const { observeRun } = await import('./run.js');
   const { getObserveProgram } = await import('./programs.js');
-  const program = getObserveProgram(programId as any, 'bisect-seed');
+  const program = getObserveProgram(programId as ScenarioProfile, 'bisect-seed');
 
   const result = await observeRun({ program, deps: { nar: null }, runReview: false });
 

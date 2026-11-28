@@ -122,6 +122,13 @@ export async function saveTour(tour: GeneratedTour, outputPath?: string): Promis
   return path;
 }
 
+export async function saveTourMarkdown(markdown: string, runId: string, outputPath?: string): Promise<string> {
+  const path = outputPath || join(Paths.generatedTours, `${runId}-tour.md`);
+  await fs.mkdir(join(path, '..'), { recursive: true });
+  await fs.writeFile(path, markdown);
+  return path;
+}
+
 export async function renderTourMarkdown(tour: GeneratedTour): Promise<string> {
   const lines: string[] = [];
   

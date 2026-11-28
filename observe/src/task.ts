@@ -77,8 +77,12 @@ export async function emitTask(
   return taskPath;
 }
 
+// Self-improvement tasks are stored in the governance artifact registry
+// but are not a standard GovernanceArtifactKind. This cast is intentional.
+const SELF_IMPROVEMENT_TASK_KIND = 'self-improvement-task' as const;
+
 function findExistingTask(signatures: string[], checkIds: string[]): RepairTask | null {
-  const artifacts = governanceArtifactRegistry.getByKind('self-improvement-task' as any);
+  const artifacts = governanceArtifactRegistry.getByKind(SELF_IMPROVEMENT_TASK_KIND as any);
   for (const artifact of artifacts) {
     const task = artifact.content as RepairTask;
     const taskSignatures = task.acceptance.resolve;
@@ -97,14 +101,21 @@ function deriveDoNotEdit(program: ObserveProgram): string[] {
   return [...new Set(files)];
 }
 
+interface RiskPatch {
+  affectedFiles: string[];
+  affectedComponents: string[];
+  linesAdded: number;
+  linesRemoved: number;
+}
+
 function classifyRisk(doNotEdit: string[]): 'low' | 'medium' | 'high' {
   const classifier = new PatchRiskClassifier();
-  const patch = {
+  const patch: RiskPatch = {
     affectedFiles: doNotEdit,
     affectedComponents: [],
     linesAdded: 0,
     linesRemoved: 0,
-  } as any;
+  };
   const assessment = classifier.classify(patch);
   return assessment.risk.toLowerCase() as 'low' | 'medium' | 'high';
 }
