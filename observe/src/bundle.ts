@@ -15,13 +15,6 @@ export function hashShort(content: Buffer): string {
   return createHash('sha256').update(content).digest('hex').slice(0, 16);
 }
 
-/** Standard locations where observation bundles are stored. */
-const BUNDLE_LOCATIONS = [
-  '.cache/observations',
-  'generated/observations',
-  'fixtures/observe',
-] as const;
-
 /** Base paths for observe data. */
 export const Paths = {
   cacheObservations: join(process.cwd(), '.cache', 'observations'),
@@ -31,10 +24,17 @@ export const Paths = {
   scenarioProfiles: join(process.cwd(), 'src', 'tools', 'adapters', 'scenario-profiles.ts'),
 } as const;
 
+/** Standard locations where observation bundles are stored. */
+const BUNDLE_LOCATIONS = [
+  Paths.cacheObservations,
+  Paths.generatedObservations,
+  Paths.fixturesObserve,
+] as const;
+
 /** Find a bundle directory by run ID. */
 export function findBundle(runId: string): string | null {
   for (const location of BUNDLE_LOCATIONS) {
-    const path = join(process.cwd(), location, runId);
+    const path = join(location, runId);
     try {
       require('node:fs').accessSync(path);
       return path;
@@ -64,12 +64,11 @@ export function findFixtureBundle(profileName: string): string {
 export function findBundles(prefix: string): string[] {
   const results: string[] = [];
   for (const location of BUNDLE_LOCATIONS) {
-    const dir = join(process.cwd(), location);
     try {
-      const entries = require('node:fs').readdirSync(dir);
+      const entries = require('node:fs').readdirSync(location);
       for (const entry of entries) {
         if (entry.startsWith(prefix)) {
-          results.push(join(dir, entry));
+          results.push(join(location, entry));
         }
       }
     } catch {
