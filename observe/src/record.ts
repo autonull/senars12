@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { EventBus } from '@senars/events/event-bus';
 import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
 import { getLogger } from './logger.js';
-import { hashContent, hashShort } from './bundle.js';
+import { hashContent, hashShort, writeBundle } from './bundle.js';
 import type { Manifest, Mark } from './schema.js';
 
 const logger = getLogger('ObserveRecorder');
@@ -277,8 +277,13 @@ export class Recorder {
       toSeq: this.#eventSeq,
     };
 
-    await fs.writeFile(join(this.#options.bundleDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-    await fs.writeFile(join(this.#options.bundleDir, 'frames.json'), JSON.stringify(this.#frameHashes, null, 2));
+    await writeBundle({
+      bundleDir: this.#options.bundleDir,
+      manifest,
+      marks,
+      frames: this.#frameHashes,
+      events: eventLines.map((line, i) => JSON.parse(line)).map((e, i) => ({ seq: i + 1, ts: Date.now(), event: e })),
+    });
 
     return { manifest, eventDigest };
   }

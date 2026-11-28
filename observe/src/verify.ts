@@ -10,7 +10,7 @@ import type { RepairTask, Manifest, Verdict, Finding, CheckResult } from './sche
 import { runChecks } from './checks.js';
 import { reviewBundle } from './review.js'
 import type { ObserveProgram } from './programs.js';
-import { findBundle, readBundle, findFirstDivergentMark } from './bundle.js';
+import { findBundle, readBundle, findFirstDivergentMark, writeBundle } from './bundle.js';
 
 const logger = getLogger('ObserveVerify');
 
@@ -82,27 +82,26 @@ export async function verifyTask(taskPath: string, worktreePath: string): Promis
   const newBundleDir = join(worktreePath, '.cache', 'observations', newRunId);
   await fs.mkdir(newBundleDir, { recursive: true });
 
-  await fs.writeFile(join(newBundleDir, 'events.jsonl'),
-    replayResult.state.events.map((e, i) => JSON.stringify({ seq: fromSeq + i, ts: Date.now(), event: e })).join('\n') + '\n'
-  );
+  const events = replayResult.state.events.map((e, i) => ({ seq: fromSeq + i, ts: Date.now(), event: e }));
 
-  await fs.writeFile(join(newBundleDir, 'marks.jsonl'), data.marks.map(m => JSON.stringify(m)).join('\n') + '\n');
-  await fs.writeFile(join(newBundleDir, 'frames.json'), JSON.stringify(data.frames, null, 2));
-
-  const newManifest: Manifest = {
-    ...manifest,
-    runId: newRunId,
-    fromSeq,
-    toSeq,
-  };
-  await fs.writeFile(join(newBundleDir, 'manifest.json'), JSON.stringify(newManifest, null, 2));
+  await writeBundle({
+    bundleDir: newBundleDir,
+    manifest: { ...manifest, runId: newRunId, fromSeq, toSeq },
+    marks: data.marks,
+    frames: data.frames,
+    events,
+  });
 
   const program = task.program as ObserveProgram;
   const checks = await runChecks(newBundleDir, program);
-  await fs.writeFile(join(newBundleDir, 'checks.json'), JSON.stringify(checks, null, 2));
-
   const verdict = await reviewBundle(newBundleDir, program, checks);
-  await fs.writeFile(join(newBundleDir, 'verdict.json'), JSON.stringify(verdict, null, 2));
+
+  await writeBundle({
+    bundleDir: newBundleDir,
+    manifest: { ...manifest, runId: newRunId, fromSeq, toSeq },
+    verdict,
+    checks,
+  });
 
   const criteria = evaluateAcceptance(task, verdict, checks, manifest);
   const accepted = Object.values(criteria.resolve).every((v: boolean) => v) && criteria.noNewFindings && criteria.checksPass && criteria.durationOk;
