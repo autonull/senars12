@@ -13,6 +13,7 @@ export declare const TransportError: {
         readonly "~effect/Runtime/errorExitCode"?: number;
         readonly "~effect/Runtime/errorReported"?: boolean;
     };
+    isError(error: unknown): error is Error;
     wrap(error: unknown, context: Record<string, unknown>, code?: import("./senars-error").ErrorCode): import("./senars-error").SenarsError;
     captureStackTrace(targetObject: object, constructorOpt?: Function): void;
     prepareStackTrace(err: Error, stackTraces: NodeJS.CallSite[]): any;
@@ -34,6 +35,7 @@ export declare const ConnectionError: {
         readonly "~effect/Runtime/errorExitCode"?: number;
         readonly "~effect/Runtime/errorReported"?: boolean;
     };
+    isError(error: unknown): error is Error;
     wrap(error: unknown, context: Record<string, unknown>, code?: import("./senars-error").ErrorCode): import("./senars-error").SenarsError;
     captureStackTrace(targetObject: object, constructorOpt?: Function): void;
     prepareStackTrace(err: Error, stackTraces: NodeJS.CallSite[]): any;

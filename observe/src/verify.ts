@@ -1,11 +1,11 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from 'senars/util/logger';
+import { createLogger } from '@senars/util/logger';
 import { execSync } from 'node:child_process';
-import { replay } from 'senars/log/replay';
-import { LogStore } from 'senars/log/store';
-import type { CognitiveEvent, LogEntry } from 'senars/log/events';
-import { PatchRiskClassifier } from 'senars/governance/pipeline';
+import { replay } from '@senars/log/replay';
+import { LogStore } from '@senars/log/store';
+import type { CognitiveEvent, LogEntry } from '@senars/log/events';
+import { PatchRiskClassifier } from '@senars/governance/pipeline';
 import type { RepairTask, Manifest, Verdict, Finding, CheckResult } from './schema.js';
 import { runChecks } from './checks.js';
 import { reviewBundle } from './review.js';
@@ -106,7 +106,7 @@ export async function verifyTask(taskPath: string, worktreePath: string): Promis
   await fs.writeFile(join(newBundleDir, 'verdict.json'), JSON.stringify(verdict, null, 2));
 
   const criteria = evaluateAcceptance(task, verdict, checks, manifest);
-  const accepted = criteria.resolve.every((v: boolean) => v) && criteria.noNewFindings && criteria.checksPass && criteria.durationOk;
+  const accepted = Object.values(criteria.resolve).every((v: boolean) => v) && criteria.noNewFindings && criteria.checksPass && criteria.durationOk;
 
   const duration = Date.now() - startTime;
   criteria.durationOk = duration <= task.acceptance.maxDurationMs;
@@ -192,7 +192,7 @@ function evaluateAcceptance(
 
   const noNewFindings = !verdict.findings.some((f) =>
     f.severity === 'warn' || f.severity === 'fail'
-  ) && !newFindingSignatures.size > baselineSignatures.size;
+  ) && !(newFindingSignatures.size > baselineSignatures.size);
 
   const checksPass = checks.every((c) => c.passed);
 

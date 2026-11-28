@@ -6,6 +6,7 @@
  *  routing telemetry, transport-failure demotion. One protocol, so no path can
  *  silently skip a step its siblings perform (the demotion the structured path
  *  used to miss is the canonical example). */
+import { CallTallySeries } from '@senars/util/tally';
 import type { LMProviderName, LMSettings } from '../env-config';
 import type { ProviderRuntime } from '../provider-runtime';
 import { type ProviderSpend } from './spend';
@@ -82,7 +83,7 @@ export declare class CallAccounting {
      * model's reliability signal, which routing then reads as "no history" — the
      * answer it already gave an unmeasured model.
      */
-    readonly perModel: any;
+    readonly perModel: CallTallySeries<string, LMExecutionStats>;
     constructor(runtime: ProviderRuntime, reprobe?: () => Promise<void>);
     get stats(): LMExecutionStats;
     getSpend(): Record<string, ProviderSpend>;

@@ -1,4 +1,5 @@
 import type { DerivationRecord, DerivationStep } from '@senars/schemas';
+import { Signal } from '@senars/events/signal';
 import type { RuleInput, RuleResult } from '../types';
 type RuleCategory = DerivationStep['ruleCategory'];
 /**
@@ -33,7 +34,41 @@ export declare class DerivationRecorder {
      * Fires as each chain closes, so a durable sink can persist a completed record
      * the moment it exists — a drain cannot lose it first (CORE.19 C3.4).
      */
-    readonly onRecord: any;
+    readonly onRecord: Signal<{
+        derivationId: string;
+        taskId: string;
+        goalTerm: string;
+        steps: {
+            stepId: string;
+            ruleId: string;
+            ruleCategory: "classical" | "comparison" | "core" | "higher-order" | "logic" | "meta-cognitive" | "procedural" | "propositional" | "structural" | "temporal" | "variable";
+            premises: string[];
+            conclusion: string;
+            truth: {
+                frequency: number;
+                confidence: number;
+            };
+            truthFn?: string | undefined;
+            substitution?: Record<string, string> | undefined;
+            premiseTruths?: {
+                frequency: number;
+                confidence: number;
+            }[] | undefined;
+            evidenceLineage: string[];
+            independence: "dependent" | "independent" | "unknown";
+            cycle?: number | undefined;
+            correlationId?: string | undefined;
+            timestamp?: number | undefined;
+        }[];
+        finalTruth: {
+            frequency: number;
+            confidence: number;
+        };
+        totalCycles: number;
+        maxDepthReached: number;
+        timestamp: number;
+        engine: "nar";
+    }>;
     constructor(opts?: RecorderOptions);
     setEnabled(enabled: boolean): void;
     /** Whether a record is being kept. The sweep reads it before serializing the first

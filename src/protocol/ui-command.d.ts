@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 export declare const UiCommandMsg: z.ZodObject<{
-    command: any;
+    command: z.ZodString;
     args: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     type: z.ZodLiteral<"ui.command">;
 }, z.core.$strip>;

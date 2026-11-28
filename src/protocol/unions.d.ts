@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { type ConfigField } from './config';
 export declare const IncomingFromClient: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    content: any;
+    content: z.ZodString;
     mode: z.ZodOptional<z.ZodString>;
     contexts: z.ZodOptional<z.ZodArray<z.ZodString>>;
     type: z.ZodLiteral<"chat.user">;
@@ -28,16 +28,19 @@ export declare const IncomingFromClient: z.ZodDiscriminatedUnion<[z.ZodObject<{
     }>;
     id: z.ZodString;
     patch: z.ZodObject<{
-        truth: any;
+        truth: z.ZodOptional<z.ZodObject<{
+            frequency: z.ZodNumber;
+            confidence: z.ZodNumber;
+        }, z.core.$strip>>;
         type: z.ZodOptional<z.ZodString>;
-        priority: any;
-        confidence: any;
+        priority: z.ZodOptional<z.ZodNumber>;
+        confidence: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>;
     type: z.ZodLiteral<"object.set">;
 }, z.core.$strip>, z.ZodObject<{
     lens: z.ZodObject<{
-        id: any;
-        label: any;
+        id: z.ZodString;
+        label: z.ZodString;
         description: z.ZodString;
         modulation: z.ZodType<import("./lens-schema").ModulationSpec, unknown, z.core.$ZodTypeInternals<import("./lens-schema").ModulationSpec, unknown>>;
         requires: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -49,12 +52,12 @@ export declare const IncomingFromClient: z.ZodDiscriminatedUnion<[z.ZodObject<{
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"lm.status.request">;
 }, z.core.$strip>, z.ZodObject<{
-    provider: any;
+    provider: z.ZodString;
     model: z.ZodOptional<z.ZodString>;
     type: z.ZodLiteral<"lm.switch">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    term: any;
+    term: z.ZodString;
     mode: z.ZodOptional<z.ZodEnum<{
         belief: "belief";
         goal: "goal";
@@ -63,8 +66,8 @@ export declare const IncomingFromClient: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"reasoning.submit">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    term: any;
-    runs: any;
+    term: z.ZodString;
+    runs: z.ZodOptional<z.ZodNumber>;
     type: z.ZodLiteral<"reasoning.ask">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
@@ -77,25 +80,25 @@ export declare const IncomingFromClient: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"reasoning.abort">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    nodeId: any;
+    nodeId: z.ZodString;
     type: z.ZodLiteral<"reasoning.retract">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    nodeId: any;
-    frequency: any;
-    confidence: any;
+    nodeId: z.ZodString;
+    frequency: z.ZodNumber;
+    confidence: z.ZodNumber;
     type: z.ZodLiteral<"reasoning.revise">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    term: any;
+    term: z.ZodString;
     type: z.ZodLiteral<"reasoning.add-goal">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    budget: any;
+    budget: z.ZodNumber;
     type: z.ZodLiteral<"reasoning.adjust-budget">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    provider: any;
+    provider: z.ZodString;
     type: z.ZodLiteral<"reasoning.adjust-provider">;
 }, z.core.$strip>, z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
@@ -107,7 +110,7 @@ export declare const IncomingFromClient: z.ZodDiscriminatedUnion<[z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
     type: z.ZodLiteral<"cycle.resume">;
 }, z.core.$strip>, z.ZodObject<{
-    cycles: any;
+    cycles: z.ZodOptional<z.ZodNumber>;
     seqId: z.ZodOptional<z.ZodNumber>;
     type: z.ZodLiteral<"cycle.rewind">;
 }, z.core.$strip>], "type">;
@@ -135,7 +138,10 @@ export declare const IncomingFromServer: z.ZodDiscriminatedUnion<[z.ZodObject<{
                 y: z.ZodOptional<z.ZodNumber>;
                 threadIndex: z.ZodOptional<z.ZodNumber>;
             }, z.core.$strip>>;
-            truth: any;
+            truth: z.ZodOptional<z.ZodObject<{
+                frequency: z.ZodNumber;
+                confidence: z.ZodNumber;
+            }, z.core.$strip>>;
             isContradiction: z.ZodOptional<z.ZodBoolean>;
             occurrenceTime: z.ZodOptional<z.ZodNumber>;
             goalRelevance: z.ZodOptional<z.ZodNumber>;
@@ -183,7 +189,10 @@ export declare const IncomingFromServer: z.ZodDiscriminatedUnion<[z.ZodObject<{
                 y: z.ZodOptional<z.ZodNumber>;
                 threadIndex: z.ZodOptional<z.ZodNumber>;
             }, z.core.$strip>>;
-            truth: any;
+            truth: z.ZodOptional<z.ZodObject<{
+                frequency: z.ZodNumber;
+                confidence: z.ZodNumber;
+            }, z.core.$strip>>;
             isContradiction: z.ZodOptional<z.ZodBoolean>;
             occurrenceTime: z.ZodOptional<z.ZodNumber>;
             goalRelevance: z.ZodOptional<z.ZodNumber>;
@@ -325,8 +334,8 @@ export declare const IncomingFromServer: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"telemetry">;
 }, z.core.$strip>, z.ZodObject<{
     lenses: z.ZodArray<z.ZodObject<{
-        id: any;
-        label: any;
+        id: z.ZodString;
+        label: z.ZodString;
         description: z.ZodString;
         modulation: z.ZodType<import("./lens-schema").ModulationSpec, unknown, z.core.$ZodTypeInternals<import("./lens-schema").ModulationSpec, unknown>>;
         requires: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -334,8 +343,8 @@ export declare const IncomingFromServer: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"lens.list">;
 }, z.core.$strip>, z.ZodObject<{
     lens: z.ZodObject<{
-        id: any;
-        label: any;
+        id: z.ZodString;
+        label: z.ZodString;
         description: z.ZodString;
         modulation: z.ZodType<import("./lens-schema").ModulationSpec, unknown, z.core.$ZodTypeInternals<import("./lens-schema").ModulationSpec, unknown>>;
         requires: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -356,7 +365,10 @@ export declare const IncomingFromServer: z.ZodDiscriminatedUnion<[z.ZodObject<{
 }, z.core.$strip>, z.ZodObject<{
     term: z.ZodString;
     history: z.ZodArray<z.ZodObject<{
-        truth: any;
+        truth: z.ZodObject<{
+            frequency: z.ZodNumber;
+            confidence: z.ZodNumber;
+        }, z.core.$strip>;
         stampId: z.ZodString;
         timestamp: z.ZodNumber;
         source: z.ZodEnum<{
@@ -381,7 +393,7 @@ export declare const IncomingFromServer: z.ZodDiscriminatedUnion<[z.ZodObject<{
     context: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     type: z.ZodLiteral<"server.error">;
 }, z.core.$strip>, z.ZodObject<{
-    command: any;
+    command: z.ZodString;
     args: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     type: z.ZodLiteral<"ui.command">;
 }, z.core.$strip>, z.ZodObject<{

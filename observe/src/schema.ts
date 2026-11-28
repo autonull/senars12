@@ -71,7 +71,7 @@ export const RepairTaskSchema = z.object({
   repro: z.string(),
   findings: z.array(FindingSchema),
   checks: z.array(CheckResultSchema),
-  evidenceIndex: z.record(z.array(EvidenceRefSchema)),
+  evidenceIndex: z.record(z.string(), z.array(EvidenceRefSchema)),
   firstDivergentMark: z.string().optional(),
   hint: z.object({
     owner: z.string().optional(),
@@ -101,7 +101,7 @@ export const ManifestSchema = z.object({
     castT: z.number().optional(),
     videoT: z.number().optional(),
   })),
-  artifactHashes: z.record(z.string()),
+  artifactHashes: z.record(z.string(), z.string()),
   eventDigest: z.string(),
   fromSeq: z.number(),
   toSeq: z.number(),

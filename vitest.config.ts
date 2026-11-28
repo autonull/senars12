@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import tsconfigPaths from 'vitest-tsconfig-paths';
 
 // Plugin to normalize imports: remove trailing slashes
 const normalizeImportsPlugin = {
@@ -115,6 +116,11 @@ const aliases = [
   { find: '@senars/tools/adapters/filesystem', replacement: path.resolve(__dirname, './src/tools/adapters/filesystem.ts') },
   { find: '@senars/tools/adapters/code-exec', replacement: path.resolve(__dirname, './src/tools/adapters/code-exec.ts') },
   { find: '@senars/tools/adapters/shadow-worktree', replacement: path.resolve(__dirname, './src/tools/adapters/shadow-worktree.ts') },
+  { find: '@senars/tools/adapters/scenario-execute', replacement: path.resolve(__dirname, './src/tools/adapters/scenario-execute.ts') },
+  { find: '@senars/tools/adapters/scenario-profiles', replacement: path.resolve(__dirname, './src/tools/adapters/scenario-profiles.ts') },
+  { find: '@senars/tools/adapters/self', replacement: path.resolve(__dirname, './src/tools/adapters/self/index.ts') },
+  { find: '@senars/tools/adapters/codemod', replacement: path.resolve(__dirname, './src/tools/adapters/codemod.ts') },
+  { find: '@senars/tools/adapters/proc', replacement: path.resolve(__dirname, './src/tools/adapters/proc.ts') },
   // LM index (for dynamic imports in tests)
   { find: '@senars/lm/index', replacement: path.resolve(__dirname, './src/lm/index.ts') },
   { find: '@senars/lm/providers/llamacpp', replacement: path.resolve(__dirname, './src/lm/providers/llamacpp.ts') },

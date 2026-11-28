@@ -275,6 +275,118 @@
     "./util/cli": {
       "types": "./src/util/cli.ts",
       "import": "./src/util/cli.ts"
+    },
+    "@senars/util": {
+      "types": "./src/util/index.ts",
+      "import": "./src/util/index.ts"
+    },
+    "@senars/util/logger": {
+      "types": "./src/util/logger.ts",
+      "import": "./src/util/logger.ts"
+    },
+    "@senars/util/cli": {
+      "types": "./src/util/cli.ts",
+      "import": "./src/util/cli.ts"
+    },
+    "@senars/log": {
+      "types": "./src/log/index.ts",
+      "import": "./src/log/index.ts"
+    },
+    "@senars/log/replay": {
+      "types": "./src/log/replay.ts",
+      "import": "./src/log/replay.ts"
+    },
+    "@senars/log/store": {
+      "types": "./src/log/store.ts",
+      "import": "./src/log/store.ts"
+    },
+    "@senars/log/events": {
+      "types": "./src/log/events.ts",
+      "import": "./src/log/events.ts"
+    },
+    "@senars/log/replay-reducers": {
+      "types": "./src/log/replay-reducers.ts",
+      "import": "./src/log/replay-reducers.ts"
+    },
+    "@senars/governance": {
+      "types": "./src/governance/index.ts",
+      "import": "./src/governance/index.ts"
+    },
+    "@senars/governance/artifacts": {
+      "types": "./src/governance/artifacts.ts",
+      "import": "./src/governance/artifacts.ts"
+    },
+    "@senars/governance/pipeline": {
+      "types": "./src/governance/pipeline.ts",
+      "import": "./src/governance/pipeline.ts"
+    },
+    "@senars/lm": {
+      "types": "./src/lm/index.ts",
+      "import": "./src/lm/index.ts"
+    },
+    "@senars/lm/system-one": {
+      "types": "./src/lm/system-one/index.ts",
+      "import": "./src/lm/system-one/index.ts"
+    },
+    "@senars/lm/system-one/manifold": {
+      "types": "./src/lm/system-one/manifold.ts",
+      "import": "./src/lm/system-one/manifold.ts"
+    },
+    "@senars/lm/system-one/open-systemone-manifold": {
+      "types": "./src/lm/system-one/open-systemone-manifold.ts",
+      "import": "./src/lm/system-one/open-systemone-manifold.ts"
+    },
+    "@senars/agent": {
+      "types": "./src/agent/index.ts",
+      "import": "./src/agent/index.ts"
+    },
+    "@senars/config": {
+      "types": "./src/config/index.ts",
+      "import": "./src/config/index.ts"
+    },
+    "@senars/errors": {
+      "types": "./src/errors/index.ts",
+      "import": "./src/errors/index.ts"
+    },
+    "@senars/events": {
+      "types": "./src/events/index.ts",
+      "import": "./src/events/index.ts"
+    },
+    "@senars/events/event-bus": {
+      "types": "./src/events/event-bus.ts",
+      "import": "./src/events/event-bus.ts"
+    },
+    "@senars/tools": {
+      "types": "./src/tools/index.ts",
+      "import": "./src/tools/index.ts"
+    },
+    "@senars/tools/adapters": {
+      "types": "./src/tools/adapters/index.ts",
+      "import": "./src/tools/adapters/index.ts"
+    },
+    "@senars/tools/adapters/scenario-execute": {
+      "types": "./src/tools/adapters/scenario-execute.ts",
+      "import": "./src/tools/adapters/scenario-execute.ts"
+    },
+    "@senars/tools/adapters/scenario-profiles": {
+      "types": "./src/tools/adapters/scenario-profiles.ts",
+      "import": "./src/tools/adapters/scenario-profiles.ts"
+    },
+    "@senars/tools/adapters/self": {
+      "types": "./src/tools/adapters/self/index.ts",
+      "import": "./src/tools/adapters/self/index.ts"
+    },
+    "@senars/tools/adapters/shadow-worktree": {
+      "types": "./src/tools/adapters/shadow-worktree.ts",
+      "import": "./src/tools/adapters/shadow-worktree.ts"
+    },
+    "@senars/tools/adapters/codemod": {
+      "types": "./src/tools/adapters/codemod.ts",
+      "import": "./src/tools/adapters/codemod.ts"
+    },
+    "@senars/tools/adapters/proc": {
+      "types": "./src/tools/adapters/proc.ts",
+      "import": "./src/tools/adapters/proc.ts"
     }
   },
   "scripts": {
@@ -433,8 +545,8 @@
     "@opentelemetry/sdk-metrics": "^3.1.1",
     "@opentelemetry/sdk-trace": "^3.1.1",
     "@prometheus-io/client": "^0.16.1",
-    "@senars/ui": "workspace:*",
     "@senars/observe": "workspace:*",
+    "@senars/ui": "workspace:*",
     "ai": "^7.0.179",
     "cbor-x": "^1.6.9",
     "clingo-wasm": "^0.6.0",
@@ -474,6 +586,7 @@
     "tsx": "^4.23.15",
     "turbo": "^2.11.13",
     "typescript": "7.0.2",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "vitest-tsconfig-paths": "^3.4.1"
   }
 }

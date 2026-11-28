@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulid';
-import { createLogger } from 'senars/util/logger';
-import type { ScenarioSpec } from 'senars/tools/adapters/scenario-execute';
-import { runScenario, type ScenarioRunnerDeps, type ScenarioResult } from 'senars/tools/adapters/scenario-execute';
-import { EventBus } from 'senars/events/event-bus';
+import { createLogger } from '@senars/util/logger';
+import type { ScenarioSpec } from '@senars/tools/adapters/scenario-execute';
+import { runScenario, type ScenarioRunnerDeps, type ScenarioResult } from '@senars/tools/adapters/scenario-execute';
+import { EventBus } from '@senars/events/event-bus';
 import { Recorder, createRecorder } from './record.js';
 import { runChecks, type CheckResult } from './checks.js';
 import { reviewBundle, type Verdict } from './review.js';

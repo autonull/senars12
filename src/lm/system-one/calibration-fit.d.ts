@@ -79,7 +79,7 @@ export declare function fitCalibrationLock(dataset: JudgmentDataset, options?: F
 export declare function writeCalibrationLock(lock: CalibrationLock, path: string): Promise<void>;
 export declare function readCalibrationLock(path: string): Promise<CalibrationLock>;
 /** The one on-disk location of the digest-pinned calibration lock. */
-export declare const CALIBRATION_LOCK_PATH: any;
+export declare const CALIBRATION_LOCK_PATH: string;
 /** Best-effort lock read: `null` when absent or unreadable. */
 export declare function readCalibrationLockOrNull(path?: string): Promise<CalibrationLock | null>;
 /**

@@ -1,5 +1,5 @@
 import type { CommandModule } from '../lib/cli';
-import { observeCLI } from 'senars/observe/cli';
+import { observeCLI } from '@senars/observe/cli';
 
 export const observeModule: CommandModule = {
   name: 'observe',

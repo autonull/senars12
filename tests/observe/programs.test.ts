@@ -9,6 +9,7 @@ describe('observe programs', () => {
     expect(SCENARIO_PROFILES).toContain('belief_revision');
     expect(SCENARIO_PROFILES).toContain('cross_engine_sync');
     expect(SCENARIO_PROFILES).toContain('auto');
+    expect(SCENARIO_PROFILES).toContain('regression');
   });
 
   it('creates observe program for contradictory_sensors', () => {
@@ -50,7 +51,7 @@ describe('observe programs', () => {
 
   it('lists all observe programs', () => {
     const programs = listObservePrograms();
-    expect(programs.length).toBe(6);
+    expect(programs.length).toBe(7);
     expect(programs.map(p => p.name)).toEqual([
       'contradictory_sensors',
       'temporal_reasoning',
@@ -58,6 +59,7 @@ describe('observe programs', () => {
       'belief_revision',
       'cross_engine_sync',
       'auto',
+      'regression',
     ]);
   });
 });

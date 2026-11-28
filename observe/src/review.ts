@@ -1,10 +1,11 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from 'senars/util/logger';
+import { createLogger } from '@senars/util/logger';
 import type { ObserveProgram } from './programs.js';
 import type { Manifest, Verdict, Finding, EvidenceRef, CheckResult } from './schema.js';
+export type { Verdict } from './schema.js';
 import { createFindingSignature, FindingKind, FindingSeverity } from './schema.js';
-import { SystemOneManifold, type JudgmentManifold, type JudgmentQuery, type EmbeddingPointer } from 'senars/lm/system-one/manifold';
+import { SystemOneManifold, type JudgmentManifold, type JudgmentQuery, type EmbeddingPointer } from '@senars/lm/system-one/manifold';
 
 const logger = createLogger({ scope: 'ObserveReview' });
 
@@ -175,7 +176,7 @@ async function callJudgeBatch(input: ReviewInput, prompt: string): Promise<Findi
 
     return parseFindingsFromResult(result);
   } catch (error) {
-    logger.error('judgeBatch call failed', { error });
+    logger.error('judgeBatch call failed', error instanceof Error ? error : new Error(String(error)));
     return [{
       id: `finding_${Date.now()}`,
       signature: 'uncertain:reviewer_error',
@@ -245,9 +246,8 @@ function computeOverall(findings: Finding[]): Verdict['overall'] {
 async function getSystemOneManifold(): Promise<JudgmentManifold | null> {
   try {
     const { createOpenSystemOneManifold } = await import('@senars/lm/system-one/open-systemone-manifold');
-    const config = await import('@senars/config').then((m) => m.default?.systemOne);
-    if (!config) return null;
-    return createOpenSystemOneManifold(config);
+    const { systemOneDefaults } = await import('@senars/config');
+    return createOpenSystemOneManifold(systemOneDefaults);
   } catch {
     return null;
   }

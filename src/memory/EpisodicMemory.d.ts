@@ -7,7 +7,27 @@ export type { Episode, EpisodeType };
  * Episode schema for Ledger-backed EpisodicMemory.
  * Exported for test reuse and external ledger construction.
  */
-export declare const EpisodeSchema: any;
+export declare const EpisodeSchema: z.ZodObject<{
+    at: z.ZodNumber;
+    correlationId: z.ZodOptional<z.ZodString>;
+    sessionId: z.ZodOptional<z.ZodString>;
+    type: z.ZodEnum<{
+        belief_added: "belief_added";
+        dialogue: "dialogue";
+        error: "error";
+        input: "input";
+        question: "question";
+        reaction: "reaction";
+        response: "response";
+        tool_call: "tool_call";
+    }>;
+    content: z.ZodString;
+    metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    id: z.ZodOptional<z.ZodString>;
+    causes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    consequences: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    context: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}, z.core.$strip>;
 export type LedgerEpisode = z.infer<typeof EpisodeSchema>;
 export declare class EpisodicMemory implements UtilEpisodicMemory {
     #private;

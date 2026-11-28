@@ -13,12 +13,15 @@ export type { UUID, TimestampMs, CognitiveEvent, TruthValue, Term, Stamp, TaskTy
 export { CognitiveEventSchema, TruthValueSchema, TermSchema, StampSchema, TaskTypeSchema, TaskBagKindSchema, SourceQualitySchema, BudgetScopeIdSchema, TerminationReasonSchema, };
 /** Envelope for a log entry: event + metadata. */
 export declare const LogEntrySchema: z.ZodObject<{
-    id: any;
-    seq: any;
-    ts: any;
+    id: z.ZodUUID;
+    seq: z.ZodNumber;
+    ts: z.ZodNumber;
     event: z.ZodDiscriminatedUnion<[z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -28,7 +31,12 @@ export declare const LogEntrySchema: z.ZodObject<{
         payload: z.ZodObject<{
             taskId: z.ZodString;
             term: z.ZodString;
-            taskType: any;
+            taskType: z.ZodEnum<{
+                belief: "belief";
+                command: "command";
+                goal: "goal";
+                question: "question";
+            }>;
             truth: z.ZodOptional<z.ZodObject<{
                 frequency: z.ZodNumber;
                 confidence: z.ZodNumber;
@@ -50,7 +58,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -95,7 +106,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -155,7 +169,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -177,7 +194,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -197,7 +217,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -226,7 +249,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -246,7 +272,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -271,7 +300,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -301,7 +333,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -347,7 +382,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -382,7 +420,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -401,7 +442,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -420,7 +464,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -437,7 +484,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -459,7 +509,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -503,7 +556,10 @@ export declare const LogEntrySchema: z.ZodObject<{
                 body: z.ZodString;
                 priority: z.ZodNumber;
                 taskType: z.ZodOptional<z.ZodEnum<{
-                    [x: string]: any;
+                    belief: "belief";
+                    command: "command";
+                    goal: "goal";
+                    question: "question";
                 }>>;
             }, z.core.$strip>>;
             producer: z.ZodOptional<z.ZodString>;
@@ -534,7 +590,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -549,7 +608,10 @@ export declare const LogEntrySchema: z.ZodObject<{
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         engine: z.ZodEnum<{
-            [x: string]: any;
+            kernel: "kernel";
+            metta: "metta";
+            nar: "nar";
+            proposer: "proposer";
         }>;
         timestamp: z.ZodNumber;
         correlationId: z.ZodString;
@@ -1336,8 +1398,8 @@ export declare const LogEntrySchema: z.ZodObject<{
             ruleId: z.ZodString;
         }, z.core.$strip>;
     }, z.core.$strip>], "type">;
-    parents: z.ZodDefault<z.ZodArray<any>>;
-    hash: any;
+    parents: z.ZodDefault<z.ZodArray<z.ZodUUID>>;
+    hash: z.ZodString;
 }, z.core.$strip>;
 export type LogEntry = z.infer<typeof LogEntrySchema>;
 /** Compute the content hash of a log entry (excluding id, seq, hash). */

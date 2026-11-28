@@ -210,10 +210,16 @@ export declare class JudgmentCascade {
         lmRubricCalls: number;
         learnedJudgeCalls: number;
         judgeDemotions: number;
-        byStage: any;
-        judgeECE: any;
-        judgeDriftCycles: any;
-        judgeDemoted: any;
+        byStage: Record<"calibrate" | "candidates" | "evidence_support" | "learned_judge" | "lm_rubric" | "symbolic_veto", {
+            calls: number;
+            avgDurationMs: number;
+        }>;
+        judgeECE: Record<string, {
+            ece: number;
+            samples: number;
+        }>;
+        judgeDriftCycles: Record<string, number>;
+        judgeDemoted: Record<string, boolean>;
         calibrationDataPoints: number;
     };
 }

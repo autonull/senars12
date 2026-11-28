@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from 'senars/util/logger';
+import { createLogger } from '@senars/util/logger';
 import type { Manifest, Finding } from './schema.js';
-import { replay } from '../src/log/replay.ts';
-import { LogStore } from '../src/log/store.ts';
-import type { CognitiveEvent } from '../src/schemas/cognitive-events.ts';
+import { replay } from '@senars/log/replay';
+import { LogStore } from '@senars/log/store';
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
 
 const logger = createLogger({ scope: 'ObserveDiff' });
 
@@ -143,9 +143,9 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
 async function replayCognitiveStateFromStore(store: LogStore, fromSeq: number, toSeq: number): Promise<any> {
   const initialState = { gates: [], beliefs: [], concepts: [] };
   const reducer = (state: any, event: CognitiveEvent) => {
-    if (event.type?.includes('Gate')) state.gates.push({ type: event.type, payload: event.payload });
-    if (event.type === 'BeliefRevisedEvent' || event.type === 'BeliefAddedEvent') state.beliefs.push(event.payload);
-    if (event.type === 'ConceptActivatedEvent') state.concepts.push(event.payload);
+    if (event.type?.startsWith('gate.')) state.gates.push({ type: event.type, payload: event.payload });
+    if (event.type === 'belief.revised' || event.type === 'belief.added') state.beliefs.push(event.payload);
+    if (event.type === 'concept.activated') state.concepts.push(event.payload);
     return state;
   };
   const result = await replay(store, { initialState, reducer, fromSeq, toSeq });
@@ -196,7 +196,7 @@ export async function bisect(programId: string, goodSha: string, badSha: string)
 
     return { badCommit: '', testedCommits };
   } catch (error) {
-    logger.error('Bisect failed', { error });
+    logger.error('Bisect failed', error instanceof Error ? error : new Error(String(error)));
     throw error;
   } finally {
     try {

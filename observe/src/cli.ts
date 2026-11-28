@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from 'senars/util/logger';
-import { type Flags, parseFlags } from 'senars/util/cli';
+import { createLogger } from '@senars/util/logger';
+import { type Flags, parseFlags } from '@senars/util/cli';
 import { observeRun, observeRecord } from './run.js';
 import { verifyTask } from './verify.js';
 import { diffRuns, bisect } from './diff.js';
@@ -10,7 +10,7 @@ import { getObserveProgram, listObservePrograms } from './programs.js';
 import { runDriftGate } from './drift.js';
 import type { ObserveRunResult } from './run.js';
 import type { VerifyResult } from './verify.js';
-import type { ScenarioRunnerDeps } from 'senars/tools/adapters/scenario-execute';
+import type { ScenarioRunnerDeps } from '@senars/tools/adapters/scenario-execute';
 import { execSync } from 'node:child_process';
 
 const logger = createLogger({ scope: 'ObserveCLI' });
@@ -21,7 +21,7 @@ export interface ObserveCLIOptions {
 
 export async function observeCLI(argv: string[], options: ObserveCLIOptions): Promise<number> {
   const flags = parseFlags(argv);
-  const subcommand = flags._.shift() as string | undefined;
+  const subcommand = flags.positional.shift() as string | undefined;
 
   switch (subcommand) {
     case 'list':
@@ -232,8 +232,8 @@ async function cmdVerify(flags: Flags): Promise<number> {
 }
 
 async function cmdDiff(flags: Flags): Promise<number> {
-  const runA = flags._.shift();
-  const runB = flags._.shift();
+  const runA = flags.positional.shift();
+  const runB = flags.positional.shift();
 
   if (!runA || !runB) {
     console.error('Error: Two run IDs required');
@@ -278,7 +278,7 @@ async function cmdBisect(flags: Flags): Promise<number> {
 }
 
 async function cmdPromote(flags: Flags): Promise<number> {
-  const runId = flags._.shift();
+  const runId = flags.positional.shift();
   if (!runId) {
     console.error('Error: runId required');
     return 1;

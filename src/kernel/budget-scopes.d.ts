@@ -96,7 +96,7 @@ export declare const scopeSpec: (scopeId: BudgetScopeId) => BudgetScopeSpec;
 /** The ceiling key a scope's dimension is limited by — derived, never declared. */
 export declare const scopeLimitKey: (scopeId: BudgetScopeId) => BudgetLimitKey;
 /** The `TerminationReason` a scope raises when its dimension overflows. */
-export declare const scopeTerminationReason: (scopeId: BudgetScopeId) => any;
+export declare const scopeTerminationReason: (scopeId: BudgetScopeId) => "cycle-budget" | "llm-budget" | "memory-budget";
 /**
  * The decision layer's judgment cost, charged through the kernel gate under this
  * scope rather than an ad-hoc `'default'`. Named once for both halves of the

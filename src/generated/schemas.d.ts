@@ -258,7 +258,10 @@ export declare const FormalizationCandidateSchema: z.ZodObject<{
     candidateId: z.ZodString;
     narsese: z.ZodString;
     taskType: z.ZodEnum<{
-        [x: string]: any;
+        belief: "belief";
+        command: "command";
+        goal: "goal";
+        question: "question";
     }>;
     truth: z.ZodOptional<z.ZodObject<{
         frequency: z.ZodNumber;
@@ -305,7 +308,10 @@ export declare const FormalizationBatchSchema: z.ZodObject<{
         candidateId: z.ZodString;
         narsese: z.ZodString;
         taskType: z.ZodEnum<{
-            [x: string]: any;
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
         }>;
         truth: z.ZodOptional<z.ZodObject<{
             frequency: z.ZodNumber;
@@ -1011,7 +1017,10 @@ export declare const RuleDeclarationSchema: z.ZodObject<{
     body: z.ZodString;
     priority: z.ZodNumber;
     taskType: z.ZodOptional<z.ZodEnum<{
-        [x: string]: any;
+        belief: "belief";
+        command: "command";
+        goal: "goal";
+        question: "question";
     }>>;
 }, z.core.$strip>;
 export type RuleDeclaration = z.infer<typeof RuleDeclarationSchema>;
@@ -1028,7 +1037,10 @@ export declare const RuleArtifactEntrySchema: z.ZodObject<{
     body: z.ZodString;
     priority: z.ZodNumber;
     taskType: z.ZodOptional<z.ZodEnum<{
-        [x: string]: any;
+        belief: "belief";
+        command: "command";
+        goal: "goal";
+        question: "question";
     }>>;
     artifactVersion: z.ZodString;
     ruleSetRevision: z.ZodNumber;
@@ -1064,7 +1076,10 @@ export declare const RuleTableSchema: z.ZodObject<{
         body: z.ZodString;
         priority: z.ZodNumber;
         taskType: z.ZodOptional<z.ZodEnum<{
-            [x: string]: any;
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
         }>>;
         artifactVersion: z.ZodString;
         ruleSetRevision: z.ZodNumber;
@@ -1100,11 +1115,17 @@ export interface RuleTableFault {
     readonly detail: string;
 }
 export declare const EngineOriginSchema: z.ZodEnum<{
-    [x: string]: any;
+    kernel: "kernel";
+    metta: "metta";
+    nar: "nar";
+    proposer: "proposer";
 }>;
 export declare const CognitiveEventBaseSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1135,7 +1156,10 @@ export declare const StimulusSourceSchema: z.ZodEnum<{
 export type StimulusSource = (typeof STIMULUS_SOURCES)[number];
 export declare const TaskAdmittedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1145,7 +1169,12 @@ export declare const TaskAdmittedEventSchema: z.ZodObject<{
     payload: z.ZodObject<{
         taskId: z.ZodString;
         term: z.ZodString;
-        taskType: any;
+        taskType: z.ZodEnum<{
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
+        }>;
         truth: z.ZodOptional<z.ZodObject<{
             frequency: z.ZodNumber;
             confidence: z.ZodNumber;
@@ -1168,7 +1197,10 @@ export declare const TaskAdmittedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const DerivationAcceptedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1214,7 +1246,10 @@ export declare const DerivationAcceptedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const BeliefRevisedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1237,7 +1272,10 @@ export declare const BeliefRevisedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const ConceptActivatedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1258,7 +1296,10 @@ export declare const ConceptActivatedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const BudgetExhaustedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1288,7 +1329,10 @@ export declare const BudgetExhaustedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const PolicyViolationEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1314,7 +1358,10 @@ export declare const PolicyViolationEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const AutonomyModeChangedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1345,7 +1392,10 @@ export declare const AutonomyModeChangedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const SelfModProposalEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1392,7 +1442,10 @@ export declare const SelfModProposalEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const JudgmentResolvedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1429,7 +1482,10 @@ export declare const JudgmentResolvedEventSchema: z.ZodObject<{
 export type JudgmentResolvedEvent = z.infer<typeof JudgmentResolvedEventSchema>;
 export declare const GatePassedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1449,7 +1505,10 @@ export declare const GatePassedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const GateFailedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1469,7 +1528,10 @@ export declare const GateFailedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const BudgetConsumedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1490,7 +1552,10 @@ export declare const BudgetConsumedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const EgressGateRejectedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1508,7 +1573,10 @@ export declare const EgressGateRejectedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const ShadowValidationDropEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1531,7 +1599,10 @@ export declare const ShadowValidationDropEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const ProposalSubmittedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1549,7 +1620,10 @@ export declare const ProposalSubmittedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const SnapshotCreatedEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1565,7 +1639,10 @@ export declare const SnapshotCreatedEventSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const SnapshotRestoredEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -1685,7 +1762,10 @@ export type DerivationRecord = z.infer<typeof DerivationRecordSchema>;
 export type DerivationStep = z.infer<typeof DerivationStepSchema>;
 export declare const DerivationRecordEventSchema: z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3369,7 +3449,12 @@ export declare const ContentProposalSchema: z.ZodObject<{
     references: z.ZodArray<z.ZodString>;
     kind: z.ZodLiteral<"content">;
     payload: z.ZodObject<{
-        taskType: any;
+        taskType: z.ZodEnum<{
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
+        }>;
         term: z.ZodString;
         truth: z.ZodOptional<z.ZodObject<{
             frequency: z.ZodNumber;
@@ -3411,7 +3496,12 @@ export declare const ProposalSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     references: z.ZodArray<z.ZodString>;
     kind: z.ZodLiteral<"content">;
     payload: z.ZodObject<{
-        taskType: any;
+        taskType: z.ZodEnum<{
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
+        }>;
         term: z.ZodString;
         truth: z.ZodOptional<z.ZodObject<{
             frequency: z.ZodNumber;
@@ -3500,7 +3590,10 @@ export declare const ProposalAdmittedEventSchema: z.ZodObject<{
             body: z.ZodString;
             priority: z.ZodNumber;
             taskType: z.ZodOptional<z.ZodEnum<{
-                [x: string]: any;
+                belief: "belief";
+                command: "command";
+                goal: "goal";
+                question: "question";
             }>>;
         }, z.core.$strip>>;
         producer: z.ZodOptional<z.ZodString>;
@@ -3651,7 +3744,12 @@ export declare const PerceptionGateOutputSchema: z.ZodObject<{
     task: z.ZodOptional<z.ZodObject<{
         taskId: z.ZodString;
         term: z.ZodString;
-        taskType: any;
+        taskType: z.ZodEnum<{
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
+        }>;
         truth: z.ZodOptional<z.ZodObject<{
             frequency: z.ZodNumber;
             confidence: z.ZodNumber;
@@ -3676,7 +3774,10 @@ export declare const PerceptionGateOutputSchema: z.ZodObject<{
 export type PerceptionGateOutput = z.infer<typeof PerceptionGateOutputSchema>;
 export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3686,7 +3787,12 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     payload: z.ZodObject<{
         taskId: z.ZodString;
         term: z.ZodString;
-        taskType: any;
+        taskType: z.ZodEnum<{
+            belief: "belief";
+            command: "command";
+            goal: "goal";
+            question: "question";
+        }>;
         truth: z.ZodOptional<z.ZodObject<{
             frequency: z.ZodNumber;
             confidence: z.ZodNumber;
@@ -3708,7 +3814,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3753,7 +3862,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3813,7 +3925,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3835,7 +3950,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3855,7 +3973,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3884,7 +4005,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3904,7 +4028,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3929,7 +4056,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -3959,7 +4089,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4005,7 +4138,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4040,7 +4176,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4059,7 +4198,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4078,7 +4220,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4095,7 +4240,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4117,7 +4265,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4161,7 +4312,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
             body: z.ZodString;
             priority: z.ZodNumber;
             taskType: z.ZodOptional<z.ZodEnum<{
-                [x: string]: any;
+                belief: "belief";
+                command: "command";
+                goal: "goal";
+                question: "question";
             }>>;
         }, z.core.$strip>>;
         producer: z.ZodOptional<z.ZodString>;
@@ -4192,7 +4346,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -4207,7 +4364,10 @@ export declare const CognitiveEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     engine: z.ZodEnum<{
-        [x: string]: any;
+        kernel: "kernel";
+        metta: "metta";
+        nar: "nar";
+        proposer: "proposer";
     }>;
     timestamp: z.ZodNumber;
     correlationId: z.ZodString;
@@ -5038,18 +5198,56 @@ export type CognitiveEventOf<T extends CognitiveEvent['type']> = Extract<Cogniti
     type: T;
 }>;
 export declare const validateCognitiveEvent: (data: unknown) => {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "judgment.resolved";
+    payload: {
+        queryId: string;
+        shape: string;
+        axis: string;
+        backendId: string;
+        tier: number;
+        latencyMs: number;
+        entropy?: number | undefined;
+        abstained: boolean;
+        stampType: "provisional" | "standard";
+        calibrationVersion: string;
+        encoderDigest?: string | undefined;
+        modelDigest?: string | undefined;
+        calibrationDigest?: string | undefined;
+        inputDigest?: string | undefined;
+        decisionBand?: unknown;
+        cost: {
+            tokensIn: number;
+            tokensOut: number;
+            computeMs: number;
+            memoryMb: number;
+        };
+    };
+} | {
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    engine: "nar";
+    type: "kernel.ready";
+    payload: {
+        backendIds: string[];
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
     timestamp: number;
     correlationId: string;
     causationId?: string | undefined;
     id?: string | undefined;
     type: "task.admitted";
     payload: {
-        [x: string]: any;
         taskId: string;
         term: string;
+        taskType: "belief" | "command" | "goal" | "question";
         truth?: {
             frequency: number;
             confidence: number;
@@ -5064,9 +5262,7 @@ export declare const validateCognitiveEvent: (data: unknown) => {
         };
     };
 } | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
+    engine: "kernel" | "metta" | "nar" | "proposer";
     timestamp: number;
     correlationId: string;
     causationId?: string | undefined;
@@ -5093,9 +5289,206 @@ export declare const validateCognitiveEvent: (data: unknown) => {
         correlationId?: string | undefined;
     };
 } | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "belief.revised";
+    payload: {
+        term: string;
+        oldTruth: {
+            frequency: number;
+            confidence: number;
+        };
+        newTruth: {
+            frequency: number;
+            confidence: number;
+        };
+        evidenceLineage?: string[] | undefined;
+        revisionRule?: string | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "concept.activated";
+    payload: {
+        term: string;
+        priority: number;
+        activationSource?: "associative" | "decay" | "derivation" | "goal" | "perception" | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "budget.exhausted";
+    payload: {
+        budgetType: "cycles" | "depth" | "llm" | "memory";
+        remaining: number;
+        limit: number;
+        terminationReason: "aborted" | "backpressure" | "completed" | "cycle-budget" | "deadline" | "depth-budget" | "llm-budget" | "memory-budget";
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "policy.violation";
+    payload: {
+        policyId: string;
+        violationType: "budget-exceeded" | "epistemic-firewall" | "sandbox-escape" | "self-mod-unauthorized" | "unauthorized-tool";
+        detail: string;
+        severity: "block" | "quarantine" | "warn";
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "autonomy.mode.changed";
+    payload: {
+        previousMode: "human-approved-production" | "low-risk-auto-merge" | "observe-only" | "propose-only" | "sandbox-execute";
+        newMode: "human-approved-production" | "low-risk-auto-merge" | "observe-only" | "propose-only" | "sandbox-execute";
+        authorizedBy: "external-governance" | "human" | "system";
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "self-mod.proposal";
+    payload: {
+        proposalId: string;
+        patchRef: string;
+        baseCommit: string;
+        patchDiff: string;
+        ciResults: {
+            test: boolean;
+            typecheck: boolean;
+            lint: boolean;
+            durationMs: number;
+        };
+        riskSelfAssessment: "HIGH" | "LOW" | "MEDIUM";
+        affectedComponents: ("approval-logic" | "autonomy-mode" | "cognitive-params" | "kernel-gates" | "memory" | "other" | "reward-functions" | "rules" | "sandbox-config" | "tools")[];
+        affectedFiles: string[];
+        linesAdded: number;
+        linesRemoved: number;
+        coverageDelta?: number | undefined;
+        rationale: string;
+        timestamp: number;
+        agentSignature: string;
+        correlationId?: string | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "gate.passed";
+    payload: {
+        gate: "action" | "budget" | "perception" | "reward";
+        score?: number | undefined;
+        detail?: string | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "gate.failed";
+    payload: {
+        gate: "action" | "budget" | "perception" | "reward";
+        score?: number | undefined;
+        detail?: string | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "budget.consumed";
+    payload: {
+        budgetType: "cycles" | "depth" | "llm" | "memory";
+        amount: number;
+        remaining: number;
+        limit: number;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "egress.gate.rejected";
+    payload: {
+        gate: "groundedness" | "risk";
+        score?: number | undefined;
+        detail?: string | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "shadow.validation.dropped";
+    payload: {
+        candidateTerm: string;
+        source: "bridge-llm" | "llm";
+        conflictType: "frequency" | "semantic";
+        frequencyDelta?: number | undefined;
+        semanticScore?: number | undefined;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "proposal.submitted";
+    payload: {
+        proposalId: string;
+        kind: "content" | "rule";
+        revision: number;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "snapshot.created";
+    payload: {
+        snapshotId: string;
+        cycle: number;
+        entryCount: number;
+        hash: string;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "snapshot.restored";
+    payload: {
+        snapshotId: string;
+        cycle: number;
+        entriesReplayed: number;
+    };
+} | {
+    engine: "kernel" | "metta" | "nar" | "proposer";
     timestamp: number;
     correlationId: string;
     causationId?: string | undefined;
@@ -5135,310 +5528,6 @@ export declare const validateCognitiveEvent: (data: unknown) => {
         maxDepthReached: number;
         timestamp: number;
         engine: "nar";
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "belief.revised";
-    payload: {
-        term: string;
-        oldTruth: {
-            frequency: number;
-            confidence: number;
-        };
-        newTruth: {
-            frequency: number;
-            confidence: number;
-        };
-        evidenceLineage?: string[] | undefined;
-        revisionRule?: string | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "concept.activated";
-    payload: {
-        term: string;
-        priority: number;
-        activationSource?: "associative" | "decay" | "derivation" | "goal" | "perception" | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "budget.exhausted";
-    payload: {
-        budgetType: "cycles" | "depth" | "llm" | "memory";
-        remaining: number;
-        limit: number;
-        terminationReason: "aborted" | "backpressure" | "completed" | "cycle-budget" | "deadline" | "depth-budget" | "llm-budget" | "memory-budget";
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "budget.consumed";
-    payload: {
-        budgetType: "cycles" | "depth" | "llm" | "memory";
-        amount: number;
-        remaining: number;
-        limit: number;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "policy.violation";
-    payload: {
-        policyId: string;
-        violationType: "budget-exceeded" | "epistemic-firewall" | "sandbox-escape" | "self-mod-unauthorized" | "unauthorized-tool";
-        detail: string;
-        severity: "block" | "quarantine" | "warn";
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "autonomy.mode.changed";
-    payload: {
-        previousMode: "human-approved-production" | "low-risk-auto-merge" | "observe-only" | "propose-only" | "sandbox-execute";
-        newMode: "human-approved-production" | "low-risk-auto-merge" | "observe-only" | "propose-only" | "sandbox-execute";
-        authorizedBy: "external-governance" | "human" | "system";
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "self-mod.proposal";
-    payload: {
-        proposalId: string;
-        patchRef: string;
-        baseCommit: string;
-        patchDiff: string;
-        ciResults: {
-            test: boolean;
-            typecheck: boolean;
-            lint: boolean;
-            durationMs: number;
-        };
-        riskSelfAssessment: "HIGH" | "LOW" | "MEDIUM";
-        affectedComponents: ("approval-logic" | "autonomy-mode" | "cognitive-params" | "kernel-gates" | "memory" | "other" | "reward-functions" | "rules" | "sandbox-config" | "tools")[];
-        affectedFiles: string[];
-        linesAdded: number;
-        linesRemoved: number;
-        coverageDelta?: number | undefined;
-        rationale: string;
-        timestamp: number;
-        agentSignature: string;
-        correlationId?: string | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "judgment.resolved";
-    payload: {
-        queryId: string;
-        shape: string;
-        axis: string;
-        backendId: string;
-        tier: number;
-        latencyMs: number;
-        entropy?: number | undefined;
-        abstained: boolean;
-        stampType: "provisional" | "standard";
-        calibrationVersion: string;
-        encoderDigest?: string | undefined;
-        modelDigest?: string | undefined;
-        calibrationDigest?: string | undefined;
-        inputDigest?: string | undefined;
-        decisionBand?: unknown;
-        cost: {
-            tokensIn: number;
-            tokensOut: number;
-            computeMs: number;
-            memoryMb: number;
-        };
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "gate.passed";
-    payload: {
-        gate: "action" | "budget" | "perception" | "reward";
-        score?: number | undefined;
-        detail?: string | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "gate.failed";
-    payload: {
-        gate: "action" | "budget" | "perception" | "reward";
-        score?: number | undefined;
-        detail?: string | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "egress.gate.rejected";
-    payload: {
-        gate: "groundedness" | "risk";
-        score?: number | undefined;
-        detail?: string | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "shadow.validation.dropped";
-    payload: {
-        candidateTerm: string;
-        source: "bridge-llm" | "llm";
-        conflictType: "frequency" | "semantic";
-        frequencyDelta?: number | undefined;
-        semanticScore?: number | undefined;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "proposal.submitted";
-    payload: {
-        proposalId: string;
-        kind: "content" | "rule";
-        revision: number;
-    };
-} | {
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "proposal.admitted";
-    engine: "proposer";
-    payload: {
-        proposalId: string;
-        kind: "content" | "rule";
-        schemaVersion: number;
-        baseRevision: number;
-        resultingRevision: number;
-        declaration?: {
-            left: {
-                op: string;
-            };
-            right: {
-                op: string;
-            };
-            ruleId: string;
-            description: string;
-            truthFn: string;
-            body: string;
-            priority: number;
-            taskType?: z.ZodOptional<z.ZodEnum<{
-                [x: string]: any;
-            }>>;
-        } | undefined;
-        producer?: string | undefined;
-    };
-} | {
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "proposal.rejected";
-    engine: "proposer";
-    payload: {
-        proposalId: string;
-        kind: "content" | "rule";
-        reason: "cancelled" | "evicted-reference" | "failed-schema" | "queue-overflow" | "schema-version" | "stale-revision";
-        detail: string;
-        observedRevision: number;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "snapshot.created";
-    payload: {
-        snapshotId: string;
-        cycle: number;
-        entryCount: number;
-        hash: string;
-    };
-} | {
-    engine: z.ZodEnum<{
-        [x: string]: any;
-    }>;
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    type: "snapshot.restored";
-    payload: {
-        snapshotId: string;
-        cycle: number;
-        entriesReplayed: number;
     };
 } | {
     timestamp: number;
@@ -5613,16 +5702,6 @@ export declare const validateCognitiveEvent: (data: unknown) => {
     type: "config.schema";
     payload: {
         schema: unknown;
-    };
-} | {
-    timestamp: number;
-    correlationId: string;
-    causationId?: string | undefined;
-    id?: string | undefined;
-    engine: "nar";
-    type: "kernel.ready";
-    payload: {
-        backendIds: string[];
     };
 } | {
     timestamp: number;
@@ -6205,6 +6284,49 @@ export declare const validateCognitiveEvent: (data: unknown) => {
     payload: {
         ruleId: string;
     };
+} | {
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "proposal.rejected";
+    engine: "proposer";
+    payload: {
+        proposalId: string;
+        kind: "content" | "rule";
+        reason: "cancelled" | "evicted-reference" | "failed-schema" | "queue-overflow" | "schema-version" | "stale-revision";
+        detail: string;
+        observedRevision: number;
+    };
+} | {
+    timestamp: number;
+    correlationId: string;
+    causationId?: string | undefined;
+    id?: string | undefined;
+    type: "proposal.admitted";
+    engine: "proposer";
+    payload: {
+        proposalId: string;
+        kind: "content" | "rule";
+        schemaVersion: number;
+        baseRevision: number;
+        resultingRevision: number;
+        declaration?: {
+            left: {
+                op: string;
+            };
+            right: {
+                op: string;
+            };
+            ruleId: string;
+            description: string;
+            truthFn: string;
+            body: string;
+            priority: number;
+            taskType?: "belief" | "command" | "goal" | "question" | undefined;
+        } | undefined;
+        producer?: string | undefined;
+    };
 };
 export declare const validateProposal: (data: unknown) => {
     proposalId: string;
@@ -6215,7 +6337,7 @@ export declare const validateProposal: (data: unknown) => {
     references: string[];
     kind: "content";
     payload: {
-        [x: string]: any;
+        taskType: "belief" | "command" | "goal" | "question";
         term: string;
         truth?: {
             frequency: number;
@@ -6250,9 +6372,7 @@ export declare const validateProposal: (data: unknown) => {
 export declare const validateFormalizationCandidate: (data: unknown) => {
     candidateId: string;
     narsese: string;
-    taskType: z.ZodEnum<{
-        [x: string]: any;
-    }>;
+    taskType: "belief" | "command" | "goal" | "question";
     truth?: {
         frequency: number;
         confidence: number;
@@ -6283,9 +6403,7 @@ export declare const validateFormalizationBatch: (data: unknown) => {
     candidates: {
         candidateId: string;
         narsese: string;
-        taskType: z.ZodEnum<{
-            [x: string]: any;
-        }>;
+        taskType: "belief" | "command" | "goal" | "question";
         truth?: {
             frequency: number;
             confidence: number;
@@ -6385,9 +6503,7 @@ export declare const validateRuleTable: (data: unknown) => {
         truthFn: string;
         body: string;
         priority: number;
-        taskType?: z.ZodOptional<z.ZodEnum<{
-            [x: string]: any;
-        }>>;
+        taskType?: "belief" | "command" | "goal" | "question" | undefined;
         artifactVersion: string;
         ruleSetRevision: number;
         parentRevision: number | null;

@@ -26,7 +26,7 @@ export declare const HEAD_SPECS: {
         readonly rubric: 'task_type';
         readonly axis: 'epistemic';
         readonly kind: 'classify';
-        readonly space: any;
+        readonly space: readonly ["belief", "goal", "question", "command"];
         readonly instruction: 'Classify the task type';
         readonly group: 'ingress';
     };

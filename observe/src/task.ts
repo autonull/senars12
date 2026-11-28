@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulid';
-import { createLogger } from 'senars/util/logger';
-import { governanceArtifactRegistry } from 'senars/governance/artifacts';
-import { PatchRiskClassifier } from 'senars/governance/pipeline';
+import { createLogger } from '@senars/util/logger';
+import { governanceArtifactRegistry } from '@senars/governance/artifacts';
+import { PatchRiskClassifier } from '@senars/governance/pipeline';
 import type { Manifest, Verdict, Finding, CheckResult, RepairTask, EvidenceRef } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { createFindingSignature } from './schema.js';

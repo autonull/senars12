@@ -16,7 +16,7 @@ export declare const projectOutcome: <TOutput>(output: unknown, granted: (output
  * exposes.
  */
 export declare abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent> {
-    readonly eventLog: BoundedRing<T>;
+    readonly eventLog: import("../util").BoundedRing<TEvent>;
     /**
      * How this gate's output reads as a grant or a refusal. Required rather than
      * defaulted: a default that inspected the output for familiar field names

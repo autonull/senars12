@@ -1,0 +1,1 @@
+{"version":3,"file":"correlation-scope.d.ts","sourceRoot":"","sources":["correlation-scope.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AAEH,MAAM,WAAW,qBAAqB;IACpC,GAAG,CAAC,aAAa,EAAE,MAAM,GAAG;QAAE,iBAAiB,CAAC,EAAE,MAAM,CAAC;QAAC,SAAS,CAAC,EAAE,MAAM,CAAA;KAAE,CAAC;CAChF"}

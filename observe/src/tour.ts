@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from 'senars/util/logger';
+import { createLogger } from '@senars/util/logger';
 import type { Manifest, Verdict, Finding, CheckResult } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 

@@ -5,7 +5,7 @@ export declare const exceedsDepthLimit: (task: Task, maxDepth: number) => boolea
 export declare const toRuleInput: (task: Task) => RuleInput;
 export declare const createCircularDetector: () => {
     isCircular: (task: Task) => boolean;
-    reset: () => any;
+    reset: () => void;
 };
 export declare const createDerivedTask: (result: RuleResult, taskType?: Task['type']) => Task;
 //# sourceMappingURL=inference-utils.d.ts.map

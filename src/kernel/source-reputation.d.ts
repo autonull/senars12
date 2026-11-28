@@ -25,9 +25,18 @@ export interface SourceReputationOptions {
     /** Clock for deterministic ledger timestamps. */
     clock?: Clock;
 }
-declare const ReputationDeltaSchema: any;
+declare const ReputationDeltaSchema: z.ZodObject<{
+    at: z.ZodNumber;
+    correlationId: z.ZodOptional<z.ZodString>;
+    sessionId: z.ZodOptional<z.ZodString>;
+    key: z.ZodString;
+    delta: z.ZodObject<{
+        confirmed: z.ZodOptional<z.ZodNumber>;
+        contradicted: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
 export type ReputationDeltaEntry = z.infer<typeof ReputationDeltaSchema>;
-export declare const DEFAULT_REPUTATION_PATH: any;
+export declare const DEFAULT_REPUTATION_PATH: string;
 export declare const DEFAULT_REPUTATION_CAPACITY = 10000;
 /**
  * SourceReputation — now backed by the generic `Ledger<T>` primitive.

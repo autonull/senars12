@@ -58,7 +58,10 @@ export declare const botProfileSchema: z.ZodObject<{
         summary: "summary";
     }>>;
     narrateTier: z.ZodDefault<z.ZodEnum<{
-        [x: string]: any;
+        compact: "compact";
+        fast: "fast";
+        quality: "quality";
+        structured: "structured";
     }>>;
 }, z.core.$strip>;
 export declare const lmRuleSchema: z.ZodObject<{
@@ -85,7 +88,10 @@ export declare const inferenceSchema: z.ZodObject<{
 /** Objective-driven routing policy (shared shape lives in @senars/nar/lm). */
 export declare const routingSchema: z.ZodObject<{
     objectives: z.ZodDefault<z.ZodRecord<z.ZodEnum<{
-        [x: string]: any;
+        compact: "compact";
+        fast: "fast";
+        quality: "quality";
+        structured: "structured";
     }> & z.core.$partial, z.ZodObject<{
         quality: z.ZodOptional<z.ZodEnum<{
             balanced: "balanced";
@@ -109,14 +115,18 @@ export declare const backendsSchema: z.ZodDefault<z.ZodObject<{
         autonomy: z.ZodOptional<z.ZodObject<{
             enabled: z.ZodDefault<z.ZodBoolean>;
             mode: z.ZodDefault<z.ZodEnum<{
-                [x: string]: any;
+                continuous: "continuous";
+                manual: "manual";
+                stepping: "stepping";
             }>>;
             hz: z.ZodOptional<z.ZodNumber>;
             maxCyclesPerWindow: z.ZodOptional<z.ZodNumber>;
             maxWallClockMsPerWindow: z.ZodOptional<z.ZodNumber>;
             backpressureThreshold: z.ZodOptional<z.ZodNumber>;
             policies: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-                [x: string]: any;
+                consolidation: "consolidation";
+                curiosity: "curiosity";
+                heartbeat: "heartbeat";
             }> & z.core.$partial, z.ZodBoolean>>;
             curiosity: z.ZodOptional<z.ZodObject<{
                 maxQuestionsPerWindow: z.ZodOptional<z.ZodNumber>;
@@ -262,7 +272,10 @@ declare const appConfigBase: z.ZodObject<{
             summary: "summary";
         }>>;
         narrateTier: z.ZodDefault<z.ZodEnum<{
-            [x: string]: any;
+            compact: "compact";
+            fast: "fast";
+            quality: "quality";
+            structured: "structured";
         }>>;
     }, z.core.$strip>>;
     capabilities: z.ZodDefault<z.ZodObject<{
@@ -332,14 +345,18 @@ declare const appConfigBase: z.ZodObject<{
             autonomy: z.ZodOptional<z.ZodObject<{
                 enabled: z.ZodDefault<z.ZodBoolean>;
                 mode: z.ZodDefault<z.ZodEnum<{
-                    [x: string]: any;
+                    continuous: "continuous";
+                    manual: "manual";
+                    stepping: "stepping";
                 }>>;
                 hz: z.ZodOptional<z.ZodNumber>;
                 maxCyclesPerWindow: z.ZodOptional<z.ZodNumber>;
                 maxWallClockMsPerWindow: z.ZodOptional<z.ZodNumber>;
                 backpressureThreshold: z.ZodOptional<z.ZodNumber>;
                 policies: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-                    [x: string]: any;
+                    consolidation: "consolidation";
+                    curiosity: "curiosity";
+                    heartbeat: "heartbeat";
                 }> & z.core.$partial, z.ZodBoolean>>;
                 curiosity: z.ZodOptional<z.ZodObject<{
                     maxQuestionsPerWindow: z.ZodOptional<z.ZodNumber>;
@@ -360,7 +377,10 @@ declare const appConfigBase: z.ZodObject<{
     }, z.core.$strip>>;
     routing: z.ZodDefault<z.ZodObject<{
         objectives: z.ZodDefault<z.ZodRecord<z.ZodEnum<{
-            [x: string]: any;
+            compact: "compact";
+            fast: "fast";
+            quality: "quality";
+            structured: "structured";
         }> & z.core.$partial, z.ZodObject<{
             quality: z.ZodOptional<z.ZodEnum<{
                 balanced: "balanced";
@@ -603,7 +623,10 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
             summary: "summary";
         }>>;
         narrateTier: z.ZodDefault<z.ZodEnum<{
-            [x: string]: any;
+            compact: "compact";
+            fast: "fast";
+            quality: "quality";
+            structured: "structured";
         }>>;
     }, z.core.$strip>>;
     capabilities: z.ZodDefault<z.ZodObject<{
@@ -673,14 +696,18 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
             autonomy: z.ZodOptional<z.ZodObject<{
                 enabled: z.ZodDefault<z.ZodBoolean>;
                 mode: z.ZodDefault<z.ZodEnum<{
-                    [x: string]: any;
+                    continuous: "continuous";
+                    manual: "manual";
+                    stepping: "stepping";
                 }>>;
                 hz: z.ZodOptional<z.ZodNumber>;
                 maxCyclesPerWindow: z.ZodOptional<z.ZodNumber>;
                 maxWallClockMsPerWindow: z.ZodOptional<z.ZodNumber>;
                 backpressureThreshold: z.ZodOptional<z.ZodNumber>;
                 policies: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-                    [x: string]: any;
+                    consolidation: "consolidation";
+                    curiosity: "curiosity";
+                    heartbeat: "heartbeat";
                 }> & z.core.$partial, z.ZodBoolean>>;
                 curiosity: z.ZodOptional<z.ZodObject<{
                     maxQuestionsPerWindow: z.ZodOptional<z.ZodNumber>;
@@ -701,7 +728,10 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
     }, z.core.$strip>>;
     routing: z.ZodDefault<z.ZodObject<{
         objectives: z.ZodDefault<z.ZodRecord<z.ZodEnum<{
-            [x: string]: any;
+            compact: "compact";
+            fast: "fast";
+            quality: "quality";
+            structured: "structured";
         }> & z.core.$partial, z.ZodObject<{
             quality: z.ZodOptional<z.ZodEnum<{
                 balanced: "balanced";
@@ -922,9 +952,7 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
         joinMessage: string;
         capabilities: string[];
         reasoningTransparency: "full" | "none" | "summary";
-        narrateTier: z.ZodDefault<z.ZodEnum<{
-            [x: string]: any;
-        }>>;
+        narrateTier: "compact" | "fast" | "quality" | "structured";
     };
     capabilities: {
         lm: {
@@ -987,14 +1015,12 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
             statePath?: string | undefined;
             autonomy?: {
                 enabled: boolean;
-                mode: z.ZodDefault<z.ZodEnum<{
-                    [x: string]: any;
-                }>>;
+                mode: "continuous" | "manual" | "stepping";
                 hz?: number | undefined;
                 maxCyclesPerWindow?: number | undefined;
                 maxWallClockMsPerWindow?: number | undefined;
                 backpressureThreshold?: number | undefined;
-                policies?: Partial<Record<any, boolean>> | undefined;
+                policies?: Partial<Record<"consolidation" | "curiosity" | "heartbeat", boolean>> | undefined;
                 curiosity?: {
                     maxQuestionsPerWindow?: number | undefined;
                     maxConfidence?: number | undefined;
@@ -1013,7 +1039,7 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
         channels: string[];
     } | undefined;
     routing: {
-        objectives: Partial<Record<any, {
+        objectives: Partial<Record<"compact" | "fast" | "quality" | "structured", {
             quality?: "balanced" | "high" | "max" | undefined;
             maxLatencyMs?: number | undefined;
             offlineOnly?: boolean | undefined;
@@ -1193,9 +1219,7 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
         joinMessage: string;
         capabilities: string[];
         reasoningTransparency: "full" | "none" | "summary";
-        narrateTier: z.ZodDefault<z.ZodEnum<{
-            [x: string]: any;
-        }>>;
+        narrateTier: "compact" | "fast" | "quality" | "structured";
     };
     capabilities: {
         lm: {
@@ -1258,14 +1282,12 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
             statePath?: string | undefined;
             autonomy?: {
                 enabled: boolean;
-                mode: z.ZodDefault<z.ZodEnum<{
-                    [x: string]: any;
-                }>>;
+                mode: "continuous" | "manual" | "stepping";
                 hz?: number | undefined;
                 maxCyclesPerWindow?: number | undefined;
                 maxWallClockMsPerWindow?: number | undefined;
                 backpressureThreshold?: number | undefined;
-                policies?: Partial<Record<any, boolean>> | undefined;
+                policies?: Partial<Record<"consolidation" | "curiosity" | "heartbeat", boolean>> | undefined;
                 curiosity?: {
                     maxQuestionsPerWindow?: number | undefined;
                     maxConfidence?: number | undefined;
@@ -1284,7 +1306,7 @@ export declare const appConfigSchema: z.ZodPipe<z.ZodObject<{
         channels: string[];
     } | undefined;
     routing: {
-        objectives: Partial<Record<any, {
+        objectives: Partial<Record<"compact" | "fast" | "quality" | "structured", {
             quality?: "balanced" | "high" | "max" | undefined;
             maxLatencyMs?: number | undefined;
             offlineOnly?: boolean | undefined;

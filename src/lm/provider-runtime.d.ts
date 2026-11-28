@@ -7,7 +7,7 @@
  */
 import type { LMTask } from '@senars/types/llm';
 import type { LanguageModel } from 'ai';
-import { type CircuitBreakerSettings, type CircuitSnapshot } from '@senars/util/circuit-breaker';
+import { CircuitBreaker, type CircuitBreakerSettings, type CircuitSnapshot } from '@senars/util/circuit-breaker';
 import { type CircuitState, type LMProviderName, type LMSettings, type LMSettingsInput } from './env-config';
 export type { CircuitState, CircuitBreakerSettings, LMProviderName };
 /** Browser-side WebLLM runtime, injected by the UI layer (nar never imports browser code). */

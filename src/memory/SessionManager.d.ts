@@ -9,7 +9,24 @@ export { abortSession, createSession, InMemorySessionManager };
 export interface JsonlSessionManagerConfig {
     basePath: string;
 }
-declare const SessionRecordSchema: any;
+declare const SessionRecordSchema: z.ZodObject<{
+    at: z.ZodNumber;
+    correlationId: z.ZodOptional<z.ZodString>;
+    sessionId: z.ZodOptional<z.ZodString>;
+    key: z.ZodString;
+    history: z.ZodArray<z.ZodObject<{
+        role: z.ZodEnum<{
+            agent: "agent";
+            system: "system";
+            user: "user";
+        }>;
+        content: z.ZodString;
+        timestamp: z.ZodNumber;
+    }, z.core.$strip>>;
+    createdAt: z.ZodNumber;
+    lastSeenAt: z.ZodNumber;
+    metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+}, z.core.$strip>;
 export type SessionLedgerEntry = z.infer<typeof SessionRecordSchema>;
 /** Bounded in-memory sessions with a JSONL ledger snapshot on close. */
 export declare class JsonlSessionManager implements SessionManager {

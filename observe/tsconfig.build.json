@@ -1,39 +1,16 @@
 {
+  "extends": "../tsconfig.root.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
     "noEmit": false,
     "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "types": [],
+    "rootDir": "../../../",
+    "verbatimModuleSyntax": false,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "disableReferencedProjectLoad": true
+    "types": ["node"]
   },
-  "files": [
-    "src/index.ts",
-    "src/schema.ts",
-    "src/programs.ts",
-    "src/run.ts",
-    "src/record.ts",
-    "src/checks.ts",
-    "src/review.ts",
-    "src/report.ts",
-    "src/task.ts",
-    "src/verify.ts",
-    "src/diff.ts",
-    "src/promote.ts",
-    "src/cli.ts"
-  ],
+  "include": ["src/**/*", "../../../src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

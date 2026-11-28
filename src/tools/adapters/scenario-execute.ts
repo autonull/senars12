@@ -6,6 +6,7 @@ import { stopwatch } from '@senars/util/async';
 import type { ILMService } from '../../lm/interfaces';
 import { NLUnderstandingService } from '../../nl/understanding';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles';
+export type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles';
 import type { TermTruth } from '../../types/truth';
 
 // --- generate_scenarios ---

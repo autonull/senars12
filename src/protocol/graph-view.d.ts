@@ -13,7 +13,10 @@ export declare const GraphNodeDataView: z.ZodObject<{
         y: z.ZodOptional<z.ZodNumber>;
         threadIndex: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>>;
-    truth: any;
+    truth: z.ZodOptional<z.ZodObject<{
+        frequency: z.ZodNumber;
+        confidence: z.ZodNumber;
+    }, z.core.$strip>>;
     isContradiction: z.ZodOptional<z.ZodBoolean>;
     occurrenceTime: z.ZodOptional<z.ZodNumber>;
     goalRelevance: z.ZodOptional<z.ZodNumber>;
@@ -59,7 +62,10 @@ export declare const GraphNodeData: z.ZodObject<{
         y: z.ZodOptional<z.ZodNumber>;
         threadIndex: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>>;
-    truth: any;
+    truth: z.ZodOptional<z.ZodObject<{
+        frequency: z.ZodNumber;
+        confidence: z.ZodNumber;
+    }, z.core.$strip>>;
     isContradiction: z.ZodOptional<z.ZodBoolean>;
     occurrenceTime: z.ZodOptional<z.ZodNumber>;
     goalRelevance: z.ZodOptional<z.ZodNumber>;

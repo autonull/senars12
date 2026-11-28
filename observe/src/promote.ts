@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulid';
-import { createLogger } from 'senars/util/logger';
-import { governanceArtifactRegistry } from 'senars/governance/artifacts';
+import { createLogger } from '@senars/util/logger';
+import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import type { Manifest, Verdict, Finding } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 

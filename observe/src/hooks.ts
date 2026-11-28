@@ -31,7 +31,7 @@ export async function runFailureHooks(bundle: FailureBundle): Promise<void> {
       try {
         await hook(bundle);
       } catch (error) {
-        logger.error('Failure hook error', { error, runId: bundle.runId });
+        logger.error('Failure hook error', error instanceof Error ? error : new Error(String(error)), { runId: bundle.runId });
       }
     })
   );

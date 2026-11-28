@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.root.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "exclude": ["node_modules", "dist"]
+}

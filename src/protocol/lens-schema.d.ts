@@ -23,8 +23,8 @@ export type ModulationSpec = {
 export declare const ModulationSchema: z.ZodType<ModulationSpec>;
 /** Zod schema for a full Lens definition. */
 export declare const LensSpecSchema: z.ZodObject<{
-    id: any;
-    label: any;
+    id: z.ZodString;
+    label: z.ZodString;
     description: z.ZodString;
     modulation: z.ZodType<ModulationSpec, unknown, z.core.$ZodTypeInternals<ModulationSpec, unknown>>;
     requires: z.ZodOptional<z.ZodArray<z.ZodString>>;

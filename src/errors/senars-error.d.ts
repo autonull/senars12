@@ -50,6 +50,7 @@ export declare const codedError: <N extends string, C extends ErrorCode>(name: N
         readonly "~effect/Runtime/errorExitCode"?: number;
         readonly "~effect/Runtime/errorReported"?: boolean;
     };
+    isError(error: unknown): error is Error;
     /** Enrich an unknown thrown value with operation context, preserving the cause (E4). */
     wrap(error: unknown, context: Record<string, unknown>, code?: ErrorCode): SenarsError;
     captureStackTrace(targetObject: object, constructorOpt?: Function): void;

@@ -1,4 +1,5 @@
 import { type Confidence, type Frequency, type TruthLike } from '@senars/types/truth';
+import { confidenceToWeight, weightToConfidence } from '@senars/util/truth-algebra';
 export interface Truth {
     readonly f: Frequency;
     readonly c: Confidence;
@@ -92,8 +93,8 @@ export declare const Truth: {
     readonly contradict: (t: Truth) => Truth;
     readonly isStronger: (t1: Truth, t2: Truth) => boolean;
     readonly weak: (c: number) => number;
-    readonly c2w: any;
-    readonly w2c: any;
+    readonly c2w: typeof confidenceToWeight;
+    readonly w2c: typeof weightToConfidence;
     readonly serialize: (t: Truth) => string;
     readonly format: (t: Truth, fractionDigits?: number) => string;
     readonly deserialize: (s: string) => Truth | null;

@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'crypto';
-import { EventBus } from 'senars/events/event-bus';
-import type { CognitiveEvent } from 'senars/schemas/cognitive-events';
-import { createLogger } from 'senars/util/logger';
+import { EventBus } from '@senars/events/event-bus';
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
+import { createLogger } from '@senars/util/logger';
 import type { Manifest, Mark } from './schema.js';
 
 const logger = createLogger({ scope: 'ObserveRecorder' });

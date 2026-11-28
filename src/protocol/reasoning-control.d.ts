@@ -6,7 +6,7 @@
 import { z } from 'zod';
 export declare const ReasoningSubmitMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    term: any;
+    term: z.ZodString;
     mode: z.ZodOptional<z.ZodEnum<{
         belief: "belief";
         goal: "goal";
@@ -21,8 +21,8 @@ export declare const ReasoningSubmitMsg: z.ZodObject<{
  */
 export declare const ReasoningAskMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    term: any;
-    runs: any;
+    term: z.ZodString;
+    runs: z.ZodOptional<z.ZodNumber>;
     type: z.ZodLiteral<"reasoning.ask">;
 }, z.core.$strip>;
 export declare const ReasoningStepMsg: z.ZodObject<{
@@ -39,29 +39,29 @@ export declare const ReasoningAbortMsg: z.ZodObject<{
 }, z.core.$strip>;
 export declare const ReasoningRetractMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    nodeId: any;
+    nodeId: z.ZodString;
     type: z.ZodLiteral<"reasoning.retract">;
 }, z.core.$strip>;
 export declare const ReasoningReviseMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    nodeId: any;
-    frequency: any;
-    confidence: any;
+    nodeId: z.ZodString;
+    frequency: z.ZodNumber;
+    confidence: z.ZodNumber;
     type: z.ZodLiteral<"reasoning.revise">;
 }, z.core.$strip>;
 export declare const ReasoningAddGoalMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    term: any;
+    term: z.ZodString;
     type: z.ZodLiteral<"reasoning.add-goal">;
 }, z.core.$strip>;
 export declare const ReasoningAdjustBudgetMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    budget: any;
+    budget: z.ZodNumber;
     type: z.ZodLiteral<"reasoning.adjust-budget">;
 }, z.core.$strip>;
 export declare const ReasoningAdjustProviderMsg: z.ZodObject<{
     seqId: z.ZodOptional<z.ZodNumber>;
-    provider: any;
+    provider: z.ZodString;
     type: z.ZodLiteral<"reasoning.adjust-provider">;
 }, z.core.$strip>;
 export declare const ReasoningControlResponse: z.ZodObject<{

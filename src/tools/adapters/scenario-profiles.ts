@@ -10,6 +10,7 @@ export const SCENARIO_PROFILES = [
   'belief_revision',
   'cross_engine_sync',
   'auto',
+  'regression',
 ] as const;
 
 export type ScenarioProfile = (typeof SCENARIO_PROFILES)[number];

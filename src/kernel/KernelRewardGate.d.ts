@@ -29,8 +29,8 @@ export declare class ExternalRewardGate extends KernelRewardGate {
 }
 export declare class SelfRewardGate extends KernelRewardGate {
     private queue;
-    propose(kind: SelfImprovementProposal['kind'], payload: Record<string, unknown>, rewardDomain: RewardDomain, correlationId?: any): SelfImprovementProposal;
-    submit(kind: SelfImprovementProposal['kind'], payload: Record<string, unknown>, rewardDomain: RewardDomain, correlationId?: any): SelfImprovementProposal;
+    propose(kind: SelfImprovementProposal['kind'], payload: Record<string, unknown>, rewardDomain: RewardDomain, correlationId?: string): SelfImprovementProposal;
+    submit(kind: SelfImprovementProposal['kind'], payload: Record<string, unknown>, rewardDomain: RewardDomain, correlationId?: string): SelfImprovementProposal;
     pending(): ReadonlyArray<SelfImprovementProposal>;
     drain(): SelfImprovementProposal[];
 }

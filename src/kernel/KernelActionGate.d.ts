@@ -38,7 +38,7 @@ export declare class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     constructor(config?: Partial<KernelActionGateConfig>);
     setAutonomyMode(mode: AutonomyMode): void;
     getAutonomyMode(): AutonomyMode;
-    requestModeChange(newMode: AutonomyMode, authorizedBy: AutonomyAuthority, correlationId?: any): {
+    requestModeChange(newMode: AutonomyMode, authorizedBy: AutonomyAuthority, correlationId?: string): {
         changed: boolean;
         reason?: string;
     };

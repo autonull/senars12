@@ -36,7 +36,13 @@ export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 export { attempt, attemptAsync, type Err, err, flatMap, getOrElse, isErr, isOk, map, type Ok, ok, type Result, unwrapOrThrow, } from '@senars/util/result';
 export declare const createTaskWeight: (priority: number, durability?: number, quality?: number, cycles?: number, depth?: number) => Budget;
-export declare const NEUTRAL_BUDGET: Budget;
+export declare const NEUTRAL_BUDGET: {
+    priority: number;
+    durability: number;
+    quality: number;
+    cycles: number;
+    depth: number;
+};
 /** Fields a caller may pin when the defaults (input stamp, now, not derived) are wrong. */
 export interface TaskOverrides {
     stamp?: Stamp;

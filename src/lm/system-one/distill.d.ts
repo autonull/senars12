@@ -29,7 +29,24 @@ export interface DistillationLabel {
     domain?: 'in-domain' | 'ood';
 }
 /** Ledger entry schema for distillation labels with inline vectors. */
-declare const DistillationLabelEntrySchema: any;
+declare const DistillationLabelEntrySchema: z.ZodObject<{
+    at: z.ZodNumber;
+    correlationId: z.ZodOptional<z.ZodString>;
+    sessionId: z.ZodOptional<z.ZodString>;
+    evidenceId: z.ZodString;
+    rubric: z.ZodString;
+    axis: z.ZodString;
+    label: z.ZodString;
+    score: z.ZodOptional<z.ZodNumber>;
+    observed: z.ZodOptional<z.ZodNumber>;
+    vector: z.ZodOptional<z.ZodString>;
+    source: z.ZodString;
+    cortexModelId: z.ZodOptional<z.ZodString>;
+    domain: z.ZodOptional<z.ZodEnum<{
+        "in-domain": "in-domain";
+        ood: "ood";
+    }>>;
+}, z.core.$strip>;
 export type DistillationLabelEntry = z.infer<typeof DistillationLabelEntrySchema>;
 /** Append-only, redaction-per-retention: hashes + labels + inline vectors, never raw text. */
 export declare class JudgmentDataset {

@@ -2,16 +2,16 @@ import { z } from 'zod';
 export declare const NarseseBeliefSchema: z.ZodObject<{
     narsese: z.ZodString;
     truth: z.ZodOptional<z.ZodObject<{
-        f: any;
-        c: any;
+        f: z.ZodNumber;
+        c: z.ZodNumber;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 export declare const TranslationSchema: z.ZodObject<{
     beliefs: z.ZodArray<z.ZodObject<{
         narsese: z.ZodString;
         truth: z.ZodOptional<z.ZodObject<{
-            f: any;
-            c: any;
+            f: z.ZodNumber;
+            c: z.ZodNumber;
         }, z.core.$strip>>;
     }, z.core.$strip>>;
     questions: z.ZodArray<z.ZodString>;
@@ -21,7 +21,7 @@ export declare const TranslationSchema: z.ZodObject<{
 export declare const ExplanationSchema: z.ZodObject<{
     explanation: z.ZodString;
     relatedConcepts: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    confidence: any;
+    confidence: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>;
 export declare const GoalDecompositionSchema: z.ZodObject<{
     subgoals: z.ZodArray<z.ZodString>;
@@ -29,7 +29,7 @@ export declare const GoalDecompositionSchema: z.ZodObject<{
 export declare const HypothesisSchema: z.ZodObject<{
     hypotheses: z.ZodArray<z.ZodObject<{
         narsese: z.ZodString;
-        confidence: any;
+        confidence: z.ZodNumber;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 export declare const AnalogySchema: z.ZodObject<{
@@ -44,7 +44,7 @@ export declare const MetaReasoningSchema: z.ZodObject<{
     suggestion: z.ZodString;
 }, z.core.$strip>;
 export declare const UncertaintySchema: z.ZodObject<{
-    recommendedConfidence: any;
+    recommendedConfidence: z.ZodNumber;
 }, z.core.$strip>;
 export declare const SchemaInductionSchema: z.ZodObject<{
     schema: z.ZodString;
@@ -68,8 +68,8 @@ export declare const BeliefRevisionSchema: z.ZodObject<{
     revised: z.ZodObject<{
         narsese: z.ZodString;
         truth: z.ZodObject<{
-            f: any;
-            c: any;
+            f: z.ZodNumber;
+            c: z.ZodNumber;
         }, z.core.$strip>;
     }, z.core.$strip>;
     reason: z.ZodString;
@@ -77,7 +77,7 @@ export declare const BeliefRevisionSchema: z.ZodObject<{
 export declare const QuestionGenerationSchema: z.ZodObject<{
     questions: z.ZodArray<z.ZodObject<{
         narsese: z.ZodString;
-        relevance: any;
+        relevance: z.ZodNumber;
         rationale: z.ZodString;
     }, z.core.$strip>>;
 }, z.core.$strip>;
@@ -88,18 +88,32 @@ export declare const ClarificationSchema: z.ZodObject<{
 /** What an LM may report as ambiguous — the kernel's kinds, without a severity.
  *  A four-kind restatement here is what made quantifier/modal/temporal/negation
  *  ambiguity unreportable through the NL path. */
-export declare const AmbiguitySchema: any;
+export declare const AmbiguitySchema: z.ZodObject<{
+    type: z.ZodEnum<{
+        intent: "intent";
+        modal: "modal";
+        negation: "negation";
+        parse: "parse";
+        quantifier: "quantifier";
+        reference: "reference";
+        temporal: "temporal";
+        term: "term";
+    }>;
+    description: z.ZodString;
+    options: z.ZodArray<z.ZodString>;
+    confidence: z.ZodNumber;
+}, z.core.$strip>;
 export declare const CoreferenceSchema: z.ZodObject<{
     pronoun: z.ZodString;
     antecedent: z.ZodString;
-    confidence: any;
+    confidence: z.ZodNumber;
 }, z.core.$strip>;
 export declare const TaskBatchSchema: z.ZodObject<{
     beliefs: z.ZodArray<z.ZodObject<{
         narsese: z.ZodString;
         truth: z.ZodOptional<z.ZodObject<{
-            f: any;
-            c: any;
+            f: z.ZodNumber;
+            c: z.ZodNumber;
         }, z.core.$strip>>;
         source: z.ZodEnum<{
             inferred: "inferred";
@@ -114,16 +128,35 @@ export declare const TaskBatchSchema: z.ZodObject<{
     }, z.core.$strip>>;
     goals: z.ZodArray<z.ZodObject<{
         narsese: z.ZodString;
-        priority: any;
+        priority: z.ZodOptional<z.ZodNumber>;
         sourceText: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>;
     meta: z.ZodObject<{
-        detectedIntent: any;
-        ambiguities: z.ZodArray<any>;
+        detectedIntent: z.ZodEnum<{
+            chat: "chat";
+            command: "command";
+            learning: "learning";
+            reasoning: "reasoning";
+        }>;
+        ambiguities: z.ZodArray<z.ZodObject<{
+            type: z.ZodEnum<{
+                intent: "intent";
+                modal: "modal";
+                negation: "negation";
+                parse: "parse";
+                quantifier: "quantifier";
+                reference: "reference";
+                temporal: "temporal";
+                term: "term";
+            }>;
+            description: z.ZodString;
+            options: z.ZodArray<z.ZodString>;
+            confidence: z.ZodNumber;
+        }, z.core.$strip>>;
         coreferences: z.ZodArray<z.ZodObject<{
             pronoun: z.ZodString;
             antecedent: z.ZodString;
-            confidence: any;
+            confidence: z.ZodNumber;
         }, z.core.$strip>>;
         implicitContext: z.ZodArray<z.ZodString>;
         driveModulations: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodNumber>>;
@@ -131,7 +164,7 @@ export declare const TaskBatchSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const GenerationOutputSchema: z.ZodObject<{
     response: z.ZodString;
-    confidence: any;
+    confidence: z.ZodNumber;
     suggestedFollowups: z.ZodArray<z.ZodString>;
     meta: z.ZodObject<{
         reasoningType: z.ZodString;

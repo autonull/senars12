@@ -1,8 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createLogger } from 'senars/util/logger';
+import { createLogger } from '@senars/util/logger';
 import type { ObserveProgram } from './programs.js';
 import type { CheckResult, Finding, EvidenceRef } from './schema.js';
+export type { CheckResult } from './schema.js';
 import { createCheckId, FindingKind, FindingSeverity } from './schema.js';
 
 const logger = createLogger({ scope: 'ObserveChecks' });

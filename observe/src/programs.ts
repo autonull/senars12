@@ -1,5 +1,5 @@
-import type { ScenarioSpec, ScenarioProfile } from 'senars/tools/adapters/scenario-execute';
-import { SCENARIO_PROFILES } from 'senars/tools/adapters/scenario-profiles';
+import type { ScenarioSpec, ScenarioProfile } from '@senars/tools/adapters/scenario-execute';
+import { SCENARIO_PROFILES } from '@senars/tools/adapters/scenario-profiles';
 
 export interface ObserveProgram extends ScenarioSpec {
   observe: {
@@ -131,6 +131,20 @@ const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
     inject: [],
     success_criteria: { no_crash: true },
     metadata: { seed: '', generated_at: '', profile: 'auto' },
+    observe: {
+      surfaces: ['console'],
+      keyframeMarks: [],
+      maxFrames: 12,
+      lane: 'hermetic',
+    },
+  },
+  regression: {
+    name: 'regression',
+    description: 'Regression test fixture',
+    duration_steps: 100,
+    inject: [],
+    success_criteria: { no_crash: true },
+    metadata: { seed: '', generated_at: '', profile: 'regression' },
     observe: {
       surfaces: ['console'],
       keyframeMarks: [],

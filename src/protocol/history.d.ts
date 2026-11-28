@@ -9,7 +9,10 @@ export declare const NodeHistoryRequestMsg: z.ZodObject<{
 export declare const NodeHistoryMsg: z.ZodObject<{
     term: z.ZodString;
     history: z.ZodArray<z.ZodObject<{
-        truth: any;
+        truth: z.ZodObject<{
+            frequency: z.ZodNumber;
+            confidence: z.ZodNumber;
+        }, z.core.$strip>;
         stampId: z.ZodString;
         timestamp: z.ZodNumber;
         source: z.ZodEnum<{

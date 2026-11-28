@@ -48,7 +48,14 @@ export declare class ConfigOptimizer extends DomainLearner {
     readonly risk: 'medium';
     constructor(proposals: SelfRewardGate);
     learn(event: DomainLearningEvent): void;
-    suggestKnob(knob: string, value: number): SelfImprovementProposal;
+    suggestKnob(knob: string, value: number): {
+        proposalId: string;
+        kind: "focus-weight" | "knob-tune" | "metta-rule-adoption" | "patch-apply" | "schema-evolution" | "schema-promotion" | "strategy-switch" | "test-generate";
+        riskTier: "high" | "low" | "medium";
+        payload: Record<string, unknown>;
+        rewardDomain: "external-reflex" | "self-config-proposal" | "self-explanation-rank" | "self-patch-score" | "self-scheduler";
+        correlationId?: string | undefined;
+    };
 }
 export declare class PatchSelector extends DomainLearner {
     private readonly proposals;
@@ -56,7 +63,14 @@ export declare class PatchSelector extends DomainLearner {
     readonly risk: 'high';
     constructor(proposals: SelfRewardGate);
     learn(event: DomainLearningEvent): void;
-    scorePatch(diffRef: string, score: number): SelfImprovementProposal;
+    scorePatch(diffRef: string, score: number): {
+        proposalId: string;
+        kind: "focus-weight" | "knob-tune" | "metta-rule-adoption" | "patch-apply" | "schema-evolution" | "schema-promotion" | "strategy-switch" | "test-generate";
+        riskTier: "high" | "low" | "medium";
+        payload: Record<string, unknown>;
+        rewardDomain: "external-reflex" | "self-config-proposal" | "self-explanation-rank" | "self-patch-score" | "self-scheduler";
+        correlationId?: string | undefined;
+    };
 }
 import { FunctionRegistry } from '../util/registry';
 export declare class LearnerRegistry extends FunctionRegistry<LearnerDomain, DomainLearner> {

@@ -1,7 +1,7 @@
 import type { ILMService } from '../../lm/interfaces';
 import type { ScenarioProfile } from './scenario-profiles';
 import type { TermTruth } from '../../types/truth';
-export declare const scenarioLogger: any;
+export declare const scenarioLogger: import("@senars/util/logger").Logger;
 export interface ScenarioInjectEvent {
     type: 'belief_stream' | 'question' | 'resource_pressure' | 'goal';
     pattern?: string;

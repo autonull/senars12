@@ -31,7 +31,10 @@ export declare const lensShape: {
 };
 /** Truth/attention annotations carried by every cognitively meaningful node. */
 export declare const cognitionShape: {
-    truth: any;
+    truth: z.ZodOptional<z.ZodObject<{
+        frequency: z.ZodNumber;
+        confidence: z.ZodNumber;
+    }, z.core.$strip>>;
     isContradiction: z.ZodOptional<z.ZodBoolean>;
     occurrenceTime: z.ZodOptional<z.ZodNumber>;
     goalRelevance: z.ZodOptional<z.ZodNumber>;
@@ -47,7 +50,10 @@ export declare const NarConceptNode: z.ZodObject<{
         y: z.ZodOptional<z.ZodNumber>;
         threadIndex: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>>;
-    truth: any;
+    truth: z.ZodOptional<z.ZodObject<{
+        frequency: z.ZodNumber;
+        confidence: z.ZodNumber;
+    }, z.core.$strip>>;
     isContradiction: z.ZodOptional<z.ZodBoolean>;
     occurrenceTime: z.ZodOptional<z.ZodNumber>;
     goalRelevance: z.ZodOptional<z.ZodNumber>;
@@ -57,7 +63,12 @@ export declare const NarConceptNode: z.ZodObject<{
     priority: z.ZodNumber;
     confidence: z.ZodNumber;
     html: z.ZodOptional<z.ZodString>;
-    punctuation: any;
+    punctuation: z.ZodOptional<z.ZodEnum<{
+        "!": "!";
+        ".": ".";
+        ";": ";";
+        "?": "?";
+    }>>;
     nodeType: z.ZodLiteral<"nar:concept">;
 }, z.core.$strip>;
 export declare const MettaAtomNode: z.ZodObject<{
@@ -108,7 +119,10 @@ export declare const GraphNodeDataStrict: z.ZodDiscriminatedUnion<[z.ZodObject<{
         y: z.ZodOptional<z.ZodNumber>;
         threadIndex: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>>;
-    truth: any;
+    truth: z.ZodOptional<z.ZodObject<{
+        frequency: z.ZodNumber;
+        confidence: z.ZodNumber;
+    }, z.core.$strip>>;
     isContradiction: z.ZodOptional<z.ZodBoolean>;
     occurrenceTime: z.ZodOptional<z.ZodNumber>;
     goalRelevance: z.ZodOptional<z.ZodNumber>;
@@ -118,7 +132,12 @@ export declare const GraphNodeDataStrict: z.ZodDiscriminatedUnion<[z.ZodObject<{
     priority: z.ZodNumber;
     confidence: z.ZodNumber;
     html: z.ZodOptional<z.ZodString>;
-    punctuation: any;
+    punctuation: z.ZodOptional<z.ZodEnum<{
+        "!": "!";
+        ".": ".";
+        ";": ";";
+        "?": "?";
+    }>>;
     nodeType: z.ZodLiteral<"nar:concept">;
 }, z.core.$strip>, z.ZodObject<{
     lensData: z.ZodOptional<z.ZodObject<{

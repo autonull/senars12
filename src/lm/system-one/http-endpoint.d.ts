@@ -10,7 +10,12 @@ export declare const SystemOneQuerySchema: z.ZodDiscriminatedUnion<[z.ZodObject<
         teleological: "teleological";
     }>;
     target: z.ZodOptional<z.ZodString>;
-    criticality: any;
+    criticality: z.ZodOptional<z.ZodEnum<{
+        critical: "critical";
+        high: "high";
+        low: "low";
+        standard: "standard";
+    }>>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"evaluate">;
     instruction: z.ZodString;
@@ -20,7 +25,12 @@ export declare const SystemOneQuerySchema: z.ZodDiscriminatedUnion<[z.ZodObject<
         teleological: "teleological";
     }>;
     levels: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    criticality: any;
+    criticality: z.ZodOptional<z.ZodEnum<{
+        critical: "critical";
+        high: "high";
+        low: "low";
+        standard: "standard";
+    }>>;
 }, z.core.$strip>], "kind">;
 export declare const SystemOneRequestSchema: z.ZodObject<{
     contextEmbedding: z.ZodArray<z.ZodNumber>;
@@ -33,7 +43,12 @@ export declare const SystemOneRequestSchema: z.ZodObject<{
             teleological: "teleological";
         }>;
         target: z.ZodOptional<z.ZodString>;
-        criticality: any;
+        criticality: z.ZodOptional<z.ZodEnum<{
+            critical: "critical";
+            high: "high";
+            low: "low";
+            standard: "standard";
+        }>>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"evaluate">;
         instruction: z.ZodString;
@@ -43,7 +58,12 @@ export declare const SystemOneRequestSchema: z.ZodObject<{
             teleological: "teleological";
         }>;
         levels: z.ZodOptional<z.ZodArray<z.ZodString>>;
-        criticality: any;
+        criticality: z.ZodOptional<z.ZodEnum<{
+            critical: "critical";
+            high: "high";
+            low: "low";
+            standard: "standard";
+        }>>;
     }, z.core.$strip>], "kind">>;
     trusted: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;

@@ -112,7 +112,7 @@ export declare const CycleResumeMsg: z.ZodObject<{
     type: z.ZodLiteral<"cycle.resume">;
 }, z.core.$strip>;
 export declare const CycleRewindMsg: z.ZodObject<{
-    cycles: any;
+    cycles: z.ZodOptional<z.ZodNumber>;
     seqId: z.ZodOptional<z.ZodNumber>;
     type: z.ZodLiteral<"cycle.rewind">;
 }, z.core.$strip>;

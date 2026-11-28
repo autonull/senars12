@@ -1,1 +1,1 @@
-{"version":3,"file":"tool.d.ts","sourceRoot":"","sources":["tool.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,SAAS;;;;;;;;;;;;;;;;;;;CAAwC,CAAC;AAC/D,MAAM,MAAM,SAAS,GAAG,YAAY,CAAC,OAAO,SAAS,CAAC,CAAC"}
+{"version":3,"file":"tool.d.ts","sourceRoot":"","sources":["tool.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,SAAS;;;;;;;;;;;;;;;;;;;;CAAwC,CAAC;AAC/D,MAAM,MAAM,SAAS,GAAG,YAAY,CAAC,OAAO,SAAS,CAAC,CAAC"}

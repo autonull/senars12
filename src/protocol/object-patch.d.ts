@@ -9,10 +9,13 @@ export declare const ObjectSetMsg: z.ZodObject<{
     }>;
     id: z.ZodString;
     patch: z.ZodObject<{
-        truth: any;
+        truth: z.ZodOptional<z.ZodObject<{
+            frequency: z.ZodNumber;
+            confidence: z.ZodNumber;
+        }, z.core.$strip>>;
         type: z.ZodOptional<z.ZodString>;
-        priority: any;
-        confidence: any;
+        priority: z.ZodOptional<z.ZodNumber>;
+        confidence: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>;
     type: z.ZodLiteral<"object.set">;
 }, z.core.$strip>;

@@ -9,7 +9,7 @@ export interface Flags {
   /** Raw argv (defaults to `process.argv.slice(2)`). */
   readonly argv: readonly string[];
   /** Positional arguments (tokens not consumed as a flag value). */
-  readonly positional: readonly string[];
+  positional: string[];
   has: (...flags: string[]) => boolean;
   str: (flag: string, fallback: string) => string;
   num: (flag: string, fallback: number) => number;

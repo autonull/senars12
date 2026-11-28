@@ -41,6 +41,7 @@ import type {
   ResourceCost,
   RubricId,
 } from './types';
+export type { JudgmentManifold, JudgmentQuery, EmbeddingPointer } from './types';
 import { SenarsError } from '../../errors/senars-error';
 
 
