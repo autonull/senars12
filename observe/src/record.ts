@@ -43,6 +43,9 @@ export class Recorder {
   #page: any = null;
   #videoPath: string = '';
   #tracePath: string = '';
+  #eventUnsubscribe: (() => void) | null = null;
+  #markUnsubscribe: (() => void) | null = null;
+  #frameCaptureInterval: NodeJS.Timeout | null = null;
 
   constructor(options: RecorderOptions) {
     this.#options = options;
@@ -115,6 +118,11 @@ export class Recorder {
         this.#captureKeyframe('navigation');
       });
 
+      // Periodic frame capture for better coverage (every 5 seconds)
+      this.#frameCaptureInterval = setInterval(() => {
+        this.#captureKeyframe('periodic');
+      }, 5000);
+
       // Navigate to UI URL if provided
       if (this.#options.uiUrl) {
         try {
@@ -133,13 +141,13 @@ export class Recorder {
   }
 
   #subscribeToEvents(): void {
-    this.#options.eventBus.on('*', (event: CognitiveEvent) => {
+    this.#eventUnsubscribe = this.#options.eventBus.on('*', (event: CognitiveEvent) => {
       this.#writeEvent(event);
     });
   }
 
   #subscribeToMarks(): void {
-    this.#options.eventBus.on('mark', (mark: { id: string; label: string }) => {
+    this.#markUnsubscribe = this.#options.eventBus.on('mark', (mark: { id: string; label: string }) => {
       this.#recordMark(mark.id, mark.label);
     });
   }
@@ -219,6 +227,21 @@ export class Recorder {
     if (this.#consolePty) {
       this.#consolePty.kill();
       this.#consolePty = null;
+    }
+
+    if (this.#frameCaptureInterval) {
+      clearInterval(this.#frameCaptureInterval);
+      this.#frameCaptureInterval = null;
+    }
+
+    if (this.#eventUnsubscribe) {
+      this.#eventUnsubscribe();
+      this.#eventUnsubscribe = null;
+    }
+
+    if (this.#markUnsubscribe) {
+      this.#markUnsubscribe();
+      this.#markUnsubscribe = null;
     }
 
     if (this.#playwrightContext) {
