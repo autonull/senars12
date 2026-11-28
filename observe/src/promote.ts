@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { ulid } from 'ulid';
 import { getLogger } from './logger.js';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
+import { hashContent } from './bundle.js';
 import type { Manifest, Verdict, Finding } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { findBundle, readBundle } from './bundle.js';
@@ -250,8 +251,7 @@ async function registerRegressionFixture(profileName: string, fixtureManifest: a
     derivationChain: [],
   };
 
-  const { createHash } = await import('crypto');
-  artifact.contentHash = createHash('sha256').update(JSON.stringify(artifact.content)).digest('hex');
+  artifact.contentHash = hashContent(JSON.stringify(artifact.content));
 
   governanceArtifactRegistry.register(artifact);
 

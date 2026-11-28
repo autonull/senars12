@@ -4,6 +4,7 @@ import { ulid } from 'ulid';
 import { getLogger } from './logger.js';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import { PatchRiskClassifier } from '@senars/governance/pipeline';
+import { hashContent } from './bundle.js';
 import type { Manifest, Verdict, Finding, CheckResult, RepairTask, EvidenceRef } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { createFindingSignature } from './schema.js';
@@ -129,8 +130,7 @@ async function registerGovernanceArtifact(task: RepairTask): Promise<void> {
     derivationChain: [],
   };
 
-  const { createHash } = await import('crypto');
-  artifact.contentHash = createHash('sha256').update(JSON.stringify(task)).digest('hex');
+  artifact.contentHash = hashContent(JSON.stringify(task));
 
   governanceArtifactRegistry.register(artifact);
 }

@@ -1,8 +1,19 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'crypto';
 import type { Manifest, Verdict, Finding, CheckResult, Mark } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import type { Mark as MarkType } from './schema.js';
+
+/** Create SHA-256 hash of content. */
+export function hashContent(content: string | Buffer): string {
+  return createHash('sha256').update(content).digest('hex');
+}
+
+/** Create short hash (16 chars) for frame deduplication. */
+export function hashShort(content: Buffer): string {
+  return createHash('sha256').update(content).digest('hex').slice(0, 16);
+}
 
 /** Standard locations where observation bundles are stored. */
 const BUNDLE_LOCATIONS = [

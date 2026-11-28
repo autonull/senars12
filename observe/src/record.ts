@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { createHash } from 'crypto';
 import { EventBus } from '@senars/events/event-bus';
 import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
 import { getLogger } from './logger.js';
+import { hashContent, hashShort } from './bundle.js';
 import type { Manifest, Mark } from './schema.js';
 
 const logger = getLogger('ObserveRecorder');
@@ -187,7 +187,7 @@ export class Recorder {
         return;
       }
 
-      const hash = createHash('sha256').update(screenshot).digest('hex').slice(0, 16);
+      const hash = hashShort(screenshot);
 
       if (hash === this.#lastFrameHash) {
         this.#identicalFrameCount++;
@@ -233,7 +233,7 @@ export class Recorder {
 
     const eventsContent = await fs.readFile(this.#eventsFile, 'utf-8').catch(() => '');
     const eventLines = eventsContent.trim().split('\n').filter(Boolean);
-    const eventDigest = createHash('sha256').update(eventsContent).digest('hex');
+    const eventDigest = hashContent(eventsContent);
 
     const manifest: Manifest = {
       runId: this.#options.bundleDir.split('/').pop() ?? 'unknown',
@@ -247,7 +247,7 @@ export class Recorder {
         'ui.webm': await this.#hashFile(this.#videoPath),
         'ui-trace.zip': await this.#hashFile(this.#tracePath),
         'events.jsonl': eventDigest,
-        'frames': createHash('sha256').update(JSON.stringify(this.#frameHashes)).digest('hex'),
+        'frames': hashContent(JSON.stringify(this.#frameHashes)),
       },
       eventDigest,
       fromSeq: 1,
@@ -272,7 +272,7 @@ export class Recorder {
   async #hashFile(path: string): Promise<string> {
     try {
       const content = await fs.readFile(path);
-      return createHash('sha256').update(content).digest('hex');
+      return hashContent(content);
     } catch {
       return 'missing';
     }
