@@ -18,6 +18,10 @@ interface CheckContext {
   scenarioResult: any;
 }
 
+function makeCheck(kind: CheckResult['kind'], expectationId: string, passed: boolean, score: number, details: string): CheckResult {
+  return { checkId: createCheckId(kind, expectationId), kind, passed, score, details, expectationId };
+}
+
 export async function runChecks(bundleDir: string, program: ObserveProgram): Promise<CheckResult[]> {
   const data = await readBundle(bundleDir);
   const context: CheckContext = {
@@ -41,24 +45,24 @@ export async function runChecks(bundleDir: string, program: ObserveProgram): Pro
 }
 
 function runValidatorChecks(context: CheckContext): CheckResult[] {
-  const results: CheckResult[] = [];
   const { program, scenarioResult } = context;
+  const results: CheckResult[] = [];
 
   for (const [key, value] of Object.entries(program.success_criteria)) {
     if (value === undefined || value === null) continue;
 
-    const expectationId = key;
     let passed = false;
     let score = 0;
     let details = '';
 
     switch (key) {
-      case 'no_crash':
+      case 'no_crash': {
         passed = scenarioResult?.success ?? false;
         score = passed ? 1 : 0;
         details = passed ? 'No crash' : `Crashed: ${scenarioResult?.error ?? 'unknown'}`;
         break;
-      case 'contradiction_detected_within':
+      }
+      case 'contradiction_detected_within': {
         passed = (scenarioResult?.contradictions_detected ?? 0) > 0 &&
           (scenarioResult?.steps_executed ?? 0) <= (value as number);
         score = passed ? 1 : 0.5;
@@ -66,6 +70,7 @@ function runValidatorChecks(context: CheckContext): CheckResult[] {
           ? `Contradiction detected at step ${scenarioResult?.steps_executed}`
           : `No contradiction within ${value} steps`;
         break;
+      }
       case 'response_latency_p95': {
         const avgLatency = scenarioResult?.duration_ms ? scenarioResult.duration_ms / (scenarioResult.steps_executed || 1) : 0;
         passed = avgLatency <= (value as number);
@@ -73,11 +78,12 @@ function runValidatorChecks(context: CheckContext): CheckResult[] {
         details = `Avg latency ${avgLatency.toFixed(1)}ms (threshold: ${value}ms)`;
         break;
       }
-      case 'min_derivations':
+      case 'min_derivations': {
         passed = (scenarioResult?.derived_beliefs?.length ?? 0) >= (value as number);
         score = passed ? 1 : (scenarioResult?.derived_beliefs?.length ?? 0) / (value as number);
         details = `${scenarioResult?.derived_beliefs?.length ?? 0}/${value} derivations`;
         break;
+      }
       case 'specific_belief_derived': {
         const target = value as string;
         passed = (scenarioResult?.derived_beliefs ?? []).some((b: string) => b.includes(target));
@@ -85,20 +91,14 @@ function runValidatorChecks(context: CheckContext): CheckResult[] {
         details = passed ? `Derived ${target}` : `Missing ${target}`;
         break;
       }
-      default:
+      default: {
         passed = true;
         score = 1;
         details = `Unknown criterion: ${key}`;
+      }
     }
 
-    results.push({
-      checkId: createCheckId('validator', expectationId),
-      kind: 'validator',
-      passed,
-      score,
-      details,
-      expectationId,
-    });
+    results.push(makeCheck('validator', key, passed, score, details));
   }
 
   return results;

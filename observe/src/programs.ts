@@ -12,8 +12,38 @@ export interface ObserveProgram extends ScenarioSpec {
   };
 }
 
-const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
-  contradictory_sensors: {
+interface ProgramSpec {
+  name: ScenarioProfile;
+  description: string;
+  duration_steps: number;
+  inject: ScenarioSpec['inject'];
+  success_criteria: ScenarioSpec['success_criteria'];
+  keyframeMarks: string[];
+}
+
+const baseObserve = {
+  surfaces: ['console'] as const,
+  maxFrames: 12,
+  lane: 'hermetic' as const,
+};
+
+function createProgram(spec: ProgramSpec): ObserveProgram {
+  return {
+    name: spec.name,
+    description: spec.description,
+    duration_steps: spec.duration_steps,
+    inject: spec.inject,
+    success_criteria: spec.success_criteria,
+    metadata: { seed: '', generated_at: '', profile: spec.name },
+    observe: {
+      ...baseObserve,
+      keyframeMarks: spec.keyframeMarks,
+    },
+  };
+}
+
+const programSpecs: ProgramSpec[] = [
+  {
     name: 'contradictory_sensors',
     description: 'Test handling of contradictory sensor inputs',
     duration_steps: 500,
@@ -29,15 +59,9 @@ const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
       response_latency_p95: 100,
       min_derivations: 5,
     },
-    metadata: { seed: '', generated_at: '', profile: 'contradictory_sensors' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: ['inject_0', 'inject_1', 'contradiction_detected_within'],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: ['inject_0', 'inject_1', 'contradiction_detected_within'],
   },
-  temporal_reasoning: {
+  {
     name: 'temporal_reasoning',
     description: 'Test event sequences with delayed evidence',
     duration_steps: 300,
@@ -51,15 +75,9 @@ const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
       min_derivations: 3,
       specific_belief_derived: 'event_A ==> event_C',
     },
-    metadata: { seed: '', generated_at: '', profile: 'temporal_reasoning' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: ['inject_0', 'inject_1', 'specific_belief_derived:event_A==>event_C'],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: ['inject_0', 'inject_1', 'specific_belief_derived:event_A==>event_C'],
   },
-  resource_pressure: {
+  {
     name: 'resource_pressure',
     description: 'Test AIKR graceful degradation under load',
     duration_steps: 400,
@@ -73,15 +91,9 @@ const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
       response_latency_p95: 50,
       min_derivations: 10,
     },
-    metadata: { seed: '', generated_at: '', profile: 'resource_pressure' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: ['inject_0', 'inject_1', 'response_latency_p95'],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: ['inject_0', 'inject_1', 'response_latency_p95'],
   },
-  belief_revision: {
+  {
     name: 'belief_revision',
     description: 'Test belief revision with incoming evidence streams',
     duration_steps: 350,
@@ -95,15 +107,9 @@ const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
       contradiction_detected_within: 15,
       min_derivations: 5,
     },
-    metadata: { seed: '', generated_at: '', profile: 'belief_revision' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: ['inject_0', 'inject_1', 'contradiction_detected_within'],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: ['inject_0', 'inject_1', 'contradiction_detected_within'],
   },
-  cross_engine_sync: {
+  {
     name: 'cross_engine_sync',
     description: 'Test NAR-MeTTa coordination',
     duration_steps: 250,
@@ -117,43 +123,29 @@ const seedPrograms: Record<ScenarioProfile, ObserveProgram> = {
       min_derivations: 3,
       specific_belief_derived: 'nar_fact <-> metta_atom',
     },
-    metadata: { seed: '', generated_at: '', profile: 'cross_engine_sync' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: ['inject_0', 'inject_1', 'specific_belief_derived:nar_fact<->metta_atom'],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: ['inject_0', 'inject_1', 'specific_belief_derived:nar_fact<->metta_atom'],
   },
-  auto: {
+  {
     name: 'auto',
     description: 'Auto-generated scenario',
     duration_steps: 300,
     inject: [],
     success_criteria: { no_crash: true },
-    metadata: { seed: '', generated_at: '', profile: 'auto' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: [],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: [],
   },
-  regression: {
+  {
     name: 'regression',
     description: 'Regression test fixture',
     duration_steps: 100,
     inject: [],
     success_criteria: { no_crash: true },
-    metadata: { seed: '', generated_at: '', profile: 'regression' },
-    observe: {
-      surfaces: ['console'],
-      keyframeMarks: [],
-      maxFrames: 12,
-      lane: 'hermetic',
-    },
+    keyframeMarks: [],
   },
-};
+];
+
+const seedPrograms: Record<ScenarioProfile, ObserveProgram> = Object.fromEntries(
+  programSpecs.map((spec) => [spec.name, createProgram(spec)])
+) as Record<ScenarioProfile, ObserveProgram>;
 
 export function getObserveProgram(profile: ScenarioProfile, seed: string): ObserveProgram {
   const base = seedPrograms[profile] ?? seedPrograms.contradictory_sensors;
