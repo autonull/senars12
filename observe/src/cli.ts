@@ -8,6 +8,7 @@ import { diffRuns, bisect } from './diff.js';
 import { promoteRun } from './promote.js';
 import { getObserveProgram, listObservePrograms } from './programs.js';
 import { runDriftGate } from './drift.js';
+import { findBundle, readBundle } from './bundle.js';
 import type { ObserveRunResult } from './run.js';
 import type { VerifyResult } from './verify.js';
 import type { ScenarioRunnerDeps } from '@senars/tools/adapters/scenario-execute';
@@ -324,10 +325,8 @@ async function cmdExport(flags: Flags): Promise<number> {
   switch (format) {
     case 'report': {
       const { renderReport } = await import('./report.js');
-      const manifest = JSON.parse(await fs.readFile(join(bundleDir, 'manifest.json'), 'utf-8'));
-      const verdict = JSON.parse(await fs.readFile(join(bundleDir, 'verdict.json'), 'utf-8'));
-      const checks = JSON.parse(await fs.readFile(join(bundleDir, 'checks.json'), 'utf-8'));
-      const report = renderReport(manifest, verdict, checks);
+      const data = await readBundle(bundleDir);
+      const report = renderReport(data.manifest!, data.verdict!, data.checks);
       await fs.writeFile(outPath, report);
       break;
     }
@@ -516,22 +515,6 @@ async function cmdTour(flags: Flags): Promise<number> {
   console.log(`Steps: ${tour.steps.length}`);
 
   return 0;
-}
-
-function findBundle(runId: string): string | null {
-  const possiblePaths = [
-    join(process.cwd(), '.cache', 'observations', runId),
-    join(process.cwd(), 'generated', 'observations', runId),
-  ];
-  for (const path of possiblePaths) {
-    try {
-      require('node:fs').accessSync(path);
-      return path;
-    } catch {
-      continue;
-    }
-  }
-  return null;
 }
 
 async function publishRun(result: ObserveRunResult): Promise<void> {

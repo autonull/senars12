@@ -145,7 +145,7 @@ export async function observeRecord(
   const child = spawn(command, { shell: true, stdio: 'inherit' });
 
   await new Promise<void>((resolve, reject) => {
-    child.on('exit', (code) => {
+    child.on('exit', (code: number | null) => {
       if (code === 0) resolve();
       else reject(new Error(`Command exited with code ${code}`));
     });

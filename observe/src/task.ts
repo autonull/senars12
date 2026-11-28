@@ -7,6 +7,7 @@ import { PatchRiskClassifier } from '@senars/governance/pipeline';
 import type { Manifest, Verdict, Finding, CheckResult, RepairTask, EvidenceRef } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { createFindingSignature } from './schema.js';
+import { findFirstDivergentMark } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObserveTask' });
 
@@ -113,15 +114,6 @@ function buildEvidenceIndex(findings: Finding[]): Record<string, EvidenceRef[]> 
     index[finding.signature] = finding.evidence;
   }
   return index;
-}
-
-function findFirstDivergentMark(findings: Finding[], marks: any[]): string | undefined {
-  for (const finding of findings) {
-    if (finding.markId) {
-      return finding.markId;
-    }
-  }
-  return undefined;
 }
 
 async function registerGovernanceArtifact(task: RepairTask): Promise<void> {

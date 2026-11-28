@@ -163,7 +163,7 @@ export function getObserveProgram(profile: ScenarioProfile, seed: string): Obser
 }
 
 export function listObservePrograms(): ObserveProgram[] {
-  return SCENARIO_PROFILES.map((p) => getObserveProgram(p, 'default-seed'));
+  return SCENARIO_PROFILES.map((p: string) => getObserveProgram(p as any, 'default-seed'));
 }
 
 export { SCENARIO_PROFILES };

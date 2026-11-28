@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { createLogger } from '@senars/util/logger';
 import type { Manifest, Finding } from './schema.js';
 import { diffRuns } from './diff.js';
+import { findBundle } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObserveDrift' });
 
@@ -17,7 +18,7 @@ export interface DriftResult {
 }
 
 export async function runDriftGate(currentRunId: string): Promise<DriftResult> {
-  const baselineRunId = findBaselineRun(currentRunId);
+  const baselineRunId = await findBaselineRun(currentRunId);
   if (!baselineRunId) {
     return {
       passed: true,
@@ -27,6 +28,20 @@ export async function runDriftGate(currentRunId: string): Promise<DriftResult> {
       frameSimilarity: 1,
       gateStateMatch: true,
       details: ['No baseline run found; drift check skipped'],
+    };
+  }
+
+  // Verify the baseline bundle exists
+  const baselineBundleDir = findBundle(baselineRunId);
+  if (!baselineBundleDir) {
+    return {
+      passed: true,
+      baselineRunId: '',
+      currentRunId,
+      eventDigestMatch: true,
+      frameSimilarity: 1,
+      gateStateMatch: true,
+      details: ['Baseline bundle not found; drift check skipped'],
     };
   }
 
@@ -64,16 +79,18 @@ export async function runDriftGate(currentRunId: string): Promise<DriftResult> {
   };
 }
 
-function findBaselineRun(currentRunId: string): string | null {
+async function findBaselineRun(currentRunId: string): Promise<string | null> {
   const fixturesDir = join(process.cwd(), 'fixtures', 'observe');
   try {
-    const entries = require('node:fs').readdirSync(fixturesDir);
+    const entries = await fs.readdir(fixturesDir);
     for (const entry of entries) {
       const manifestPath = join(fixturesDir, entry, 'manifest.json');
       try {
-        const manifest = JSON.parse(require('node:fs').readFileSync(manifestPath, 'utf-8'));
+        const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8')) as Manifest;
         if (manifest.fixedRunId === currentRunId || manifest.originalRunId === currentRunId) {
-          return entry;
+          // Verify the bundle exists
+          const bundleDir = findBundle(entry);
+          if (bundleDir) return entry;
         }
       } catch {
         continue;

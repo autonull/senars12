@@ -1,0 +1,47 @@
+import type { Clock } from '@senars/util/clock';
+import type { Term } from '../../terms';
+import type { RandomSource } from '../../types/primitives';
+export type LinkType = 'term-link' | 'inheritance' | 'similarity' | 'implication' | 'temporal' | 'semantic';
+/** The forget policies a link layer accepts — one declaration, so the config
+ *  surface and the eviction table below cannot admit a policy the other lacks. */
+export declare const LINK_FORGET_POLICIES: readonly ['priority', 'lru', 'fifo', 'random'];
+export type LinkForgetPolicy = (typeof LINK_FORGET_POLICIES)[number];
+/** Well-known associative-memory layers; any other name registers on demand. */
+export declare const LINK_LAYER: {
+    readonly TERM: 'term';
+    readonly EMBEDDING: 'embedding';
+};
+export type KnownLinkLayer = (typeof LINK_LAYER)[keyof typeof LINK_LAYER];
+export interface LinkEntry {
+    id: string;
+    sourceTerm: Term;
+    targetTerm: Term;
+    type: LinkType;
+    priority: number;
+    createdAt: number;
+    lastAccessedAt: number;
+    data?: Record<string, unknown>;
+}
+export interface LinkInput {
+    sourceTerm: Term;
+    targetTerm: Term;
+    type?: LinkType;
+    priority?: number;
+    data?: Record<string, unknown>;
+}
+export interface LinkQuery {
+    type?: LinkType;
+    minPriority?: number;
+    maxResults?: number;
+}
+export interface LinkManagerConfig {
+    defaultCapacity: number;
+    layers: Record<string, number>;
+    globalDecayRate: number;
+    forgetPolicy: LinkForgetPolicy;
+    /** Injected randomness for the random-forget policy (default `ambientRng`). */
+    rng?: RandomSource;
+    /** Injected clock for link recency (default `systemClock`). */
+    clock?: Clock;
+}
+//# sourceMappingURL=types.d.ts.map

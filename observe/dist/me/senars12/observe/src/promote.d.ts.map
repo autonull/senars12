@@ -1,0 +1,1 @@
+{"version":3,"file":"promote.d.ts","sourceRoot":"","sources":["../../../../../src/promote.ts"],"names":[],"mappings":"AAUA,MAAM,WAAW,aAAa;IAC5B,WAAW,EAAE,MAAM,CAAC;IACpB,WAAW,EAAE,MAAM,CAAC;IACpB,mBAAmB,CAAC,EAAE,MAAM,CAAC;IAC7B,cAAc,CAAC,EAAE,OAAO,CAAC;CAC1B;AAED,wBAAsB,UAAU,CAAC,KAAK,EAAE,MAAM,GAAG,OAAO,CAAC,aAAa,CAAC,CA4DtE"}

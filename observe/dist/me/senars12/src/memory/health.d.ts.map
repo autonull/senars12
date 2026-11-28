@@ -1,0 +1,1 @@
+{"version":3,"file":"health.d.ts","sourceRoot":"","sources":["../../../../../../src/memory/health.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,YAAY;IAC3B,SAAS,EAAE,OAAO,CAAC;IACnB,aAAa,EAAE,MAAM,CAAC;IACtB,mBAAmB,EAAE,OAAO,CAAC;IAC7B,gBAAgB,EAAE,OAAO,CAAC;IAC1B,eAAe,EAAE,MAAM,EAAE,CAAC;CAC3B"}

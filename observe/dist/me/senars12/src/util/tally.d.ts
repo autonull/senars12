@@ -1,0 +1,74 @@
+/**
+ * One tally of attempts: how many there were, how many succeeded, how long they
+ * took.
+ *
+ * Five sites in the tree answered "did that work, and how fast" with counters of
+ * their own — the LM per-model stats, the per-tool feedback, the per-rule stats,
+ * the rule graph's latency, and the metacognitive monitor's performance history.
+ * Two spelled the success rate `successfulCalls / totalCalls`, one kept a running
+ * mean of durations, one an EWMA, and one recorded no count at all; two carried
+ * columns nothing ever read. So the same question had four answers, none of them
+ * comparable with another, and each tally lived in an unbounded `Map` keyed by
+ * whatever the caller happened to hold.
+ *
+ * `CallTally` is the shape and {@link recordCall} is the update rule.
+ * {@link CallTallySeries} is the bounded map of them, so a caller keyed by rule
+ * id, tool name or model id inherits a capacity instead of writing its own.
+ */
+import type { BoundedMapOptions } from './bounded-map';
+import { BoundedMap } from './bounded-map';
+/** The counters one attempt changes. Every field is derived on record. */
+export interface CallTally {
+    totalCalls: number;
+    successfulCalls: number;
+    failedCalls: number;
+    /** Summed duration in ms — what `averageDuration` is divided out of. */
+    totalDuration: number;
+    /** Mean duration over `totalCalls`, in ms. */
+    averageDuration: number;
+    /** 0 before the first call. */
+    successRate: number;
+    /** Epoch ms of the most recent {@link recordCall}. */
+    lastCalled: number;
+}
+/** The zeroed counters — the state before the first recorded attempt. */
+export declare const createCallTally: () => CallTally;
+/** Fold one attempt into `tally`, in place, and hand it back for chaining. */
+export declare const recordCall: <T extends CallTally>(tally: T, success: boolean, durationMs: number, at?: number) => T;
+/**
+ * A {@link CallTally} plus whatever the caller keeps beside it — the last result
+ * of a tool call, the id a series is already keyed by. `create` mints it, so the
+ * series never has to guess a field it cannot see.
+ */
+export interface CallTallySeriesOptions<K = unknown, T extends CallTally = CallTally> extends BoundedMapOptions<K, T> {
+    create: (key: K) => T;
+}
+/**
+ * A capacity-bounded map of per-key tallies.
+ *
+ * Least-recently-used by default, so a hot key keeps its history while a stream
+ * of one-shot keys cannot grow the map past its capacity. A site that wants its
+ * history to age out rather than be evicted passes `ttlMs`; one that wants the
+ * coldest key gone first passes `eviction`.
+ *
+ * A {@link BoundedMap} rather than one that holds one: the read surface — `get`,
+ * `has`, `keys`, `values`, `entries`, iteration, `size`, `pressure`, `clear` — is
+ * the map's, and re-declaring it here meant twelve members that could answer a
+ * question the map had already changed the answer to.
+ */
+export declare class CallTallySeries<K, T extends CallTally = CallTally> extends BoundedMap<K, T> {
+    #private;
+    constructor(options: CallTallySeriesOptions<K, T>);
+    /** Fold one attempt into `key`'s tally, minting it on first sight. */
+    record(key: K, success: boolean, durationMs: number): T;
+    /**
+     * The live tally, minted on first sight — the series' answer to util's
+     * `getOrInsert`, for a caller folding in facts {@link record} does not model.
+     * The LM accounting keeps token spend beside the call counters, so it needs the
+     * record without wanting another attempt counted.
+     */
+    getOrInsert(key: K): T;
+    /** Forget one key, or all of them. */
+    reset(key?: K): void;
+}
+//# sourceMappingURL=tally.d.ts.map

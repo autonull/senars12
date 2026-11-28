@@ -6,6 +6,8 @@ import type { Manifest, Verdict, Finding, EvidenceRef, CheckResult } from './sch
 export type { Verdict } from './schema.js';
 import { createFindingSignature, FindingKind, FindingSeverity } from './schema.js';
 import { SystemOneManifold, type JudgmentManifold, type JudgmentQuery, type EmbeddingPointer } from '@senars/lm/system-one/manifold';
+import { readBundle } from './bundle.js';
+import { findingFromCheckFailure, type CheckContext } from './checks.js';
 
 const logger = createLogger({ scope: 'ObserveReview' });
 
@@ -37,21 +39,18 @@ export async function reviewBundle(
   program: ObserveProgram,
   checks: CheckResult[]
 ): Promise<Verdict> {
-  const manifest = JSON.parse(await fs.readFile(join(bundleDir, 'manifest.json'), 'utf-8')) as Manifest;
-  const eventsContent = await fs.readFile(join(bundleDir, 'events.jsonl'), 'utf-8').catch(() => '');
-  const marksContent = await fs.readFile(join(bundleDir, 'marks.jsonl'), 'utf-8').catch(() => '');
-  const framesContent = await fs.readFile(join(bundleDir, 'frames.json'), 'utf-8').catch(() => '[]');
-
-  const events = eventsContent.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
-  const marks = marksContent.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
-  const frameHashes = JSON.parse(framesContent);
+  const data = await readBundle(bundleDir);
+  const manifest = data.manifest!;
+  const events = data.events;
+  const marks = data.marks;
+  const frameHashes = data.frames;
 
   const input = buildReviewInput(program, events, marks, frameHashes, checks);
   const findings = await callJudgeBatch(input, program.observe.reviewerPrompt ?? DEFAULT_REVIEWER_PROMPT);
 
   const checkFindings = checks
     .filter((c) => !c.passed)
-    .map((c) => findingFromCheckFailure(c, { bundleDir, program, events, marks, frameHashes, scenarioResult: {} }));
+    .map((c) => findingFromCheckFailure(c, { bundleDir, program, events, marks, frameHashes, scenarioResult: {} } as CheckContext));
 
   const allFindings = [...findings, ...checkFindings.filter(Boolean)] as Finding[];
 
@@ -207,33 +206,6 @@ function parseFindingsFromResult(result: any): Finding[] {
   } catch {
     return [];
   }
-}
-
-function findingFromCheckFailure(
-  check: CheckResult,
-  context: { bundleDir: string; program: ObserveProgram; events: any[]; marks: any[]; frameHashes: any[]; scenarioResult: any }
-): Finding | null {
-  if (check.passed) return null;
-
-  const evidence: EvidenceRef[] = [
-    { type: 'event', id: check.expectationId ?? 'unknown', timestamp: Date.now(), description: check.details },
-  ];
-
-  let kind: FindingKind = 'unmet-expectation';
-  if (check.kind === 'literal') kind = 'wrong-output';
-  if (check.kind === 'stall') kind = 'stalled';
-  if (check.kind === 'ui') kind = 'broken-ui';
-  if (check.kind === 'budget') kind = 'wrong-output';
-
-  return {
-    id: `finding_${Date.now()}`,
-    signature: `${kind}:${check.checkId}`,
-    kind,
-    severity: 'warn',
-    claim: check.details,
-    evidence,
-    expectationId: check.expectationId,
-  };
 }
 
 function computeOverall(findings: Finding[]): Verdict['overall'] {

@@ -5,6 +5,7 @@ import type { Manifest, Finding } from './schema.js';
 import { replay } from '@senars/log/replay';
 import { LogStore } from '@senars/log/store';
 import type { CognitiveEvent } from '@senars/schemas/cognitive-events';
+import { findBundle, readBundle, findFirstDivergentMark } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObserveDiff' });
 
@@ -39,18 +40,18 @@ export async function diffRuns(runA: string, runB: string): Promise<DiffResult> 
     throw new Error(`Bundle not found: ${!bundleA ? runA : runB}`);
   }
 
-  const [manifestA, manifestB, marksA, marksB, framesA, framesB, verdictA, verdictB, eventsA, eventsB] = await Promise.all([
-    readManifest(bundleA),
-    readManifest(bundleB),
-    readMarks(bundleA),
-    readMarks(bundleB),
-    readFrames(bundleA),
-    readFrames(bundleB),
-    readVerdict(bundleA),
-    readVerdict(bundleB),
-    readEvents(bundleA),
-    readEvents(bundleB),
-  ]);
+  const [dataA, dataB] = await Promise.all([readBundle(bundleA), readBundle(bundleB)]);
+
+  const manifestA = dataA.manifest!;
+  const manifestB = dataB.manifest!;
+  const marksA = dataA.marks;
+  const marksB = dataB.marks;
+  const framesA = dataA.frames;
+  const framesB = dataB.frames;
+  const verdictA = dataA.verdict!;
+  const verdictB = dataB.verdict!;
+  const eventsA = dataA.events;
+  const eventsB = dataB.events;
 
   const eventDigestMatch = manifestA.eventDigest === manifestB.eventDigest;
 
@@ -219,42 +220,4 @@ async function runProgramInCommit(programId: string, sha: string): Promise<{ eve
   const result = await observeRun({ program, deps: { nar: null }, runReview: false });
 
   return { eventDigest: result.eventDigest, baselineDigest: '' };
-}
-
-function findBundle(runId: string): string | null {
-  const possiblePaths = [
-    join(process.cwd(), '.cache', 'observations', runId),
-    join(process.cwd(), 'generated', 'observations', runId),
-  ];
-  for (const path of possiblePaths) {
-    try {
-      require('node:fs').accessSync(path);
-      return path;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-async function readManifest(bundleDir: string): Promise<Manifest> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'manifest.json'), 'utf-8'));
-}
-
-async function readMarks(bundleDir: string): Promise<any[]> {
-  const content = await fs.readFile(join(bundleDir, 'marks.jsonl'), 'utf-8').catch(() => '');
-  return content.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
-}
-
-async function readFrames(bundleDir: string): Promise<any[]> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'frames.json'), 'utf-8').catch(() => '[]'));
-}
-
-async function readVerdict(bundleDir: string): Promise<{ overall: string; findings: Finding[] }> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'verdict.json'), 'utf-8').catch(() => '{"overall":"unknown","findings":[]}'));
-}
-
-async function readEvents(bundleDir: string): Promise<any[]> {
-  const content = await fs.readFile(join(bundleDir, 'events.jsonl'), 'utf-8').catch(() => '');
-  return content.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
 }

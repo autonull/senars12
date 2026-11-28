@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { createLogger } from '@senars/util/logger';
 import type { Manifest, Verdict, Finding, CheckResult } from './schema.js';
 import type { ObserveProgram } from './programs.js';
+import { findBundle, readBundle } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObserveTour' });
 
@@ -29,13 +30,12 @@ export async function generateTour(runId: string): Promise<GeneratedTour> {
     throw new Error(`Bundle not found: ${runId}`);
   }
 
-  const [manifest, verdict, checks, marks, frames] = await Promise.all([
-    readManifest(bundleDir),
-    readVerdict(bundleDir),
-    readChecks(bundleDir),
-    readMarks(bundleDir),
-    readFrames(bundleDir),
-  ]);
+  const data = await readBundle(bundleDir);
+  const manifest = data.manifest!;
+  const verdict = data.verdict!;
+  const checks = data.checks;
+  const marks = data.marks;
+  const frames = data.frames;
 
   const program = manifest.program as ObserveProgram;
   const frameMap = new Map(frames.map((f) => [f.markId, f.hash]));
@@ -158,41 +158,4 @@ export async function renderTourMarkdown(tour: GeneratedTour): Promise<string> {
   }
   
   return lines.join('\n');
-}
-
-function findBundle(runId: string): string | null {
-  const possiblePaths = [
-    join(process.cwd(), '.cache', 'observations', runId),
-    join(process.cwd(), 'generated', 'observations', runId),
-  ];
-  for (const path of possiblePaths) {
-    try {
-      require('node:fs').accessSync(path);
-      return path;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-async function readManifest(bundleDir: string): Promise<Manifest> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'manifest.json'), 'utf-8'));
-}
-
-async function readVerdict(bundleDir: string): Promise<Verdict> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'verdict.json'), 'utf-8'));
-}
-
-async function readChecks(bundleDir: string): Promise<CheckResult[]> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'checks.json'), 'utf-8').catch(() => '[]'));
-}
-
-async function readMarks(bundleDir: string): Promise<any[]> {
-  const content = await fs.readFile(join(bundleDir, 'marks.jsonl'), 'utf-8').catch(() => '');
-  return content.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
-}
-
-async function readFrames(bundleDir: string): Promise<any[]> {
-  return JSON.parse(await fs.readFile(join(bundleDir, 'frames.json'), 'utf-8').catch(() => '[]'));
 }

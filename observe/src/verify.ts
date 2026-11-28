@@ -10,6 +10,7 @@ import type { RepairTask, Manifest, Verdict, Finding, CheckResult } from './sche
 import { runChecks } from './checks.js';
 import { reviewBundle } from './review.js';
 import type { ObserveProgram } from './programs.js';
+import { findBundle, readBundle, findFirstDivergentMark } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObserveVerify' });
 
@@ -46,7 +47,7 @@ export async function verifyTask(taskPath: string, worktreePath: string): Promis
     };
   }
 
-  const baselineBundleDir = findBaselineBundle(task.baselineRunId);
+  const baselineBundleDir = findBundle(task.baselineRunId);
   if (!baselineBundleDir) {
     return {
       accepted: false,
@@ -56,7 +57,8 @@ export async function verifyTask(taskPath: string, worktreePath: string): Promis
     };
   }
 
-  const manifest = JSON.parse(await fs.readFile(join(baselineBundleDir, 'manifest.json'), 'utf-8')) as Manifest;
+  const data = await readBundle(baselineBundleDir);
+  const manifest = data.manifest!;
   const fromSeq = manifest.fromSeq;
   const toSeq = manifest.toSeq;
 
@@ -84,11 +86,8 @@ export async function verifyTask(taskPath: string, worktreePath: string): Promis
     replayResult.state.events.map((e, i) => JSON.stringify({ seq: fromSeq + i, ts: Date.now(), event: e })).join('\n') + '\n'
   );
 
-  const marksContent = await fs.readFile(join(baselineBundleDir, 'marks.jsonl'), 'utf-8').catch(() => '');
-  await fs.writeFile(join(newBundleDir, 'marks.jsonl'), marksContent);
-
-  const framesContent = await fs.readFile(join(baselineBundleDir, 'frames.json'), 'utf-8').catch(() => '[]');
-  await fs.writeFile(join(newBundleDir, 'frames.json'), framesContent);
+  await fs.writeFile(join(newBundleDir, 'marks.jsonl'), data.marks.map(m => JSON.stringify(m)).join('\n') + '\n');
+  await fs.writeFile(join(newBundleDir, 'frames.json'), JSON.stringify(data.frames, null, 2));
 
   const newManifest: Manifest = {
     ...manifest,
@@ -158,22 +157,6 @@ async function checkGraderGuard(task: RepairTask, worktreePath: string): Promise
   }
 }
 
-function findBaselineBundle(runId: string): string | null {
-  const possiblePaths = [
-    join(process.cwd(), '.cache', 'observations', runId),
-    join(process.cwd(), 'generated', 'observations', runId),
-  ];
-  for (const path of possiblePaths) {
-    try {
-      require('node:fs').accessSync(path);
-      return path;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
 function evaluateAcceptance(
   task: RepairTask,
   verdict: Verdict,
@@ -226,11 +209,4 @@ function buildDetails(criteria: VerifyResult['criteria'], task: RepairTask, verd
   }
 
   return details;
-}
-
-function findFirstDivergentMark(findings: Finding[], marks: any[]): string | undefined {
-  for (const finding of findings) {
-    if (finding.markId) return finding.markId;
-  }
-  return undefined;
 }

@@ -5,6 +5,7 @@ import { createLogger } from '@senars/util/logger';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import type { Manifest, Verdict, Finding } from './schema.js';
 import type { ObserveProgram } from './programs.js';
+import { findBundle, readBundle } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObservePromote' });
 
@@ -21,8 +22,9 @@ export async function promoteRun(runId: string): Promise<PromoteResult> {
     throw new Error(`Bundle not found: ${runId}`);
   }
 
-  const manifest = JSON.parse(await fs.readFile(join(bundleDir, 'manifest.json'), 'utf-8')) as Manifest;
-  const verdict = JSON.parse(await fs.readFile(join(bundleDir, 'verdict.json'), 'utf-8')) as Verdict;
+  const data = await readBundle(bundleDir);
+  const manifest = data.manifest!;
+  const verdict = data.verdict!;
   const fixedVerdict = await findFixedVerdict(runId);
 
   const program = manifest.program as ObserveProgram;
@@ -90,7 +92,7 @@ async function autoRegisterScenarioProfile(profileName: string): Promise<boolean
     
     // Find the SCENARIO_PROFILES array and add the new profile
     const lines = content.split('\n');
-    const exportLineIndex = lines.findIndex(line => line.trim().startsWith('export const SCENARIO_PROFILES = ['));
+    const exportLineIndex = lines.findIndex((line: string) => line.trim().startsWith('export const SCENARIO_PROFILES = ['));
     
     if (exportLineIndex === -1) {
       logger.warn('Could not find SCENARIO_PROFILES export', { profilesPath });
@@ -126,22 +128,6 @@ async function autoRegisterScenarioProfile(profileName: string): Promise<boolean
     logger.warn('Failed to auto-register scenario profile', { profileName, error });
     return false;
   }
-}
-
-function findBundle(runId: string): string | null {
-  const possiblePaths = [
-    join(process.cwd(), '.cache', 'observations', runId),
-    join(process.cwd(), 'generated', 'observations', runId),
-  ];
-  for (const path of possiblePaths) {
-    try {
-      require('node:fs').accessSync(path);
-      return path;
-    } catch {
-      continue;
-    }
-  }
-  return null;
 }
 
 async function findFixedVerdict(originalRunId: string): Promise<Verdict | null> {

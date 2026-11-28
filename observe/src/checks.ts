@@ -2,9 +2,10 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { createLogger } from '@senars/util/logger';
 import type { ObserveProgram } from './programs.js';
-import type { CheckResult, Finding, EvidenceRef } from './schema.js';
+import type { CheckResult, Finding, EvidenceRef, Mark } from './schema.js';
 export type { CheckResult } from './schema.js';
 import { createCheckId, FindingKind, FindingSeverity } from './schema.js';
+import { readBundle } from './bundle.js';
 
 const logger = createLogger({ scope: 'ObserveChecks' });
 
@@ -12,13 +13,21 @@ interface CheckContext {
   bundleDir: string;
   program: ObserveProgram;
   events: any[];
-  marks: any[];
+  marks: Mark[];
   frameHashes: any[];
   scenarioResult: any;
 }
 
 export async function runChecks(bundleDir: string, program: ObserveProgram): Promise<CheckResult[]> {
-  const context = await loadCheckContext(bundleDir, program);
+  const data = await readBundle(bundleDir);
+  const context: CheckContext = {
+    bundleDir,
+    program,
+    events: data.events,
+    marks: data.marks,
+    frameHashes: data.frames,
+    scenarioResult: data.manifest?.scenarioResult,
+  };
   const results: CheckResult[] = [];
 
   results.push(...runValidatorChecks(context));
@@ -29,29 +38,6 @@ export async function runChecks(bundleDir: string, program: ObserveProgram): Pro
 
   logger.info('Checks completed', { bundleDir, passed: results.filter((r) => r.passed).length, total: results.length });
   return results;
-}
-
-async function loadCheckContext(bundleDir: string, program: ObserveProgram): Promise<CheckContext> {
-  const [eventsContent, marksContent, framesContent, manifestContent] = await Promise.all([
-    fs.readFile(join(bundleDir, 'events.jsonl'), 'utf-8').catch(() => ''),
-    fs.readFile(join(bundleDir, 'marks.jsonl'), 'utf-8').catch(() => ''),
-    fs.readFile(join(bundleDir, 'frames.json'), 'utf-8').catch(() => '[]'),
-    fs.readFile(join(bundleDir, 'manifest.json'), 'utf-8').catch(() => '{}'),
-  ]);
-
-  const events = eventsContent.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
-  const marks = marksContent.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
-  const frameHashes = JSON.parse(framesContent);
-  const manifest = JSON.parse(manifestContent);
-
-  return {
-    bundleDir,
-    program,
-    events,
-    marks,
-    frameHashes,
-    scenarioResult: manifest.scenarioResult,
-  };
 }
 
 function runValidatorChecks(context: CheckContext): CheckResult[] {

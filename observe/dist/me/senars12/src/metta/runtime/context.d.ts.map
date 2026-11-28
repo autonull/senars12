@@ -1,0 +1,1 @@
+{"version":3,"file":"context.d.ts","sourceRoot":"","sources":["../../../../../../../src/metta/runtime/context.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,YAAY;IAC3B,QAAQ,CAAC,QAAQ,EAAE,MAAM,CAAC;IAC1B,QAAQ,CAAC,OAAO,EAAE,MAAM,CAAC;IACzB,QAAQ,CAAC,WAAW,EAAE,MAAM,CAAC;CAC9B;AAED,eAAO,MAAM,oBAAoB,QAAc,CAAC"}
