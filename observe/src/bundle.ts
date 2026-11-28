@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs';
+import { accessSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'crypto';
 import type { Manifest, Verdict, Finding, CheckResult, Mark } from './schema.js';
@@ -36,7 +37,7 @@ export function findBundle(runId: string): string | null {
   for (const location of BUNDLE_LOCATIONS) {
     const path = join(location, runId);
     try {
-      require('node:fs').accessSync(path);
+      accessSync(path);
       return path;
     } catch {
       continue;
@@ -65,7 +66,7 @@ export function findBundles(prefix: string): string[] {
   const results: string[] = [];
   for (const location of BUNDLE_LOCATIONS) {
     try {
-      const entries = require('node:fs').readdirSync(location);
+      const entries = readdirSync(location);
       for (const entry of entries) {
         if (entry.startsWith(prefix)) {
           results.push(join(location, entry));
