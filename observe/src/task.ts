@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { ulid } from 'ulid';
 import { getLogger } from './logger.js';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import { PatchRiskClassifier } from '@senars/governance/pipeline';
 import { hashContent } from './bundle.js';
+import { generateId } from './schema.js';
 import type { Manifest, Verdict, Finding, CheckResult, RepairTask, EvidenceRef } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { createFindingSignature } from './schema.js';
@@ -27,7 +27,7 @@ export async function emitTask(
   checks: CheckResult[]
 ): Promise<string> {
   const program = manifest.program as ObserveProgram;
-  const taskId = ulid();
+  const taskId = generateId();
 
   const signatures = verdict.findings.map((f) => f.signature);
   const checkIds = checks.filter((c) => !c.passed).map((c) => c.checkId);

@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { ulid } from 'ulid';
 import { getLogger } from './logger.js';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import { hashContent } from './bundle.js';
+import { generateId } from './schema.js';
 import type { Manifest, Verdict, Finding } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { findBundle, readBundle } from './bundle.js';
@@ -31,7 +31,7 @@ export async function promoteRun(runId: string): Promise<PromoteResult> {
   const program = manifest.program as ObserveProgram;
   const clearedSignatures = findClearedSignatures(verdict, fixedVerdict);
 
-  const fixtureId = ulid();
+  const fixtureId = generateId();
   const profileName = `${program.name}_${fixtureId}`;
   const fixtureDir = join(process.cwd(), 'fixtures', 'observe', profileName);
   await fs.mkdir(fixtureDir, { recursive: true });
