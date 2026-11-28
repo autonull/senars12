@@ -22,6 +22,15 @@ const BUNDLE_LOCATIONS = [
   'fixtures/observe',
 ] as const;
 
+/** Base paths for observe data. */
+export const Paths = {
+  cacheObservations: join(process.cwd(), '.cache', 'observations'),
+  generatedObservations: join(process.cwd(), 'generated', 'observations'),
+  fixturesObserve: join(process.cwd(), 'fixtures', 'observe'),
+  generatedTours: join(process.cwd(), 'generated', 'tours'),
+  scenarioProfiles: join(process.cwd(), 'src', 'tools', 'adapters', 'scenario-profiles.ts'),
+} as const;
+
 /** Find a bundle directory by run ID. */
 export function findBundle(runId: string): string | null {
   for (const location of BUNDLE_LOCATIONS) {
@@ -34,6 +43,21 @@ export function findBundle(runId: string): string | null {
     }
   }
   return null;
+}
+
+/** Find bundle in standard cache location. */
+export function findCacheBundle(runId: string): string {
+  return join(Paths.cacheObservations, runId);
+}
+
+/** Find bundle in standard generated location. */
+export function findGeneratedBundle(runId: string): string {
+  return join(Paths.generatedObservations, runId);
+}
+
+/** Find fixture in standard fixtures location. */
+export function findFixtureBundle(profileName: string): string {
+  return join(Paths.fixturesObserve, profileName);
 }
 
 /** Find all bundle directories matching a prefix. */

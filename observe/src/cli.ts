@@ -8,7 +8,7 @@ import { diffRuns, bisect } from './diff.js';
 import { promoteRun } from './promote.js';
 import { getObserveProgram, listObservePrograms } from './programs.js';
 import { runDriftGate } from './drift.js';
-import { findBundle, readBundle } from './bundle.js';
+import { findBundle, readBundle, Paths } from './bundle.js';
 import type { ObserveRunResult } from './run.js';
 import type { VerifyResult } from './verify.js';
 import type { ScenarioRunnerDeps } from '@senars/tools/adapters/scenario-execute';
@@ -334,7 +334,7 @@ async function cmdExport(flags: Flags): Promise<number> {
     return 1;
   }
 
-  const outPath = output || join(process.cwd(), 'generated', 'observations', `${runId}.${format}`);
+  const outPath = output || join(Paths.generatedObservations, `${runId}.${format}`);
 
   switch (format) {
     case 'report': {
@@ -515,12 +515,12 @@ async function cmdTour(flags: Flags): Promise<number> {
   const tour = await generateTour(runId);
 
   if (format === 'json') {
-    const outPath = output || join(process.cwd(), 'generated', 'tours', `${tour.runId}-tour.json`);
+    const outPath = output || join(Paths.generatedTours, `${tour.runId}-tour.json`);
     await saveTour(tour, outPath);
     console.log(`Tour saved to: ${outPath}`);
   } else {
     const markdown = await renderTourMarkdown(tour);
-    const outPath = output || join(process.cwd(), 'generated', 'tours', `${tour.runId}-tour.md`);
+    const outPath = output || join(Paths.generatedTours, `${tour.runId}-tour.md`);
     await saveTour({ ...tour, summary: markdown } as any, outPath);
     console.log(`Tour saved to: ${outPath}`);
   }
@@ -532,7 +532,7 @@ async function cmdTour(flags: Flags): Promise<number> {
 }
 
 async function publishRun(result: ObserveRunResult): Promise<void> {
-  const generatedDir = join(process.cwd(), 'generated', 'observations', result.runId);
+  const generatedDir = join(Paths.generatedObservations, result.runId);
   await fs.mkdir(generatedDir, { recursive: true });
 
   await fs.cp(result.reportPath, join(generatedDir, 'report.md'));

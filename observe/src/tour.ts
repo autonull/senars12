@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { getLogger } from './logger.js';
 import type { Manifest, Verdict, Finding, CheckResult } from './schema.js';
 import type { ObserveProgram } from './programs.js';
-import { findBundle, readBundle } from './bundle.js';
+import { findBundle, readBundle, Paths } from './bundle.js';
 
 const logger = getLogger('ObserveTour');
 
@@ -116,7 +116,7 @@ function buildSummary(verdict: Verdict, checks: CheckResult[], stepCount: number
 }
 
 export async function saveTour(tour: GeneratedTour, outputPath?: string): Promise<string> {
-  const path = outputPath || join(process.cwd(), 'generated', 'tours', `${tour.runId}-tour.json`);
+  const path = outputPath || join(Paths.generatedTours, `${tour.runId}-tour.json`);
   await fs.mkdir(join(path, '..'), { recursive: true });
   await fs.writeFile(path, JSON.stringify(tour, null, 2));
   return path;

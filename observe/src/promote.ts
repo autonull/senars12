@@ -4,6 +4,7 @@ import { getLogger } from './logger.js';
 import { governanceArtifactRegistry } from '@senars/governance/artifacts';
 import { hashContent } from './bundle.js';
 import { generateId } from './schema.js';
+import { Paths } from './bundle.js';
 import type { Manifest, Verdict, Finding } from './schema.js';
 import type { ObserveProgram } from './programs.js';
 import { findBundle, readBundle } from './bundle.js';
@@ -33,7 +34,7 @@ export async function promoteRun(runId: string): Promise<PromoteResult> {
 
   const fixtureId = generateId();
   const profileName = `${program.name}_${fixtureId}`;
-  const fixtureDir = join(process.cwd(), 'fixtures', 'observe', profileName);
+  const fixtureDir = join(Paths.fixturesObserve, profileName);
   await fs.mkdir(fixtureDir, { recursive: true });
 
   const fixtureProgram: ObserveProgram = {
@@ -82,7 +83,7 @@ export async function promoteRun(runId: string): Promise<PromoteResult> {
 
 async function autoRegisterScenarioProfile(profileName: string): Promise<boolean> {
   try {
-    const profilesPath = join(process.cwd(), 'src/tools/adapters/scenario-profiles.ts');
+    const profilesPath = Paths.scenarioProfiles;
     const content = await fs.readFile(profilesPath, 'utf-8');
     
     // Check if already registered
@@ -132,7 +133,7 @@ async function autoRegisterScenarioProfile(profileName: string): Promise<boolean
 }
 
 async function findFixedVerdict(originalRunId: string): Promise<Verdict | null> {
-  const observationsDir = join(process.cwd(), '.cache', 'observations');
+  const observationsDir = Paths.cacheObservations;
   try {
     const entries = await fs.readdir(observationsDir);
     for (const entry of entries) {

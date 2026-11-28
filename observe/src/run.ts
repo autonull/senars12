@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { getLogger } from './logger.js';
 import { generateId } from './schema.js';
+import { Paths } from './bundle.js';
 import type { ScenarioSpec } from '@senars/tools/adapters/scenario-execute';
 import { runScenario, type ScenarioRunnerDeps, type ScenarioResult } from '@senars/tools/adapters/scenario-execute';
 import { EventBus } from '@senars/events/event-bus';
@@ -37,7 +38,7 @@ export interface ObserveRunResult {
 
 export async function observeRun(options: ObserveRunOptions): Promise<ObserveRunResult> {
   const runId = generateId();
-  const bundleDir = options.bundleDir ?? join(process.cwd(), '.cache', 'observations', runId);
+  const bundleDir = options.bundleDir ?? join(Paths.cacheObservations, runId);
   await fs.mkdir(bundleDir, { recursive: true });
 
   logger.info('Starting observe run', { runId, program: options.program.name });
@@ -128,7 +129,7 @@ export async function observeRecord(
   uiUrl?: string
 ): Promise<{ runId: string; bundleDir: string; manifest: Manifest }> {
   const runId = name;
-  const bundleDir = join(process.cwd(), '.cache', 'observations', runId);
+  const bundleDir = join(Paths.cacheObservations, runId);
   await fs.mkdir(bundleDir, { recursive: true });
 
   logger.info('Starting ad-hoc recording', { runId, command });

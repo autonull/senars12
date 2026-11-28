@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { getLogger } from './logger.js';
 import type { Manifest, Finding } from './schema.js';
 import { diffRuns } from './diff.js';
-import { findBundle } from './bundle.js';
+import { findBundle, Paths } from './bundle.js';
 
 const logger = getLogger('ObserveDrift');
 
@@ -80,7 +80,7 @@ export async function runDriftGate(currentRunId: string): Promise<DriftResult> {
 }
 
 async function findBaselineRun(currentRunId: string): Promise<string | null> {
-  const fixturesDir = join(process.cwd(), 'fixtures', 'observe');
+  const fixturesDir = Paths.fixturesObserve;
   try {
     const entries = await fs.readdir(fixturesDir);
     for (const entry of entries) {
