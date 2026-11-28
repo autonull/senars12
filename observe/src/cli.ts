@@ -81,6 +81,7 @@ OPTIONS:
   --live              Use live lane (real-time, non-deterministic)
   --publish           Publish GIF/cast/report to generated/observations
   --surfaces          Comma-separated: console,ui (default: console)
+  --ui-url, -u        URL to navigate to for UI recording
   --task              Repair task JSON file (for verify)
   --worktree          Shadow worktree path (for verify)
   --good              Good commit SHA (for bisect)
@@ -93,13 +94,15 @@ EXAMPLES:
   senars observe list
   senars observe run --program contradictory_sensors
   senars observe run --program temporal_reasoning --live
+  senars observe run --program contradictory_sensors --surfaces console,ui --ui-url http://localhost:3000
   senars observe record --command "pnpm senars run --profile agent" --name my-debug
+  senars observe record --command "npx serve dist" --name ui-demo --surfaces console,ui --ui-url http://localhost:3000
   senars observe verify --task .cache/observations/.../repair-task.json --worktree .shadow/abc123
   senars observe diff runA runB
   senars observe bisect --program contradictory_sensors --good abc123 --bad def456
   senars observe promote verify_123
   senars observe export run123 --format gif --output demo.gif
-  senars observe replay run123 --speed 2x
+  senars observe replay run123 --speed 2x --serve
 `;
 }
 
@@ -124,10 +127,17 @@ async function cmdRun(flags: Flags, deps: ScenarioRunnerDeps): Promise<number> {
 
   const live = flags.has('live');
   const publish = flags.has('publish');
+  const surfaces = (flags.str('surfaces', '') || flags.str('s', '') || 'console').split(',') as ('console' | 'ui')[];
+  const uiUrl = flags.str('ui-url', '') || flags.str('u', '');
   const program = getObserveProgram(programId as any, `cli-${Date.now()}`);
   program.observe.lane = live ? 'live' : 'hermetic';
+  program.observe.surfaces = surfaces;
+  if (uiUrl) program.observe.uiUrl = uiUrl;
 
   console.log(`Running observe program: ${program.name} (${program.observe.lane})`);
+  if (surfaces.includes('ui')) {
+    console.log(`  UI recording enabled${uiUrl ? ` -> ${uiUrl}` : ''}`);
+  }
 
   const result = await observeRun({ program, deps, runReview: true });
 
@@ -155,6 +165,7 @@ async function cmdRecord(flags: Flags): Promise<number> {
   const name = flags.str('name', '') || flags.str('n', '');
   const surfaces = (flags.str('surfaces', '') || flags.str('s', '') || 'console').split(',') as ('console' | 'ui')[];
   const live = flags.has('live');
+  const uiUrl = flags.str('ui-url', '') || flags.str('u', '');
 
   if (!command || !name) {
     console.error('Error: --command and --name required');
@@ -162,8 +173,11 @@ async function cmdRecord(flags: Flags): Promise<number> {
   }
 
   console.log(`Recording: ${command} (as ${name})`);
+  if (surfaces.includes('ui')) {
+    console.log(`  UI recording enabled${uiUrl ? ` -> ${uiUrl}` : ''}`);
+  }
 
-  const result = await observeRecord(command, name, surfaces, live ? 'live' : 'hermetic');
+  const result = await observeRecord(command, name, surfaces, live ? 'live' : 'hermetic', uiUrl || undefined);
 
   console.log(`\nRecording completed: ${result.runId}`);
   console.log(`Bundle: ${result.bundleDir}`);

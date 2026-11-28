@@ -50,6 +50,7 @@ export async function observeRun(options: ObserveRunOptions): Promise<ObserveRun
     maxFrames: options.program.observe.maxFrames,
     lane: options.program.observe.lane,
     eventBus,
+    uiUrl: options.program.observe.uiUrl,
   });
 
   const scenarioSpec: ScenarioSpec = {
@@ -123,7 +124,8 @@ export async function observeRecord(
   command: string,
   name: string,
   surfaces: ('console' | 'ui')[] = ['console'],
-  lane: 'hermetic' | 'live' = 'hermetic'
+  lane: 'hermetic' | 'live' = 'hermetic',
+  uiUrl?: string
 ): Promise<{ runId: string; bundleDir: string; manifest: Manifest }> {
   const runId = name;
   const bundleDir = join(process.cwd(), '.cache', 'observations', runId);
@@ -139,6 +141,7 @@ export async function observeRecord(
     maxFrames: 100,
     lane,
     eventBus,
+    uiUrl,
   });
 
   const { spawn } = await import('node:child_process');

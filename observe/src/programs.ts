@@ -8,6 +8,7 @@ export interface ObserveProgram extends ScenarioSpec {
     maxFrames: number;
     reviewerPrompt?: string;
     lane: 'hermetic' | 'live';
+    uiUrl?: string;
   };
 }
 

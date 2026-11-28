@@ -15,6 +15,7 @@ export interface RecorderOptions {
   maxFrames: number;
   lane: 'hermetic' | 'live';
   eventBus: EventBus;
+  uiUrl?: string;
 }
 
 interface FrameHash {
@@ -113,6 +114,16 @@ export class Recorder {
       this.#page.on('framenavigated', () => {
         this.#captureKeyframe('navigation');
       });
+
+      // Navigate to UI URL if provided
+      if (this.#options.uiUrl) {
+        try {
+          await this.#page.goto(this.#options.uiUrl, { waitUntil: 'networkidle', timeout: 30000 });
+          logger.info('Navigated to UI URL', { url: this.#options.uiUrl });
+        } catch (error) {
+          logger.warn('Failed to navigate to UI URL', { url: this.#options.uiUrl, error });
+        }
+      }
 
       this.#videoPath = join(this.#options.bundleDir, 'ui.webm');
       this.#tracePath = join(this.#options.bundleDir, 'ui-trace.zip');
